@@ -68,8 +68,8 @@ def test_data_invariants_hold():
     assert problems.errors == [], problems.errors
     assert stats["characters"] == 121
     assert stats["albums"] == 39
-    assert stats["entries"] == 357
-    assert stats["distinct_tracks"] == 347
+    assert stats["entries"] == 378       # 357 条上游条目 + 21 条人工补配
+    assert stats["distinct_tracks"] == 368
     assert stats["pending"] == 0
     assert stats["overrides"] == 5
     assert len(stats["shared"]) == 10

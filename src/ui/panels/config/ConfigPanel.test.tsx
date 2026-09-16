@@ -56,7 +56,7 @@ describe("ConfigPanel", () => {
   it("渲染统计、秘封组、三态开关与 CD / 官作分组", async () => {
     const { container } = await renderPanel();
     const text = container.textContent ?? "";
-    expect(text).toContain("357");                    // 可用/全库
+    expect(text).toContain("378");                    // 可用/全库（含 21 条补配）
     expect(text).toContain("Hifuu tracks");
     expect(text).toContain("Official games");
     expect(text).toContain("蓬莱人形 ～ Dolls in Pseudo Paradise");
@@ -85,9 +85,9 @@ describe("ConfigPanel", () => {
     expect(before.category.角色曲).toBe("unset");
     await click(container.querySelector('[data-testid="tri-角色曲-off"]')!);
     expect(usePreset.getState().category.角色曲).toBe("off");
-    // 221 条角色曲被否决 → 可用数下降（357 - 221 = 136）
+    // 236 条角色曲被否决 → 可用数下降（378 - 236 = 142）
     const stats = container.querySelector('[data-testid="preset-stats"]')!.textContent ?? "";
-    expect(stats).toContain("136 / 357");
+    expect(stats).toContain("142 / 378");
   });
 
   it("取消一张官作专辑只影响它自己的曲目", async () => {
@@ -95,7 +95,7 @@ describe("ConfigPanel", () => {
     await toggle(input(container, "album-th20"));
     expect(usePreset.getState().albums["東方錦上京 ～ Fossilized Wonders"]).toBe(false);
     const stats = container.querySelector('[data-testid="preset-stats"]')!.textContent ?? "";
-    expect(stats).toContain("343 / 357");
+    expect(stats).toContain("364 / 378");   // 取消 th20 的 14 条
   });
 
   it("仅单曲模式：开关落盘；下拉只列预设启用的曲目；可禁用角色", async () => {

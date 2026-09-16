@@ -30,6 +30,24 @@ PROVISIONAL_EXTRA = "角色曲"
 #: 人工补充的搜索别名 `data/meta/character-aliases.tsv`（key → [别名, …]）
 ALIASES_FILE = "character-aliases.tsv"
 
+#: 人工补配的曲目 `data/meta/character-tracks.tsv`（key → [(专辑, 曲目, 附加信息, 依据, 来源), …]）
+TRACKS_FILE = "character-tracks.tsv"
+
+
+def load_track_additions() -> dict[str, list[tuple[str, str, str, str, str]]]:
+    path = repo.DATA / "meta" / TRACKS_FILE
+    table: dict[str, list[tuple[str, str, str, str, str]]] = {}
+    if not path.exists():
+        return table
+    for line in path.read_text(encoding="utf-8").splitlines()[1:]:
+        if not line.strip():
+            continue
+        cells = (line.split("\t") + [""] * 5)[:6]
+        key, album, title, extra, reason, source = cells
+        if key and album and title and extra:
+            table.setdefault(key, []).append((album, title, extra, reason, source))
+    return table
+
 
 def load_aliases() -> dict[str, list[str]]:
     path = repo.DATA / "meta" / ALIASES_FILE
@@ -101,8 +119,10 @@ def _load_upstream() -> dict:
 
 def migrate_characters(index: RoleIndex, report: Migration,
                        overrides: dict | None = None,
-                       aliases: dict[str, list[str]] | None = None) -> None:
+                       aliases: dict[str, list[str]] | None = None,
+                       additions: dict[str, list[tuple[str, str, str, str, str]]] | None = None) -> None:
     aliases = aliases or {}
+    additions = additions or {}
     upstream = _load_upstream()
     taken: set[str] = set()
     for order, (name, cfg) in enumerate(upstream.items(), start=1):
@@ -142,6 +162,15 @@ def migrate_characters(index: RoleIndex, report: Migration,
                 report.pending.append((slug, key[0], key[1], extra, verdict.evidence))
             lines.append(f"  [{_toml_str(key[0])}, {_toml_str(key[1])}, {_toml_str(extra)}],")
             report.entries += 1
+        for album, title, extra, reason, source in additions.get(slug, []):
+            key = (unicodedata.normalize("NFC", album), unicodedata.normalize("NFC", title))
+            if key in seen:
+                report.reasons["addition-skipped-duplicate"] += 1
+                continue
+            seen.add(key)
+            lines.append(f"  [{_toml_str(key[0])}, {_toml_str(key[1])}, {_toml_str(extra)}],")
+            report.entries += 1
+            report.reasons["R-ADD"] += 1
         lines += ["]", ""]
         (repo.DATA / "characters" / f"{slug}.toml").write_text("\n".join(lines), encoding="utf-8")
         report.characters += 1
@@ -332,6 +361,7 @@ def main(argv: list[str] | None = None) -> int:
     index = RoleIndex.load()
     overrides = load_overrides()
     aliases = load_aliases()
+    additions = load_track_additions()
     report = Migration()
     referenced: set[tuple[str, str]] = set()
     upstream = _load_upstream()
@@ -341,7 +371,7 @@ def main(argv: list[str] | None = None) -> int:
             referenced.add((unicodedata.normalize("NFC", album), unicodedata.normalize("NFC", title)))
 
     migrate_albums()
-    migrate_characters(index, report, overrides, aliases)
+    migrate_characters(index, report, overrides, aliases, additions)
     migrate_sources(referenced, report)
     write_unowned(index, referenced, report)
     write_reports(report)

@@ -292,6 +292,39 @@ def check_alias_tables(chars: list[dict], p: Problems) -> dict[str, int]:
     return {"aliases": added, "composites": composites}
 
 
+def check_track_additions(chars: list[dict], p: Problems) -> int:
+    """`data/meta/character-tracks.tsv`：每条都要真的在角色文件里，且 (专辑,曲目) 三表齐备。"""
+    path = repo.DATA / "meta" / "character-tracks.tsv"
+    if not path.exists():
+        return 0
+    tables = {}
+    for source_id in ("netease163", "cloudflare_r2", "thbwiki"):
+        with open(repo.DATA / "sources" / f"{source_id}.json", encoding="utf-8") as fh:
+            tables[source_id] = {(a, t) for a, t, _u in json.load(fh)}
+    by_key = {c["key"]: c for c in chars}
+    count = 0
+    for line in path.read_text(encoding="utf-8").splitlines()[1:]:
+        if not line.strip():
+            continue
+        key, album, title, extra, reason, source = (line.split("\t") + [""] * 6)[:6]
+        count += 1
+        char = by_key.get(key)
+        if char is None:
+            p.error(f"补配表指向未知角色：{key}")
+            continue
+        hit = [e for e in char["music"] if e[0] == album and e[1] == title]
+        if not hit:
+            p.error(f"补配曲目没落进角色文件：{key} / {album} / {title}")
+        elif hit[0][2] != extra:
+            p.error(f"补配曲目的附加信息不符：{key} / {title}（文件 {hit[0][2]}，表 {extra}）")
+        if not reason or not source:
+            p.error(f"补配表缺依据/来源：{key} / {title}")
+        for source_id, table in tables.items():
+            if (album, title) not in table:
+                p.error(f"补配曲目在 {source_id} 里不存在：{album} / {title}")
+    return count
+
+
 def check_pending(chars: list[dict], p: Problems):
     path = repo.ROOT / "reports" / "extra-pending.tsv"
     if not path.exists():
@@ -326,6 +359,7 @@ def run() -> tuple["Problems", dict]:
     pending = check_pending(chars, p)
     overrides = check_overrides(chars, p)
     alias_stats = check_alias_tables(chars, p)
+    additions = check_track_additions(chars, p)
     stage_rows = check_stage_attribution(chars)
     digest = hashlib.sha256(
         json.dumps(sorted(char_stats["referenced"]), ensure_ascii=False).encode()).hexdigest()[:12]
@@ -333,7 +367,7 @@ def run() -> tuple["Problems", dict]:
         "albums": len(albums), "characters": len(chars), "pending": pending,
         "digest": digest, "sources": source_stats, "stage_rows": stage_rows,
         "overrides": overrides, "source_registry": source_registry,
-        "card_sets": card_sets, **alias_stats,
+        "card_sets": card_sets, "track_additions": additions, **alias_stats,
         **{k: v for k, v in char_stats.items() if k != "referenced"},
     }
 

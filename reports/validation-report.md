@@ -2,8 +2,8 @@
 
 - 角色：121
 - 专辑：39
-- 曲目条目：357
-- 去重曲目：347
+- 曲目条目：378
+- 去重曲目：368
 - 秘封曲条目：39
 - 跨角色共用曲目：10
 - 待判定（占位）：0
@@ -27,3 +27,7 @@
 - 東方虹龍洞 ～ Unconnected Marketeers / 幻想の地下大線路網: himemushi-momoyo, kudamaki-tsukasa
 - 東方輝針城 ～ Double Dealing Character / ミストレイク: cirno, wakasagihime
 - 東方鬼形獣 ～ Wily Beast and Weakest Creature / 輝かしき弱肉強食の掟: kurokoma-saki, niwatari-kutaka
+
+## 提示
+
+- 道中曲面次核对：4 条 no-label（见 reports/stage-check.tsv）

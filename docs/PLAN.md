@@ -650,7 +650,7 @@ interface Transport {
 - [x] **M0 地基**：`git init`（无远端）、目录骨架、README、决策与规则文档、`tools/` 的 uv 工程。
 - [x] **M1 数据迁移**：`data/` TOML（121 角色 / 39 专辑 / 3 源表数组化）+ `tools/` 的迁移/校验/生成脚本 + 24 个测试 → 体检报告见 [`reports/M1-data-health.md`](../reports/M1-data-health.md)（待判定 19 条、面次待判 14 条）。
 - [x] **M2a**：待判定 19 条 + 面次核对 → [`reports/M2a-proposal.md`](../reports/M2a-proposal.md)。**待判定 0 条**、面次核对 95 verified + 2 别名缺口、修正 1 组源表 URL；新增人工裁定表 `data/meta/extra-overrides.tsv`。
-- [x] **M2b**：TH20 逐条复核（14/14 命中，整表认可）+ 全量别名对照（补 10 条，缺口 0）+ 未归属清单 `data/meta/unowned-tracks.tsv`（305 条，其中 **22 条待补配候选**待你定）。
+- [x] **M2b**：TH20 逐条复核（14/14 命中，整表认可）+ 全量别名对照（补 10 条，缺口 0）+ 未归属清单 `data/meta/unowned-tracks.tsv`（305 条）。**补配 21 条**（`data/meta/character-tracks.tsv`：15 角色曲 / 2 道中曲 / 4 更多道中曲；`永夜の報い` 按你的裁定不补），条目 357 → **378**。
 - [x] **M3 音源层**：`data/sources/sources.toml` 注册表（**三个远程源默认全开**）+ 本地曲库助手 `tmc.local_source`（manifest、Range/CORS、端口回退）+ 实链抽查 `tmc.check_urls`（120 条抽样全通过）。网易云外链已统一升为 `https://`（实测 302 落点 CDN 亦支持 https）。
 - [x] **M4 应用骨架**：Vite + React 19 + MUI 7 工程、主题与字体、本地化（en/zh）、数据载入与入口校验、版本化持久化层、页签外壳与四个面板骨架（`pnpm dev` 可跑；20 个前端测试 + 32 个 Python 测试全绿）。
 - [x] **M5 播放层**：双 `<audio>`（正曲 + Bell3 倒计时铃）、音源链解析 + 运行时换源回退、按种子选曲/洗牌/随机起播、播放时长自动暂停、播放页（立绘 + 控制条 + 接下来 + 抽选/重置 + 播放设置）、卡面图集注册表（多 origin 兜底）。53 个前端测试 + 32 个 Python 测试全绿。
