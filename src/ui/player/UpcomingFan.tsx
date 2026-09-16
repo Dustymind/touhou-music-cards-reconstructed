@@ -1,10 +1,8 @@
 /** "接下来"的重叠牌堆（上游 `PlayerTab.tsx` 的 upcoming cards）。
  *
- * 上游把每张卡绝对定位在一条很长的横带上：同角色的多张卡叠 80%、角色之间叠 20%，
- * 靠 `transition: left 0.5s ease-in-out` 在切歌/跳过后整条带子滑过去；hover 抬起、点击＝临时跳过。
- * 这里照抄这套布局与动效；差别只有两处（见 `docs/DECISIONS.md` D21）：
- * 起点从**当前角色**开始（上游把当前角色再往左推 2 张卡宽，当前角色在可视区外），
- * 以及当前角色的卡用 `selected` 底色标一下。
+ * 每张卡绝对定位在一条很长的横带上，靠 `transition: left 0.5s ease-in-out` 在切歌/跳过后整条带子滑过去；
+ * hover 抬起、点击＝临时跳过。容器横向可滚动，所以卡片**不重叠**、每张都完整可见
+ * （上游是 80%/20% 重叠的扇形；用户要求修掉重合，见 `docs/DECISIONS.md` D23）。
  */
 import { Box } from "@mui/material";
 import { useEffect, useState } from "react";
@@ -33,27 +31,24 @@ interface FanCard {
   zIndex: number;
 }
 
-/** 上游的尺寸常量：`singleCardWp = min(windowWidth * 0.2, 150)`，同角色叠 80%、角色间叠 20%。 */
+/** 卡片宽度沿用上游 `min(windowWidth * 0.2, 150)`；卡与卡之间留 6px，不再重叠。 */
+export const FAN_GAP = 6;
+
+/** 卡片尺寸常量（上游 `PlayerTab.tsx` 的 `singleCardWp`）。 */
 export function fanLayout(
   bundle: DataBundle,
   order: readonly string[],
   windowWidth: number,
 ): { cards: FanCard[]; cardWidth: number; cardHeight: number } {
   const cardWidth = Math.min(windowWidth * 0.2, 150);
-  const inGroupOverlap = cardWidth * 0.8;
-  const groupOverlap = cardWidth * 0.2;
   const cards: FanCard[] = [];
-  let accumulate = 0;
   let counter = 0;
   for (const key of order) {
     const character = bundle.characterByKey.get(key);
     const files = character?.card.length ? character.card : [""];
     files.forEach((file, cardIndex) => {
-      cards.push({ key, file, cardIndex, left: accumulate, zIndex: 10_000 - counter });
+      cards.push({ key, file, cardIndex, left: counter * (cardWidth + FAN_GAP), zIndex: 10_000 - counter });
       counter += 1;
-      accumulate += cardIndex < files.length - 1
-        ? cardWidth - inGroupOverlap
-        : cardWidth - groupOverlap;
     });
   }
   return { cards, cardWidth, cardHeight: cardWidth / CardAspectRatio };

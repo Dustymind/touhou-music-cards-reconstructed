@@ -111,8 +111,14 @@ export function buildTheme(): Theme {
     components: {
       MuiCssBaseline: {
         styleOverrides: {
+          // `color-scheme: dark` 让浏览器把滚动条等原生控件画成深色（上游靠 MUI 深色主题拿到同一效果）
+          html: { colorScheme: "dark" },
           // 显式钉住页面底色（与 `palette.background.default` 同值，避免任何情况下回到白底）
-          body: { backgroundColor: Palette.background, color: Palette.text },
+          body: {
+            backgroundColor: Palette.background,
+            color: Palette.text,
+            colorScheme: "dark",
+          },
         },
       },
     },

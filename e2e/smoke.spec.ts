@@ -204,10 +204,18 @@ test("动效：牌桌卡牌滑位 + hover 抬起；播放页牌堆叠放 + 点�
     return inner ? getComputedStyle(inner).transform : "";
   });
   expect(boardLift).toBe("none");
-  // 卡面自身也不该有白底纸框（用户要求：不要卡片底下的背景）
-  const boardBg = await page.getByTestId("deck-you-card-0").evaluate((element) =>
-    getComputedStyle(element.firstElementChild!).backgroundColor);
-  expect(boardBg).toBe("rgba(0, 0, 0, 0)");
+  // 卡牌只保留**一层**白底、不要外层纸框与投影（用户要求）
+  const boardCard = await page.getByTestId("deck-you-card-0").evaluate((element) => {
+    const inner = element.firstElementChild as HTMLElement;
+    const style = getComputedStyle(inner);
+    return { bg: style.backgroundColor, shadow: style.boxShadow };
+  });
+  expect(boardCard.bg).toBe("rgb(255, 255, 255)");
+  expect(boardCard.shadow).toBe("none");
+  // 槽位本身不铺底、不描边（有卡的位置）
+  const cellShadow = await page.getByTestId("deck-you-card-0").evaluate((element) =>
+    getComputedStyle(element.parentElement!.parentElement!.parentElement!).backgroundColor);
+  expect(cellShadow).toBe("rgba(0, 0, 0, 0)");
 
   // 播放页：牌堆每张卡都有上游那条 0.5s 横向过渡，点击＝临时跳过（底色转灰）
   await page.getByRole("button", { name: "Player" }).click();
@@ -223,6 +231,15 @@ test("动效：牌桌卡牌滑位 + hover 抬起；播放页牌堆叠放 + 点�
   }));
   expect(scrollable.overflowX).toBe("auto");
   expect(scrollable.wider).toBe(true);
+  // 卡与卡之间不重叠（用户要求修掉重合）
+  const gap = await page.evaluate(() => {
+    const cards = [...document.querySelectorAll('[data-testid^="upcoming-card-"]')].slice(0, 2);
+    if (cards.length < 2) return 0;
+    const a = cards[0]!.getBoundingClientRect();
+    const b = cards[1]!.getBoundingClientRect();
+    return Math.round(b.left - a.right);
+  });
+  expect(gap).toBeGreaterThanOrEqual(0);
   // hover 抬起 = 内层卡片 translateY(-10%)（上游 `raised`），且不被容器裁掉
   const targetId = await page.locator('[data-testid^="upcoming-card-"]').nth(3).getAttribute("data-testid");
   const target = page.getByTestId(targetId!);

@@ -15,7 +15,7 @@ import { displayTitle } from "../../data/types";
 import { Localization, t } from "../../i18n/localization";
 import type { PlayerApi } from "../../audio/usePlayer";
 import type { TableMap } from "../../music/sources";
-import { CardAspectRatio, fadeInSx, NoFontFamily } from "../../theme/theme";
+import { fadeInSx, NoFontFamily } from "../../theme/theme";
 import { CharacterCard } from "../components/CharacterCard";
 import { glitchEnabled, preferLocalCards } from "../../runtime";
 import { PlayerControl } from "../components/PlayerControl";
@@ -42,9 +42,8 @@ export interface PlayerPanelProps {
   cardCollection: string;
 }
 
-/** 当前卡面的宽度与叠放位移（上游叠放卡面用固定 box 宽度百分比，这里给像素值）。 */
+/** 当前卡面的宽度（上游按容器百分比，这里给像素值）。 */
 const CURRENT_CARD_WIDTH = 140;
-const STACK_OFFSET = 26;
 
 export function PlayerPanel(props: PlayerPanelProps) {
   const { bundle, player, order, temporaryDisabled, currentKey } = props;
@@ -58,38 +57,22 @@ export function PlayerPanel(props: PlayerPanelProps) {
           <Box sx={{ flexShrink: 0 }}>
             {character
               ? (
-                // 叠放这个角色的全部卡面（上游 `CharacterCardStacked`）：`left` 过渡让展开/切歌有位移感
+                // 只显示这个角色的第一张卡面（上游是叠放多张；用户要求卡牌区块不重合，其余在牌堆里看）
                 <Box
                   key={currentKey}
                   data-testid="current-card"
                   sx={{
-                    position: "relative",
-                    height: CURRENT_CARD_WIDTH / CardAspectRatio,
-                    width: CURRENT_CARD_WIDTH + (character.card.length - 1) * STACK_OFFSET,
+                    width: CURRENT_CARD_WIDTH,
                     animation: `${slideIn} 0.3s ease-in-out`,
                   }}
                 >
-                  {character.card.map((file, index) => (
-                    <Box
-                      key={file}
-                      sx={{
-                        position: "absolute",
-                        left: index * STACK_OFFSET,
-                        top: 0,
-                        width: CURRENT_CARD_WIDTH,
-                        zIndex: index,
-                        transition: "left 0.4s ease, transform 0.3s ease",
-                      }}
-                    >
-                      <CharacterCard
-                        cardSet={cardSet}
-                        file={file}
-                        glitch={glitchEnabled()}
-                        preferLocal={preferLocalCards()}
-                        data-testid={index === 0 ? "current-card-image" : undefined}
-                      />
-                    </Box>
-                  ))}
+                  <CharacterCard
+                    cardSet={cardSet}
+                    file={character.card[0]!}
+                    glitch={glitchEnabled()}
+                    preferLocal={preferLocalCards()}
+                    data-testid="current-card-image"
+                  />
                 </Box>
               )
               : <CharacterCard cardSet={cardSet} file="" state="placeholder" sx={{ width: CURRENT_CARD_WIDTH }} />}

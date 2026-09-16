@@ -37,7 +37,8 @@ export interface CharacterCardProps {
   preferLocal?: boolean;
   glitch?: boolean;
   raised?: boolean;
-  /** 只要卡面、不要底下的纸框（游戏里的选卡区/播放页牌堆用；底色改成描边圈） */
+  /** 不要外层纸框与投影，只留**一层**白底（游戏牌桌/选卡区/播放页牌堆用）。
+   *  状态色仍按上游铺在这一层底上（抢对=绿、抢错=红、禁用=灰）。 */
   bare?: boolean;
   onClick?: () => void;
   sx?: SxProps;
@@ -54,12 +55,11 @@ export function CharacterCard({
 
   const isPlaceholder = state === "placeholder" || !file;
   const origin = origins[Math.min(originIndex, origins.length - 1)] ?? cardSet.origins[0]!;
-  const background = isCheat() ? randomColor(0.5, 1) : bare ? "transparent" : COLOR_BY_STATE[state];
+  // `bare` 的 normal 态就是一张白底卡（用户要求：卡牌只保留一层白色背景）
+  const background = isCheat()
+    ? randomColor(0.5, 1)
+    : bare && state === "normal" ? CardColors.Normal : COLOR_BY_STATE[state];
   const grayscale = GRAYSCALE.includes(state);
-  // `bare`：不铺底色，状态改用描边圈表达（不会糊住相邻卡牌的动效）
-  const ring = bare && !isPlaceholder && !grayscale && state !== "normal"
-    ? `0 0 0 3px ${COLOR_BY_STATE[state]}`
-    : undefined;
   const rotation = glitch && !isPlaceholder ? glitchTilt(file) : 0;
 
   return (
@@ -70,7 +70,6 @@ export function CharacterCard({
       sx={{
         width,
         backgroundColor: background,
-        boxShadow: ring,
         borderRadius: bare ? "6px" : undefined,
         border: isPlaceholder ? "2px dashed gray" : "none",
         cursor: onClick ? "pointer" : "default",

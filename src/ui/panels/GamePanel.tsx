@@ -465,8 +465,8 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
         <Typography variant="caption" color="text.secondary">
           {t(Localization.GameOpponentCollected, { count: String(theirs.collected.length) })}
         </Typography>
-        {/* 卡片放大后牌库可能比容器宽：让它横向滚动，而不是把卡片缩小 */}
-        <Box sx={{ overflowX: "auto", maxWidth: "100%" }}>
+        {/* 卡片放大后牌库可能比容器宽：让它横向滚动；比容器窄时居中（用户要求卡槽区域居中） */}
+        <Box sx={{ overflowX: "auto", maxWidth: "100%", display: "flex", justifyContent: "center" }}>
         <DeckGrid
           testId="deck-opponent"
           deck={theirs.deck}
@@ -500,7 +500,7 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
         <Typography variant="caption" color="text.secondary">
           {t(Localization.GameSelfCollected, { count: String(mine.collected.length) })}
         </Typography>
-        <Box sx={{ overflowX: "auto", maxWidth: "100%" }}>
+        <Box sx={{ overflowX: "auto", maxWidth: "100%", display: "flex", justifyContent: "center" }}>
         <DeckGrid
           testId="deck-you"
           deck={mine.deck}
