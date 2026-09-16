@@ -13,6 +13,8 @@ import { useQueue } from "../../store/queue";
 import { useSources } from "../../music/useSources";
 import { usePlayer } from "../../audio/usePlayer";
 import { allowedTracks, mergeWithDefaults } from "../../music/selection";
+import { effectivePin } from "../../music/presetView";
+import { useSingleTrack } from "../../store/single";
 import { PlayerPanel } from "../panels/PlayerPanel";
 import { ConfigPanel } from "../panels/ConfigPanel";
 import { GamePanel } from "../panels/GamePanel";
@@ -36,15 +38,28 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
   const { tab, setTab, locale, cardCollection, sourceOverrides } = useSession();
   const preset = usePreset();
   const queue = useQueue();
+  const single = useSingleTrack();
 
   // 预设：持久化状态与新专辑默认勾选合并（首帧就要用它算队列，不能等 effect）
   const activePreset = useMemo(() => mergeWithDefaults(preset, bundle.albums), [preset, bundle.albums]);
 
+  /** 仅单曲模式：每角色固定一首（未手选则取预设允许的第一首）。 */
+  const pinned = useMemo(() => {
+    if (!single.enabled) return {};
+    const pins: Record<string, MusicEntry> = {};
+    for (const character of bundle.characters) {
+      const entry = effectivePin(activePreset, character, single.pins);
+      if (entry) pins[character.key] = entry;
+    }
+    return pins;
+  }, [single.enabled, single.pins, activePreset, bundle.characters]);
+
   const usableKeys = useMemo(
     () => bundle.characters
-      .filter((character) => allowedTracks(activePreset, character).entries.length > 0)
+      .filter((character) => allowedTracks(activePreset, character).entries.length > 0
+        && !single.disabledCharacters[character.key])
       .map((character) => character.key),
-    [activePreset, bundle.characters],
+    [activePreset, bundle.characters, single.disabledCharacters],
   );
 
   // 队列跟着"可用角色集合"走：新增角色追加到末尾，消失的剔除，保留用户顺序
@@ -55,7 +70,6 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
   }, [usableKeySignature]);
 
   const sources = useSources(bundle.sources, sourceOverrides);
-  const pinned: Record<string, MusicEntry | undefined> = {};
 
   const player = usePlayer({
     characters: bundle.characters,
@@ -132,7 +146,7 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
           />
         )}
         {tab === "list" && <ListPanel bundle={bundle} />}
-        {tab === "config" && <ConfigPanel bundle={bundle} />}
+        {tab === "config" && <ConfigPanel bundle={bundle} tables={sources.tables} />}
         {tab === "game" && <GamePanel bundle={bundle} />}
       </Stack>
     </Box>

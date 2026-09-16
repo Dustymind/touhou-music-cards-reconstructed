@@ -1,7 +1,6 @@
 /** 冒烟：真实数据（public/data/*.json）经载入器渲染出外壳与列表。 */
-import { readFile } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -9,26 +8,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import App from "./App";
 import { aliceLabel } from "./ui/shell/AppShell";
+import { installDataFetchStub } from "./test-utils";
 
 const dataDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../public/data");
-
-function stubDataFetch(): void {
-  globalThis.fetch = (async (input: RequestInfo | URL) => {
-    const url = new URL(String(input), "http://localhost/");
-    const json = (value: unknown) =>
-      new Response(JSON.stringify(value), { status: 200, headers: { "Content-Type": "application/json" } });
-    if (!url.pathname.startsWith("/data/")) {
-      // 远程音源表：给一份覆盖 order #1 角色全部曲目的假表（测试不打网络）
-      const characters = JSON.parse(await readFile(path.join(dataDir, "characters.json"), "utf8")) as {
-        characters: { key: string; music: [string, string, string][] }[];
-      };
-      const first = characters.characters[0]!;
-      return json(first.music.map(([album, title]) => [album, title, "data:audio/mpeg;base64,"]));
-    }
-    const file = path.join(dataDir, url.pathname.replace(/^\/data\//, ""));
-    return json(JSON.parse(await readFile(file, "utf8")));
-  }) as typeof fetch;
-}
 
 async function renderApp(): Promise<{ container: HTMLElement; root: Root }> {
   const container = document.createElement("div");
@@ -62,7 +44,7 @@ describe("App 冒烟（真实数据）", () => {
   });
 
   it("载入数据后渲染页签、角色与数据指纹", async () => {
-    stubDataFetch();
+    installDataFetchStub(dataDir);
     const { container } = await renderApp();
     // 等到音源表载入完成（解析成功后才会出现音源标签）
     const text = await waitFor(container, (value) => value.includes("netease163"));

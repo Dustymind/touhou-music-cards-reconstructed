@@ -1,6 +1,11 @@
 /** 极简 renderHook：不引入 testing-library，保持依赖面最小。 */
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+
 import { act } from "react";
 
+import type { DataBundle } from "./data/types";
+import { loadDataBundle } from "./data/load";
 import { buildEntries, type TableMap } from "./music/sources";
 import { createRoot, type Root } from "react-dom/client";
 
@@ -64,6 +69,31 @@ export class FakeAudio extends EventTarget {
   load = (): void => {
     this.dispatchEvent(new Event("loadedmetadata"));
   };
+}
+
+/** 把 `public/data/*.json` 当作 fetch 的响应源（测试不打网络）。 */
+export function installDataFetchStub(dataDir?: string): void {
+  const dir = dataDir ?? path.resolve(process.cwd(), "public/data");
+  globalThis.fetch = (async (input: RequestInfo | URL) => {
+    const url = new URL(String(input), "http://localhost/");
+    const json = (value: unknown) =>
+      new Response(JSON.stringify(value), { status: 200, headers: { "Content-Type": "application/json" } });
+    if (!url.pathname.startsWith("/data/")) {
+      // 远程音源表：给一份覆盖 order #1 角色全部曲目的假表
+      const characters = JSON.parse(await readFile(path.join(dir, "characters.json"), "utf8")) as {
+        characters: { music: [string, string, string][] }[];
+      };
+      return json(characters.characters[0]!.music.map(([album, title]) => [album, title, "data:audio/mpeg;base64,"]));
+    }
+    const file = path.join(dir, url.pathname.replace(/^\/data\//, ""));
+    return json(JSON.parse(await readFile(file, "utf8")));
+  }) as typeof fetch;
+}
+
+/** 用真实生成物载入一份 bundle。 */
+export async function loadRealBundle(dataDir?: string): Promise<DataBundle> {
+  installDataFetchStub(dataDir);
+  return loadDataBundle("/data");
 }
 
 /** 造一份 `TableMap`：`tracks` 是 `[专辑, 曲目]` 列表，URL 用假地址。 */

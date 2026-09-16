@@ -49,6 +49,25 @@ export const Localization = {
   ShellLanguage: u("Language", "语言"),
   ShellNotYet: u("This screen arrives in a later milestone.", "该界面将在后续里程碑实现。"),
 
+  ConfigTabPresetHifuu: u("Hifuu tracks", "秘封曲"),
+  ConfigTabPresetCD: u("CD", "CD"),
+  ConfigTabPresetGame: u("Official games", "官作"),
+  ConfigTabPresetSelectAll: u("Select all", "全选"),
+  ConfigTabPresetSelectNone: u("Select none", "全不选"),
+  ConfigTabPresetReset: u("Reset", "重置"),
+  ConfigTabTriUnset: u("Unset", "不配置"),
+  ConfigTabTriOn: u("On", "已启用"),
+  ConfigTabTriOff: u("Off", "已禁用"),
+  ConfigTabPresetStats: u(
+    "Available {enabled} / {total} tracks · {characters} characters have tracks",
+    "可用 {enabled} / 全库 {total} 首 · {characters} 个角色有曲目"),
+  ConfigTabSingleHint: u(
+    "When on, each character plays exactly one track; the first preset-enabled track is used until you pick another.",
+    "开启后每个角色只播一首；未手选的取预设允许的第一首。"),
+  ConfigTabSingleDisable: u("Disable character", "禁用该角色"),
+  ConfigTabSingleNoTracks: u("No tracks under this preset", "该预设下无可用曲目"),
+  ConfigTabSingleMode: u("Single track mode", "仅单曲模式"),
+
   ListTabOrder: u("Order", "顺序"),
   ListTabTracks: u("Tracks", "曲目"),
   ListTabAlbum: u("Album", "专辑"),
