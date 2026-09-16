@@ -1,0 +1,10 @@
+key = "shiki-eiki-yamazanadu"
+name = "四季映姫・ヤマザナドゥ"
+order = 32
+card = ["映姫.png"]
+searchNames = ["四季映姫・ヤマザナドゥ", "Shiki Eiki Yamazanadu", "四季映姬·亚玛萨那度", "siji yingji yamasannadu"]
+
+music = [
+  ["東方花映塚 ～ Phantasmagoria of Flower View", "六十年目の東方裁判　～ Fate of Sixty Years", "角色曲"],
+  ["伊弉諾物質 ～ Neo-traditionalism of Japan", "04. 六十年目の東方裁判 ～ Fate of Sixty Years", "秘封曲"],
+]

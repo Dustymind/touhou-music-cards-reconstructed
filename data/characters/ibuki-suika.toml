@@ -1,0 +1,12 @@
+key = "ibuki-suika"
+name = "伊吹萃香"
+order = 105
+card = ["萃香.png"]
+searchNames = ["伊吹萃香", "Ibuki Suika", "伊吹萃香", "yichui cuixiang"]
+
+music = [
+  ["幻想曲抜萃 ～ 東方萃夢想 Night Disc", "18. 御伽の国の鬼が島", "角色曲"],
+  ["幻想曲抜萃 ～ 東方萃夢想 Night Disc", "17. 砕月", "角色曲"],
+  ["全人類ノ天楽録 ～ 東方緋想天 Arrange Disc", "11. 砕月", "角色曲"],
+  ["東方獣王園 ～ Unfinished Dream of All Living Ghost", "鬼は悠久の山に", "角色曲"],
+]

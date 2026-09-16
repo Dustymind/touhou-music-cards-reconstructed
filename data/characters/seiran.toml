@@ -1,0 +1,10 @@
+key = "seiran"
+name = "清蘭"
+order = 71
+card = ["清蘭.png"]
+searchNames = ["清蘭", "Seiran", "清兰", "qinglan"]
+
+music = [
+  ["東方紺珠伝 ～ Legacy of Lunatic Kingdom", "兎は舞い降りた", "角色曲"],
+  ["東方紺珠伝 ～ Legacy of Lunatic Kingdom", "忘れがたき、よすがの緑", "道中曲"],
+]

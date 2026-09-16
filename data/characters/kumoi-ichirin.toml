@@ -1,0 +1,13 @@
+key = "kumoi-ichirin"
+name = "雲居一輪"
+order = 52
+card = ["一輪＆雲山.png"]
+searchNames = ["雲居一輪", "Kumoi Ichirin", "云居一轮", "yunju yilun"]
+
+music = [
+  ["東方星蓮船 ～ Undefined Fantastic Object", "時代親父とハイカラ少女", "角色曲"],
+  ["東方星蓮船 ～ Undefined Fantastic Object", "スカイルーイン", "道中曲"],
+  ["暗黒能楽集・心綺楼", "時代親父とハイカラ少女", "角色曲"],
+  ["深秘的楽曲集", "時代親父とハイカラ少女", "角色曲"],
+  ["完全憑依ディスコグラフィ", "聖輦船空を往く", "角色曲"],
+]

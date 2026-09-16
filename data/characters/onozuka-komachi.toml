@@ -1,0 +1,11 @@
+key = "onozuka-komachi"
+name = "小野塚小町"
+order = 31
+card = ["小町.png"]
+searchNames = ["小野塚小町", "Onozuka Komachi", "小野冢小町", "xiaoyezhong xiaoting"]
+
+music = [
+  ["東方花映塚 ～ Phantasmagoria of Flower View", "彼岸帰航　～ Riverside View", "角色曲"],
+  ["全人類ノ天楽録 ～ 東方緋想天 Arrange Disc", "14. 彼岸帰航 ～ Riverside View", "角色曲"],
+  ["卯酉東海道 ～ Retrospective 53 Minutes", "04. 彼岸帰航 ～ Riverside View", "秘封曲"],
+]

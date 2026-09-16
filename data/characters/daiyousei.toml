@@ -1,0 +1,9 @@
+key = "daiyousei"
+name = "大妖精"
+order = 5
+card = ["大妖精.png"]
+searchNames = ["大妖精", "Daiyousei", "大妖精", "dayaojing"]
+
+music = [
+  ["東方紅魔郷 ～ the Embodiment of Scarlet Devil", "ルーネイトエルフ", "道中曲"],
+]

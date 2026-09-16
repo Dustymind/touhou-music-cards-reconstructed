@@ -1,0 +1,11 @@
+key = "komakusa-sannyo"
+name = "駒草山如"
+order = 93
+card = ["駒草.png"]
+searchNames = ["駒草山如", "Komakusa Sannyo", "驹草山如", "jucao shanru"]
+
+music = [
+  ["東方虹龍洞 ～ Unconnected Marketeers", "スモーキングドラゴン", "角色曲"],
+  ["東方虹龍洞 ～ Unconnected Marketeers", "駒草咲くパーペチュアルスノー", "道中曲"],
+  ["七夕坂夢幻能 ~ Taboo Japan Disentanglement", "スモーキングドラゴン", "秘封曲"],
+]

@@ -1,0 +1,10 @@
+key = "miyako-yoshika"
+name = "宮古芳香"
+order = 58
+card = ["芳香.png"]
+searchNames = ["宮古芳香", "Miyako Yoshika", "宫古芳香", "gonggu fangxiang"]
+
+music = [
+  ["東方神霊廟 ～ Ten Desires", "リジッドパラダイス", "角色曲"],
+  ["伊弉諾物質 ～ Neo-traditionalism of Japan", "10. 素敵な墓場で暮しましょ", "秘封曲"],
+]

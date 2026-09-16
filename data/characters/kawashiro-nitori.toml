@@ -1,0 +1,12 @@
+key = "kawashiro-nitori"
+name = "河城にとり"
+order = 36
+card = ["にとり.png"]
+searchNames = ["河城にとり", "Kawashiro Nitori", "河城荷取", "hecheng hequ"]
+
+music = [
+  ["東方風神録 ～ Mountain of Faith", "芥川龍之介の河童　～ Candid Friend", "角色曲"],
+  ["東方風神録 ～ Mountain of Faith", "神々が恋した幻想郷", "道中曲"],
+  ["暗黒能楽集・心綺楼", "芥川龍之介の河童　～ Candid Friend", "角色曲"],
+  ["完全憑依ディスコグラフィ", "沢の河童の技術力", "角色曲"],
+]

@@ -1,0 +1,12 @@
+key = "junko"
+name = "純狐"
+order = 76
+card = ["純狐.png"]
+searchNames = ["純狐", "Junko", "纯狐", "chunhu"]
+
+music = [
+  ["東方紺珠伝 ～ Legacy of Lunatic Kingdom", "ピュアヒューリーズ　～ 心の在処", "角色曲"],
+  ["東方紺珠伝 ～ Legacy of Lunatic Kingdom", "故郷の星が映る海", "道中曲"],
+  ["燕石博物誌 ～ Dr.Latency's Freak Report", "ピュアヒューリーズ　～ 心の在処", "秘封曲"],
+  ["燕石博物誌 ～ Dr.Latency's Freak Report", "故郷の星が映る海", "秘封曲"],
+]

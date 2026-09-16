@@ -1,0 +1,10 @@
+key = "rumia"
+name = "ルーミア"
+order = 4
+card = ["ルーミア.png"]
+searchNames = ["ルーミア", "Rumia", "露米娅", "lumiya"]
+
+music = [
+  ["東方紅魔郷 ～ the Embodiment of Scarlet Devil", "妖魔夜行", "角色曲"],
+  ["東方紅魔郷 ～ the Embodiment of Scarlet Devil", "ほおずきみたいに紅い魂", "道中曲"],
+]

@@ -1,0 +1,12 @@
+key = "hinanawi-tenshi"
+name = "比那名居天子"
+order = 107
+card = ["天子.png"]
+searchNames = ["比那名居天子", "Hinanawi Tenshi", "比那名居天子", "binamingju tianzi"]
+
+music = [
+  ["全人類ノ天楽録 ～ 東方緋想天 Original Disc", "15. 有頂天変 ～ Wonderful Heaven", "角色曲"],
+  ["全人類ノ天楽録 ～ 東方緋想天 Arrange Disc", "16. 有頂天変 ～ Wonderful Heaven", "角色曲"],
+  ["完全憑依ディスコグラフィ", "有頂天変　～ Wonderful Heaven", "角色曲"],
+  ["完全憑依ディスコグラフィ", "至る有頂天", "角色曲"],
+]

@@ -1,0 +1,9 @@
+key = "mitsugashira-enoko"
+name = "三頭慧ノ子"
+order = 100
+card = ["慧ノ子.png"]
+searchNames = ["三頭慧ノ子", "Mitsugashira Enoko", "三头慧之子", "santou huizhizi"]
+
+music = [
+  ["東方獣王園 ～ Unfinished Dream of All Living Ghost", "勇敢で有閑な妖獣", "角色曲"],
+]

@@ -1,0 +1,9 @@
+key = "horikawa-raiko"
+name = "堀川雷鼓"
+order = 70
+card = ["雷鼓.png"]
+searchNames = ["堀川雷鼓", "Horikawa Raiko", "堀川雷鼓", "kuchuan leigu"]
+
+music = [
+  ["東方輝針城 ～ Double Dealing Character", "始原のビート　～ Pristine Beat", "角色曲"],
+]

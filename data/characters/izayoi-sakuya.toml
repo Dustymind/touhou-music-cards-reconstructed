@@ -1,0 +1,15 @@
+key = "izayoi-sakuya"
+name = "十六夜咲夜"
+order = 10
+card = ["咲夜.png"]
+searchNames = ["十六夜咲夜", "Izayoi Sakuya", "十六夜咲夜", "shiliuye xiaoye"]
+
+music = [
+  ["東方紅魔郷 ～ the Embodiment of Scarlet Devil", "月時計　～ ルナ・ダイアル", "角色曲"],
+  ["東方紅魔郷 ～ the Embodiment of Scarlet Devil", "メイドと血の懐中時計", "道中曲"],
+  ["東方花映塚 ～ Phantasmagoria of Flower View", "フラワリングナイト", "角色曲"],
+  ["幻想曲抜萃 ～ 東方萃夢想 Day Disc", "06. メイドと血の懐中時計", "角色曲"],
+  ["幻想曲抜萃 ～ 東方萃夢想 Night Disc", "06. 月時計 ～ ルナ・ダイアル", "角色曲"],
+  ["全人類ノ天楽録 ～ 東方緋想天 Arrange Disc", "04. フラワリングナイト", "角色曲"],
+  ["東方紅魔郷 ～ the Embodiment of Scarlet Devil", "ツェペシュの幼き末裔", "道中曲"],
+]

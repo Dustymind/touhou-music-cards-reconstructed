@@ -1,0 +1,10 @@
+key = "toutetsu-yuuma"
+name = "饕餮尤魔"
+order = 104
+card = ["尤魔.png"]
+searchNames = ["饕餮尤魔", "Toutetsu Yuuma", "饕餮尤魔", "taotie youmo"]
+
+music = [
+  ["東方獣王園 ～ Unfinished Dream of All Living Ghost", "強欲な獣のメメント", "角色曲"],
+  ["強欲な獣のムジカ", "強欲な獣のメメント", "角色曲"],
+]

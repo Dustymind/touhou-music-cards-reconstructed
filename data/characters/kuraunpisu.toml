@@ -1,0 +1,10 @@
+key = "kuraunpisu"
+name = "クラウンピース"
+order = 75
+card = ["クラウンピース.png"]
+searchNames = ["クラウンピース", "Kuraunpisu", "Clownpiece", "克劳恩皮丝", "kelaounpisi"]
+
+music = [
+  ["東方紺珠伝 ～ Legacy of Lunatic Kingdom", "星条旗のピエロ", "角色曲"],
+  ["東方紺珠伝 ～ Legacy of Lunatic Kingdom", "遥か３８万キロのボヤージュ", "道中曲"],
+]

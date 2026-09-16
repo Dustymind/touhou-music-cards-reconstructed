@@ -1,0 +1,12 @@
+key = "komeiji-koishi"
+name = "古明地こいし"
+order = 49
+card = ["こいし.png"]
+searchNames = ["古明地こいし", "Komeiji Koishi", "古明地恋", "gumingdi lian"]
+
+music = [
+  ["東方地霊殿 ～ Subterranean Animism", "ハルトマンの妖怪少女", "角色曲"],
+  ["暗黒能楽集・心綺楼", "ハルトマンの妖怪少女", "角色曲"],
+  ["完全憑依ディスコグラフィ", "地底に咲く薔薇", "角色曲"],
+  ["鳥船遺跡 ～ Trojan Green Asteroid", "07. ハルトマンの妖怪少女", "秘封曲"],
+]

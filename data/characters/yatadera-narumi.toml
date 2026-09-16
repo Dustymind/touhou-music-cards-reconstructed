@@ -1,0 +1,10 @@
+key = "yatadera-narumi"
+name = "矢田寺成美"
+order = 81
+card = ["成美.png"]
+searchNames = ["矢田寺成美", "Yatadera Narumi", "矢田寺成美", "shidasi chengmei"]
+
+music = [
+  ["東方天空璋 ～ Hidden Star in Four Seasons", "魔法の笠地蔵", "角色曲"],
+  ["東方天空璋 ～ Hidden Star in Four Seasons", "幻想のホワイトトラベラー", "道中曲"],
+]

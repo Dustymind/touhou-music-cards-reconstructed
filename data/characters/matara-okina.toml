@@ -1,0 +1,13 @@
+key = "matara-okina"
+name = "摩多羅隠岐奈"
+order = 83
+card = ["隠岐奈.png"]
+searchNames = ["摩多羅隠岐奈", "Matara Okina", "摩多罗隐岐奈", "moduoluo yinqinai"]
+
+music = [
+  ["東方天空璋 ～ Hidden Star in Four Seasons", "秘匿されたフォーシーズンズ", "角色曲"],
+  ["東方天空璋 ～ Hidden Star in Four Seasons", "イントゥ・バックドア", "道中曲"],
+  ["東方天空璋 ～ Hidden Star in Four Seasons", "もうドアには入れない", "道中曲"],
+  ["東方天空璋 ～ Hidden Star in Four Seasons", "秘神マターラ　～ Hidden Star in All Seasons.", "角色曲"],
+  ["七夕坂夢幻能 ~ Taboo Japan Disentanglement", "秘匿されたフォーシーズンズ", "秘封曲"],
+]

@@ -1,0 +1,9 @@
+key = "kisume"
+name = "キスメ"
+order = 42
+card = ["キスメ.png"]
+searchNames = ["キスメ", "Kisume", "琪斯美", "qisimei"]
+
+music = [
+  ["東方地霊殿 ～ Subterranean Animism", "暗闇の風穴", "道中曲"],
+]

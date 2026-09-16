@@ -1,0 +1,10 @@
+key = "tamatsukuri-misumaru"
+name = "玉造魅須丸"
+order = 94
+card = ["魅須丸.png"]
+searchNames = ["玉造魅須丸", "Tamatsukuri Misumaru", "玉造魅须丸", "yuzao meixuwan"]
+
+music = [
+  ["東方虹龍洞 ～ Unconnected Marketeers", "神代鉱石", "角色曲"],
+  ["東方虹龍洞 ～ Unconnected Marketeers", "廃れゆく産業遺構", "道中曲"],
+]

@@ -1,0 +1,10 @@
+key = "wakasagihime"
+name = "わかさぎ姫"
+order = 64
+card = ["わかさぎ姫.png"]
+searchNames = ["わかさぎ姫", "Wakasagihime", "若鹭姬", "ruoluji"]
+
+music = [
+  ["東方輝針城 ～ Double Dealing Character", "秘境のマーメイド", "角色曲"],
+  ["東方輝針城 ～ Double Dealing Character", "ミストレイク", "道中曲"],
+]

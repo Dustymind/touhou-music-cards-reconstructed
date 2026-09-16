@@ -1,0 +1,10 @@
+key = "kurodani-yamame"
+name = "黒谷ヤマメ"
+order = 43
+card = ["ヤマメ.png"]
+searchNames = ["黒谷ヤマメ", "Kurodani Yamame", "黑谷山女", "heigu shannv"]
+
+music = [
+  ["東方地霊殿 ～ Subterranean Animism", "封じられた妖怪　～ Lost Place", "角色曲"],
+  ["強欲な獣のムジカ", "封じられた妖怪", "角色曲"],
+]

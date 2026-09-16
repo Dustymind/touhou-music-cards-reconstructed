@@ -1,0 +1,13 @@
+key = "yagokoro-eirin"
+name = "八意永琳"
+order = 26
+card = ["永琳.png"]
+searchNames = ["八意永琳", "Yagokoro Eirin", "八意永琳", "bayi yonglin"]
+
+music = [
+  ["東方永夜抄 ～ Imperishable Night", "千年幻想郷　～ History of the Moon", "角色曲"],
+  ["東方永夜抄 ～ Imperishable Night", "ヴォヤージュ1969", "道中曲"],
+  ["東方永夜抄 ～ Imperishable Night", "ヴォヤージュ1970", "角色曲"],
+  ["夢違科学世紀 ～ Changeability of Strange Dream", "04. ヴォヤージュ1969", "秘封曲"],
+  ["卯酉東海道 ～ Retrospective 53 Minutes", "10. 千年幻想郷 ～ History of the Moon", "秘封曲"],
+]

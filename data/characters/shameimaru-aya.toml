@@ -1,0 +1,11 @@
+key = "shameimaru-aya"
+name = "射命丸文"
+order = 38
+card = ["文.png"]
+searchNames = ["射命丸文", "Shameimaru Aya", "射命丸文", "shemingwan wen"]
+
+music = [
+  ["東方風神録 ～ Mountain of Faith", "妖怪の山　～ Mysterious Mountain", "角色曲"],
+  ["東方花映塚 ～ Phantasmagoria of Flower View", "風神少女　 (Short Version)", "角色曲"],
+  ["全人類ノ天楽録 ～ 東方緋想天 Arrange Disc", "13. 風神少女", "角色曲"],
+]

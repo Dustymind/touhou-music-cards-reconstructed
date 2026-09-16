@@ -1,0 +1,15 @@
+key = "patchouli-knowledge"
+name = "パチュリー・ノーレッジ"
+order = 9
+card = ["パチュリー.png"]
+searchNames = ["パチュリー・ノーレッジ", "Pachuri Noredji", "Patchouli Knowledge", "帕秋莉·诺蕾姬", "paqiuli nuoleiji"]
+
+music = [
+  ["東方紅魔郷 ～ the Embodiment of Scarlet Devil", "ラクトガール　～ 少女密室", "角色曲"],
+  ["幻想曲抜萃 ～ 東方萃夢想 Day Disc", "10. ラクトガール ～ 少女密室", "角色曲"],
+  ["幻想曲抜萃 ～ 東方萃夢想 Night Disc", "10. ヴワル魔法図書館", "角色曲"],
+  ["全人類ノ天楽録 ～ 東方緋想天 Arrange Disc", "07. ラクトガール ～ 少女密室", "角色曲"],
+  ["核熱造神ヒソウテンソク ～ 東方非想天則", "13. ヴワル魔法図書館", "角色曲"],
+  ["卯酉東海道 ～ Retrospective 53 Minutes", "09. ラクトガール ～ 少女密室", "秘封曲"],
+  ["東方紅魔郷 ～ the Embodiment of Scarlet Devil", "魔法少女達の百年祭", "道中曲"],
+]

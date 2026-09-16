@@ -1,0 +1,9 @@
+key = "toramaru-shou"
+name = "寅丸星"
+order = 54
+card = ["星.png"]
+searchNames = ["寅丸星", "Toramaru Shou", "寅丸星", "yinwan xing"]
+
+music = [
+  ["東方星蓮船 ～ Undefined Fantastic Object", "虎柄の毘沙門天", "角色曲"],
+]

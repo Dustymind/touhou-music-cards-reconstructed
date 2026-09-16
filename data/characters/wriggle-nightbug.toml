@@ -1,0 +1,10 @@
+key = "wriggle-nightbug"
+name = "リグル･ナイトバグ"
+order = 21
+card = ["リグル.png"]
+searchNames = ["リグル･ナイトバグ", "Riguru Naitobagu", "Wriggle Nightbug", "莉格露·奈特巴格", "ligelu naitebage"]
+
+music = [
+  ["東方永夜抄 ～ Imperishable Night", "蠢々秋月　～ Mooned Insect", "角色曲"],
+  ["東方永夜抄 ～ Imperishable Night", "幻視の夜　～ Ghostly Eyes", "道中曲"],
+]

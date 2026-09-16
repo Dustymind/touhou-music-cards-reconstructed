@@ -1,0 +1,10 @@
+key = "hecatia-lapislazuli"
+name = "ヘカーティア・ラピスラズリ"
+order = 77
+card = ["ヘカーティア.png"]
+searchNames = ["ヘカーティア・ラピスラズリ", "Hekatia Rapisurazuri", "Hecatia Lapislazuli", "赫卡提亚·拉碧斯拉祖利", "hekatiya labisilazuli"]
+
+music = [
+  ["東方紺珠伝 ～ Legacy of Lunatic Kingdom", "パンデモニックプラネット", "角色曲"],
+  ["旧約酒場 ～ Dateless Bar Old Adam", "パンデモニックプラネット", "秘封曲"],
+]

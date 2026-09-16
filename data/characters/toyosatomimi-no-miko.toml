@@ -1,0 +1,13 @@
+key = "toyosatomimi-no-miko"
+name = "豊聡耳神子"
+order = 62
+card = ["神子.png"]
+searchNames = ["豊聡耳神子", "Toyosatomimi no Miko", "丰聪耳神子", "fengcong'er shenzi"]
+
+music = [
+  ["東方神霊廟 ～ Ten Desires", "聖徳伝説　～　True Administrator", "角色曲"],
+  ["東方神霊廟 ～ Ten Desires", "小さな欲望の星空", "道中曲"],
+  ["暗黒能楽集・心綺楼", "聖徳伝説　～ True Administrator", "角色曲"],
+  ["深秘的楽曲集", "聖徳伝説　～ True Administrator", "角色曲"],
+  ["完全憑依ディスコグラフィ", "光輝く天球儀", "角色曲"],
+]

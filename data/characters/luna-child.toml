@@ -1,0 +1,9 @@
+key = "luna-child"
+name = "ルナチャイルド"
+order = 120
+card = ["ルナチャイルド.png"]
+searchNames = ["ルナチャイルド", "Runa Chairudo", "Luna Child", "露娜·切露德", "luna qielude"]
+
+music = [
+  ["東方三月精 ～ Eastern and Little Nature Deity", "夜だから眠れない", "角色曲"],
+]

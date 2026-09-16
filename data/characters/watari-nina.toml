@@ -1,0 +1,9 @@
+key = "watari-nina"
+name = "渡里ニナ"
+order = 118
+card = ["ニナ.png"]
+searchNames = ["渡里ニナ", "Watari Nina", "渡里妮娜", "duli nina"]
+
+music = [
+  ["東方錦上京 ～ Fossilized Wonders", "二枚貝の上のハルシネーション", "角色曲"],
+]

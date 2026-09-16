@@ -1,0 +1,10 @@
+key = "sakata-nemuno"
+name = "坂田ネムノ"
+order = 79
+card = ["ネムノ.png"]
+searchNames = ["坂田ネムノ", "Sakata Nemuno", "坂田合欢", "bantian hehuan"]
+
+music = [
+  ["東方天空璋 ～ Hidden Star in Four Seasons", "山奥のエンカウンター", "角色曲"],
+  ["東方天空璋 ～ Hidden Star in Four Seasons", "色無き風は妖怪の山に", "道中曲"],
+]

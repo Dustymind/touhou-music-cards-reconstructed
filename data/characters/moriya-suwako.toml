@@ -1,0 +1,11 @@
+key = "moriya-suwako"
+name = "洩矢諏訪子"
+order = 41
+card = ["諏訪子.png"]
+searchNames = ["洩矢諏訪子", "Moriya Suwako", "泄矢诹访子", "xieshi zoufangzi"]
+
+music = [
+  ["東方風神録 ～ Mountain of Faith", "ネイティブフェイス", "角色曲"],
+  ["核熱造神ヒソウテンソク ～ 東方非想天則", "07. 明日ハレの日、ケの昨日", "角色曲"],
+  ["未知の花 魅知の旅", "03. 明日ハレの日、ケの昨日", "秘封曲"],
+]

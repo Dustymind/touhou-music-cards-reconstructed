@@ -1,0 +1,11 @@
+key = "hoshiguma-yuugi"
+name = "星熊勇儀"
+order = 45
+card = ["勇儀.png"]
+searchNames = ["星熊勇儀", "Hoshiguma Yuugi", "星熊勇仪", "xingxiong yongyi"]
+
+music = [
+  ["東方地霊殿 ～ Subterranean Animism", "華のさかづき大江山", "角色曲"],
+  ["東方地霊殿 ～ Subterranean Animism", "旧地獄街道を行く", "道中曲"],
+  ["強欲な獣のムジカ", "華のさかづき大江山", "角色曲"],
+]

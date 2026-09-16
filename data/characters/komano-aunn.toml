@@ -1,0 +1,10 @@
+key = "komano-aunn"
+name = "高麗野あうん"
+order = 80
+card = ["あうん.png"]
+searchNames = ["高麗野あうん", "Komano Aunn", "高丽野阿吽", "gaoliye ahou"]
+
+music = [
+  ["東方天空璋 ～ Hidden Star in Four Seasons", "一対の神獣", "角色曲"],
+  ["東方天空璋 ～ Hidden Star in Four Seasons", "桜色の海を泳いで", "道中曲"],
+]

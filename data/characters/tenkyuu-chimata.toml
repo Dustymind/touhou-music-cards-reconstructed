@@ -1,0 +1,10 @@
+key = "tenkyuu-chimata"
+name = "天弓千亦"
+order = 96
+card = ["千亦.png"]
+searchNames = ["天弓千亦", "Tenkyuu Chimata", "天弓千亦", "tiangong qianyi"]
+
+music = [
+  ["東方虹龍洞 ～ Unconnected Marketeers", "あの賑やかな市場は今どこに　～ Immemorial Marketeers", "角色曲"],
+  ["東方虹龍洞 ～ Unconnected Marketeers", "ルナレインボー", "道中曲"],
+]

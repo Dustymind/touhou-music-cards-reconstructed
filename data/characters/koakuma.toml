@@ -1,0 +1,9 @@
+key = "koakuma"
+name = "小悪魔"
+order = 8
+card = ["小悪魔.png"]
+searchNames = ["小悪魔", "Koakuma", "小恶魔", "xiaoemo"]
+
+music = [
+  ["東方紅魔郷 ～ the Embodiment of Scarlet Devil", "ヴワル魔法図書館", "道中曲"],
+]

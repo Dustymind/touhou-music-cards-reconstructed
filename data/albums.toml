@@ -1,0 +1,301 @@
+# 专辑注册表：name 是角色文件与源表里引用的字符串，key 是持久化用的稳定键。
+# kind ∈ game | fighting | hifuu | other；order 只决定界面展示顺序。
+
+[[album]]
+key = "hr01"
+name = "蓬莱人形 ～ Dolls in Pseudo Paradise"
+kind = "hifuu"
+pack = "originals"
+order = 1
+
+[[album]]
+key = "hr02"
+name = "蓮台野夜行 ～ Ghostly Field Club"
+kind = "hifuu"
+pack = "originals"
+order = 2
+
+[[album]]
+key = "hr03"
+name = "夢違科学世紀 ～ Changeability of Strange Dream"
+kind = "hifuu"
+pack = "originals"
+order = 3
+
+[[album]]
+key = "hr04"
+name = "卯酉東海道 ～ Retrospective 53 Minutes"
+kind = "hifuu"
+pack = "originals"
+order = 4
+
+[[album]]
+key = "hr05"
+name = "大空魔術 ～ Magical Astronomy"
+kind = "hifuu"
+pack = "originals"
+order = 5
+
+[[album]]
+key = "hr06"
+name = "未知の花 魅知の旅"
+kind = "hifuu"
+pack = "originals"
+order = 6
+
+[[album]]
+key = "hr07"
+name = "鳥船遺跡 ～ Trojan Green Asteroid"
+kind = "hifuu"
+pack = "originals"
+order = 7
+
+[[album]]
+key = "hr08"
+name = "伊弉諾物質 ～ Neo-traditionalism of Japan"
+kind = "hifuu"
+pack = "originals"
+order = 8
+
+[[album]]
+key = "hr09"
+name = "燕石博物誌 ～ Dr.Latency's Freak Report"
+kind = "hifuu"
+pack = "originals"
+order = 9
+
+[[album]]
+key = "hr10"
+name = "旧約酒場 ～ Dateless Bar Old Adam"
+kind = "hifuu"
+pack = "originals"
+order = 10
+
+[[album]]
+key = "hr11"
+name = "七夕坂夢幻能 ~ Taboo Japan Disentanglement"
+kind = "hifuu"
+pack = "originals"
+order = 11
+
+[[album]]
+key = "hr12"
+name = "虹色のセプテントリオン"
+kind = "hifuu"
+pack = "originals"
+order = 12
+
+[[album]]
+key = "th07.5-day"
+name = "幻想曲抜萃 ～ 東方萃夢想 Day Disc"
+kind = "fighting"
+pack = "originals"
+order = 13
+work = "东方萃梦想"
+
+[[album]]
+key = "th07.5-night"
+name = "幻想曲抜萃 ～ 東方萃夢想 Night Disc"
+kind = "fighting"
+pack = "originals"
+order = 14
+work = "东方萃梦想"
+
+[[album]]
+key = "th10.5-arrange"
+name = "全人類ノ天楽録 ～ 東方緋想天 Arrange Disc"
+kind = "fighting"
+pack = "originals"
+order = 15
+work = "东方绯想天"
+
+[[album]]
+key = "th10.5-original"
+name = "全人類ノ天楽録 ～ 東方緋想天 Original Disc"
+kind = "fighting"
+pack = "originals"
+order = 16
+work = "东方绯想天"
+
+[[album]]
+key = "th12.3"
+name = "核熱造神ヒソウテンソク ～ 東方非想天則"
+kind = "fighting"
+pack = "originals"
+order = 17
+work = "东方非想天则"
+
+[[album]]
+key = "th13.5"
+name = "暗黒能楽集・心綺楼"
+kind = "fighting"
+pack = "originals"
+order = 18
+work = "东方心绮楼"
+
+[[album]]
+key = "th14.5"
+name = "深秘的楽曲集"
+kind = "fighting"
+pack = "originals"
+order = 19
+work = "东方深秘录"
+
+[[album]]
+key = "th14.5-bonus"
+name = "深秘的楽曲集·補 東方深秘録初回特典CD"
+kind = "fighting"
+pack = "originals"
+order = 20
+work = "东方深秘录"
+
+[[album]]
+key = "th15.5"
+name = "完全憑依ディスコグラフィ"
+kind = "fighting"
+pack = "originals"
+order = 21
+work = "东方凭依华"
+
+[[album]]
+key = "th17.5"
+name = "強欲な獣のムジカ"
+kind = "fighting"
+pack = "originals"
+order = 22
+work = "东方刚欲异闻"
+
+[[album]]
+key = "th06"
+name = "東方紅魔郷 ～ the Embodiment of Scarlet Devil"
+kind = "game"
+pack = "originals"
+order = 23
+work = "东方红魔乡"
+
+[[album]]
+key = "th07"
+name = "東方妖々夢 ～ Perfect Cherry Blossom"
+kind = "game"
+pack = "originals"
+order = 24
+work = "东方妖妖梦"
+
+[[album]]
+key = "th08"
+name = "東方永夜抄 ～ Imperishable Night"
+kind = "game"
+pack = "originals"
+order = 25
+work = "东方永夜抄"
+
+[[album]]
+key = "th09"
+name = "東方花映塚 ～ Phantasmagoria of Flower View"
+kind = "game"
+pack = "originals"
+order = 26
+work = "东方花映塚"
+
+[[album]]
+key = "th10"
+name = "東方風神録 ～ Mountain of Faith"
+kind = "game"
+pack = "originals"
+order = 27
+work = "东方风神录"
+
+[[album]]
+key = "th11"
+name = "東方地霊殿 ～ Subterranean Animism"
+kind = "game"
+pack = "originals"
+order = 28
+work = "东方地灵殿"
+
+[[album]]
+key = "th12"
+name = "東方星蓮船 ～ Undefined Fantastic Object"
+kind = "game"
+pack = "originals"
+order = 29
+work = "东方星莲船"
+
+[[album]]
+key = "th13"
+name = "東方神霊廟 ～ Ten Desires"
+kind = "game"
+pack = "originals"
+order = 30
+work = "东方神灵庙"
+
+[[album]]
+key = "th13-trance"
+name = "東方神霊廟 ～ Ten Desires Trance Disc"
+kind = "game"
+pack = "originals"
+order = 31
+work = "东方神灵庙"
+
+[[album]]
+key = "th14"
+name = "東方輝針城 ～ Double Dealing Character"
+kind = "game"
+pack = "originals"
+order = 32
+work = "东方辉针城"
+
+[[album]]
+key = "th15"
+name = "東方紺珠伝 ～ Legacy of Lunatic Kingdom"
+kind = "game"
+pack = "originals"
+order = 33
+work = "东方绀珠传"
+
+[[album]]
+key = "th16"
+name = "東方天空璋 ～ Hidden Star in Four Seasons"
+kind = "game"
+pack = "originals"
+order = 34
+work = "东方天空璋"
+
+[[album]]
+key = "th17"
+name = "東方鬼形獣 ～ Wily Beast and Weakest Creature"
+kind = "game"
+pack = "originals"
+order = 35
+work = "东方鬼形兽"
+
+[[album]]
+key = "th18"
+name = "東方虹龍洞 ～ Unconnected Marketeers"
+kind = "game"
+pack = "originals"
+order = 36
+work = "东方虹龙洞"
+
+[[album]]
+key = "th19"
+name = "東方獣王園 ～ Unfinished Dream of All Living Ghost"
+kind = "game"
+pack = "originals"
+order = 37
+work = "东方兽王园"
+
+[[album]]
+key = "th20"
+name = "東方錦上京 ～ Fossilized Wonders"
+kind = "game"
+pack = "originals"
+order = 38
+work = "东方锦上京"
+
+[[album]]
+key = "sangetsusei"
+name = "東方三月精 ～ Eastern and Little Nature Deity"
+kind = "other"
+pack = "originals"
+order = 39

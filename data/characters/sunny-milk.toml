@@ -1,0 +1,9 @@
+key = "sunny-milk"
+name = "サニーミルク"
+order = 119
+card = ["サニーミルク.png"]
+searchNames = ["サニーミルク", "Sani Miruku", "Sunny Milk", "桑尼·米尔克", "sangni mierke"]
+
+music = [
+  ["東方三月精 ～ Eastern and Little Nature Deity", "サニールチルフレクション", "角色曲"],
+]

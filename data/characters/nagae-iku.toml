@@ -1,0 +1,10 @@
+key = "nagae-iku"
+name = "永江衣玖"
+order = 106
+card = ["衣玖.png"]
+searchNames = ["永江衣玖", "Nagae Iku", "永江衣玖", "yongjiang yijiu"]
+
+music = [
+  ["全人類ノ天楽録 ～ 東方緋想天 Original Disc", "13. 黒い海に紅く ～ Legendary Fish", "角色曲"],
+  ["全人類ノ天楽録 ～ 東方緋想天 Arrange Disc", "15. 黒い海に紅く ～ Legendary Fish", "角色曲"],
+]

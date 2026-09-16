@@ -1,0 +1,12 @@
+key = "fujiwara-no-mokou"
+name = "藤原妹紅"
+order = 28
+card = ["妹紅.png"]
+searchNames = ["藤原妹紅", "Fujiwara no Mokou", "藤原妹红", "tengyuan meihong"]
+
+music = [
+  ["東方永夜抄 ～ Imperishable Night", "月まで届け、不死の煙", "角色曲"],
+  ["深秘的楽曲集", "月まで届け、不死の煙", "角色曲"],
+  ["完全憑依ディスコグラフィ", "不滅のレッドソウル", "角色曲"],
+  ["卯酉東海道 ～ Retrospective 53 Minutes", "07. 月まで届け不死の煙", "秘封曲"],
+]

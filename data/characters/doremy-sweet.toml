@@ -1,0 +1,13 @@
+key = "doremy-sweet"
+name = "ドレミー・スイート"
+order = 73
+card = ["ドレミー.png"]
+searchNames = ["ドレミー・スイート", "Doremi Suito", "Doremy Sweet", "哆来咪·苏伊特", "duolaimi suyite"]
+
+music = [
+  ["東方紺珠伝 ～ Legacy of Lunatic Kingdom", "永遠の春夢", "角色曲"],
+  ["東方紺珠伝 ～ Legacy of Lunatic Kingdom", "宇宙を飛ぶ不思議な巫女", "道中曲"],
+  ["東方紺珠伝 ～ Legacy of Lunatic Kingdom", "見た事も無い悪夢の世界", "道中曲"],
+  ["完全憑依ディスコグラフィ", "永遠の春夢", "角色曲"],
+  ["完全憑依ディスコグラフィ", "スリープシープ・パレード", "角色曲"],
+]

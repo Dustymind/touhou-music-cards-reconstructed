@@ -1,0 +1,12 @@
+key = "futatsuiwa-mamizou"
+name = "二ッ岩マミゾウ"
+order = 63
+card = ["マミゾウ.png"]
+searchNames = ["二ッ岩マミゾウ", "Futatsuiwa Mamizou", "二岩猯藏", "eryan tuanzang"]
+
+music = [
+  ["東方神霊廟 ～ Ten Desires", "佐渡のニッ岩", "角色曲"],
+  ["暗黒能楽集・心綺楼", "佐渡のニッ岩", "角色曲"],
+  ["深秘的楽曲集", "幻想郷の二ッ岩", "角色曲"],
+  ["完全憑依ディスコグラフィ", "深緑の狸森にて", "角色曲"],
+]

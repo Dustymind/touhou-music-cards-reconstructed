@@ -1,0 +1,12 @@
+key = "kochiya-sanae"
+name = "東風谷早苗"
+order = 39
+card = ["早苗.png"]
+searchNames = ["東風谷早苗", "Kochiya Sanae", "东风谷早苗", "dongfenggu zaomiao"]
+
+music = [
+  ["東方風神録 ～ Mountain of Faith", "信仰は儚き人間の為に", "角色曲"],
+  ["東方風神録 ～ Mountain of Faith", "少女が見た日本の原風景", "道中曲"],
+  ["東方地霊殿 ～ Subterranean Animism", "ラストリモート", "更多道中曲"],
+  ["核熱造神ヒソウテンソク ～ 東方非想天則", "03. 信仰は儚き人間の為に", "角色曲"],
+]

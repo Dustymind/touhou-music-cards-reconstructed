@@ -1,0 +1,10 @@
+key = "kasodani-kyouko"
+name = "幽谷響子"
+order = 57
+card = ["響子.png"]
+searchNames = ["幽谷響子", "Kasodani Kyouko", "幽谷响子", "yougu xiangzi"]
+
+music = [
+  ["東方神霊廟 ～ Ten Desires", "門前の妖怪小娘", "角色曲"],
+  ["東方神霊廟 ～ Ten Desires", "妖怪寺へようこそ", "道中曲"],
+]

@@ -1,0 +1,11 @@
+key = "chen"
+name = "橙"
+order = 14
+card = ["橙.png"]
+searchNames = ["橙", "Chen", "橙", "cheng"]
+
+music = [
+  ["東方妖々夢 ～ Perfect Cherry Blossom", "ティアオイエツォン(withered leaf)", "角色曲"],
+  ["東方妖々夢 ～ Perfect Cherry Blossom", "遠野幻想物語", "道中曲"],
+  ["東方妖々夢 ～ Perfect Cherry Blossom", "妖々跋扈", "道中曲"],
+]

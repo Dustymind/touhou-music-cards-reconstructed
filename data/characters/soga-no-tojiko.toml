@@ -1,0 +1,9 @@
+key = "soga-no-tojiko"
+name = "蘇我屠自古"
+order = 60
+card = ["屠自古.png"]
+searchNames = ["蘇我屠自古", "Soga no Tojiko", "苏我屠自古", "suwo tuzigu"]
+
+music = [
+  ["東方神霊廟 ～ Ten Desires", "夢殿大祀廟", "道中曲"],
+]

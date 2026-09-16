@@ -1,0 +1,11 @@
+key = "tsukumo-benben-yatsuhashi"
+name = "九十九弁々・八橋"
+order = 67
+card = ["弁々.png", "八橋.png"]
+searchNames = ["九十九弁々・八橋", "Tsukumo Benben Yatsuhashi", "九十九弁弁·八桥", "jiushijiu bianbian baqiao"]
+
+music = [
+  ["東方輝針城 ～ Double Dealing Character", "幻想浄瑠璃", "角色曲"],
+  ["東方輝針城 ～ Double Dealing Character", "マジカルストーム", "道中曲"],
+  ["東方輝針城 ～ Double Dealing Character", "魔力の雷雲", "道中曲"],
+]

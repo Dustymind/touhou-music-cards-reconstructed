@@ -1,0 +1,10 @@
+key = "himemushi-momoyo"
+name = "姫虫百々世"
+order = 97
+card = ["百々世.png"]
+searchNames = ["姫虫百々世", "Himemushi Momoyo", "姬虫百百世", "jichong baibaishi"]
+
+music = [
+  ["東方虹龍洞 ～ Unconnected Marketeers", "龍王殺しのプリンセス", "角色曲"],
+  ["東方虹龍洞 ～ Unconnected Marketeers", "幻想の地下大線路網", "道中曲"],
+]

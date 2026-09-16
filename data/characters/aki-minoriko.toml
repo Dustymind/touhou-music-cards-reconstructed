@@ -1,0 +1,9 @@
+key = "aki-minoriko"
+name = "秋穣子"
+order = 34
+card = ["穣子.png"]
+searchNames = ["秋穣子", "Aki Minoriko", "秋穰子", "qiu rangzi"]
+
+music = [
+  ["東方風神録 ～ Mountain of Faith", "稲田姫様に叱られるから", "角色曲"],
+]

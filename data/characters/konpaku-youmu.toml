@@ -1,0 +1,15 @@
+key = "konpaku-youmu"
+name = "魂魄妖夢"
+order = 17
+card = ["妖夢.png"]
+searchNames = ["魂魄妖夢", "Konpaku Youmu", "魂魄妖梦", "hunpo yaomeng"]
+
+music = [
+  ["東方妖々夢 ～ Perfect Cherry Blossom", "広有射怪鳥事　～ Till When？", "角色曲"],
+  ["東方妖々夢 ～ Perfect Cherry Blossom", "東方妖々夢　～ Ancient Temple", "道中曲"],
+  ["東方妖々夢 ～ Perfect Cherry Blossom", "アルティメットトゥルース", "道中曲"],
+  ["幻想曲抜萃 ～ 東方萃夢想 Day Disc", "12. 広有射怪鳥事 ～ Till When？", "角色曲"],
+  ["幻想曲抜萃 ～ 東方萃夢想 Night Disc", "12. 東方妖々夢 ～ Ancient Temple", "角色曲"],
+  ["全人類ノ天楽録 ～ 東方緋想天 Arrange Disc", "06. 広有射怪鳥事 ～ Till When？", "角色曲"],
+  ["蓮台野夜行 ～ Ghostly Field Club", "03. 東方妖々夢 ～ Ancient Temple", "秘封曲"],
+]

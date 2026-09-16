@@ -1,0 +1,9 @@
+key = "tenkajin-chiyari"
+name = "天火人ちやり"
+order = 101
+card = ["天火人ちやり.png"]
+searchNames = ["天火人ちやり", "Tenkajin Chiyari", "天火人血枪", "tianhuoren xueqiang"]
+
+music = [
+  ["東方獣王園 ～ Unfinished Dream of All Living Ghost", "吸血怪獣チュパカブラ", "角色曲"],
+]

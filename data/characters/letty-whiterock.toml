@@ -1,0 +1,9 @@
+key = "letty-whiterock"
+name = "レティ・ホワイトロック"
+order = 13
+card = ["レティ.png"]
+searchNames = ["レティ・ホワイトロック", "Reti Howaitorokku", "Letty Whiterock", "蕾蒂·霍瓦特洛克", "leidi huowateluoke"]
+
+music = [
+  ["東方妖々夢 ～ Perfect Cherry Blossom", "クリスタライズシルバー", "角色曲"],
+]

@@ -1,0 +1,10 @@
+key = "goutokuji-mike"
+name = "豪徳寺ミケ"
+order = 91
+card = ["ミケ.png"]
+searchNames = ["豪徳寺ミケ", "Goutokuji Mike", "豪德寺三花", "haodesi sanhua"]
+
+music = [
+  ["東方虹龍洞 ～ Unconnected Marketeers", "大吉キトゥン", "角色曲"],
+  ["東方虹龍洞 ～ Unconnected Marketeers", "妖異達の通り雨", "道中曲"],
+]

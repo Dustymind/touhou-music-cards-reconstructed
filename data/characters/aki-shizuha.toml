@@ -1,0 +1,9 @@
+key = "aki-shizuha"
+name = "秋静葉"
+order = 33
+card = ["静葉.png"]
+searchNames = ["秋静葉", "Aki Shizuha", "秋静叶", "qiu jingye"]
+
+music = [
+  ["東方風神録 ～ Mountain of Faith", "人恋し神様　～ Romantic Fall", "道中曲"],
+]

@@ -1,0 +1,10 @@
+key = "yamashiro-takane"
+name = "山城たかね"
+order = 92
+card = ["たかね.png"]
+searchNames = ["山城たかね", "Yamashiro Takane", "山城高岭", "shancheng gaoling"]
+
+music = [
+  ["東方虹龍洞 ～ Unconnected Marketeers", "バンデットリィテクノロジー", "角色曲"],
+  ["東方虹龍洞 ～ Unconnected Marketeers", "深緑に隠された断崖", "道中曲"],
+]

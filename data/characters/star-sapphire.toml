@@ -1,0 +1,9 @@
+key = "star-sapphire"
+name = "スターサファイア"
+order = 121
+card = ["スターサファイア.png"]
+searchNames = ["スターサファイア", "Suta Safaia", "Star Sapphire", "斯塔·萨菲雅", "sita safeiya"]
+
+music = [
+  ["東方三月精 ～ Eastern and Little Nature Deity", "妖精燦々として", "角色曲"],
+]

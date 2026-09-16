@@ -1,0 +1,9 @@
+key = "inubashiri-momiji"
+name = "犬走椛"
+order = 37
+card = ["椛.png"]
+searchNames = ["犬走椛", "Inubashiri Momiji", "犬走椛", "quanzou hua"]
+
+music = [
+  ["東方風神録 ～ Mountain of Faith", "フォールオブフォール　～ 秋めく滝", "道中曲"],
+]

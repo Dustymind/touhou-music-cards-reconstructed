@@ -1,0 +1,10 @@
+key = "houjuu-chimi"
+name = "封獣チミ"
+order = 113
+card = ["チミ.png"]
+searchNames = ["封獣チミ", "Houjuu Chimi", "封獣魑魅", "fengshou chimei"]
+
+music = [
+  ["東方錦上京 ～ Fossilized Wonders", "森にはお化けがいるよ", "角色曲"],
+  ["東方錦上京 ～ Fossilized Wonders", "セイクリッドフォレスト", "角色曲"],
+]

@@ -1,0 +1,13 @@
+key = "mononobe-no-futo"
+name = "物部布都"
+order = 61
+card = ["布都.png"]
+searchNames = ["物部布都", "Mononobe no Futo", "物部布都", "wubu budu"]
+
+music = [
+  ["東方神霊廟 ～ Ten Desires", "大神神話伝", "角色曲"],
+  ["暗黒能楽集・心綺楼", "大神神話伝", "角色曲"],
+  ["深秘的楽曲集", "大神神話伝", "角色曲"],
+  ["完全憑依ディスコグラフィ", "恒常不変の参廟祀", "角色曲"],
+  ["旧約酒場 ～ Dateless Bar Old Adam", "大神神話伝", "秘封曲"],
+]

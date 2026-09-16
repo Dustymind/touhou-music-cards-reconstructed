@@ -1,0 +1,9 @@
+key = "komeiji-satori"
+name = "古明地さとり"
+order = 46
+card = ["さとり.png"]
+searchNames = ["古明地さとり", "Komeiji Satori", "古明地觉", "gumingdi jue"]
+
+music = [
+  ["東方地霊殿 ～ Subterranean Animism", "少女さとり　～ 3rd eye", "角色曲"],
+]

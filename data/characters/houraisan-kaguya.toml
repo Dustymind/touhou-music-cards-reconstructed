@@ -1,0 +1,10 @@
+key = "houraisan-kaguya"
+name = "蓬莱山輝夜"
+order = 27
+card = ["輝夜.png"]
+searchNames = ["蓬莱山輝夜", "Houraisan Kaguya", "蓬莱山辉夜", "penglaishan huiye"]
+
+music = [
+  ["東方永夜抄 ～ Imperishable Night", "竹取飛翔　～ Lunatic Princess", "角色曲"],
+  ["卯酉東海道 ～ Retrospective 53 Minutes", "03. 竹取飛翔 ～ Lunatic Princess", "秘封曲"],
+]

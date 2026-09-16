@@ -1,0 +1,9 @@
+key = "yomotsu-hisami"
+name = "豫母都日狭美"
+order = 102
+card = ["豫母都日狭美.png"]
+searchNames = ["豫母都日狭美", "Yomotsu Hisami", "豫母都日狭美", "yumodu rixiamei"]
+
+music = [
+  ["東方獣王園 ～ Unfinished Dream of All Living Ghost", "振り向かない黄泉の道", "角色曲"],
+]

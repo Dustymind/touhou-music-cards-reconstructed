@@ -1,0 +1,12 @@
+key = "flandre-scarlet"
+name = "フランドール・スカーレット"
+order = 12
+card = ["フラン.png"]
+searchNames = ["フランドール・スカーレット", "Furandoru Sukaretto", "Flandre Scarlet", "芙兰朵露·斯卡雷特", "fulanduolu sikaleite"]
+
+music = [
+  ["東方紅魔郷 ～ the Embodiment of Scarlet Devil", "U.N.オーエンは彼女なのか？", "角色曲"],
+  ["東方紅魔郷 ～ the Embodiment of Scarlet Devil", "魔法少女達の百年祭", "道中曲"],
+  ["強欲な獣のムジカ", "U.N.オーエンは彼女なのか？", "角色曲"],
+  ["蓬莱人形 ～ Dolls in Pseudo Paradise", "11. U.N.オーエンは彼女なのか？", "秘封曲"],
+]

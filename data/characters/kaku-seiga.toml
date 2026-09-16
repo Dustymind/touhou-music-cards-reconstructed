@@ -1,0 +1,11 @@
+key = "kaku-seiga"
+name = "霍青娥"
+order = 59
+card = ["青娥.png"]
+searchNames = ["霍青娥", "Kaku Seiga", "霍青娥", "huo qinge"]
+
+music = [
+  ["東方神霊廟 ～ Ten Desires", "古きユアンシェン", "角色曲"],
+  ["東方神霊廟 ～ Ten Desires", "デザイアドライブ", "道中曲"],
+  ["鳥船遺跡 ～ Trojan Green Asteroid", "03. デザイアドライブ", "秘封曲"],
+]

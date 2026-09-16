@@ -1,0 +1,9 @@
+key = "iizunamaru-megumu"
+name = "飯綱丸龍"
+order = 95
+card = ["龍.png"]
+searchNames = ["飯綱丸龍", "Iizunamaru Megumu", "饭纲丸龙", "fangangwan long"]
+
+music = [
+  ["東方虹龍洞 ～ Unconnected Marketeers", "星降る天魔の山", "角色曲"],
+]

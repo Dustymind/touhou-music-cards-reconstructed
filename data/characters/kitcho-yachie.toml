@@ -1,0 +1,10 @@
+key = "kitcho-yachie"
+name = "吉弔八千慧"
+order = 87
+card = ["八千慧.png"]
+searchNames = ["吉弔八千慧", "Kitcho Yachie", "吉吊八千慧", "jidiao baqianhui"]
+
+music = [
+  ["東方鬼形獣 ～ Wily Beast and Weakest Creature", "トータスドラゴン　～ 幸運と不運", "角色曲"],
+  ["東方鬼形獣 ～ Wily Beast and Weakest Creature", "アンロケイテッドヘル", "道中曲"],
+]

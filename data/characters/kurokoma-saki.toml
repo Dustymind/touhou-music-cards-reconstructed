@@ -1,0 +1,10 @@
+key = "kurokoma-saki"
+name = "驪駒早鬼"
+order = 90
+card = ["早鬼.png"]
+searchNames = ["驪駒早鬼", "Kurokoma Saki", "骊驹早鬼", "liju zaoqi"]
+
+music = [
+  ["東方鬼形獣 ～ Wily Beast and Weakest Creature", "聖徳太子のペガサス　～ Dark Pegasus", "角色曲"],
+  ["東方鬼形獣 ～ Wily Beast and Weakest Creature", "輝かしき弱肉強食の掟", "道中曲"],
+]

@@ -1,0 +1,10 @@
+key = "yorigami-joon-shion"
+name = "依神女苑・紫苑"
+order = 111
+card = ["女苑.png", "紫苑.png"]
+searchNames = ["依神女苑・紫苑", "Yorigami Joon Shion", "依神女苑·紫苑", "yishen nvyuan ziyuan"]
+
+music = [
+  ["完全憑依ディスコグラフィ", "今宵は飄逸なエゴイスト(Live ver)　～ Egoistic Flowers", "角色曲"],
+  ["強欲な獣のムジカ", "今宵は飄逸なエゴイスト　～ Egoistic Flowers", "角色曲"],
+]

@@ -1,0 +1,11 @@
+key = "yuiman-asama"
+name = "ユイマン・浅間"
+order = 115
+card = ["ユイマン.png"]
+searchNames = ["ユイマン・浅間", "Yuiman Asama", "维缦·浅间", "weiman qianjian"]
+
+music = [
+  ["東方錦上京 ～ Fossilized Wonders", "鹿狩りのレミニセンス", "角色曲"],
+  ["東方錦上京 ～ Fossilized Wonders", "フォーカラーラビリンス", "角色曲"],
+  ["東方錦上京 ～ Fossilized Wonders", "ファンタスティックドリフト", "角色曲"],
+]

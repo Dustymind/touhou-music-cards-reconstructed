@@ -1,0 +1,10 @@
+key = "mystia-lorelei"
+name = "ミスティア・ローレライ"
+order = 22
+card = ["ミスティア.png"]
+searchNames = ["ミスティア・ローレライ", "Misutia Rorerai", "Mystia Lorelei", "米斯蒂娅·萝蕾拉", "misidiya luoleila"]
+
+music = [
+  ["東方永夜抄 ～ Imperishable Night", "もう歌しか聞こえない", "角色曲"],
+  ["東方永夜抄 ～ Imperishable Night", "夜雀の歌声　～ Night Bird", "道中曲"],
+]

@@ -1,0 +1,14 @@
+key = "tatara-kogasa"
+name = "多々良小傘"
+order = 51
+card = ["小傘.png"]
+searchNames = ["多々良小傘", "Tatara Kogasa", "多多良小伞", "duoduoliang xiaosan"]
+
+music = [
+  ["東方星蓮船 ～ Undefined Fantastic Object", "万年置き傘にご注意を", "角色曲"],
+  ["東方星蓮船 ～ Undefined Fantastic Object", "閉ざせし雲の通い路", "道中曲"],
+  ["東方星蓮船 ～ Undefined Fantastic Object", "夜空のユーフォーロマンス", "道中曲"],
+  ["東方神霊廟 ～ Ten Desires", "素敵な墓場で暮しましょ", "更多道中曲"],
+  ["伊弉諾物質 ～ Neo-traditionalism of Japan", "10. 素敵な墓場で暮しましょ", "秘封曲"],
+  ["強欲な獣のムジカ", "万年置き傘にご注意を", "角色曲"],
+]

@@ -1,0 +1,9 @@
+key = "medicine-melancholy"
+name = "メディスン・メランコリー"
+order = 29
+card = ["メディスン.png"]
+searchNames = ["メディスン・メランコリー", "Medisun Merankori", "Medicine Melancholy", "梅蒂欣·梅兰可莉", "meidixin meilankeli"]
+
+music = [
+  ["東方花映塚 ～ Phantasmagoria of Flower View", "ポイズンボディ　～ Forsaken Doll", "角色曲"],
+]

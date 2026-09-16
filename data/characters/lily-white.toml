@@ -1,0 +1,9 @@
+key = "lily-white"
+name = "リリーホワイト"
+order = 15
+card = ["リリー.png"]
+searchNames = ["リリーホワイト", "Riri Howaito", "Lily White", "莉莉白", "lilibai"]
+
+music = [
+  ["東方妖々夢 ～ Perfect Cherry Blossom", "天空の花の都", "道中曲"],
+]

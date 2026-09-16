@@ -1,0 +1,10 @@
+key = "doushin-naruko"
+name = "道神馴子"
+order = 114
+card = ["馴子.png"]
+searchNames = ["道神馴子", "Doushin Naruko", "道神驯子", "daoshen xunzi"]
+
+music = [
+  ["東方錦上京 ～ Fossilized Wonders", "どうせなら命を賭けて謎を解け", "角色曲"],
+  ["東方錦上京 ～ Fossilized Wonders", "プレステ・ジョアンの黄金境", "角色曲"],
+]

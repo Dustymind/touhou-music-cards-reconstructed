@@ -1,0 +1,10 @@
+key = "imaizumi-kagerou"
+name = "今泉影狼"
+order = 66
+card = ["影狼.png"]
+searchNames = ["今泉影狼", "Imaizumi Kagerou", "今泉影狼", "jinquan yinglang"]
+
+music = [
+  ["東方輝針城 ～ Double Dealing Character", "孤独なウェアウルフ", "角色曲"],
+  ["東方輝針城 ～ Double Dealing Character", "満月の竹林", "道中曲"],
+]

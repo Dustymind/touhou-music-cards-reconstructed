@@ -1,0 +1,9 @@
+key = "nippaku-zanmu"
+name = "日白残無"
+order = 103
+card = ["日白残無.png"]
+searchNames = ["日白残無", "Nippaku Zanmu", "日白残无", "ribai canwu"]
+
+music = [
+  ["東方獣王園 ～ Unfinished Dream of All Living Ghost", "逸脱者達の無礙光　～ Kingdam of Nothingness.", "角色曲"],
+]

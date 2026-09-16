@@ -1,0 +1,10 @@
+key = "watatsuki-no-toyohime"
+name = "綿月丰姬"
+order = 116
+card = ["豊姫.png"]
+searchNames = ["綿月豊姫", "Watatsuki no Toyohime", "绵月丰姬", "mianyue fengji"]
+
+music = [
+  ["東方錦上京 ～ Fossilized Wonders", "綿月のスペルカード　〜 神海戦", "角色曲"],
+  ["東方錦上京 ～ Fossilized Wonders", "記憶の深海に沈む少女", "角色曲"],
+]

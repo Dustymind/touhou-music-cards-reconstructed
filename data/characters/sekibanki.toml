@@ -1,0 +1,10 @@
+key = "sekibanki"
+name = "赤蛮奇"
+order = 65
+card = ["赤蛮奇.png"]
+searchNames = ["赤蛮奇", "Sekibanki", "赤蛮奇", "chimanqi"]
+
+music = [
+  ["東方輝針城 ～ Double Dealing Character", "柳の下のデュラハン", "角色曲"],
+  ["東方輝針城 ～ Double Dealing Character", "運河を行き交う人妖", "道中曲"],
+]

@@ -1,0 +1,10 @@
+key = "kagiyama-hina"
+name = "鍵山雛"
+order = 35
+card = ["雛.png"]
+searchNames = ["鍵山雛", "Kagiyama Hina", "键山雏", "jianshan chu"]
+
+music = [
+  ["東方風神録 ～ Mountain of Faith", "運命のダークサイド", "角色曲"],
+  ["東方風神録 ～ Mountain of Faith", "厄神様の通り道　～ Dark Road", "道中曲"],
+]

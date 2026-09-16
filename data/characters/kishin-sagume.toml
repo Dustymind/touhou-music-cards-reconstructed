@@ -1,0 +1,11 @@
+key = "kishin-sagume"
+name = "稀神サグメ"
+order = 74
+card = ["サグメ.png"]
+searchNames = ["稀神サグメ", "Kishin Sagume", "稀神探女", "xishen tannv"]
+
+music = [
+  ["東方紺珠伝 ～ Legacy of Lunatic Kingdom", "逆転するホイールオブフォーチュン", "角色曲"],
+  ["東方紺珠伝 ～ Legacy of Lunatic Kingdom", "凍り付いた永遠の都", "道中曲"],
+  ["燕石博物誌 ～ Dr.Latency's Freak Report", "凍り付いた永遠の都", "秘封曲"],
+]

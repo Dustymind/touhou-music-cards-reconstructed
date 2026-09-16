@@ -1,0 +1,11 @@
+key = "ringo"
+name = "鈴瑚"
+order = 72
+card = ["鈴瑚.png"]
+searchNames = ["鈴瑚", "Ringo", "铃瑚", "linghu"]
+
+music = [
+  ["東方紺珠伝 ～ Legacy of Lunatic Kingdom", "九月のパンプキン", "角色曲"],
+  ["東方紺珠伝 ～ Legacy of Lunatic Kingdom", "湖は浄めの月光を映して", "道中曲"],
+  ["燕石博物誌 ～ Dr.Latency's Freak Report", "九月のパンプキン", "秘封曲"],
+]

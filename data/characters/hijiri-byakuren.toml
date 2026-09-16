@@ -1,0 +1,13 @@
+key = "hijiri-byakuren"
+name = "聖白蓮"
+order = 55
+card = ["聖.png"]
+searchNames = ["聖白蓮", "Hijiri Byakuren", "圣白莲", "sheng bailian"]
+
+music = [
+  ["東方星蓮船 ～ Undefined Fantastic Object", "感情の摩天楼　～ Cosmic Mind", "角色曲"],
+  ["暗黒能楽集・心綺楼", "感情の摩天楼　～ Cosmic Mind", "角色曲"],
+  ["深秘的楽曲集", "感情の摩天楼　～ Cosmic Mind", "角色曲"],
+  ["完全憑依ディスコグラフィ", "法力の下の平等", "角色曲"],
+  ["鳥船遺跡 ～ Trojan Green Asteroid", "09. 感情の摩天楼 ～ Cosmic Mind", "秘封曲"],
+]

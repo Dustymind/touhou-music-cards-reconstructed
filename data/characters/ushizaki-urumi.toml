@@ -1,0 +1,10 @@
+key = "ushizaki-urumi"
+name = "牛崎潤美"
+order = 85
+card = ["潤美.png"]
+searchNames = ["牛崎潤美", "Ushizaki Urumi", "牛崎润美", "niuqi runmei"]
+
+music = [
+  ["東方鬼形獣 ～ Wily Beast and Weakest Creature", "石の赤子と水中の牛", "角色曲"],
+  ["東方鬼形獣 ～ Wily Beast and Weakest Creature", "ロストリバー", "道中曲"],
+]

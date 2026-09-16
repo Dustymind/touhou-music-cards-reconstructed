@@ -1,0 +1,11 @@
+key = "reiuji-utsuho"
+name = "霊烏路空"
+order = 48
+card = ["空.png"]
+searchNames = ["霊烏路空", "Reiuji Utsuho", "灵乌路空", "lingwulu kong"]
+
+music = [
+  ["東方地霊殿 ～ Subterranean Animism", "霊知の太陽信仰　～ Nuclear Fusion", "角色曲"],
+  ["核熱造神ヒソウテンソク ～ 東方非想天則", "06. 霊知の太陽信仰 ～ Nuclear Fusion", "角色曲"],
+  ["強欲な獣のムジカ", "霊知の太陽信仰", "角色曲"],
+]

@@ -1,0 +1,9 @@
+key = "haniyasushin-keiki"
+name = "埴安神袿姫"
+order = 89
+card = ["袿姫.png"]
+searchNames = ["埴安神袿姫", "Haniyasushin Keiki", "埴安神袿姬", "zhiyanshen guiji"]
+
+music = [
+  ["東方鬼形獣 ～ Wily Beast and Weakest Creature", "偶像に世界を委ねて　～ Idoratrize World", "角色曲"],
+]
