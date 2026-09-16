@@ -41,9 +41,26 @@ def test_hifuu_wins_over_everything(index):
     assert verdict.rule == "R0"
 
 
-def test_unknown_work_is_reported_not_guessed(index):
-    verdict = classify(index, "東方錦上京 ～ Fossilized Wonders", "例え世界から忘れられても", "东方锦上京")
-    assert verdict.extra is None
+def test_th20_resolves_via_live_wiki_labels(index):
+    # TH20 的 Music Room 在线上 wiki，抓取后即可机械判定
+    assert classify(index, "東方錦上京 ～ Fossilized Wonders", "愛おしき塵の住処", "东方锦上京").extra == "道中曲"
+    assert classify(index, "東方錦上京 ～ Fossilized Wonders", "例え世界から忘れられても",
+                    "东方锦上京").extra == "角色曲"
+
+
+def test_unregistered_album_is_reported_not_guessed(index):
+    verdict = classify(index, "不存在的专辑", "不存在的曲目", None)
+    assert verdict.extra is None and verdict.rule == "R4"
+
+
+def test_manual_overrides_win_and_are_traceable():
+    from tmc.roles import load_overrides
+
+    overrides = load_overrides()
+    assert len(overrides) == 5
+    verdict = classify(RoleIndex.load(), "東方三月精 ～ Eastern and Little Nature Deity",
+                       "妖精燦々として", None, overrides=overrides)
+    assert verdict.extra == "角色曲" and verdict.rule == "R-OVR"
 
 
 def test_data_invariants_hold():
@@ -53,6 +70,8 @@ def test_data_invariants_hold():
     assert stats["albums"] == 39
     assert stats["entries"] == 357
     assert stats["distinct_tracks"] == 347
+    assert stats["pending"] == 0
+    assert stats["overrides"] == 5
     assert len(stats["shared"]) == 10
     for source_id, stat in stats["sources"].items():
         assert stat["missing"] == 0, source_id

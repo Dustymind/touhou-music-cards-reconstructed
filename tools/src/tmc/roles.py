@@ -60,9 +60,31 @@ class RoleIndex:
         return []
 
 
+def load_overrides(path=None) -> dict[tuple[str, str], tuple[str, str, str]]:
+    """人工裁定表 `data/meta/extra-overrides.tsv`：`(专辑,曲目) → (附加信息, 依据, 来源)`。
+
+    只在 THBWiki 标签判不了、或用户明确裁定过时才登记；每条都必须带依据与来源。
+    """
+    path = path or (repo.DATA / "meta" / "extra-overrides.tsv")
+    table: dict[tuple[str, str], tuple[str, str, str]] = {}
+    if not path.exists():
+        return table
+    lines = path.read_text(encoding="utf-8").splitlines()
+    for line in lines[1:]:
+        if not line.strip():
+            continue
+        album, title, extra, reason, source = (line.split("\t") + ["", "", ""])[:5]
+        table[(album, title)] = (extra, reason, source)
+    return table
+
+
 def classify(index: RoleIndex, album: str, title: str, debut_work: str | None,
-             *, known_pending: bool = False) -> Verdict:
-    """按 R0–R6 判定单个 `(专辑, 曲目)` 的 `附加信息`。"""
+             *, known_pending: bool = False,
+             overrides: dict[tuple[str, str], tuple[str, str, str]] | None = None) -> Verdict:
+    """按 R0–R6 判定单个 `(专辑, 曲目)` 的 `附加信息`；人工裁定表优先级最高。"""
+    if overrides and (album, title) in overrides:
+        extra, reason, source = overrides[(album, title)]
+        return Verdict(extra, "R-OVR", f"{reason}（{source}）")
     if album in repo.HIFUU_ALBUMS:
         return Verdict("秘封曲", "R0", "秘封倶楽部 CD")
 

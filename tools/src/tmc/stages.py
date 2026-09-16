@@ -24,7 +24,9 @@ CACHE = repo.THBWIKI_DIR / "game_stages.json"
 WORKS = (
     "东方红魔乡", "东方妖妖梦", "东方永夜抄", "东方花映塚", "东方风神录", "东方地灵殿", "东方星莲船",
     "东方神灵庙", "东方辉针城", "东方绀珠传", "东方天空璋", "东方鬼形兽", "东方虹龙洞", "东方兽王园",
+    "东方锦上京",
 )
+UA = "Mozilla/5.0 (compatible; tmc-data/0.1; +https://github.com/)"
 
 CN_STAGE = {"一": "1", "二": "2", "三": "3", "四": "4", "五": "5", "六": "6",
             "七": "7", "八": "8", "九": "9", "十": "10",
@@ -43,20 +45,38 @@ def stage_key(label: str) -> str:
     return token.replace("第", "")
 
 
+def _links(row: str) -> list[str]:
+    """兼容 Markdown 镜像的相对链接与线上页的绝对链接。"""
+    hrefs = re.findall(r'href="([^"]+)"', row)
+    out = []
+    for href in hrefs:
+        href = href.split("#")[0]
+        if href.startswith("./") and href.endswith(".md"):
+            out.append(html.unescape(href[2:-3]))
+        elif href.startswith("/") and not href.startswith("/index.php"):
+            out.append(urllib.parse.unquote(href[1:]))
+    return out
+
+
 def parse_game_page(text: str) -> list[dict]:
-    section = text[text.find("### BOSS"):]
-    section = section[:30000] if section else text
+    idx = text.find("### BOSS")
+    if idx < 0:
+        anchor = re.search(r'id="BOSS"', text)
+        idx = anchor.start() if anchor else -1
+    section = text[idx:idx + 40000] if idx >= 0 else text
     rows: list[dict] = []
     for row in re.split(r"<tr[ >]", section)[1:]:
         label = re.search(r"<b>([^<]{1,24})</b>", row)
-        title = re.search(r'<i><a href="\./([^"]+?)\.md"[^>]*>([^<]*)</a></i>', row)
+        title = re.search(r'<i><a href="([^"]+)"[^>]*>([^<]*)</a></i>', row)
         if not (label and title):
             continue
-        href, text_ = title.group(1), html.unescape(title.group(2))
-        links = [html.unescape(x) for x in re.findall(r'href="\./([^"]+?)\.md"', row)]
-        tail = links[links.index(href) + 1:] if href in links else links
+        text_ = html.unescape(title.group(2))
+        links = _links(row)
+        head = links.index(next((x for x in links if x.endswith(text_) or text_ in x), links[0])) \
+            if links else 0
+        tail = links[head + 1:]
         cast = [x for x in tail
-                if not x.startswith(("文件-", "游戏对话", "关卡", "Music")) and x != href]
+                if not x.startswith(("文件-", "文件:", "游戏对话", "关卡", "Music", "Template"))]
         rows.append({
             "stage": html.unescape(label.group(1)).strip(),
             "kind": "midboss" if "道中" in label.group(1) else "boss",
@@ -138,13 +158,20 @@ def fetch() -> int:
     for work in WORKS:
         path = GAMES_DIR / f"{work}.md"
         if not path.exists():
-            url = f"{BASE}/{urllib.parse.quote(f'{work}.md')}"
+            req = urllib.request.Request(f"{BASE}/{urllib.parse.quote(f'{work}.md')}",
+                                        headers={"User-Agent": UA})
             try:
-                with urllib.request.urlopen(url, timeout=30) as resp:  # noqa: S310
+                with urllib.request.urlopen(req, timeout=30) as resp:  # noqa: S310
                     path.write_text(resp.read().decode("utf-8", errors="replace"), encoding="utf-8")
-            except Exception as exc:  # noqa: BLE001
-                print(f"  跳过 {work}: {exc}", file=sys.stderr)
-                continue
+            except Exception:  # noqa: BLE001 - 镜像没有就回落到线上页
+                req = urllib.request.Request(f"https://thbwiki.cc/{urllib.parse.quote(work)}",
+                                            headers={"User-Agent": UA})
+                try:
+                    with urllib.request.urlopen(req, timeout=30) as resp:  # noqa: S310
+                        path.write_text(resp.read().decode("utf-8", errors="replace"), encoding="utf-8")
+                except Exception as exc:  # noqa: BLE001
+                    print(f"  跳过 {work}: {exc}", file=sys.stderr)
+                    continue
         parsed = parse_game_page(path.read_text(encoding="utf-8", errors="replace"))
         if parsed:
             rows[work] = parsed

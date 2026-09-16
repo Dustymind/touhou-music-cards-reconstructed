@@ -49,14 +49,32 @@ def parse_music_page(text: str) -> list[list[str]]:
     return out
 
 
-def fetch(work: str) -> str | None:
-    url = f"{BASE}/{urllib.parse.quote(f'{work}-Music.md')}"
+UA = "Mozilla/5.0 (compatible; tmc-data/0.1; +https://github.com/)"
+
+
+def _get(url: str) -> str | None:
+    req = urllib.request.Request(url, headers={"User-Agent": UA})
     try:
-        with urllib.request.urlopen(url, timeout=30) as resp:  # noqa: S310
+        with urllib.request.urlopen(req, timeout=30) as resp:  # noqa: S310
             return resp.read().decode("utf-8", errors="replace")
     except Exception as exc:  # noqa: BLE001 - CLI 工具，报错即可
-        print(f"  跳过 {work}: {exc}", file=sys.stderr)
+        print(f"    取不到 {url}: {exc}", file=sys.stderr)
         return None
+
+
+def fetch(work: str) -> str | None:
+    """先取 Markdown 镜像；镜像没有的（如 TH20）回落到 thbwiki.cc 线上页面。
+
+    线上页面与镜像的 Music Room 表格同构，`parse_music_page` 可直接解析。
+    """
+    text = _get(f"{BASE}/{urllib.parse.quote(f'{work}-Music.md')}")
+    if text and "MusicRoom" in text:
+        return text
+    text = _get(f"https://thbwiki.cc/{urllib.parse.quote(work)}/Music")
+    if text and "MusicRoom" in text:
+        print(f"    （{work} 用线上页）")
+        return text
+    return None
 
 
 def main(argv: list[str] | None = None) -> int:

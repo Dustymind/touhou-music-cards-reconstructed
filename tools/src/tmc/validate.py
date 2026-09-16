@@ -182,6 +182,27 @@ def _loose(a: str, b: str) -> bool:
     return len(a) >= 2 and len(b) >= 2 and a[:2] == b[:2]
 
 
+def check_overrides(chars: list[dict], p: Problems) -> int:
+    """人工裁定表里的每条都必须真的落在某个角色文件里，且值一致。"""
+    from .roles import load_overrides
+
+    table = load_overrides()
+    seen: set[tuple[str, str]] = set()
+    for char in chars:
+        for album, title, extra in char["music"]:
+            if (album, title) in table:
+                seen.add((album, title))
+                want, reason, source = table[(album, title)]
+                if extra != want:
+                    p.error(f"覆盖表与文件不一致：{album} / {title}（文件 {extra}，覆盖 {want}）")
+                if not reason or not source:
+                    p.error(f"覆盖表缺少依据/来源：{album} / {title}")
+    for key in table:
+        if key not in seen:
+            p.error(f"覆盖表条目不在任何角色文件里：{key[0]} / {key[1]}")
+    return len(table)
+
+
 def check_pending(chars: list[dict], p: Problems):
     path = repo.ROOT / "reports" / "extra-pending.tsv"
     if not path.exists():
@@ -212,12 +233,14 @@ def run() -> tuple["Problems", dict]:
     char_stats = check_characters(chars, albums, p)
     source_stats = check_sources(char_stats["referenced"], p)
     pending = check_pending(chars, p)
+    overrides = check_overrides(chars, p)
     stage_rows = check_stage_attribution(chars)
     digest = hashlib.sha256(
         json.dumps(sorted(char_stats["referenced"]), ensure_ascii=False).encode()).hexdigest()[:12]
     return p, {
         "albums": len(albums), "characters": len(chars), "pending": pending,
         "digest": digest, "sources": source_stats, "stage_rows": stage_rows,
+        "overrides": overrides,
         **{k: v for k, v in char_stats.items() if k != "referenced"},
     }
 
@@ -256,7 +279,7 @@ def main(argv: list[str] | None = None) -> int:
              f"- 去重曲目：{char_stats['distinct_tracks']}",
              f"- 秘封曲条目：{char_stats['hifuu_entries']}",
              f"- 跨角色共用曲目：{len(char_stats['shared'])}",
-             f"- 待判定（占位）：{pending}", "",
+             f"- 待判定（占位）：{pending}", f"- 人工裁定条目：{stats['overrides']}", "",
              "## 源表", ""]
     for source_id, stat in source_stats.items():
         lines.append(f"- {source_id}: {stat['entries']} 条，缺引用 {stat['missing']}，"

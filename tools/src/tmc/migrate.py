@@ -21,7 +21,7 @@ import unicodedata
 from dataclasses import dataclass, field
 
 from . import repo
-from .roles import RoleIndex, classify
+from .roles import RoleIndex, classify, load_overrides
 
 #: 无法判定时的占位值（同时写入 extra-pending.tsv，M2 必须清零）
 PROVISIONAL_EXTRA = "角色曲"
@@ -81,7 +81,8 @@ def _load_upstream() -> dict:
         return json.load(fh)
 
 
-def migrate_characters(index: RoleIndex, report: Migration) -> None:
+def migrate_characters(index: RoleIndex, report: Migration,
+                       overrides: dict | None = None) -> None:
     upstream = _load_upstream()
     taken: set[str] = set()
     for order, (name, cfg) in enumerate(upstream.items(), start=1):
@@ -109,7 +110,7 @@ def migrate_characters(index: RoleIndex, report: Migration) -> None:
                 report.reasons["duplicate-dropped"] += 1
                 continue
             seen.add(key)
-            verdict = classify(index, key[0], key[1], debut)
+            verdict = classify(index, key[0], key[1], debut, overrides=overrides)
             extra = verdict.extra or PROVISIONAL_EXTRA
             report.reasons[verdict.rule] += 1
             if verdict.extra is None:
@@ -138,6 +139,14 @@ def migrate_albums() -> None:
 
 
 SOURCES = ("netease163", "cloudflare_r2", "thbwiki")
+
+#: 手工核对过的 URL 修正（上游源表里的已知错误；依据写在注释里）
+URL_FIXES = {
+    # 上游把 TH19 的《獣の知性》指向了 TH18 的 th18_18.mp3（TH18 的 プレイヤーズスコア 才是它），
+    # THBWiki 兽王园 Music Room 里《獣の知性》的音频是 th19_01.mp3。
+    ("東方獣王園 ～ Unfinished Dream of All Living Ghost", "獣の知性"):
+        "https://upload.thwiki.cc/a/ae/th19_01.mp3",
+}
 LEGACY_SOURCES = {"netease163": "sources_163.json", "cloudflare_r2": "sources_cloudflare_r2.json",
                   "thbwiki": "sources_thbwiki.json"}
 
@@ -165,7 +174,7 @@ def migrate_sources(referenced: set[tuple[str, str]], report: Migration) -> None
             if len(group) > 1:
                 dropped_stale += len(group) - 1
             album, title = canonical.get(lookup, group[0][0])
-            url = group[0][1]
+            url = URL_FIXES.get((album, title), group[0][1])
             if len({g[1] for g in group}) > 1:
                 url_conflict += 1
             entries.append([album, title, url])
@@ -213,6 +222,7 @@ def main(argv: list[str] | None = None) -> int:
     (repo.DATA / "sources").mkdir(parents=True, exist_ok=True)
 
     index = RoleIndex.load()
+    overrides = load_overrides()
     report = Migration()
     referenced: set[tuple[str, str]] = set()
     upstream = _load_upstream()
@@ -222,7 +232,7 @@ def main(argv: list[str] | None = None) -> int:
             referenced.add((unicodedata.normalize("NFC", album), unicodedata.normalize("NFC", title)))
 
     migrate_albums()
-    migrate_characters(index, report)
+    migrate_characters(index, report, overrides)
     migrate_sources(referenced, report)
     write_reports(report)
     print(f"角色 {report.characters} / 条目 {report.entries} / 待判定 {len(report.pending)}")
