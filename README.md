@@ -59,7 +59,7 @@ pnpm dev
 | `r2bucket-touhou.hgjertkljw.org` | 卡面图 / 音乐镜像（上游作者的 R2 桶） | 首选 origin；**第三方托管，非本项目可控** |
 | `lightbulb128.github.io/touhou-card-player-v3` | 卡面备用 origin | 与上游线上一致 |
 | `cdn.jsdelivr.net/gh/lightbulb128/...`、`raw.githubusercontent.com/...` | 卡面兜底 origin | 已实测均返回 200 `image/png` |
-| `music.163.com` / `upload.thbwiki.cc` | 音乐源（网易云 / THBWiki 镜像） | 见 `data/sources/` |
+| `music.163.com` / `upload.thbwiki.cc` / `r2bucket-touhou.hgjertkljw.org` | 音乐源（网易云 / THBWiki / R2） | 外链已统一 https；网易云 302 落点 CDN 亦支持 https |
 | `thbwiki.cc`（经 THBWiki-Markdown 镜像） | `附加信息` 分类的权威依据 | 仅用于**离线生成数据**，不在运行时访问 |
 
 卡面素材**不随仓库分发**（版权与体积原因），运行时按 origin 列表远程加载；本地放好 `public/cards*/` 即可离线运行（见方案 §D10）。

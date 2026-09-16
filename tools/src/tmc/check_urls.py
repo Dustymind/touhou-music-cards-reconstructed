@@ -27,7 +27,8 @@ import urllib.request
 
 from . import repo
 
-UA = "Mozilla/5.0 (compatible; tmc-data/0.1)"
+UA = ("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) "
+      "Chrome/126.0.0.0 Safari/537.36")
 SOURCES = ("netease163", "cloudflare_r2", "thbwiki")
 CHUNK = 4096
 
@@ -48,7 +49,8 @@ def encode_url(url: str) -> str:
 
 def probe(url: str, timeout: float = 20.0) -> tuple[bool, str]:
     req = urllib.request.Request(encode_url(url),
-                                 headers={"User-Agent": UA, "Range": f"bytes=0-{CHUNK - 1}"})
+                                 headers={"User-Agent": UA, "Referer": "https://music.163.com/",
+                                          "Range": f"bytes=0-{CHUNK - 1}"})
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310
             head = resp.read(16)

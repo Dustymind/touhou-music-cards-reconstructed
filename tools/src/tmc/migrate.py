@@ -164,6 +164,13 @@ def migrate_albums() -> None:
 
 SOURCES = ("netease163", "cloudflare_r2", "thbwiki")
 
+#: 源表 URL 的规范化重写（实测依据见注释）。
+URL_REWRITES = {
+    # 上游三张源表里网易云全是 http://。实测 https://music.163.com/song/media/outer/url?id=…
+    # 返回 302，落点为 CDN；把落点换成 https 亦返回 206 + audio/mpeg，故 https 页面下可用。
+    "http://music.163.com/": "https://music.163.com/",
+}
+
 #: 手工核对过的 URL 修正（上游源表里的已知错误；依据写在注释里）
 URL_FIXES = {
     # 上游把 TH19 的《獣の知性》指向了 TH18 的 th18_18.mp3（TH18 的 プレイヤーズスコア 才是它），
@@ -198,7 +205,11 @@ def migrate_sources(referenced: set[tuple[str, str]], report: Migration) -> None
             if len(group) > 1:
                 dropped_stale += len(group) - 1
             album, title = canonical.get(lookup, group[0][0])
-            url = URL_FIXES.get((album, title), group[0][1])
+            url = group[0][1]
+            for old, new in URL_REWRITES.items():
+                if url.startswith(old):
+                    url = new + url[len(old):]
+            url = URL_FIXES.get((album, title), url)
             if len({g[1] for g in group}) > 1:
                 url_conflict += 1
             entries.append([album, title, url])

@@ -10,11 +10,11 @@
    "tableUrl": "/data/sources/netease163.json",
    "kind": "remote",
    "order": 1,
-   "enabled": false,
+   "enabled": true,
    "proxyable": true,
    "description": {
-    "en": "Music from NetEase Cloud Music (163.com). Blocks access from outside China, and its URLs are http:// only.",
-    "zh": "网易云音乐。仅中国大陆可访问，且地址全是 http://（https 页面下会被浏览器拦截）。"
+    "en": "Music from NetEase Cloud Music (163.com). Some tracks may be region-locked outside China; URLs are https with an http CDN redirect that browsers upgrade automatically.",
+    "zh": "网易云音乐。境外部分曲目可能不可用；外链已统一为 https，302 落点的 CDN 支持 https，浏览器会自动升级。"
    }
   },
   {
