@@ -6,6 +6,9 @@ import type { CardSetRecord } from "../../data/types";
 import { CardAspectRatio, CardColors, NoFontFamily } from "../../theme/theme";
 import { glitchTilt, isCheat, randomColor } from "../../cheat";
 
+/** 卡面圆角：卡牌本体与选卡显示区边界共用（滚动时被裁掉的那半张也不显直角）。 */
+export const CARD_BORDER_RADIUS = "6px";
+
 export type CardState = "normal" | "hover" | "disabled" | "disabledHover" | "selected" | "correct" | "incorrect" | "placeholder";
 
 const COLOR_BY_STATE: Record<CardState, string> = {
@@ -70,7 +73,7 @@ export function CharacterCard({
       sx={{
         width,
         backgroundColor: background,
-        borderRadius: bare ? "6px" : undefined,
+        borderRadius: bare ? CARD_BORDER_RADIUS : undefined,
         border: isPlaceholder ? "2px dashed gray" : "none",
         cursor: onClick ? "pointer" : "default",
         transition: "transform 0.3s ease, background-color 0.3s ease, filter 0.3s ease",

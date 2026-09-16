@@ -660,6 +660,8 @@ interface Transport {
 - [x] **M7 对战核心**：纯规则 reducer（回合推进/判定/罚牌夹紧/牌库转移/经典·休闲终局）+ CPU 对手（反应分布与失误率）+ 本地计时循环 + 对战页棋盘。
 - [x] **M8 联机**：传输层抽象（进程内总线 / 同浏览器 BroadcastChannel / PeerJS）+ **主机权威 + 每次动作广播完整快照 + 自增 seq + 数据哈希与协议握手** + 大厅（分享码/参与者/聊天/断线重连 requestSync）。
 - [x] **M9 打磨**：彩蛋（答案提示框、`?g` 卡片倾斜、`?r2`/`?local` 图集源、`?cheatcode=`）、文案与文档补全 → 验收报告 [`reports/M9-acceptance.md`](../reports/M9-acceptance.md)。
+- [x] **M21 滑块与外框细节**（用户反馈）：外框左右留 12px 让滑块两端不越界；显示区边界用卡牌同款 6px 圆角。
+  见 `docs/DECISIONS.md` §D27。
 - [x] **M20 选卡区外框与滑块性能**（用户要求）：外框 + 居中；平移改为整行 `translateX`、拖动直写 DOM、
   卡片 `memo`，拖动时零卡片节点变更。见 `docs/DECISIONS.md` §D26。
 - [x] **M19 选卡区统一**（用户要求）：抽 `CardStrip` 共享组件，播放页与游戏选卡都"等距不重叠 + 滑块平移"，

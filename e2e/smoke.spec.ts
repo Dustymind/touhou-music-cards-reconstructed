@@ -241,6 +241,12 @@ test("动效：牌桌卡牌滑位；播放页牌堆用滑块平移、hover 只�
   });
   expect(fanFrame.border).toBe("solid");
   expect(Math.abs(fanFrame.leftGap - fanFrame.rightGap)).toBeLessThanOrEqual(2);
+  const fanRadii = await page.evaluate(() => {
+    const stripRadius = getComputedStyle(document.querySelector('[data-testid="upcoming-fan-strip"]')!).borderRadius;
+    const paper = document.querySelector('[data-testid^="upcoming-card-"]')!.firstElementChild as HTMLElement;
+    return { stripRadius, cardRadius: getComputedStyle(paper).borderRadius };
+  });
+  expect(fanRadii.stripRadius).toBe(fanRadii.cardRadius);
 
   const fanGap = await page.evaluate(() => {
     const cards = [...document.querySelectorAll('[data-testid^="upcoming-card-"]')].slice(0, 2);
@@ -317,6 +323,15 @@ test("游戏卡槽：外框居中 + 滑块平移；拖动不碰卡片节点", as
   expect(framed.border).toBe("solid 1px");
   expect(Math.abs(framed.leftGap - framed.rightGap)).toBeLessThanOrEqual(2);
 
+  // 显示区边界与卡牌同款圆角（滚到边界时被裁掉的卡片不露直角）
+  const radii = await page.evaluate(() => {
+    const stripRadius = getComputedStyle(document.querySelector('[data-testid="unused-cards-strip"]')!).borderRadius;
+    const paper = document.querySelector('[data-testid^="unused-card-"]')!.firstElementChild as HTMLElement;
+    return { stripRadius, cardRadius: getComputedStyle(paper).borderRadius };
+  });
+  expect(radii.stripRadius).not.toBe("0px");
+  expect(radii.stripRadius).toBe(radii.cardRadius);
+
   // 拖动滑块：只改"整行"的 transform，卡片节点一个都不动（性能）
   await page.evaluate(() => {
     const strip = document.querySelector('[data-testid="unused-cards-strip"]')!;
@@ -347,6 +362,15 @@ test("游戏卡槽：外框居中 + 滑块平移；拖动不碰卡片节点", as
   });
   expect(mutations.cards).toBe(0);      // 卡片位置是静态的
   expect(mutations.row).toBeGreaterThan(0);   // 只动整行的那一个 transform
+
+  // 滑块推到两端也不能顶出外框（MUI 拇指半径 10px，外框左右各留 12px）
+  const ends = await page.evaluate(() => {
+    const frame = document.querySelector('[data-testid="unused-cards-frame"]')!.getBoundingClientRect();
+    const thumb = document.querySelector('[data-testid="card-selection-slider"] .MuiSlider-thumb')!.getBoundingClientRect();
+    return { insideLeft: thumb.left >= frame.left, insideRight: thumb.right <= frame.right };
+  });
+  expect(ends.insideLeft).toBe(true);
+  expect(ends.insideRight).toBe(true);
 });
 
 test("卡片大小按钮按 0.01 步进并夹在 0.04~0.40", async ({ page }) => {

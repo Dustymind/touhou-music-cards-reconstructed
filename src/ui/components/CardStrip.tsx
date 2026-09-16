@@ -16,7 +16,7 @@ import { memo, useCallback, useRef, useState } from "react";
 import type { CardSetRecord } from "../../data/types";
 import { DRAG_MIME } from "../../game/drag";
 import { CardAspectRatio } from "../../theme/theme";
-import { CharacterCard, type CardState } from "./CharacterCard";
+import { CARD_BORDER_RADIUS, CharacterCard, type CardState } from "./CharacterCard";
 
 export interface StripCard {
   /** 稳定 id：`角色-卡序` */
@@ -165,7 +165,9 @@ export function CardStrip(props: CardStripProps) {
           border: "1px solid",
           borderColor: "divider",
           borderRadius: 1,
-          p: 0.5,
+          // 上下留 4px；左右留 12px：MUI 滑块拇指半径 10px，否则推到两端会顶出边框
+          py: 0.5,
+          px: 1.5,
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
@@ -180,6 +182,8 @@ export function CardStrip(props: CardStripProps) {
             height: width / CardAspectRatio,
             maxWidth: "100%",
             overflow: "hidden",
+            // 与卡牌同款圆角：滚动到边界时被裁掉的卡片不会露出直角
+            borderRadius: CARD_BORDER_RADIUS,
             outline: props.dropActive ? "2px dashed" : "none",
             outlineColor: "primary.main",
             outlineOffset: "-2px",
