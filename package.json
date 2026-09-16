@@ -12,7 +12,11 @@
     "test:watch": "vitest",
     "data:build": "cd tools && UV_CACHE_DIR=.uv/cache uv run python -m tmc.build",
     "data:check": "cd tools && UV_CACHE_DIR=.uv/cache uv run python -m tmc.build --check",
-    "data:validate": "cd tools && UV_CACHE_DIR=.uv/cache uv run python -m tmc.validate --report"
+    "data:validate": "cd tools && UV_CACHE_DIR=.uv/cache uv run python -m tmc.validate --report",
+    "e2e": "PLAYWRIGHT_BROWSERS_PATH=\"$PWD/.playwright-browsers\" playwright test",
+    "e2e:chromium": "PLAYWRIGHT_BROWSERS_PATH=\"$PWD/.playwright-browsers\" playwright test --project=chromium",
+    "e2e:firefox": "PLAYWRIGHT_BROWSERS_PATH=\"$PWD/.playwright-browsers\" playwright test --project=firefox",
+    "e2e:peer": "node e2e/peer-server.mjs"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -25,11 +29,13 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@types/node": "^22.20.2",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.0.0",
     "jsdom": "^26.0.0",
+    "peer": "^1.0.2",
     "typescript": "^5.9.0",
     "vite": "^7.1.0",
     "vitest": "^3.2.0"

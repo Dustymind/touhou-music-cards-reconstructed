@@ -3,7 +3,8 @@
 东方 Project 的**歌牌游戏**重构实现：卡组里排好角色卡 → 放歌 → 抢拍对应角色的卡 → 抢对得牌、抢错罚牌。
 参考上游 [lightbulb128/touhou-card-player-v3](https://github.com/lightbulb128/touhou-card-player-v3) 的玩法、界面与联机模型，**独立重写**，不是 fork：数据从 JSON 迁移到 TOML、曲目身份从"手抄路径字符串"改为 `(专辑, 曲目)` 二元组、音乐源改为开关 + 可调 fallback、选择系统改为"专辑勾选 + 三态开关"派生。
 
-**当前状态**：M0（地基）已完成。数据迁移（M1）尚未开始。
+**当前状态**：**M0–M9 全部完成**；数据、管线、前端、联机与端到端测试都已跑通，验收数字见
+[`reports/M9-acceptance.md`](reports/M9-acceptance.md)。
 
 - 方案与进度：[docs/PLAN.md](docs/PLAN.md)
 - 决策记录（含理由与已裁定项）：[docs/DECISIONS.md](docs/DECISIONS.md)
@@ -32,7 +33,8 @@ data/            手工维护的真相源（TOML / JSON）
 docs/            方案、决策、规则、验收报告
 public/data/     由 data/ 生成的运行时 JSON（提交进仓库）
 src/             前端源码
-tests/           数据测试（Python）与端到端测试（Playwright，双引擎）
+tests/           数据测试（Python）
+e2e/             Playwright 端到端测试（冒烟 + 本地双浏览器联机）与本地 PeerJS 信令服务器
 tools/           Python 工具：迁移 / 校验 / 生成 / 分类 / 本地音乐源服务器
 .ref/            上游只读参考与调研笔记（**不进 git**）
 ```
@@ -51,9 +53,30 @@ UV_CACHE_DIR=.uv/cache uv run pytest
 # 前端
 fnm use && pnpm install        # pnpm store 落在仓库内（见 .npmrc，沙箱内 HOME 只读）
 pnpm dev                       # http://localhost:5173
-pnpm test                      # vitest（20 个：持久化 / 数据校验 / 本地化 / 冒烟）
+pnpm test                      # vitest（141 个）
 pnpm typecheck && pnpm build
+pnpm data:validate && pnpm data:check   # 数据不变量 + 生成物漂移守卫
 ```
+
+## 端到端测试（Playwright，本地双浏览器）
+
+```bash
+pnpm e2e                 # chromium + firefox 两个 project 全跑
+pnpm e2e:chromium        # 只跑 chromium
+pnpm e2e:firefox         # 只跑 firefox
+pnpm e2e:peer            # 单独起本地 PeerJS 信令服务器（127.0.0.1:9100）
+```
+
+- 浏览器**装在仓库内**（`.playwright-browsers/`，约 964 MB，已 gitignore），因为沙箱里 `$HOME` 只读；
+  首次使用需要 `PLAYWRIGHT_BROWSERS_PATH=$PWD/.playwright-browsers pnpm exec playwright install chromium firefox`。
+- `playwright.config.ts` 自带两个 `webServer`：Vite dev（5190，`reuseExistingServer`）+ 本地 PeerJS 信令
+  （`e2e/peer-server.mjs`，9100）。跨浏览器用例由 chromium project 自己拉起 chromium 主机 + firefox 客户端，
+  在 firefox project 里跳过（避免重复跑）。
+- 应用侧用 URL 参数指向自建信令：`?peerhost=127.0.0.1&peerport=9100&peerpath=/&peersecure=0`；
+  **链接里带这些参数时大厅的"cross-machine (PeerJS)"开关默认打开**。
+- 本机回环联调要关掉浏览器的 mDNS 候选混淆（`.local` 在容器里解析不了），用例里通过
+  chromium `--disable-features=WebRtcHideLocalIpsWithMdns` 与 firefox
+  `media.peerconnection.ice.obfuscate_host_addresses=false` 实现；**真实跨机器联机不需要这两个开关**。
 
 ## 外部依赖（网络）
 
@@ -66,6 +89,8 @@ pnpm typecheck && pnpm build
 | `thbwiki.cc`（经 THBWiki-Markdown 镜像） | `附加信息` 分类的权威依据 | 仅用于**离线生成数据**，不在运行时访问 |
 
 卡面素材**不随仓库分发**（版权与体积原因），运行时按 origin 列表远程加载；本地放好 `public/cards*/` 即可离线运行（见方案 §D10）。
+同理，上游的二进制素材一律不搬运：倒计时铃声改成用 Web Audio **现场合成**
+（`src/audio/bell.ts`，不支持 Web Audio 的环境退化为等长静音），仓库里没有任何上游二进制文件。
 
 ## 系统层依赖
 
@@ -73,10 +98,12 @@ pnpm typecheck && pnpm build
 |---|---|
 | `fnm` + node v24.21.0 + `pnpm` | ✅ 已就绪 |
 | `uv` 0.12.13 + Python 3.14.7 | ✅ 已就绪 |
-| Playwright 浏览器（chromium / firefox，约 300 MB，下载到 `~/.cache/ms-playwright`，**在仓库之外**） | ⏳ 需要时先与用户确认安装方式 |
+| Playwright 浏览器（chromium / firefox，约 964 MB，装在仓库内 `.playwright-browsers/`，已 gitignore） | ✅ 已安装；因沙箱 `$HOME` 只读才落在仓库里 |
 
 ## 约定
 
 - 提交信息：`<type>: <英文小写短句>`，`type ∈ feat|fix|data|docs|test|chore|refactor`；一个逻辑改动一个提交；需折行时 ≤ 75 列；**不 push**。
 - 生成物（`public/data/**`）随源码提交，`pnpm data:build` 后 `git diff` 必须为空（CI 漂移守卫）。
 - 参考文档 `.ref/notes/*.md` 是对上游的只读调研产物，不随仓库分发。
+- 端到端测试是"必须真浏览器跑"的那一层：MUI/浏览器行为（`Switch` 的 `slotProps.input`、三态开关的
+  `aria-checked="mixed"`、PeerJS 真正的 WebRTC 建连）在 jsdom 里都验证不了。

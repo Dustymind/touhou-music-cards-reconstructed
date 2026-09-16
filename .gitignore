@@ -10,15 +10,17 @@ __pycache__/
 
 # Node / 前端
 node_modules/
+.pnpm-store/
 dist/
 .vite/
 *.tsbuildinfo
 coverage/
 
-# 端到端测试产物
+# 端到端测试产物与浏览器（浏览器装进仓库，避开只读 $HOME；约 964 MB）
 test-results/
 playwright-report/
 .playwright/
+.playwright-browsers/
 
 # 本地曲库助手配置（机器相关）
 local-source.toml
@@ -29,5 +31,3 @@ local-source.toml
 !.vscode/settings.json
 .idea/
 *.swp
-node_modules/
-.pnpm-store/
