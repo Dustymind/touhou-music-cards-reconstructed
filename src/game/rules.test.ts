@@ -407,3 +407,54 @@ describe("自定义卡组", () => {
     expect(rules.unusedCards(state, pool).map((card) => card.characterKey)).toEqual(["b", "c", "d"]);
   });
 });
+
+describe("拖动放置与指定交牌", () => {
+  const cards = ["a", "b", "c"].map((key) => ({ characterKey: key, cardIndex: 0 }));
+  const withDecks = (deck0: (typeof cards[number] | null)[], deck1: (typeof cards[number] | null)[],
+                     givesLeft = 0): GameState => ({
+    ...rules.adjustDeckSize({ ...threeByTwo(), givesLeft }, 1, Math.max(deck0.length, deck1.length)),
+    players: [
+      { ...makePlayer("P1"), deck: deck0 },
+      { ...makePlayer("P2"), deck: deck1 },
+    ],
+  });
+  const keys = (state: GameState, player: number): (string | null)[] =>
+    state.players[player]!.deck.map((card) => card?.characterKey ?? null);
+
+  it("moveDeckCard：挪到空位是移动，挪到有卡的槽位是交换", () => {
+    const state = withDecks([cards[0]!, null, cards[2]!], [null, null, null]);
+    expect(keys(rules.moveDeckCard(state, 0, 0, 0, 1), 0)).toEqual([null, "a", "c"]);   // 挪到空位
+    expect(keys(rules.moveDeckCard(state, 0, 0, 0, 2), 0)).toEqual(["c", null, "a"]);   // 有卡则交换
+    expect(keys(rules.moveDeckCard(state, 0, 0, 0, 2), 0)).toEqual(["c", null, "a"]);
+    // 原地不动是空操作
+    expect(rules.moveDeckCard(state, 0, 0, 0, 0)).toBe(state);
+    // 空格子挪不出东西
+    expect(rules.moveDeckCard(state, 0, 1, 0, 2)).toBe(state);
+  });
+
+  it("moveDeckCard：跨牌库拖会跟对方那张交换", () => {
+    const state = withDecks([cards[0]!, null, null], [cards[1]!, null, null]);
+    const moved = rules.moveDeckCard(state, 0, 0, 1, 0);
+    expect(keys(moved, 0)).toEqual(["b", null, null]);
+    expect(keys(moved, 1)).toEqual(["a", null, null]);
+  });
+
+  it("giveCard：只有欠牌方交得动，交完 givesLeft 往 0 推一格", () => {
+    const owing = withDecks([cards[0]!, cards[1]!], [null, null], 2);
+    const once = rules.giveCard(owing, 0, 0, 1, 0);
+    expect(once.givesLeft).toBe(1);
+    expect(keys(once, 1)).toEqual(["a", null]);
+    expect(keys(once, 0)).toEqual([null, "b"]);
+
+    // 不欠牌的人交不动
+    expect(rules.giveCard(owing, 1, 0, 0, 1)).toBe(owing);
+    // 目标槽位有卡也不行
+    const occupied = withDecks([cards[0]!], [cards[1]!], 1);
+    expect(rules.giveCard(occupied, 0, 0, 1, 0)).toBe(occupied);
+    // 反向欠牌时由 1 号交
+    const reverse = withDecks([null, null], [cards[1]!, cards[2]!], -1);
+    const given = rules.giveCard(reverse, 1, 0, 0, 0);
+    expect(given.givesLeft).toBe(0);
+    expect(keys(given, 0)).toEqual(["b", null]);
+  });
+});

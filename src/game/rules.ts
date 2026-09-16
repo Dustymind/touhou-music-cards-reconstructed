@@ -78,6 +78,66 @@ export function removeCard(state: GameState, playerIndex: PlayerIndex, slot: num
   return setCard(state, playerIndex, slot, null);
 }
 
+/** 拖动放置：把一张卡挪到另一个槽位；目标槽位有卡就**交换**（可以跨牌库，对齐上游拖拽）。 */
+export function moveDeckCard(
+  state: GameState,
+  fromPlayer: PlayerIndex,
+  fromSlot: number,
+  toPlayer: PlayerIndex,
+  toSlot: number,
+): GameState {
+  const from = state.players[fromPlayer];
+  const to = state.players[toPlayer];
+  if (!from || !to) return state;
+  if (fromPlayer === toPlayer && fromSlot === toSlot) return state;
+  const card = from.deck[fromSlot];
+  if (card === null || card === undefined) return state;
+  const occupant = to.deck[toSlot] ?? null;
+  let next = state;
+  if (fromPlayer === toPlayer) {
+    const deck = from.deck.slice();
+    deck[fromSlot] = occupant;
+    deck[toSlot] = card;
+    next = withPlayer(next, fromPlayer, { deck });
+    return next;
+  }
+  // 跨牌库：源槽位放对方的卡（交换），两边都换好
+  next = withPlayer(next, toPlayer, {
+    deck: to.deck.map((entry, index) => (index === toSlot ? card : entry)),
+  });
+  next = withPlayer(next, fromPlayer, {
+    deck: from.deck.map((entry, index) => (index === fromSlot ? occupant : entry)),
+  });
+  return next;
+}
+
+/**
+ * 交牌（手动）：把 `fromPlayer` 的一张卡放到 `toPlayer` 的空槽位，并把 `givesLeft` 往 0 推一格。
+ *
+ * 上游是"`moveCard` + 一个 `give` 事件"两步（`GameJudge` 的 `case "give"`）；这里合成一次原子操作，
+ * 顺带修掉"手动交牌后 `givesLeft` 不减、界面一直提示还要交牌"的问题。
+ */
+export function giveCard(
+  state: GameState,
+  fromPlayer: PlayerIndex,
+  fromSlot: number,
+  toPlayer: PlayerIndex,
+  toSlot: number,
+): GameState {
+  const from = state.players[fromPlayer];
+  const to = state.players[toPlayer];
+  if (!from || !to || fromPlayer === toPlayer) return state;
+  const card = from.deck[fromSlot];
+  if (card === null || card === undefined) return state;
+  if ((to.deck[toSlot] ?? null) !== null) return state;
+  // 谁欠牌谁才能交：givesLeft > 0 是 0 号交，< 0 是 1 号交
+  const owes = state.givesLeft > 0 ? 0 : state.givesLeft < 0 ? 1 : null;
+  if (owes !== fromPlayer) return state;
+  const moved = moveDeckCard(state, fromPlayer, fromSlot, toPlayer, toSlot);
+  const step = Math.sign(state.givesLeft);
+  return { ...moved, givesLeft: state.givesLeft - step };
+}
+
 /** 未使用卡牌：卡池里既不在任何牌库、也不在任何收集区的卡（上游 `GameUnusedCards`）。 */
 export function unusedCards(state: GameState, pool: readonly CardInfo[]): CardInfo[] {
   return pool.filter((card) => holderOf(state, card) === null);

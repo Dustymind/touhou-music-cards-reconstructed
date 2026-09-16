@@ -2,7 +2,7 @@
 import {
   Alert, Box, Button, Chip, Divider, Paper, Stack, TextField, ToggleButton, ToggleButtonGroup, Typography,
 } from "@mui/material";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { DataBundle } from "../../data/types";
 import { Localization, t } from "../../i18n/localization";
@@ -11,6 +11,10 @@ import { filledSlots } from "../../game/types";
 import * as rules from "../../game/rules";
 import { useGame } from "../../game/useGame";
 import { useGameLoop } from "../../game/useGameLoop";
+import { beginDrag, currentDrag, endDrag, type DragPayload } from "../../game/drag";
+import {
+  CARD_WIDTH_PERCENTAGE, DEFAULT_GAME_SETTING, clampCardWidthPercentage, loadGameSetting, saveGameSetting,
+} from "../../game/gameSetting";
 import type { CardState } from "../components/CharacterCard";
 import { NoFontFamily } from "../../theme/theme";
 import { DeckGrid } from "../game/DeckGrid";
@@ -36,11 +40,18 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
   const cpu = useGame((slice) => slice.cpu);
   const {
     init, setMode, setTraditional, setCpu, resize, fill, clear, shuffle, start, stop,
-    pick, next, give, filterByDeck, setOrder, moveCard, addCard, removeCard,
+    pick, next, give, filterByDeck, setOrder, addCard, removeCard,
+    moveDeckCard, giveCard,
   } = useGame.getState();
 
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
-  const [cardWidth, setCardWidth] = useState(56);
+  /** 卡片宽度 = 容器宽度 × 百分比（上游 `cardWidthPercentage`，默认 0.08） */
+  const [cardWidthPercentage, setCardWidthPercentage] = useState(
+    () => loadGameSetting().cardWidthPercentage,
+  );
+  const [containerWidth, setContainerWidth] = useState(1000);
+  const canvasRef = useRef<HTMLDivElement | null>(null);
+  const cardWidth = Math.max(24, Math.round(containerWidth * cardWidthPercentage));
   const net = useNet();
   const isClient = net.role === "client";
   /** 牌桌视角：客户端看自己的那一侧（主机/单机 = 0） */
@@ -94,10 +105,25 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
       if (isClient) net.intent({ kind: "addCard", player: myIndex, card });
       else addCard(myIndex, card);
     },
+    /** 自定义卡组：把一张卡放到**指定**槽位（拖动放置用；主机也能放到电脑卡组） */
+    addCardTo: (player: number, card: CardInfo, slot: number) => {
+      if (isClient) net.intent({ kind: "addCard", player, card, slot });
+      else addCard(player, card, slot);
+    },
     /** 自定义卡组：把某一侧牌库里的一张拿出来（回到未使用卡牌） */
     removeCardFrom: (player: number, slot: number) => {
       if (isClient) net.intent({ kind: "removeCard", player, slot });
       else removeCard(player, slot);
+    },
+    /** 拖动放置：挪动/交换两张牌（可跨牌库，主机侧有权限校验） */
+    moveDeckCard: (fromPlayer: number, fromSlot: number, toPlayer: number, toSlot: number) => {
+      if (isClient) net.intent({ kind: "moveDeckCard", player: fromPlayer, fromSlot, toPlayer, toSlot });
+      else moveDeckCard(fromPlayer, fromSlot, toPlayer, toSlot);
+    },
+    /** 指定交牌：把手里的某张牌放到对手的空位（同时推进罚牌计数） */
+    giveCard: (fromPlayer: number, fromSlot: number, toPlayer: number, toSlot: number) => {
+      if (isClient) net.intent({ kind: "giveCard", fromSlot, toSlot });
+      else giveCard(fromPlayer, fromSlot, toPlayer, toSlot);
     },
     start: () => {
       if (isClient) net.intent({ kind: "confirmStart" });
@@ -113,7 +139,7 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
       else give();
     },
   }), [isClient, net, myIndex, pick, resize, setMode, setTraditional, filterByDeck, fill, clear, shuffle,
-    addCard, removeCard, start, stop, next, give, game.turnStartTimestamp]);
+    addCard, removeCard, moveDeckCard, giveCard, start, stop, next, give, game.turnStartTimestamp]);
 
   const cardFiles = useMemo(() => {
     const map: Record<string, string[]> = {};
@@ -132,6 +158,38 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
     init(cards);
     setOrder(bundle.characters.map((character) => character.key));
   }, [bundle, init, setOrder]);
+
+  // 容器宽度：卡片大小按它的百分比算（上游 `containerRef.clientWidth`）
+  useEffect(() => {
+    const element = canvasRef.current;
+    if (!element || typeof ResizeObserver === "undefined") return undefined;
+    const observer = new ResizeObserver(() => setContainerWidth(element.clientWidth));
+    observer.observe(element);
+    setContainerWidth(element.clientWidth);
+    return () => observer.disconnect();
+  }, []);
+
+  // 载入上次的卡片大小与牌库尺寸（上游 localStorage 的 `gameSetting`）。
+  // 牌库尺寸只在**用户自己改过**（存的不是默认值）时才套用：否则会盖掉调用方/联机同步过来的尺寸。
+  useEffect(() => {
+    const stored = loadGameSetting();
+    setCardWidthPercentage(stored.cardWidthPercentage);
+    const customised = stored.deckRows !== DEFAULT_GAME_SETTING.deckRows
+      || stored.deckColumns !== DEFAULT_GAME_SETTING.deckColumns;
+    if (customised && (stored.deckRows !== game.deckRows || stored.deckColumns !== game.deckColumns)) {
+      act.resize(stored.deckRows, stored.deckColumns);
+    }
+    // 只在挂载时读一次
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    saveGameSetting({
+      cardWidthPercentage,
+      deckRows: game.deckRows,
+      deckColumns: game.deckColumns,
+    });
+  }, [cardWidthPercentage, game.deckRows, game.deckColumns]);
 
   // 进入倒计时时重置计时锚点
   useEffect(() => {
@@ -185,19 +243,67 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
     if (game.state === "turnWinner" && iOweCards) setSelectedSlot(slot);
   };
 
+  /** 选牌阶段自己的牌可以拖去别的槽位；交牌阶段可以拖去对手空位。 */
+  const canDragOwnCard = building || (game.state === "turnWinner" && iOweCards);
+
+  const handleOwnCardDragStart = (slot: number, card: CardInfo) => {
+    beginDrag({ kind: "deck", player: myIndex, slot, card });
+  };
+
+  const handleOpponentCardDragStart = (slot: number, card: CardInfo) => {
+    // 只有选牌阶段、且是主机，才会把电脑牌库的卡拖出来
+    beginDrag({ kind: "deck", player: oppIndex, slot, card });
+  };
+
+  /** 拖到某一侧的某个槽位：按上游语义落地（空格=放，有卡=交换，来自牌库拖到别处=移动）。 */
+  const handleSlotDrop = (player: number, slot: number) => {
+    const payload: DragPayload | null = currentDrag();
+    endDrag();
+    if (payload === null) return;
+
+    if (game.state === "turnWinner") {
+      // 交牌阶段：把自己的牌拖到对手的空位
+      if (payload.kind !== "deck" || payload.player !== myIndex) return;
+      if (player !== oppIndex || !iOweCards) return;
+      if ((game.players[oppIndex]!.deck[slot] ?? null) !== null) return;
+      act.giveCard(myIndex, payload.slot, oppIndex, slot);
+      setSelectedSlot(null);
+      return;
+    }
+    if (game.state !== "selecting") return;
+
+    if (payload.kind === "unused") {
+      // 从"未使用卡牌"拖进槽位：清掉占位的那张（上游不换回），再放进去
+      if (isClient && player !== myIndex) return;
+      if ((game.players[player]!.deck[slot] ?? null) !== null) act.removeCardFrom(player, slot);
+      act.addCardTo(player, payload.card, slot);
+      return;
+    }
+    // 牌库之间挪动/交换
+    if (isClient && payload.player !== myIndex) return;
+    if (!isClient && player !== myIndex && player !== oppIndex) return;
+    act.moveDeckCard(payload.player, payload.slot, player, slot);
+  };
+
+  /** 把牌库里的卡拖回"未使用卡牌"区 = 拿出来 */
+  const handleDropOnUnused = () => {
+    const payload = currentDrag();
+    endDrag();
+    if (payload === null || payload.kind !== "deck") return;
+    if (game.state !== "selecting") return;
+    if (isClient && payload.player !== myIndex) return;
+    act.removeCardFrom(payload.player, payload.slot);
+  };
+
   const handleOpponentEmpty = (slot: number) => {
     if (game.state !== "turnWinner" || !iOweCards || selectedSlot === null) return;
-    if (isClient) {
-      // 客户端把"自己给对手"转成主机的 moveCard 语义（主机侧：1 → 0）
-      net.intent({ kind: "give" });
-    } else {
-      moveCard(myIndex, selectedSlot, oppIndex, slot);
-    }
+    // 指定交牌：交的是选中的那一张，同时把罚牌计数往 0 推（联机时交给主机落地）
+    act.giveCard(myIndex, selectedSlot, oppIndex, slot);
     setSelectedSlot(null);
   };
 
   return (
-    <Stack spacing={2} sx={{ width: "100%", maxWidth: 1000, fontFamily: NoFontFamily }}>
+    <Stack spacing={2} sx={{ width: "100%", maxWidth: 1000, fontFamily: NoFontFamily }} ref={canvasRef}>
       <LobbyPanel />
       <Paper variant="outlined" sx={{ p: 2 }}>
         <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", alignItems: "center", gap: 1 }}>
@@ -319,10 +425,22 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
             </Typography>
           </Stack>
           <Box sx={{ flex: 1 }} />
-          <Button size="small" onClick={() => setCardWidth((w) => Math.max(32, w - 8))}>
+          <Button
+            size="small"
+            data-testid="card-smaller"
+            disabled={cardWidthPercentage <= CARD_WIDTH_PERCENTAGE.min}
+            onClick={() => setCardWidthPercentage((value) =>
+              clampCardWidthPercentage(value - CARD_WIDTH_PERCENTAGE.step))}
+          >
             {t(Localization.GameCardSmaller)}
           </Button>
-          <Button size="small" onClick={() => setCardWidth((w) => Math.min(112, w + 8))}>
+          <Button
+            size="small"
+            data-testid="card-larger"
+            disabled={cardWidthPercentage >= CARD_WIDTH_PERCENTAGE.max}
+            onClick={() => setCardWidthPercentage((value) =>
+              clampCardWidthPercentage(value + CARD_WIDTH_PERCENTAGE.step))}
+          >
             {t(Localization.GameCardLarger)}
           </Button>
         </Stack>
@@ -347,6 +465,8 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
         <Typography variant="caption" color="text.secondary">
           {t(Localization.GameOpponentCollected, { count: String(theirs.collected.length) })}
         </Typography>
+        {/* 卡片放大后牌库可能比容器宽：让它横向滚动，而不是把卡片缩小 */}
+        <Box sx={{ overflowX: "auto", maxWidth: "100%" }}>
         <DeckGrid
           testId="deck-opponent"
           deck={theirs.deck}
@@ -369,13 +489,18 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
             act.pick(oppIndex, slot);
           }}
           onEmptyClick={handleOpponentEmpty}
+          draggable={false}
+          onCardDragStart={handleOpponentCardDragStart}
+          onSlotDrop={(slot) => handleSlotDrop(oppIndex, slot)}
         />
+        </Box>
 
         <Divider sx={{ my: 1.5 }} />
 
         <Typography variant="caption" color="text.secondary">
           {t(Localization.GameSelfCollected, { count: String(mine.collected.length) })}
         </Typography>
+        <Box sx={{ overflowX: "auto", maxWidth: "100%" }}>
         <DeckGrid
           testId="deck-you"
           deck={mine.deck}
@@ -390,7 +515,11 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
           cheatSlot={cheatSlotOf(myIndex)}
           glitch={glitch}
           onCardClick={handleOwnCard}
+          draggable={canDragOwnCard}
+          onCardDragStart={handleOwnCardDragStart}
+          onSlotDrop={(slot) => handleSlotDrop(myIndex, slot)}
         />
+        </Box>
 
         <UnusedCards
           cards={unused}
@@ -399,6 +528,8 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
           width={Math.max(28, Math.round(cardWidth * 0.6))}
           interactive={building}
           onPick={(card) => act.addCard(card)}
+          onCardDragStart={(card) => beginDrag({ kind: "unused", card })}
+          onDropCard={building ? handleDropOnUnused : undefined}
         />
 
         <Stack direction="row" spacing={1} sx={{ mt: 1.5, alignItems: "center", flexWrap: "wrap" }}>

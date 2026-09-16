@@ -31,6 +31,8 @@ export type ClientIntent =
   | { kind: "clearDeck"; player: number }
   | { kind: "fillDeck"; player: number }
   | { kind: "shuffleDeck"; player: number }
+  | { kind: "moveDeckCard"; player: number; fromSlot: number; toPlayer: number; toSlot: number }
+  | { kind: "giveCard"; fromSlot: number; toSlot: number }
   | { kind: "adjustDeckSize"; rows: number; columns: number }
   | { kind: "setMode"; mode: MatchMode }
   | { kind: "setTraditional"; traditional: boolean }

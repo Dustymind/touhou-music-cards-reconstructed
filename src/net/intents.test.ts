@@ -59,6 +59,36 @@ describe("牌组编辑意图", () => {
     expect(deckKeys(1)[3]).toBe("char-5");
   });
 
+  it("拖动放置与指定交牌：主机落地，客户端只能动自己的", () => {
+    // 客户端把手里第 0 张挪到第 3 个槽位
+    applyIntentLocally({ kind: "addCard", player: 1, card: POOL[2]! }, 1);
+    applyIntentLocally({ kind: "moveDeckCard", player: 1, fromSlot: 0, toPlayer: 1, toSlot: 3 }, 1);
+    expect(deckKeys(1)[3]).toBe("char-2");
+    expect(deckKeys(1)[0]).toBe("-");
+
+    // 客户端想挪主机的牌库：拒绝
+    applyIntentLocally({ kind: "fillDeck", player: 0 }, 0);
+    const hostBefore = deckKeys(0);
+    applyIntentLocally({ kind: "moveDeckCard", player: 0, fromSlot: 0, toPlayer: 0, toSlot: 3 }, 1);
+    expect(deckKeys(0)).toEqual(hostBefore);
+
+    // 指定交牌：欠牌的是 0 号，客户端（1 号）交不动
+    applyIntentLocally({ kind: "fillDeck", player: 1 }, 1);
+    useGame.setState((slice) => ({ game: { ...slice.game, givesLeft: 1 } }));
+    const guestBefore = deckKeys(1);
+    applyIntentLocally({ kind: "giveCard", fromSlot: 0, toSlot: 0 }, 1);
+    expect(deckKeys(1)).toEqual(guestBefore);
+    expect(useGame.getState().game.givesLeft).toBe(1);
+
+    // 主机交牌：卡从自己手里进对方空位，givesLeft 归零（先把对方牌库清空看好落点）
+    applyIntentLocally({ kind: "clearDeck", player: 1 }, 0);
+    const hostCard = useGame.getState().game.players[0]!.deck[0]!;
+    applyIntentLocally({ kind: "giveCard", fromSlot: 0, toSlot: 1 }, 0);
+    expect(useGame.getState().game.players[0]!.deck[0]).toBeNull();
+    expect(useGame.getState().game.players[1]!.deck[1]).toEqual(hostCard);
+    expect(useGame.getState().game.givesLeft).toBe(0);
+  });
+
   it("自定义拿牌：只能拿自己那一侧的", () => {
     applyIntentLocally({ kind: "addCard", player: 1, card: POOL[1]! }, 1);
     applyIntentLocally({ kind: "removeCard", player: 1, slot: 0 }, 1);

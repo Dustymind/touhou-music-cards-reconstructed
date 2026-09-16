@@ -1,5 +1,6 @@
 /** 双引擎冒烟：数据加载、页签切换、预设交互、对战回合。 */
 import { captureAudio, waitForPlaying } from "./audio";
+import { dragCard } from "./dnd";
 import { expect, test } from "@playwright/test";
 
 test("加载数据并渲染页签与播放页", async ({ page }) => {
@@ -130,6 +131,74 @@ test("自定义卡组：未使用卡可以点进牌库，也能点回来；电�
   await page.getByTestId("shuffle-cpu-deck").click();
   await page.getByTestId("clear-cpu-deck").click();
   await expect(page.getByTestId("deck-opponent-empty-0")).toBeVisible();
+});
+
+test("拖动放置卡牌：拖进指定槽位、拖回未使用区、牌位互换（对齐原版）", async ({ page }) => {
+  // 牌桌 + 未使用卡牌区一起要看得见，否则合成鼠标拖到屏幕外就没有 drop 事件
+  await page.setViewportSize({ width: 1440, height: 1500 });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Match" }).click();
+  const unused = page.locator('[data-testid^="unused-card-"]');
+
+  // 默认卡片大小 = 容器宽度 × 0.08（上游默认值，之前固定 56px 偏小）
+  const ratio = await page.evaluate(() => {
+    const card = document.querySelector('[data-testid="deck-you"] [data-testid^="deck-you-"]');
+    const board = document.querySelector('[data-testid="deck-you"]')?.parentElement;
+    if (!card || !board) return 0;
+    return card.getBoundingClientRect().width / board.getBoundingClientRect().width;
+  });
+  expect(ratio).toBeGreaterThan(0.075);
+  expect(ratio).toBeLessThan(0.09);
+
+  // 拖一张未使用的卡到第 5 个空位（点击只能落到第一个空位，拖动才能指定位置）
+  const dragged = await unused.first().getAttribute("data-testid");
+  await dragCard(page, unused.first(), page.getByTestId("deck-you-empty-5"));
+  await expect(page.getByTestId("deck-you-card-5")).toBeVisible();
+  await expect(page.locator(`[data-testid="${dragged}"]`)).toHaveCount(0);
+
+  // 拖回未使用区 = 拿出来
+  await dragCard(page, page.getByTestId("deck-you-card-5"), page.getByTestId("unused-cards"));
+  await expect(page.getByTestId("deck-you-empty-5")).toBeVisible();
+  await expect(page.locator(`[data-testid="${dragged}"]`)).toHaveCount(1);
+
+  // 牌库内互换：拖第 0 张到第 1 张
+  await dragCard(page, unused.first(), page.getByTestId("deck-you-empty-0"));
+  await dragCard(page, unused.first(), page.getByTestId("deck-you-empty-1"));
+  const img = (slot: number) => page.getByTestId(`deck-you-card-${slot}`).locator("img").getAttribute("src");
+  const before = [await img(0), await img(1)];
+  await dragCard(page, page.getByTestId("deck-you-card-0"), page.getByTestId("deck-you-card-1"));
+  expect(await img(0)).toBe(before[1]);
+  expect(await img(1)).toBe(before[0]);
+
+  // 主机可以把未使用的卡拖到电脑卡组的指定空位
+  await dragCard(page, unused.first(), page.getByTestId("deck-opponent-empty-3"));
+  await expect(page.getByTestId("deck-opponent-card-3")).toBeVisible();
+});
+
+test("卡片大小按钮按 0.01 步进并夹在 0.04~0.40", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Match" }).click();
+  const width = async (): Promise<number> => page.evaluate(() => {
+    const card = document.querySelector('[data-testid="deck-you"] [data-testid^="deck-you-"]');
+    return card ? Math.round(card.getBoundingClientRect().width) : 0;
+  });
+  const base = await width();
+  await page.getByTestId("card-larger").click();
+  const larger = await width();
+  expect(larger).toBeGreaterThan(base);
+
+  // 一路点到上限：按钮禁用（0.40 × 容器）
+  for (let i = 0; i < 40; i += 1) {
+    if (await page.getByTestId("card-larger").isDisabled()) break;
+    await page.getByTestId("card-larger").click();
+  }
+  await expect(page.getByTestId("card-larger")).toBeDisabled();
+  const max = await width();
+  expect(max).toBeGreaterThan(larger);
+
+  // 设置会落盘（上游同样存在 localStorage 的 gameSetting 里）
+  const stored = await page.evaluate(() => window.localStorage.getItem("gameSetting"));
+  expect(stored).toContain("cardWidthPercentage");
 });
 
 test("播放页解析出音源（真实源表 + 远程 URL 写入 audio.src）", async ({ page }) => {

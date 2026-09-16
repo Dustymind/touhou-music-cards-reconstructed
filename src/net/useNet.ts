@@ -241,6 +241,17 @@ export function applyIntentLocally(intent: ClientIntent, from: number): void {
     }
     // 牌组编辑（自定义卡组 / 补满 / 打乱 / 清空）：只有主机能改别人的牌库，
     // 客户端只能动自己那一份（`from` 是发送方下标，不可信的自报字段一律不用）
+    // 指定交牌：交牌方就是发送方（规则层再校验"只有欠牌的人才能交"）
+    case "giveCard": {
+      game.giveCard(from, intent.fromSlot, from === 0 ? 1 : 0, intent.toSlot);
+      return;
+    }
+    case "moveDeckCard": {
+      // 客户端只能挪自己那张（可以挪到对手牌库，与拖拽语义一致）
+      if (from !== 0 && intent.player !== from) return;
+      game.moveDeckCard(intent.player, intent.fromSlot, intent.toPlayer, intent.toSlot);
+      return;
+    }
     case "addCard":
     case "removeCard":
     case "clearDeck":

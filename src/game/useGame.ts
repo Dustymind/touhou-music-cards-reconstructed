@@ -43,6 +43,10 @@ export interface GameSlice {
   setOrder: (order: string[]) => void;
   /** 手动交牌：把一张牌从 `fromPlayer` 的槽位移到 `toPlayer` 的空槽 */
   moveCard: (fromPlayer: PlayerIndex, fromSlot: number, toPlayer: PlayerIndex, toSlot: number) => void;
+  /** 拖动放置：挪动/交换牌位（可以跨牌库） */
+  moveDeckCard: (fromPlayer: PlayerIndex, fromSlot: number, toPlayer: PlayerIndex, toSlot: number) => void;
+  /** 手动交牌（指定牌）：移动 + `givesLeft` 往 0 推一格 */
+  giveCard: (fromPlayer: PlayerIndex, fromSlot: number, toPlayer: PlayerIndex, toSlot: number) => void;
   /** 交牌 + 推进到下一回合 */
   next: () => void;
   give: () => void;
@@ -143,6 +147,14 @@ export const useGame = create<GameSlice>((set, get) => ({
     players[fromPlayer]!.deck[fromSlot] = null;
     players[toPlayer]!.deck[toSlot] = card;
     set({ game: { ...game, players } });
+  },
+
+  moveDeckCard(fromPlayer, fromSlot, toPlayer, toSlot) {
+    set({ game: rules.moveDeckCard(get().game, fromPlayer, fromSlot, toPlayer, toSlot) });
+  },
+
+  giveCard(fromPlayer, fromSlot, toPlayer, toSlot) {
+    set({ game: rules.giveCard(get().game, fromPlayer, fromSlot, toPlayer, toSlot) });
   },
 
   next() {

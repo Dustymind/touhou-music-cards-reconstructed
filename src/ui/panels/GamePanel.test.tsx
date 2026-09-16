@@ -23,6 +23,22 @@ async function render(): Promise<HTMLElement> {
   return container;
 }
 
+/** 合成一次 HTML5 拖拽：jsdom 没有 `DataTransfer`，挂个假的上就行（组件只用 setData/effectAllowed）。 */
+async function dragTo(container: HTMLElement, fromId: string, toId: string): Promise<void> {
+  const from = container.querySelector(`[data-testid="${fromId}"]`);
+  const to = container.querySelector(`[data-testid="${toId}"]`);
+  if (!from || !to) throw new Error(`缺少元素 ${fromId} → ${toId}`);
+  const dataTransfer = { setData: () => undefined, effectAllowed: "", dropEffect: "" };
+  const fire = async (target: Element, type: string): Promise<void> => {
+    const event = new Event(type, { bubbles: true, cancelable: true });
+    Object.defineProperty(event, "dataTransfer", { value: dataTransfer });
+    await act(async () => { target.dispatchEvent(event); });
+  };
+  await fire(from, "dragstart");
+  await fire(to, "dragover");
+  await fire(to, "drop");
+}
+
 async function click(container: HTMLElement, testId: string): Promise<void> {
   const element = container.querySelector(`[data-testid="${testId}"]`);
   if (!element) throw new Error(`缺少元素 ${testId}`);
@@ -267,6 +283,76 @@ describe("GamePanel", () => {
     await click(container, "start-game");
     const shuffleButton = container.querySelector<HTMLButtonElement>('[data-testid="shuffle-cpu-deck"]');
     expect(shuffleButton?.disabled).toBe(true);
+  });
+
+  it("拖动放置：拖到指定槽位、拖回未使用区、牌位互换", async () => {
+    const container = await render();
+    const firstUnused = container.querySelector<HTMLElement>('[data-testid^="unused-card-"]')!;
+    const unusedId = firstUnused.getAttribute("data-testid")!;
+
+    // 拖到第 5 个空位（点击只会落在第一个空位，拖动才能指定）
+    await dragTo(container, unusedId, "deck-you-empty-5");
+    expect(useGame.getState().game.players[0]!.deck[5]?.characterKey)
+      .toBe(unusedId.replace("unused-card-", "").replace(/-\d+$/, ""));
+    expect(container.querySelector(`[data-testid="${unusedId}"]`)).toBeNull();
+
+    // 拖回未使用区 = 拿出来
+    await dragTo(container, "deck-you-card-5", "unused-cards");
+    expect(useGame.getState().game.players[0]!.deck[5]).toBeNull();
+    expect(container.querySelector(`[data-testid="${unusedId}"]`)).not.toBeNull();
+
+    // 牌库内互换
+    await dragTo(container, unusedId, "deck-you-empty-0");
+    const second = container.querySelector<HTMLElement>('[data-testid^="unused-card-"]')!;
+    await dragTo(container, second.getAttribute("data-testid")!, "deck-you-empty-1");
+    const before = [useGame.getState().game.players[0]!.deck[0]!, useGame.getState().game.players[0]!.deck[1]!];
+    await dragTo(container, "deck-you-card-0", "deck-you-card-1");
+    const after = [useGame.getState().game.players[0]!.deck[0]!, useGame.getState().game.players[0]!.deck[1]!];
+    expect(after[0]).toEqual(before[1]);
+    expect(after[1]).toEqual(before[0]);
+
+    // 主机能把未使用的卡拖进电脑卡组的指定空位
+    const third = container.querySelector<HTMLElement>('[data-testid^="unused-card-"]')!;
+    await dragTo(container, third.getAttribute("data-testid")!, "deck-opponent-empty-3");
+    expect(useGame.getState().game.players[1]!.deck[3]).not.toBeNull();
+  });
+
+  it("卡片大小按容器百分比（上游默认 0.08），按钮步进 0.01 并夹住上下限", async () => {
+    const container = await render();
+    const cardWidth = (): string =>
+      container.querySelector('[data-testid="deck-you"]')?.getAttribute("data-card-width") ?? "";
+    // jsdom 没有布局，容器宽度取兜底值 1000 → 0.08 × 1000 = 80px
+    expect(cardWidth()).toBe("80");
+
+    await click(container, "card-larger");
+    expect(cardWidth()).toBe("90");
+    await click(container, "card-smaller");
+    await click(container, "card-smaller");
+    expect(cardWidth()).toBe("70");
+
+    for (let i = 0; i < 12; i += 1) await click(container, "card-smaller");
+    expect(cardWidth()).toBe("40");                             // 0.04 × 1000 = 下限
+    expect(container.querySelector<HTMLButtonElement>('[data-testid="card-smaller"]')?.disabled).toBe(true);
+    for (let i = 0; i < 40; i += 1) await click(container, "card-larger");
+    expect(cardWidth()).toBe("400");                            // 0.40 × 1000 = 上限
+    expect(container.querySelector<HTMLButtonElement>('[data-testid="card-larger"]')?.disabled).toBe(true);
+    // 设置落盘（上游同样存在 localStorage 的 gameSetting）
+    expect(localStorage.getItem("gameSetting")).toContain("cardWidthPercentage");
+  });
+
+  it("卡片大小与牌库尺寸会记住：改过的设置下次进游戏页自动恢复", async () => {
+    const container = await render();
+    await click(container, "card-larger");
+    await click(container, "card-larger");
+    await click(container, "card-larger");
+    await click(container, "card-larger");            // 0.08 → 0.12
+    await act(async () => {
+      root?.unmount();
+    });
+    document.body.innerHTML = "";
+
+    const again = await render();
+    expect(again.querySelector('[data-testid="deck-you"]')?.getAttribute("data-card-width")).toBe("120");
   });
 
   it("按卡组筛选音乐：不在场上的角色被临时禁用", async () => {
