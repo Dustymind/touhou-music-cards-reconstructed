@@ -196,14 +196,18 @@ test("动效：牌桌卡牌滑位 + hover 抬起；播放页牌堆叠放 + 点�
   expect(layer.transition).toContain("left 0.4s");
   expect(layer.transition).toContain("top 0.4s");
 
-  // hover 抬起 = 内层卡片 translateY(-10%)（上游 `raised`）
+  // 游戏盘的卡槽**不做**悬浮动效（用户要求）：hover 之后依然没有位移
   await page.getByTestId("deck-you-card-0").hover();
-  await expect.poll(async () => page.getByTestId("deck-you-card-0").evaluate((element) => {
+  await page.waitForTimeout(400);
+  const boardLift = await page.getByTestId("deck-you-card-0").evaluate((element) => {
     const inner = element.firstElementChild;
-    const matrix = inner ? getComputedStyle(inner).transform : "";
-    const match = /matrix\(1, 0, 0, 1, [\d.]+, (-?[\d.]+)\)/.exec(matrix);
-    return match ? Number(match[1]) : 0;
-  })).toBeLessThan(0);
+    return inner ? getComputedStyle(inner).transform : "";
+  });
+  expect(boardLift).toBe("none");
+  // 卡面自身也不该有白底纸框（用户要求：不要卡片底下的背景）
+  const boardBg = await page.getByTestId("deck-you-card-0").evaluate((element) =>
+    getComputedStyle(element.firstElementChild!).backgroundColor);
+  expect(boardBg).toBe("rgba(0, 0, 0, 0)");
 
   // 播放页：牌堆每张卡都有上游那条 0.5s 横向过渡，点击＝临时跳过（底色转灰）
   await page.getByRole("button", { name: "Player" }).click();
@@ -212,10 +216,31 @@ test("动效：牌桌卡牌滑位 + hover 抬起；播放页牌堆叠放 + 点�
   const fanTransition = await fanCard.evaluate((element) => getComputedStyle(element).transition);
   expect(fanTransition).toContain("left 0.5s ease-in-out");
   expect(fanTransition).toContain("transform 0.3s");
-  const before = await fanCard.evaluate((element) => getComputedStyle(element.firstElementChild!).backgroundColor);
-  await fanCard.click();
-  await expect.poll(async () => fanCard.evaluate((element) => getComputedStyle(element.firstElementChild!).backgroundColor))
-    .not.toBe(before);
+  // 播放页的牌堆要能横向滚动（用户要求：选卡区要有滚动条）
+  const scrollable = await page.getByTestId("upcoming-fan").evaluate((element) => ({
+    overflowX: getComputedStyle(element).overflowX,
+    wider: element.scrollWidth > element.clientWidth,
+  }));
+  expect(scrollable.overflowX).toBe("auto");
+  expect(scrollable.wider).toBe(true);
+  // hover 抬起 = 内层卡片 translateY(-10%)（上游 `raised`），且不被容器裁掉
+  const targetId = await page.locator('[data-testid^="upcoming-card-"]').nth(3).getAttribute("data-testid");
+  const target = page.getByTestId(targetId!);
+  await target.hover();
+  await expect.poll(async () => target.evaluate((element) => {
+    const matrix = getComputedStyle(element.firstElementChild!).transform;
+    const match = /matrix\(1, 0, 0, 1, [\d.]+, (-?[\d.]+)\)/.exec(matrix);
+    return match ? Number(match[1]) : 0;
+  })).toBeLessThan(0);
+  // 跳过的反馈是灰度（`bare` 模式不铺底色，只留描边圈；灰度加在 img 上）
+  const grayscaleOf = (element: Element): string => {
+    const image = element.querySelector("img");
+    return image ? getComputedStyle(image).filter : "";
+  };
+  const before = await target.evaluate(grayscaleOf);
+  await target.click();
+  await expect.poll(async () => target.evaluate(grayscaleOf)).not.toBe(before);
+  expect(await target.evaluate(grayscaleOf)).toContain("grayscale");
 });
 
 test("卡片大小按钮按 0.01 步进并夹在 0.04~0.40", async ({ page }) => {

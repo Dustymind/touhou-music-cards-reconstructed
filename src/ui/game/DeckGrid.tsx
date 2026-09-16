@@ -8,7 +8,7 @@
  * 没法做"牌滑过去"的动效（上游每张卡都是常驻元素 + `transition: left/top`，同一效果）。
  * 卡片自身的 hover 抬起/底色过渡由 `CharacterCard` 负责（上游 `transition: transform/background-color/filter`）。
  */
-import { Box, Paper } from "@mui/material";
+import { Box } from "@mui/material";
 import { useState } from "react";
 
 import type { CardSetRecord } from "../../data/types";
@@ -53,7 +53,6 @@ export function DeckGrid(props: DeckGridProps) {
     onCardClick, onEmptyClick, draggable, onCardDragStart, onSlotDrop,
   } = props;
   const [dropSlot, setDropSlot] = useState<number | null>(null);
-  const [hovered, setHovered] = useState<string | null>(null);
 
   const cardHeight = width / CardAspectRatio;
   const total = rows * columns;
@@ -97,10 +96,11 @@ export function DeckGrid(props: DeckGridProps) {
       >
         {Array.from({ length: total }).map((_unused, slot) => {
           const occupied = (deck[slot] ?? null) !== null;
+          // 有卡的位置不留底、不描边（卡面自己就是画面）；空位只留一个虚线框当落点提示，
+          // 且**不做悬浮动效**（用户要求：游戏盘卡槽不需要光标悬浮效果）
           return (
-            <Paper
+            <Box
               key={slot}
-              variant="outlined"
               data-testid={occupied ? undefined : `${props.testId}-empty-${slot}`}
               onClick={() => {
                 if (!interactive || occupied) return;
@@ -110,11 +110,13 @@ export function DeckGrid(props: DeckGridProps) {
               onDragLeave={() => setDropSlot((current) => (current === slot ? null : current))}
               onDrop={dropOn(slot)}
               sx={{
-                cursor: interactive && !occupied ? "pointer" : "default",
+                border: occupied ? "none" : "1px dashed",
+                borderColor: "divider",
+                borderRadius: "4px",
+                // 拖拽时的落点提示（只在真的拖着东西时出现，不是 hover 动效）
                 outline: dropSlot === slot ? "2px dashed" : "none",
                 outlineColor: "primary.main",
                 outlineOffset: "-2px",
-                transition: "outline-color 0.2s ease, background-color 0.2s ease",
               }}
             />
           );
@@ -134,8 +136,6 @@ export function DeckGrid(props: DeckGridProps) {
               // 同一张卡换格子时是**同一个 DOM 节点**（动画的前提），测试用这两个属性锁住
               data-card-key={key}
               data-slot={slot}
-              onMouseEnter={() => setHovered(key)}
-              onMouseLeave={() => setHovered((current) => (current === key ? null : current))}
               onClick={() => {
                 if (!interactive) return;
                 onCardClick?.(slot, card);
@@ -171,7 +171,8 @@ export function DeckGrid(props: DeckGridProps) {
                 state={cardStateOf?.(card) ?? "normal"}
                 width="100%"
                 glitch={Boolean(props.glitch)}
-                raised={hovered === key}
+                // 牌桌上的卡也不要白底纸框：透明底 + 状态描边（抢对的绿/抢错的红变成圈）
+                bare
               />
               {props.cheatSlot === slot && (
                 <CheatRect width={width - 4} height={(width - 4) / CardAspectRatio} />

@@ -37,6 +37,8 @@ export interface CharacterCardProps {
   preferLocal?: boolean;
   glitch?: boolean;
   raised?: boolean;
+  /** 只要卡面、不要底下的纸框（游戏里的选卡区/播放页牌堆用；底色改成描边圈） */
+  bare?: boolean;
   onClick?: () => void;
   sx?: SxProps;
   "data-testid"?: string;
@@ -44,7 +46,7 @@ export interface CharacterCardProps {
 
 export function CharacterCard({
   cardSet, file, width = "100%", state = "normal", preferLocal = false, glitch = false,
-  raised = false, onClick, sx, ...rest
+  raised = false, bare = false, onClick, sx, ...rest
 }: CharacterCardProps) {
   const origins = preferLocal ? [cardSet.localPrefix, ...cardSet.origins] : cardSet.origins;
   const [originIndex, setOriginIndex] = useState(0);
@@ -52,18 +54,24 @@ export function CharacterCard({
 
   const isPlaceholder = state === "placeholder" || !file;
   const origin = origins[Math.min(originIndex, origins.length - 1)] ?? cardSet.origins[0]!;
-  const background = isCheat() ? randomColor(0.5, 1) : COLOR_BY_STATE[state];
+  const background = isCheat() ? randomColor(0.5, 1) : bare ? "transparent" : COLOR_BY_STATE[state];
   const grayscale = GRAYSCALE.includes(state);
+  // `bare`：不铺底色，状态改用描边圈表达（不会糊住相邻卡牌的动效）
+  const ring = bare && !isPlaceholder && !grayscale && state !== "normal"
+    ? `0 0 0 3px ${COLOR_BY_STATE[state]}`
+    : undefined;
   const rotation = glitch && !isPlaceholder ? glitchTilt(file) : 0;
 
   return (
     <Paper
-      elevation={2}
+      elevation={bare ? 0 : 2}
       onClick={onClick}
       data-testid={rest["data-testid"]}
       sx={{
         width,
         backgroundColor: background,
+        boxShadow: ring,
+        borderRadius: bare ? "6px" : undefined,
         border: isPlaceholder ? "2px dashed gray" : "none",
         cursor: onClick ? "pointer" : "default",
         transition: "transform 0.3s ease, background-color 0.3s ease, filter 0.3s ease",

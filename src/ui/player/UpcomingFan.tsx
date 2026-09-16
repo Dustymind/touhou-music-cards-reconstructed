@@ -13,6 +13,9 @@ import type { CardSetRecord, DataBundle } from "../../data/types";
 import { CardAspectRatio } from "../../theme/theme";
 import { CharacterCard, type CardState } from "../components/CharacterCard";
 
+/** 抬起时卡片会向上探出 10%，容器顶部留出这么多像素，避免被裁切/压到上面的文字。 */
+const LIFT_PADDING = 18;
+
 export interface UpcomingFanProps {
   bundle: DataBundle;
   cardSet: CardSetRecord;
@@ -76,7 +79,16 @@ export function UpcomingFan(props: UpcomingFanProps) {
     <Box
       data-testid="upcoming-fan"
       data-card-width={Math.round(cardWidth)}
-      sx={{ position: "relative", width: "100%", height: cardHeight, overflow: "hidden", mt: 1 }}
+      // 顶部留出抬起的高度；横向可滚动（用户要求：选卡区要有滚动条，参考原版）
+      sx={{
+        position: "relative",
+        width: "100%",
+        height: cardHeight + LIFT_PADDING,
+        overflowX: "auto",
+        overflowY: "hidden",
+        mt: 1,
+        pt: `${LIFT_PADDING}px`,
+      }}
     >
       {cards.map((card) => {
         const id = `${card.key}-${card.cardIndex}`;
@@ -95,7 +107,7 @@ export function UpcomingFan(props: UpcomingFanProps) {
             sx={{
               position: "absolute",
               left: card.left,
-              top: 0,
+              top: LIFT_PADDING,
               width: cardWidth,
               zIndex: card.zIndex,
               // 上游原值：横向位移 0.5s，抬起/底色/灰度 0.3s
@@ -107,6 +119,7 @@ export function UpcomingFan(props: UpcomingFanProps) {
               file={card.file}
               state={state}
               width="100%"
+              bare
               raised={hovered === id}
             />
           </Box>

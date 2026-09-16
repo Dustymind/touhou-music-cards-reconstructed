@@ -3,7 +3,7 @@
  * 上游是拖拽（拖进牌位，点一下则落进第一个空位）；这里沿用本项目的点击式交互，
  * 行为与上游的"点击"分支一致（见 `docs/DECISIONS.md` D18）。
  */
-import { Box, Paper, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import { useState } from "react";
 
 import type { CardSetRecord } from "../../data/types";
@@ -73,9 +73,8 @@ export function UnusedCards(props: UnusedCardsProps) {
         }}
       >
         {cards.map((card) => (
-          <Paper
+          <Box
             key={`${card.characterKey}-${card.cardIndex}`}
-            variant="outlined"
             data-testid={`unused-card-${card.characterKey}-${card.cardIndex}`}
             onMouseEnter={() => setHovered(`${card.characterKey}-${card.cardIndex}`)}
             onMouseLeave={() => setHovered((current) =>
@@ -87,17 +86,18 @@ export function UnusedCards(props: UnusedCardsProps) {
               event.dataTransfer.effectAllowed = "move";
               onCardDragStart?.(card);
             }}
-            sx={{ p: "2px", width: `${width}px`, flex: "0 0 auto", cursor: interactive ? "grab" : "default" }}
+            sx={{ width: `${width}px`, flex: "0 0 auto", cursor: interactive ? "grab" : "default" }}
           >
             <CharacterCard
               cardSet={cardSet}
               file={cardFiles[card.characterKey]?.[card.cardIndex] ?? ""}
               state={"normal" as CardState}
               width="100%"
-              // hover 抬起：与牌桌/播放页同一套动效（CharacterCard 自带 transform 过渡）
+              bare
+              // hover 抬起：与播放页同一套动效（CharacterCard 自带 transform 过渡）
               raised={hovered === `${card.characterKey}-${card.cardIndex}`}
             />
-          </Paper>
+          </Box>
         ))}
       </Box>
     </Box>
