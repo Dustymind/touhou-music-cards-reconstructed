@@ -2,7 +2,7 @@ key = "eternity-larva"
 name = "エタニティラルバ"
 order = 78
 card = ["エタニティラルバ.png"]
-searchNames = ["エタニティラルバ", "Etaniti Raruba", "Eternity Larva", "爱塔妮缇·拉尔瓦", "aitaniti laerwa"]
+searchNames = ["エタニティラルバ", "Etaniti Raruba", "Eternity Larva", "爱塔妮缇·拉尔瓦", "aitaniti laerwa", "爱塔妮缇拉尔瓦"]
 
 music = [
   ["東方天空璋 ～ Hidden Star in Four Seasons", "真夏の妖精の夢", "角色曲"],

@@ -17,6 +17,7 @@ from __future__ import annotations
 import argparse
 import collections
 import json
+import re
 import unicodedata
 from dataclasses import dataclass, field
 
@@ -230,6 +231,74 @@ def _same_track(path: str, key: tuple[str, str]) -> bool:
     return (unicodedata.normalize("NFC", album), unicodedata.normalize("NFC", title)) == key
 
 
+def _character_names() -> set[str]:
+    """全部角色的名字与别名（用于判断标签是否真的绑定了角色）。"""
+    names: set[str] = set()
+    for path in (repo.DATA / "characters").glob("*.toml"):
+        import tomllib as _tomllib
+
+        with open(path, "rb") as fh:
+            char = _tomllib.load(fh)
+        names.add(char["name"])
+        names.update(char["searchNames"])
+    return {name for name in names if len(name) >= 2}
+
+
+def write_unowned(index, referenced: set[tuple[str, str]], report: Migration) -> None:
+    """把"源表里有、没有任何角色引用"的曲目登记成清单。
+
+    分三类，便于以后决定要不要补配：
+    - `系统曲`：THBWiki 标签不含角色（标题/Ending/Staff/剧情/系统曲）；
+    - `含角色标签`：标签里有角色或面次，但我们的角色档案没引用 —— **待补配候选**；
+    - `无标签`：秘封 CD / OST 里没有 Music Room 条目的曲目。
+    """
+    from .roles import STAGE_RE
+
+    known_names = _character_names()
+
+    union: dict[tuple[str, str], str] = {}
+    for source_id in SOURCES:
+        with open(repo.DATA / "sources" / f"{source_id}.json", encoding="utf-8") as fh:
+            for album, title, _url in json.load(fh):
+                union.setdefault((album, title), source_id)
+
+    rows = []
+    counts = collections.Counter()
+    for (album, title) in sorted(union):
+        if (album, title) in referenced:
+            continue
+        work = next((w for _k, name, _kind, w, _o in repo.ALBUM_SEED if name == album and w), "")
+        labels = index.labels(work, title) if work else []
+        def binds_character(label: str) -> bool:
+            # 只有标签里真的出现某个角色名（或 VS/面BOSS 形式）才算"绑定了角色"
+            if re.search(r"面BOSS|VS[^场]*场景用曲", label):
+                return True
+            return any(name in label for name in known_names)
+
+        stage_labels = [label for label in labels if STAGE_RE.match(label)]
+        character_labels = [label for label in labels if not STAGE_RE.match(label) and binds_character(label)]
+        if labels and all(not binds_character(label) and not STAGE_RE.match(label) for label in labels):
+            kind, note = "系统曲", "；".join(labels)
+        elif stage_labels or character_labels:
+            kind, note = "含角色标签", "；".join(stage_labels + character_labels)
+        elif labels:
+            kind, note = "其它标签", "；".join(labels)
+        else:
+            kind, note = "无标签", "该专辑没有 Music Room 条目（秘封 CD / 格斗碟未使用曲等）"
+        counts[kind] += 1
+        rows.append((album, title, kind, note, union[(album, title)]))
+
+    meta = repo.DATA / "meta"
+    meta.mkdir(parents=True, exist_ok=True)
+    with open(meta / "unowned-tracks.tsv", "w", encoding="utf-8") as fh:
+        fh.write("专辑\t曲目\t分类\t标签/说明\t来源表\n")
+        for row in rows:
+            fh.write("\t".join(row) + "\n")
+    report.reasons["unowned-total"] = len(rows)
+    for kind, count in counts.most_common():
+        report.reasons[f"unowned-{kind}"] = count
+
+
 def write_reports(report: Migration) -> None:
     reports = repo.ROOT / "reports"
     reports.mkdir(exist_ok=True)
@@ -243,6 +312,10 @@ def write_reports(report: Migration) -> None:
              "## 判定规则命中分布", ""]
     for rule, count in sorted(report.reasons.items()):
         lines.append(f"- {rule}: {count}")
+    lines += ["", "## 未归属曲目（data/meta/unowned-tracks.tsv）", ""]
+    for key, count in sorted(report.reasons.items()):
+        if key.startswith("unowned-"):
+            lines.append(f"- {key.removeprefix('unowned-')}: {count}")
     lines += ["", "## 源表迁移", ""]
     for source_id, stat in report.source_stats.items():
         lines.append(f"- {source_id}: 上游 {stat['upstream']} → 写出 {stat['written']}"
@@ -270,6 +343,7 @@ def main(argv: list[str] | None = None) -> int:
     migrate_albums()
     migrate_characters(index, report, overrides, aliases)
     migrate_sources(referenced, report)
+    write_unowned(index, referenced, report)
     write_reports(report)
     print(f"角色 {report.characters} / 条目 {report.entries} / 待判定 {len(report.pending)}")
     return 0

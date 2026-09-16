@@ -2,7 +2,7 @@ key = "inaba-tewi"
 name = "因幡てゐ"
 order = 24
 card = ["てゐ.png"]
-searchNames = ["因幡てゐ", "Inaba Tewi", "因幡帝", "yinba di"]
+searchNames = ["因幡てゐ", "Inaba Tewi", "因幡帝", "yinba di", "因幡天为"]
 
 music = [
   ["東方花映塚 ～ Phantasmagoria of Flower View", "お宇佐さまの素い幡", "角色曲"],

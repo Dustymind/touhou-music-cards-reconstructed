@@ -2,7 +2,7 @@ key = "kaenbyou-rin"
 name = "火焔猫燐"
 order = 47
 card = ["燐.png"]
-searchNames = ["火焔猫燐", "Kaenbyou Rin", "火焰猫磷", "huoyanmao lin"]
+searchNames = ["火焔猫燐", "Kaenbyou Rin", "火焰猫磷", "huoyanmao lin", "火焰猫燐"]
 
 music = [
   ["東方地霊殿 ～ Subterranean Animism", "死体旅行　～ Be of good cheer!", "角色曲"],

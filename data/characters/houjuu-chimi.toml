@@ -2,7 +2,7 @@ key = "houjuu-chimi"
 name = "封獣チミ"
 order = 113
 card = ["チミ.png"]
-searchNames = ["封獣チミ", "Houjuu Chimi", "封獣魑魅", "fengshou chimei"]
+searchNames = ["封獣チミ", "Houjuu Chimi", "封獣魑魅", "fengshou chimei", "封兽魑魅"]
 
 music = [
   ["東方錦上京 ～ Fossilized Wonders", "森にはお化けがいるよ", "角色曲"],

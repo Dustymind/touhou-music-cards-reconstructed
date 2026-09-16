@@ -2,7 +2,7 @@ key = "remilia-scarlet"
 name = "レミリア・スカーレット"
 order = 11
 card = ["レミリア.png"]
-searchNames = ["レミリア・スカーレット", "Remiria Sukaretto", "Remilia Scarlet", "蕾米莉亚·斯卡雷特", "leimiliya sikalete"]
+searchNames = ["レミリア・スカーレット", "Remiria Sukaretto", "Remilia Scarlet", "蕾米莉亚·斯卡雷特", "leimiliya sikalete", "蕾米莉亚·斯卡蕾特"]
 
 music = [
   ["東方紅魔郷 ～ the Embodiment of Scarlet Devil", "亡き王女の為のセプテット", "角色曲"],

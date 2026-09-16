@@ -2,7 +2,7 @@ key = "flandre-scarlet"
 name = "フランドール・スカーレット"
 order = 12
 card = ["フラン.png"]
-searchNames = ["フランドール・スカーレット", "Furandoru Sukaretto", "Flandre Scarlet", "芙兰朵露·斯卡雷特", "fulanduolu sikaleite"]
+searchNames = ["フランドール・スカーレット", "Furandoru Sukaretto", "Flandre Scarlet", "芙兰朵露·斯卡雷特", "fulanduolu sikaleite", "芙兰朵露·斯卡蕾特"]
 
 music = [
   ["東方紅魔郷 ～ the Embodiment of Scarlet Devil", "U.N.オーエンは彼女なのか？", "角色曲"],

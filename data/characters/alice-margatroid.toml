@@ -2,7 +2,7 @@ key = "alice-margatroid"
 name = "アリス・マーガトロイド"
 order = 2
 card = ["アリス＆上海蓬莱.png"]
-searchNames = ["アリス・マーガトロイド", "Arisu Magatoroido", "Alice Margatroid", "爱丽丝·玛格特罗依德", "ailisi mageteluoyide"]
+searchNames = ["アリス・マーガトロイド", "Arisu Magatoroido", "Alice Margatroid", "爱丽丝·玛格特罗依德", "ailisi mageteluoyide", "爱丽丝·玛格特洛依德"]
 
 music = [
   ["東方妖々夢 ～ Perfect Cherry Blossom", "人形裁判　～ 人の形弄びし少女", "角色曲"],
