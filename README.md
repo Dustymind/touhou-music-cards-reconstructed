@@ -5,7 +5,7 @@
 
 **当前状态**：M0（地基）已完成。数据迁移（M1）尚未开始。
 
-- 审阅中的完整方案：[docs/PLAN.md](docs/PLAN.md)
+- 方案与进度：[docs/PLAN.md](docs/PLAN.md)
 - 决策记录（含理由与已裁定项）：[docs/DECISIONS.md](docs/DECISIONS.md)
 - 数据分类规则 v1（`附加信息` 判定）：[docs/rules-classification-v1.md](docs/rules-classification-v1.md)
 
@@ -39,7 +39,8 @@ tools/           Python 工具：迁移 / 校验 / 生成 / 分类 / 本地音�
 
 ## 运行
 
-> 前端已可播放并配置（M6）：`pnpm dev` 后能听歌、切歌、调音量；设置页可选图集、开关音源并调 fallback 顺序、勾选音乐预设（秘封多选 + 三态开关 + 专辑复选）、开启仅单曲模式逐角色选曲。对战在 M7/M8。
+> 功能已完整（M0–M9）：`pnpm dev` 后可以听歌/切歌、配置图集与音源、勾选音乐预设、仅单曲模式逐角色选曲，并打单机/CPU/联机对局。
+> 验收数据见 [`reports/M9-acceptance.md`](reports/M9-acceptance.md)，数据体检见 [`reports/M1-data-health.md`](reports/M1-data-health.md)。
 
 ```bash
 # 数据（Python 工具）

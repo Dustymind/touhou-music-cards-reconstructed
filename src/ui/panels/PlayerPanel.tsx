@@ -8,6 +8,7 @@ import type { PlayerApi } from "../../audio/usePlayer";
 import type { TableMap } from "../../music/sources";
 import { NoFontFamily } from "../../theme/theme";
 import { CharacterCard } from "../components/CharacterCard";
+import { glitchEnabled, preferLocalCards } from "../../runtime";
 import { PlayerControl } from "../components/PlayerControl";
 
 export interface PlayerPanelProps {
@@ -37,7 +38,15 @@ export function PlayerPanel(props: PlayerPanelProps) {
         <Stack direction="row" spacing={2} alignItems="flex-start">
           <Box sx={{ width: 160, flexShrink: 0 }}>
             {character
-              ? <CharacterCard cardSet={cardSet} file={character.card[0]!} data-testid="current-card" />
+              ? (
+                <CharacterCard
+                  cardSet={cardSet}
+                  file={character.card[0]!}
+                  glitch={glitchEnabled()}
+                  preferLocal={preferLocalCards()}
+                  data-testid="current-card"
+                />
+              )
               : <CharacterCard cardSet={cardSet} file="" state="placeholder" />}
           </Box>
           <Stack spacing={1} sx={{ flex: 1, minWidth: 0 }}>

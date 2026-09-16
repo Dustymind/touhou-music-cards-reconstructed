@@ -4,6 +4,7 @@ import { Box, Paper } from "@mui/material";
 import type { CardSetRecord } from "../../data/types";
 import type { CardInfo, Slot } from "../../game/types";
 import { CharacterCard, type CardState } from "../components/CharacterCard";
+import { CheatRect } from "./CheatRect";
 
 export interface DeckGridProps {
   deck: readonly Slot[];
@@ -19,6 +20,10 @@ export interface DeckGridProps {
   cardStates?: Record<number, CardState>;
   onCardClick?: (slot: number, card: CardInfo) => void;
   onEmptyClick?: (slot: number) => void;
+  /** 彩蛋：答案卡的槽位（会在它周围画一圈色块） */
+  cheatSlot?: number | null;
+  /** `?g=`：卡片随机倾斜 */
+  glitch?: boolean;
   testId?: string;
 }
 
@@ -55,11 +60,21 @@ export function DeckGrid(props: DeckGridProps) {
             }}
             sx={{
               p: "2px",
+              position: "relative",
               cursor: interactive ? "pointer" : "default",
               transform: upsideDown ? "rotate(180deg)" : "none",
             }}
           >
-            <CharacterCard cardSet={cardSet} file={file} state={state} width={`${width - 8}px`} />
+            <CharacterCard
+              cardSet={cardSet}
+              file={file}
+              state={state}
+              width={`${width - 8}px`}
+              glitch={Boolean(props.glitch) && Boolean(card)}
+            />
+            {card && props.cheatSlot === slot && (
+              <CheatRect width={width - 8} height={(width - 8) / 0.703} />
+            )}
           </Paper>
         );
       })}

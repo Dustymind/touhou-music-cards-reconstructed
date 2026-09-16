@@ -15,6 +15,8 @@ import { NoFontFamily } from "../../theme/theme";
 import { DeckGrid } from "../game/DeckGrid";
 import { LobbyPanel } from "../game/LobbyPanel";
 import { useNet } from "../../net/useNet";
+import { glitchEnabled } from "../../runtime";
+import { isCheatReally } from "../../cheat";
 import { markCountdownStart, TimerDisplay } from "../game/TimerDisplay";
 
 export function GamePanel({ bundle }: { bundle: DataBundle }) {
@@ -104,6 +106,15 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
     }
     return states;
   }, [game.pickEvents, game.currentKey]);
+
+  // 彩蛋：开启后把答案卡圈出来（对齐上游 CheatRect 行为）
+  const cheat = isCheatReally();
+  const cheatSlotOf = (player: number): number | null => {
+    if (!cheat || game.currentKey === null) return null;
+    const slot = game.players[player]!.deck.findIndex((card) => card?.characterKey === game.currentKey);
+    return slot >= 0 ? slot : null;
+  };
+  const glitch = glitchEnabled();
 
   const currentName = game.currentKey
     ? bundle.characterByKey.get(game.currentKey)?.name ?? game.currentKey
@@ -231,6 +242,8 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
           upsideDown
           interactive={game.state === "turnStart" || (game.state === "turnWinner" && game.givesLeft < 0)}
           cardStates={pickStates[1]}
+          cheatSlot={cheatSlotOf(1)}
+          glitch={glitch}
           onCardClick={(slot) => act.pick(1, slot)}
           onEmptyClick={handleOpponentEmpty}
         />
@@ -250,6 +263,8 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
           width={cardWidth}
           interactive={game.state === "turnStart" || (game.state === "turnWinner" && game.givesLeft > 0)}
           cardStates={pickStates[0]}
+          cheatSlot={cheatSlotOf(0)}
+          glitch={glitch}
           onCardClick={handleOwnCard}
         />
 
