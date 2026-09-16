@@ -652,4 +652,5 @@ interface Transport {
 - [x] **M2a**：待判定 19 条 + 面次核对 → [`reports/M2a-proposal.md`](../reports/M2a-proposal.md)。**待判定 0 条**、面次核对 95 verified + 2 别名缺口、修正 1 组源表 URL；新增人工裁定表 `data/meta/extra-overrides.tsv`。
 - [ ] **M2b**：格斗/arrange + 孤儿归属的第二批复核表。
 - [x] **M3 音源层**：`data/sources/sources.toml` 注册表（**三个远程源默认全开**）+ 本地曲库助手 `tmc.local_source`（manifest、Range/CORS、端口回退）+ 实链抽查 `tmc.check_urls`（120 条抽样全通过）。网易云外链已统一升为 `https://`（实测 302 落点 CDN 亦支持 https）。
-- [ ] **M4 应用骨架** / M5 播放层 / M6 配置页 / M7 对战核心 / M8 联机 / M9 打磨：按里程碑推进，每个结束汇报再继续。
+- [x] **M4 应用骨架**：Vite + React 19 + MUI 7 工程、主题与字体、本地化（en/zh）、数据载入与入口校验、版本化持久化层、页签外壳与四个面板骨架（`pnpm dev` 可跑；20 个前端测试 + 32 个 Python 测试全绿）。
+- [ ] **M5 播放层** / M6 配置页 / M7 对战核心 / M8 联机 / M9 打磨：按里程碑推进，每个结束汇报再继续。

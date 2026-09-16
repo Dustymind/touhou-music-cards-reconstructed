@@ -1,0 +1,20 @@
+/* Inconsolata 是 OFL 授权，随仓库分发（计时器用）。 */
+@font-face {
+  font-family: "TMC Inconsolata";
+  src: url("/fonts/Inconsolata-Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-display: swap;
+}
+
+/* Whitney / YuGothic 是商业字体，**不随仓库分发**：只在本机已安装时启用。
+   需要还原上游排版的话，把 WHITNEY-MEDIUM.ttf 与 YuGothic-Bold-01.ttf 放进
+   public/fonts/ 并在 package 里补 url() 即可（见 docs/DECISIONS.md D12）。 */
+@font-face {
+  font-family: "TMC Whitney";
+  src: local("WHITNEY-MEDIUM"), local("Whitney Medium"), local("Whitney");
+}
+
+@font-face {
+  font-family: "TMC YuGothic";
+  src: local("YuGothic-Bold-01"), local("Yu Gothic Bold"), local("Yu Gothic"), local("YuGothic");
+}

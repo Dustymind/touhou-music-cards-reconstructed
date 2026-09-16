@@ -180,6 +180,20 @@ type SourceDef = {
 
 ---
 
+## D12 字体：只分发 Inconsolata，商业字体走 `local()`
+
+**结论**：`public/fonts/` 只放 **Inconsolata-Medium.ttf**（OFL 授权，计时器用）；上游另外两个字体
+（`WHITNEY-MEDIUM.ttf` 26 KB、`YuGothic-Bold-01.ttf` 14 MB）**不随仓库分发**，改为 `@font-face` 的
+`local(...)` 声明 —— 本机装了就用，没装就退回系统栈。
+
+**理由**：Whitney 与 YuGothic 是商业字体，仓库里再分发有授权风险；而上游的视觉效果主要来自
+MUI 主题、卡片状态底色与等宽计时器，字体差异只影响"很像"的程度。
+
+**代价 / 还原办法**：把两个 TTF 放进 `public/fonts/` 并给 `src/theme/fonts.css` 的对应 `@font-face`
+补上 `url(...)`，即可完全复刻上游排版（`.ref/upstream-v3/app/fonts/` 里有原文件）。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |

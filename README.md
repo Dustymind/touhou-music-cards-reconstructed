@@ -39,7 +39,7 @@ tools/           Python 工具：迁移 / 校验 / 生成 / 分类 / 本地音�
 
 ## 运行
 
-> M1 之后才会产出可运行的前端。当前只有文档与工具骨架。
+> 前端已可运行（M4）：`pnpm dev` 后能看到页签外壳、角色列表、数据概览与音源开关。播放层在 M5。
 
 ```bash
 # 数据（Python 工具）
@@ -47,9 +47,11 @@ cd tools
 UV_CACHE_DIR=.uv/cache uv sync     # 建立 .venv；沙箱内 HOME 只读，故把 uv 缓存放进仓库
 UV_CACHE_DIR=.uv/cache uv run pytest
 
-# 前端（M4 起）
-fnm use && pnpm install
-pnpm dev
+# 前端
+fnm use && pnpm install        # pnpm store 落在仓库内（见 .npmrc，沙箱内 HOME 只读）
+pnpm dev                       # http://localhost:5173
+pnpm test                      # vitest（20 个：持久化 / 数据校验 / 本地化 / 冒烟）
+pnpm typecheck && pnpm build
 ```
 
 ## 外部依赖（网络）

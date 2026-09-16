@@ -29,3 +29,5 @@ local-source.toml
 !.vscode/settings.json
 .idea/
 *.swp
+node_modules/
+.pnpm-store/
