@@ -183,7 +183,6 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
             cardCollection={cardCollection}
             onShuffle={() => { player.pause(); queue.regenerate(usableKeys, true); }}
             onSort={() => { player.pause(); queue.regenerate(usableKeys, false); }}
-            onSelect={(key) => queue.setCurrent(key)}
             onToggleTemporary={(key) => queue.toggleTemporary(key)}
           />
         )}

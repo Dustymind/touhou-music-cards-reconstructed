@@ -181,6 +181,43 @@ test("拖动放置卡牌：拖进指定槽位、拖回未使用区、牌位互�
   await expect(page.getByTestId("deck-opponent-card-3")).toBeVisible();
 });
 
+test("动效：牌桌卡牌滑位 + hover 抬起；播放页牌堆叠放 + 点击跳过", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1500 });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Match" }).click();
+  await page.getByTestId("random-fill").click();
+
+  // 卡牌层是绝对定位 + left/top 过渡：换格子时会滑过去（对齐上游 `transition: left/top`）
+  const layer = await page.getByTestId("deck-you-card-0").evaluate((element) => {
+    const style = getComputedStyle(element);
+    return { position: style.position, transition: style.transition };
+  });
+  expect(layer.position).toBe("absolute");
+  expect(layer.transition).toContain("left 0.4s");
+  expect(layer.transition).toContain("top 0.4s");
+
+  // hover 抬起 = 内层卡片 translateY(-10%)（上游 `raised`）
+  await page.getByTestId("deck-you-card-0").hover();
+  await expect.poll(async () => page.getByTestId("deck-you-card-0").evaluate((element) => {
+    const inner = element.firstElementChild;
+    const matrix = inner ? getComputedStyle(inner).transform : "";
+    const match = /matrix\(1, 0, 0, 1, [\d.]+, (-?[\d.]+)\)/.exec(matrix);
+    return match ? Number(match[1]) : 0;
+  })).toBeLessThan(0);
+
+  // 播放页：牌堆每张卡都有上游那条 0.5s 横向过渡，点击＝临时跳过（底色转灰）
+  await page.getByRole("button", { name: "Player" }).click();
+  const fanCard = page.locator('[data-testid^="upcoming-card-"]').first();
+  await expect(fanCard).toBeVisible();
+  const fanTransition = await fanCard.evaluate((element) => getComputedStyle(element).transition);
+  expect(fanTransition).toContain("left 0.5s ease-in-out");
+  expect(fanTransition).toContain("transform 0.3s");
+  const before = await fanCard.evaluate((element) => getComputedStyle(element.firstElementChild!).backgroundColor);
+  await fanCard.click();
+  await expect.poll(async () => fanCard.evaluate((element) => getComputedStyle(element.firstElementChild!).backgroundColor))
+    .not.toBe(before);
+});
+
 test("卡片大小按钮按 0.01 步进并夹在 0.04~0.40", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Match" }).click();

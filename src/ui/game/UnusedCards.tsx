@@ -33,6 +33,7 @@ export interface UnusedCardsProps {
 export function UnusedCards(props: UnusedCardsProps) {
   const { cards, cardSet, cardFiles, width, onPick, interactive, onCardDragStart, onDropCard } = props;
   const [over, setOver] = useState(false);
+  const [hovered, setHovered] = useState<string | null>(null);
   return (
     <Box
       sx={{ mt: 1.5 }}
@@ -76,6 +77,9 @@ export function UnusedCards(props: UnusedCardsProps) {
             key={`${card.characterKey}-${card.cardIndex}`}
             variant="outlined"
             data-testid={`unused-card-${card.characterKey}-${card.cardIndex}`}
+            onMouseEnter={() => setHovered(`${card.characterKey}-${card.cardIndex}`)}
+            onMouseLeave={() => setHovered((current) =>
+              (current === `${card.characterKey}-${card.cardIndex}` ? null : current))}
             onClick={() => { if (interactive) onPick(card); }}
             draggable={interactive && Boolean(onCardDragStart)}
             onDragStart={(event) => {
@@ -90,6 +94,8 @@ export function UnusedCards(props: UnusedCardsProps) {
               file={cardFiles[card.characterKey]?.[card.cardIndex] ?? ""}
               state={"normal" as CardState}
               width="100%"
+              // hover 抬起：与牌桌/播放页同一套动效（CharacterCard 自带 transform 过渡）
+              raised={hovered === `${card.characterKey}-${card.cardIndex}`}
             />
           </Paper>
         ))}

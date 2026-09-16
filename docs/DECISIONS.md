@@ -430,6 +430,37 @@ E2E 两条（真浏览器拖动：指定槽位、拖回、互换、拖进电脑�
 
 ---
 
+## D21 播放页与游戏页的动效（照抄上游的过渡值）
+
+**需求**（用户）：播放器界面参考原版优化、带动效；游戏界面同样参考原版优化、带动效。
+
+**做法**：先把上游的过渡值找出来（`CharacterCard.tsx` / `PlayerTab.tsx` / `GameTab.tsx`），逐条落到本项目：
+
+| 元素 | 动效 | 来源 |
+|---|---|---|
+| 角色卡（处处） | `transition: transform 0.3s ease, background-color 0.3s ease, filter 0.3s ease`；hover → `translateY(-10%)`（`raised`） | 上游 `CharacterCard` 原值 |
+| 牌桌的卡 | 卡牌层改成**绝对定位的常驻元素**（`key = 角色-卡序`）+ `transition: left 0.4s ease, top 0.4s ease`：补满、换位、交换、拖动、改行列时牌会**滑过去** | 上游 canvas 每张卡常驻 + `left/top` 过渡；DOM 版把 0.3s 放成 0.4s |
+| 未使用卡牌区 | hover 抬起（与牌桌同一套 `raised`） | 上游语义 |
+| 播放页"接下来" | **重叠牌堆**：同角色叠 80%、角色之间叠 20%、卡宽 `min(20vw, 150)`；`transition: left 0.5s ease-in-out, transform/background-color/filter 0.3s ease`；hover 抬起；点击＝临时跳过（变灰 + 整条带子重排） | 上游 `PlayerTab` 原值 |
+| 当前角色卡面 | 该角色**多张卡面叠放**（上游 `CharacterCardStacked`），切歌时整块滑入 0.3s | 叠放照上游；滑入是替代品（见下） |
+| 提示条（结算/交牌/播放错误） | 出现时淡入 0.3s | 上游对显隐元素用 `opacity 0.3s ease` |
+| 拖放落点 | 虚线描边 0.2s + 卡牌 0.2s 底色过渡 | 新增（拖动需要落点反馈） |
+
+**三处有意差异**（都写进 `reports/M9-acceptance.md`）：
+
+1. 上游切歌是一整条 `translateX((index - currentIndex) * 100%)` 的轮播，**121 个角色的大卡面全部渲染**；
+   这里改成给当前卡面做 0.3s 滑入动画 —— 同样的时长与缓动，省掉 160 张大图的常驻渲染。
+2. 上游把牌堆起点再往左推 2 张卡宽（当前角色在可视区外，只能靠上方大卡面看当前曲目）；
+   这里从**当前角色**开始排，并把当前角色的卡标成 `selected` 底色，看得见自己在放哪首。
+3. 上游拖拽时卡牌跟随光标；这里是浏览器原生拖影（D20 已记）。
+
+**回归锁**：`UpcomingFan` 三个用例（叠放步长、窄窗口缩放、真实数据张数）、`GamePanel` 一条
+（换格子时是同一个 DOM 节点 —— 这是"滑过去"动效的前提）、E2E 一条（真浏览器读 `getComputedStyle`：
+牌桌卡 `position: absolute` + `left/top 0.4s`、hover 后 transform 的 y 为负、牌堆 `left 0.5s ease-in-out`
+且点击后底色变化）。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |

@@ -361,6 +361,22 @@ describe("GamePanel", () => {
     expect(again.querySelector('[data-testid="deck-you"]')?.getAttribute("data-card-width")).toBe("120");
   });
 
+  it("拖动放置的动效前提：换格子时是同一个 DOM 节点（卡牌层 key = 角色-卡序）", async () => {
+    const container = await render();
+    const unusedId = container.querySelector<HTMLElement>('[data-testid^="unused-card-"]')!
+      .getAttribute("data-testid")!;
+    await dragTo(container, unusedId, "deck-you-empty-0");
+    const before = container.querySelector('[data-testid="deck-you-card-0"]')!;
+    expect(before.getAttribute("data-slot")).toBe("0");
+    const cardKey = before.getAttribute("data-card-key");
+
+    await dragTo(container, "deck-you-card-0", "deck-you-empty-7");
+    const after = container.querySelector('[data-testid="deck-you-card-7"]')!;
+    expect(after.getAttribute("data-card-key")).toBe(cardKey);   // 同一张卡
+    expect(after.getAttribute("data-slot")).toBe("7");           // 换了格子 → left/top 过渡会滑过去
+    expect(container.querySelectorAll(`[data-card-key="${cardKey}"]`)).toHaveLength(1);
+  });
+
   it("按卡组筛选音乐：不在场上的角色被临时禁用", async () => {
     const container = await render();
     await click(container, "random-fill");

@@ -1,10 +1,20 @@
-/** 牌库网格：自己的牌正放，对手的旋转 180°；点击出牌，也可以拖动摆放（对齐上游拖拽）。 */
+/** 牌库网格：自己的牌正放，对手的旋转 180°。
+ *
+ * 两层结构（对齐上游 canvas 的做法）：
+ * - 底层是"格子"：空位虚线框、点击落点、拖放落点；
+ * - 上层是"卡牌层"：每张卡按 `key = 角色-卡序` 持续存在，用绝对定位的 `left/top` 过渡滑到新格子。
+ *
+ * 之所以不直接用 CSS Grid 摆卡：`key` 绑在格子上的话，卡一换格子就是**另一个 DOM 节点**，
+ * 没法做"牌滑过去"的动效（上游每张卡都是常驻元素 + `transition: left/top`，同一效果）。
+ * 卡片自身的 hover 抬起/底色过渡由 `CharacterCard` 负责（上游 `transition: transform/background-color/filter`）。
+ */
 import { Box, Paper } from "@mui/material";
 import { useState } from "react";
 
 import type { CardSetRecord } from "../../data/types";
 import { DRAG_MIME } from "../../game/drag";
 import type { CardInfo, Slot } from "../../game/types";
+import { CardAspectRatio } from "../../theme/theme";
 import { CharacterCard, type CardState } from "../components/CharacterCard";
 import { CheatRect } from "./CheatRect";
 
@@ -34,12 +44,35 @@ export interface DeckGridProps {
   testId?: string;
 }
 
+/** 与上游 `canvasSpacing` 同量级；网格 gap 保持一致。 */
+const GAP = 4;
+
 export function DeckGrid(props: DeckGridProps) {
   const {
     deck, rows, columns, cardSet, cardFiles, width, upsideDown, interactive, cardStateOf,
     onCardClick, onEmptyClick, draggable, onCardDragStart, onSlotDrop,
   } = props;
   const [dropSlot, setDropSlot] = useState<number | null>(null);
+  const [hovered, setHovered] = useState<string | null>(null);
+
+  const cardHeight = width / CardAspectRatio;
+  const total = rows * columns;
+  const keyOf = (card: CardInfo): string => `${card.characterKey}-${card.cardIndex}`;
+  const left = (slot: number): number => (slot % columns) * (width + GAP);
+  const top = (slot: number): number => Math.floor(slot / columns) * (cardHeight + GAP);
+
+  const dragOver = (slot: number) => (event: React.DragEvent): void => {
+    if (!onSlotDrop) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    if (dropSlot !== slot) setDropSlot(slot);
+  };
+  const dropOn = (slot: number) => (event: React.DragEvent): void => {
+    if (!onSlotDrop) return;
+    event.preventDefault();
+    setDropSlot(null);
+    onSlotDrop(slot);
+  };
 
   return (
     <Box
@@ -47,73 +80,106 @@ export function DeckGrid(props: DeckGridProps) {
       // jsdom 没有布局，卡片宽度只能这样被测试读到（与 `net-digest` 的 data-digest 同一套路）
       data-card-width={width}
       sx={{
-        display: "grid",
-        gridTemplateColumns: `repeat(${columns}, ${width}px)`,
-        gridTemplateRows: `repeat(${rows}, auto)`,
-        gap: "4px",
-        justifyContent: "center",
+        position: "relative",
+        width: columns * width + (columns - 1) * GAP,
+        height: rows * cardHeight + (rows - 1) * GAP,
+        transform: upsideDown ? "rotate(180deg)" : "none",
       }}
     >
-      {Array.from({ length: rows * columns }).map((_unused, slot) => {
-        const card: CardInfo | null = deck[slot] ?? null;
-        const state: CardState = card ? (cardStateOf?.(card) ?? "normal") : "placeholder";
-        const file = card ? (cardFiles[card.characterKey]?.[card.cardIndex] ?? "") : "";
-        const canDrag = Boolean(draggable && card);
-        return (
-          <Paper
-            key={slot}
-            variant="outlined"
-            data-testid={card ? `${props.testId}-card-${slot}` : `${props.testId}-empty-${slot}`}
-            onClick={() => {
-              if (!interactive) return;
-              if (card) onCardClick?.(slot, card);
-              else onEmptyClick?.(slot);
-            }}
-            draggable={canDrag}
-            onDragStart={(event) => {
-              if (!canDrag || !card) return;
-              // Firefox 需要 setData 才会真的开始拖
-              event.dataTransfer.setData(DRAG_MIME, "card");
-              event.dataTransfer.effectAllowed = "move";
-              onCardDragStart?.(slot, card);
-            }}
-            onDragOver={(event) => {
-              if (!onSlotDrop) return;
-              event.preventDefault();
-              event.dataTransfer.dropEffect = "move";
-              if (dropSlot !== slot) setDropSlot(slot);
-            }}
-            onDragLeave={() => setDropSlot((current) => (current === slot ? null : current))}
-            onDrop={(event) => {
-              if (!onSlotDrop) return;
-              event.preventDefault();
-              setDropSlot(null);
-              onSlotDrop(slot);
-            }}
-            sx={{
-              p: "2px",
-              position: "relative",
-              cursor: interactive ? "pointer" : canDrag ? "grab" : "default",
-              transform: upsideDown ? "rotate(180deg)" : "none",
-              outline: dropSlot === slot ? "2px dashed" : "none",
-              outlineColor: "primary.main",
-              outlineOffset: "-2px",
-            }}
-          >
-            {/* 内层填满槽位（`p: 2px` → 内容宽 = 宽度 - 4），未使用卡牌区用同样的算法 */}
-            <CharacterCard
-              cardSet={cardSet}
-              file={file}
-              state={state}
-              width="100%"
-              glitch={Boolean(props.glitch) && Boolean(card)}
+      {/* 格子层：空位样式、点击与拖放落点 */}
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: `repeat(${columns}, ${width}px)`,
+          gridTemplateRows: `repeat(${rows}, ${cardHeight}px)`,
+          gap: `${GAP}px`,
+        }}
+      >
+        {Array.from({ length: total }).map((_unused, slot) => {
+          const occupied = (deck[slot] ?? null) !== null;
+          return (
+            <Paper
+              key={slot}
+              variant="outlined"
+              data-testid={occupied ? undefined : `${props.testId}-empty-${slot}`}
+              onClick={() => {
+                if (!interactive || occupied) return;
+                onEmptyClick?.(slot);
+              }}
+              onDragOver={dragOver(slot)}
+              onDragLeave={() => setDropSlot((current) => (current === slot ? null : current))}
+              onDrop={dropOn(slot)}
+              sx={{
+                cursor: interactive && !occupied ? "pointer" : "default",
+                outline: dropSlot === slot ? "2px dashed" : "none",
+                outlineColor: "primary.main",
+                outlineOffset: "-2px",
+                transition: "outline-color 0.2s ease, background-color 0.2s ease",
+              }}
             />
-            {card && props.cheatSlot === slot && (
-              <CheatRect width={width - 4} height={(width - 4) / 0.703} />
-            )}
-          </Paper>
-        );
-      })}
+          );
+        })}
+      </Box>
+
+      {/* 卡牌层：常驻元素 + left/top 过渡 = 移动时滑过去 */}
+      <Box sx={{ position: "absolute", inset: 0, pointerEvents: "none" }}>
+        {deck.map((card, slot) => {
+          if (!card) return null;
+          const key = keyOf(card);
+          const canDrag = Boolean(draggable);
+          return (
+            <Box
+              key={key}
+              data-testid={`${props.testId}-card-${slot}`}
+              // 同一张卡换格子时是**同一个 DOM 节点**（动画的前提），测试用这两个属性锁住
+              data-card-key={key}
+              data-slot={slot}
+              onMouseEnter={() => setHovered(key)}
+              onMouseLeave={() => setHovered((current) => (current === key ? null : current))}
+              onClick={() => {
+                if (!interactive) return;
+                onCardClick?.(slot, card);
+              }}
+              draggable={canDrag}
+              onDragStart={(event) => {
+                if (!canDrag) return;
+                // Firefox 需要 setData 才会真的开始拖
+                event.dataTransfer.setData(DRAG_MIME, "card");
+                event.dataTransfer.effectAllowed = "move";
+                onCardDragStart?.(slot, card);
+              }}
+              onDragOver={dragOver(slot)}
+              onDragEnd={() => setDropSlot(null)}
+              onDrop={dropOn(slot)}
+              sx={{
+                position: "absolute",
+                left: left(slot),
+                top: top(slot),
+                width,
+                // 牌库变化时"滑"到新格子（上游 `transition: left/top 0.3s ease`）
+                transition: "left 0.4s ease, top 0.4s ease",
+                pointerEvents: "auto",
+                cursor: interactive ? "pointer" : canDrag ? "grab" : "default",
+                outline: dropSlot === slot ? "2px dashed" : "none",
+                outlineColor: "primary.main",
+                outlineOffset: "-2px",
+              }}
+            >
+              <CharacterCard
+                cardSet={cardSet}
+                file={cardFiles[card.characterKey]?.[card.cardIndex] ?? ""}
+                state={cardStateOf?.(card) ?? "normal"}
+                width="100%"
+                glitch={Boolean(props.glitch)}
+                raised={hovered === key}
+              />
+              {props.cheatSlot === slot && (
+                <CheatRect width={width - 4} height={(width - 4) / CardAspectRatio} />
+              )}
+            </Box>
+          );
+        })}
+      </Box>
     </Box>
   );
 }

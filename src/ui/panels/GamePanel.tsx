@@ -16,7 +16,7 @@ import {
   CARD_WIDTH_PERCENTAGE, DEFAULT_GAME_SETTING, clampCardWidthPercentage, loadGameSetting, saveGameSetting,
 } from "../../game/gameSetting";
 import type { CardState } from "../components/CharacterCard";
-import { NoFontFamily } from "../../theme/theme";
+import { fadeInSx, NoFontFamily } from "../../theme/theme";
 import { DeckGrid } from "../game/DeckGrid";
 import { UnusedCards } from "../game/UnusedCards";
 import { LobbyPanel } from "../game/LobbyPanel";
@@ -446,7 +446,7 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
         </Stack>
 
         {game.state === "finished" && (
-          <Alert severity="success" sx={{ mb: 1 }} data-testid="game-finished">
+          <Alert severity="success" sx={{ mb: 1, ...fadeInSx }} data-testid="game-finished">
             {t(Localization.GameFinishedWinner, {
               winner: game.winner === null
                 ? t(Localization.GameWinnerDraw)
@@ -455,7 +455,7 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
           </Alert>
         )}
         {game.state === "turnWinner" && game.givesLeft !== 0 && (
-          <Alert severity="info" sx={{ mb: 1 }} data-testid="give-hint">
+          <Alert severity="info" sx={{ mb: 1, ...fadeInSx }} data-testid="give-hint">
             {iOweCards
               ? t(Localization.GameInstructionGiveCards, { count: String(Math.abs(game.givesLeft)) })
               : t(Localization.GameInstructionReceiveCards, { count: String(Math.abs(game.givesLeft)) })}
