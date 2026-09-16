@@ -77,6 +77,20 @@ def test_data_invariants_hold():
         assert stat["missing"] == 0, source_id
 
 
+def test_title_is_not_identity():
+    """同名 ≠ 同曲：曲目身份必须带专辑，且同专辑内曲名唯一。"""
+    problems, stats = validate.run()
+    titles = stats["titles"]
+    assert problems.errors == []
+    assert titles["pairs"] == stats["distinct_tracks"]
+    # 条目数 − 去重曲目数 = 被多个角色共用的曲目数（同一首曲子被引用多次）
+    assert stats["entries"] - titles["pairs"] == titles["shared_pairs"]
+    # 跨专辑同名（不同曲子）确实存在，说明"按曲名合并"会出错
+    assert titles["same_title_across_albums"] > 0
+    # 同专辑内若要靠曲名区分会撞名 → 曲目必须保留序号
+    assert "核熱造神ヒソウテンソク ～ 東方非想天則" in titles["number_prefix_required"]
+
+
 def test_every_extra_is_one_of_four():
     import tomllib
 

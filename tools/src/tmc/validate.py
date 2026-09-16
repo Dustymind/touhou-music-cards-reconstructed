@@ -325,6 +325,53 @@ def check_track_additions(chars: list[dict], p: Problems) -> int:
     return count
 
 
+def check_title_uniqueness(chars: list[dict], p: Problems) -> dict[str, object]:
+    """同名 ≠ 同曲：确认"曲目身份必须带专辑"这条前提在数据里成立。
+
+    - **不**把"同一 (专辑,曲目) 被多个角色引用"当错误：那是同一首曲子被多个角色共用（合法）。
+    - 跨专辑的同名曲名只做统计（它们是**不同的曲子**，任何地方都不允许按曲名合并）。
+    - 额外报告"去掉曲目序号就会在同一专辑内撞名"的专辑 —— 这正是 `曲目` 保留 `NN. ` 的理由。
+    """
+    import re as _re
+
+    pairs: dict[tuple[str, str], set[str]] = {}
+    by_album: dict[str, set[str]] = {}
+    for char in chars:
+        for album, title, _extra in char["music"]:
+            pairs.setdefault((album, title), set()).add(char["key"])
+            by_album.setdefault(album, set()).add(title)
+
+    shared = {pair: keys for pair, keys in pairs.items() if len(keys) > 1}
+    per_title: dict[str, set[str]] = {}
+    for album, title in pairs:
+        per_title.setdefault(title, set()).add(album)
+    cross_album = {t: albums for t, albums in per_title.items() if len(albums) > 1}
+
+    # 依据来自**源表全集**（不只是被引用的那部分）：同名同专辑的两首曲子只有靠序号区分
+    all_titles: dict[str, set[str]] = {}
+    for source_id in ("netease163", "cloudflare_r2", "thbwiki"):
+        with open(repo.DATA / "sources" / f"{source_id}.json", encoding="utf-8") as fh:
+            for album, title, _url in json.load(fh):
+                all_titles.setdefault(album, set()).add(title)
+
+    numbered: dict[str, list[str]] = {}
+    for album, titles in all_titles.items():
+        stripped: dict[str, list[str]] = {}
+        for title in titles:
+            stripped.setdefault(_re.sub(r"^\s*\d+\.\s*", "", title), []).append(title)
+        collisions = {k: sorted(v) for k, v in stripped.items() if len(v) > 1}
+        if collisions:
+            numbered[album] = [f"{k} ← {' / '.join(v)}" for k, v in sorted(collisions.items())]
+
+    return {
+        "pairs": len(pairs),
+        "shared_pairs": len(shared),
+        "same_title_across_albums": len(cross_album),
+        "same_title_examples": sorted(cross_album)[:3],
+        "number_prefix_required": numbered,
+    }
+
+
 def check_pending(chars: list[dict], p: Problems):
     path = repo.ROOT / "reports" / "extra-pending.tsv"
     if not path.exists():
@@ -360,6 +407,9 @@ def run() -> tuple["Problems", dict]:
     overrides = check_overrides(chars, p)
     alias_stats = check_alias_tables(chars, p)
     additions = check_track_additions(chars, p)
+    title_stats = check_title_uniqueness(chars, p)
+    for album, notes in title_stats["number_prefix_required"].items():
+        p.note(f"{album}：去掉曲目序号会撞名，故 `曲目` 保留 `NN. ` —— {'；'.join(notes)}")
     stage_rows = check_stage_attribution(chars)
     digest = hashlib.sha256(
         json.dumps(sorted(char_stats["referenced"]), ensure_ascii=False).encode()).hexdigest()[:12]
@@ -367,7 +417,8 @@ def run() -> tuple["Problems", dict]:
         "albums": len(albums), "characters": len(chars), "pending": pending,
         "digest": digest, "sources": source_stats, "stage_rows": stage_rows,
         "overrides": overrides, "source_registry": source_registry,
-        "card_sets": card_sets, "track_additions": additions, **alias_stats,
+        "card_sets": card_sets, "track_additions": additions,
+        "titles": title_stats, **alias_stats,
         **{k: v for k, v in char_stats.items() if k != "referenced"},
     }
 
@@ -406,8 +457,19 @@ def main(argv: list[str] | None = None) -> int:
              f"- 去重曲目：{char_stats['distinct_tracks']}",
              f"- 秘封曲条目：{char_stats['hifuu_entries']}",
              f"- 跨角色共用曲目：{len(char_stats['shared'])}",
-             f"- 待判定（占位）：{pending}", f"- 人工裁定条目：{stats['overrides']}", "",
-             "## 源表", ""]
+             f"- 待判定（占位）：{pending}", f"- 人工裁定条目：{stats['overrides']}",
+             f"- 人工补配曲目：{stats['track_additions']}，合并条目：{stats['composites']}，"
+             f"补充别名：{stats['aliases']}",
+             f"- 曲目身份 `(专辑,曲目)`：{stats['titles']['pairs']} 条，其中被多个角色共用 "
+             f"{stats['titles']['shared_pairs']} 条",
+             f"- **同名但不同专辑**的曲名（不同曲子，禁止按曲名合并）："
+             f"{stats['titles']['same_title_across_albums']} 个",
+             f"- 卡面图集：{stats['card_sets']}，注册音源：{stats['source_registry']}", "",
+             "## 禁止合并同名曲目的依据", ""]
+    lines.append("同专辑内若去掉曲目序号会撞名，因此 `曲目` 保留 `NN. `：")
+    for album, notes in stats["titles"]["number_prefix_required"].items():
+        lines.append(f"- {album}：{'；'.join(notes)}")
+    lines += ["", "## 源表", ""]
     for source_id, stat in source_stats.items():
         lines.append(f"- {source_id}: {stat['entries']} 条，缺引用 {stat['missing']}，"
                      f"URL 复用 {stat['reused_urls']} 组")
