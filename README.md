@@ -105,6 +105,8 @@ pnpm e2e:peer            # 单独起本地 PeerJS 信令服务器（127.0.0.1:91
 - 提交信息：`<type>: <英文小写短句>`，`type ∈ feat|fix|data|docs|test|chore|refactor`；一个逻辑改动一个提交；需折行时 ≤ 75 列；**不 push**。
 - 生成物（`public/data/**`）随源码提交，`pnpm data:build` 后 `git diff` 必须为空（CI 漂移守卫）。
 - 参考文档 `.ref/notes/*.md` 是对上游的只读调研产物，不随仓库分发。
+- 主题照搬上游的**深色**色板（页面底 `#141414`、纸面 `#262626`）；正文字体顺序见
+  [`docs/DECISIONS.md`](docs/DECISIONS.md) D15（本机 Whitney → 苹果默认 → 鸿蒙默认 → 微软雅黑 → Noto CJK）。
 - 端到端测试是"必须真浏览器跑"的那一层：MUI/浏览器行为（`Switch` 的 `slotProps.input`、三态开关的
   `aria-checked="mixed"`、PeerJS 真正的 WebRTC 建连）在 jsdom 里都验证不了。
 - dev 构建会把 `useGame` / `useNet` 两个 store 挂到 `window.__TMC_GAME__` / `window.__TMC_NET__`

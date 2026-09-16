@@ -1,13 +1,39 @@
 /** 主题与色板：对齐上游 `app/components/Theme.ts` 与 `CharacterCard` 的状态色。 */
 import { createTheme, type Theme } from "@mui/material/styles";
 
-/** 上游 `NoFontFamily`：正文用 Whitney，缺字体时退回系统栈（含 CJK）。 */
+/** 正文/UI 字体。
+ *
+ * 先用本机的 Whitney（上游正文；不随仓库分发，装了才生效），再按指定的 fallback 顺序：
+ * **苹果默认 → 鸿蒙默认 → 微软雅黑 → Noto CJK**，最后才是浏览器默认 sans-serif。
+ * 计时器/数字另走 `MonoFontFamily`（Inconsolata 随仓库分发）。
+ */
 export const NoFontFamily =
-  '"TMC Whitney", -apple-system, "Segoe UI", "Yu Gothic", "Hiragino Sans", ' +
-  '"Noto Sans CJK SC", "Microsoft YaHei", sans-serif';
+  '"TMC Whitney", -apple-system, BlinkMacSystemFont, "HarmonyOS Sans SC", "HarmonyOS Sans", ' +
+  '"Microsoft YaHei", "Noto Sans CJK SC", "Noto Sans SC", sans-serif';
 
 /** 计时器/数字用等宽（Inconsolata 随仓库分发）。 */
 export const MonoFontFamily = '"TMC Inconsolata", ui-monospace, SFMono-Regular, Menlo, monospace';
+
+/** 上游色板原值（`Theme.ts` 的 `themeColors`）。 */
+export const Palette = {
+  primary: "#5090ffff",
+  secondary: "#9c83ffff",
+  surface: "#262626ff",
+  background: "#141414ff",
+  text: "#ffffffff",
+  muted: "#babcc1ff",
+  divider: "#7b7979ff",
+  success: "#ffff83ff",
+  info: "#00cb36ff",
+} as const;
+
+/** 上游 `theme.custom`（非 MUI 标准槽位：主容器与列表行底色）。 */
+export const CustomThemeColors = {
+  mainTabBackground: "#242222ff",
+  listBackground1: "#161616ff",
+  listBackground2: "#302E2E",
+  alice: "#ffff83ff",
+} as const;
 
 /** 卡片状态底色（上游 `CharacterCard.tsx` 的原值）。 */
 export const CardColors = {
@@ -20,6 +46,12 @@ export const CardColors = {
   Incorrect: "#ffcccbff",
 } as const;
 
+/** 列表行被临时停用 / 当前播放时的底色（上游 `ListTab.tsx`）。 */
+export const ListRowColors = {
+  disabled: "#737373ff",
+  current: "#c14848ff",
+} as const;
+
 /** 玩家名/聊天的颜色（上游 `CustomColors`）。 */
 export const CustomColors = {
   opponentColor: "#ff9f9fff",
@@ -30,18 +62,48 @@ export const CustomColors = {
 /** 卡面宽高比（上游 `Configs.ts` 的 `CardAspectRatio`）。 */
 export const CardAspectRatio = 703 / 1000;
 
+declare module "@mui/material/styles" {
+  interface Theme {
+    custom: {
+      mainTabBackground: string;
+      listBackground1: string;
+      listBackground2: string;
+      alice: string;
+    };
+  }
+  interface ThemeOptions {
+    custom?: {
+      mainTabBackground?: string;
+      listBackground1?: string;
+      listBackground2?: string;
+      alice?: string;
+    };
+  }
+}
+
 export function buildTheme(): Theme {
   return createTheme({
+    custom: { ...CustomThemeColors },
+    // 上游是**深色**主题：页面底 #141414、纸面 #262626、正文白、次要文字 #babcc1
     palette: {
-      mode: "light",
-      primary: { main: "#1976d2" },
-      success: { main: "#ffff83" },
+      mode: "dark",
+      primary: { main: Palette.primary },
+      secondary: { main: Palette.secondary },
+      background: { default: Palette.background, paper: Palette.surface },
+      text: { primary: Palette.text, secondary: Palette.muted },
+      divider: Palette.divider,
+      success: { main: Palette.success },
+      info: { main: Palette.info },
     },
-    typography: { fontFamily: NoFontFamily },
+    typography: {
+      fontFamily: NoFontFamily,
+      button: { textTransform: "none" },
+    },
     components: {
       MuiCssBaseline: {
         styleOverrides: {
-          body: { backgroundColor: "#ffffff", color: "#171717" },
+          // 显式钉住页面底色（与 `palette.background.default` 同值，避免任何情况下回到白底）
+          body: { backgroundColor: Palette.background, color: Palette.text },
         },
       },
     },
