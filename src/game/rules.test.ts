@@ -326,3 +326,27 @@ describe("按牌库筛选音乐", () => {
     expect(filtered.temporaryDisabled).toEqual({ b: true, zzz: true });
   });
 });
+
+describe("回合选曲种子", () => {
+  it("同一 (回合号, 角色) 派生同一种子（两端同步）", () => {
+    expect(rules.turnSeed(3, "kirisame-marisa")).toBe(rules.turnSeed(3, "kirisame-marisa"));
+    expect(rules.turnSeed(3, null)).toBe(rules.turnSeed(3, null));
+  });
+
+  it("回合号或角色变了就是另一种子（不会老是同一首）", () => {
+    const base = rules.turnSeed(1, "cirno");
+    expect(rules.turnSeed(2, "cirno")).not.toBe(base);
+    expect(rules.turnSeed(1, "kirisame-marisa")).not.toBe(base);
+    // 段间不能串（"1" + "23" 与 "12" + "3" 必须不同）
+    expect(rules.turnSeed(1, "23")).not.toBe(rules.turnSeed(12, "3"));
+  });
+
+  it("种子落在 pickWithSeed 能吃的范围内", () => {
+    for (const [turn, key] of [[0, null], [1, "cirno"], [9999, "zzz"]] as const) {
+      const seed = rules.turnSeed(turn, key);
+      expect(Number.isInteger(seed)).toBe(true);
+      expect(seed).toBeGreaterThanOrEqual(0);
+      expect(seed).toBeLessThan(2147483647);
+    }
+  });
+});

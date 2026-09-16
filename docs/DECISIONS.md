@@ -297,6 +297,40 @@ Paper 容器，再加一层只是重复描边，因此只取色不改结构。�
 
 ---
 
+## D17 对局里要有声：音乐由**对局**驱动 + 切歌续播 + 单曲种子两端一致
+
+**问题**（用户指出）：**实际游戏无声**。`usePlayer` 一直挂在 `AppShell` 上、只跟着**轮播队列**的
+`currentKey` 走，对局页从来没碰过播放器 —— 所以开局后除了页面上计时器在跑，一点声音都没有。
+顺带发现第二个毛病：播放页按"下一首"会**停住**（我的 `next()` 先 `pause()` 再换 `currentKey`，
+换完没人再起播；上游靠 `loadeddata` 自动续播）。
+
+**结论**：
+
+1. **播放意愿（autoplay intent）**：`usePlayer` 增加 `pendingPlayRef`。`play()` / `playImmediate()` 置位，
+   `pause()` 清除；曲目解析完挂上 `audio` 时如果还置位就自动起播。这既是上游
+   `handleAudioLoadedData` 的语义，也顺手修掉"按下一首就停"。切歌（`next`/`previous`）保留意愿：
+   正在播 → 接着播，暂停中 → 保持暂停（上游同样只对 Playing / TimeoutPause 续播）。
+2. **对局驱动播放**：`AppShell` 订阅对局状态，按阶段驱动同一个播放器 ——
+   `countdown`：停掉上一首 + 响一声合成铃；`turnStart`：`playImmediate()` 播这一回合角色的曲子；
+   停局/终局：停。曲目来源在对局中是 `game.currentKey`，平时是 `queue.currentKey`。
+3. **两侧听同一首**：对局里选曲种子改为 `turnSeed(turnSeq, currentKey)`（FNV-1a，纯函数）。
+   上游是主机每回合随机一个种子再随事件下发；用已同步的字段派生，省掉一个同步字段，效果一样，
+   而且重连、回放都不会变。E2E 里直接断言两端 `audio.src` 的 pathname 相同。
+4. **对局期间锁页签**：上游在对局中禁用播放/列表/设置页签，音乐归对局管；这里照做（含 Alice 彩蛋按钮），
+   想离开对局就按"中止游戏"。
+
+**与上游的有意差异**：上游倒计时是"响铃 → 铃结束（`onEnded`）就 `play()` 当前 src"，而那一刻
+`currentCharacterId` 还是**上一回合**的角色，于是会先把上一首放出来、3 秒倒计时结束再换成本回合的；
+这里改成倒计时期间只响铃（正曲保持停），回合开始的那一刻起播**本回合**的曲子 —— 不会串味。
+另外上游把暂停/续播当事件同步（`pauseMusic` / `resumeMusic`）；这里两端的播放时机都由同一份快照派生，
+不需要额外消息。
+
+**回归锁**：`usePlayer` 三个用例（`playImmediate` 不响铃、`ringBell` 只响铃、切歌保留意愿）、
+`rules.turnSeed` 三个用例、`App.test.tsx` 一个端到端用例（开局 → 倒计时正曲必须停 → 3 秒后真的在播）、
+E2E：对局页在 chromium/firefox 上断言 `audio.currentTime > 0` 且正在播，联机两端断言同曲且都在播。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |

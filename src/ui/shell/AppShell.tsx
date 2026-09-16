@@ -1,7 +1,7 @@
 /** 应用外壳：页签栏（含 Alice 彩蛋按钮）+ 当前页。 */
 import { Box, Button, Divider, Stack, Typography } from "@mui/material";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 import { Localization, t } from "../../i18n/localization";
 import { stableHash } from "../../cheat";
@@ -15,6 +15,8 @@ import { usePlayer } from "../../audio/usePlayer";
 import { allowedTracks, mergeWithDefaults } from "../../music/selection";
 import { effectivePin } from "../../music/presetView";
 import { useSingleTrack } from "../../store/single";
+import { useGame } from "../../game/useGame";
+import { turnSeed } from "../../game/rules";
 import { PlayerPanel } from "../panels/PlayerPanel";
 import { ConfigPanel } from "../panels/ConfigPanel";
 import { GamePanel } from "../panels/GamePanel";
@@ -39,6 +41,12 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
   const preset = usePreset();
   const queue = useQueue();
   const single = useSingleTrack();
+  const game = useGame((slice) => slice.game);
+  /**
+   * 对局进行中（选牌阶段之外、尚未终局）：音乐交给**对局**驱动 ——
+   * 回合角色决定听哪首，倒计时响铃，回合开始起播。上游此时也会锁住其它页签。
+   */
+  const gameActive = game.state !== "selecting" && game.state !== "finished";
 
   // 联机握手要用静态数据哈希：挂在 window 上，避免层层透传
   useEffect(() => {
@@ -90,11 +98,31 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
     sourceOrder: sources.order,
     preset: activePreset,
     pinned,
-    currentKey: queue.currentKey,
-    seed: queue.seed,
+    // 对局听回合角色，平时听轮播队列
+    currentKey: gameActive ? game.currentKey : queue.currentKey,
+    // 对局里用 (回合号, 角色) 派生的种子：两端必然选到同一首
+    seed: gameActive ? turnSeed(game.turnSeq, game.currentKey) : queue.seed,
     setCurrent: queue.setCurrent,
     step: (direction) => queue.step(direction, queue.order),
   });
+
+  // ---- 对局驱动播放：倒计时响铃、回合开始起播、停局/终局停下 ----
+  const phase = gameActive ? game.state : "off";
+  const previousPhase = useRef(phase);
+  useEffect(() => {
+    const before = previousPhase.current;
+    previousPhase.current = phase;
+    if (before === phase) return;
+    if (phase === "countdown") {
+      player.pause();        // 先停掉上一回合的曲子
+      player.ringBell();     // 3 秒倒计时响一声
+      return;
+    }
+    if (phase === "turnStart") player.playImmediate();
+    if (phase === "off") player.pause();
+    // player 每次渲染都是新对象，只按阶段变化触发
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
 
   const jumpToAlice = () => {
     const alice = bundle.characters.find((character) => character.key === "alice-margatroid");
@@ -119,6 +147,7 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
                 size="small"
                 variant={tab === id ? "contained" : "text"}
                 onClick={() => setTab(id)}
+                disabled={gameActive && id !== "game"}
                 sx={{ fontFamily: NoFontFamily, minWidth: "4em" }}
               >
                 {names[id]}
@@ -131,6 +160,7 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
             color="success"
             variant="text"
             onClick={jumpToAlice}
+            disabled={gameActive}
             sx={{ fontFamily: NoFontFamily, minWidth: "4em" }}
           >
             {aliceLabel(false)}

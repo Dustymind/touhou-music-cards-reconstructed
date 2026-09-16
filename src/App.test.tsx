@@ -8,7 +8,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import App from "./App";
 import { aliceLabel } from "./ui/shell/AppShell";
-import { installDataFetchStub } from "./test-utils";
+import { installDataFetchStub, installFakeAudio } from "./test-utils";
+import { TURN_COUNTDOWN_MS } from "./game/useGameLoop";
+import { useGame } from "./game/useGame";
 
 const dataDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../public/data");
 
@@ -40,6 +42,7 @@ async function waitFor(container: HTMLElement, predicate: (text: string) => bool
 describe("App 冒烟（真实数据）", () => {
   afterEach(() => {
     document.body.innerHTML = "";
+    vi.useRealTimers();
     vi.restoreAllMocks();
   });
 
@@ -71,6 +74,44 @@ describe("App 冒烟（真实数据）", () => {
     const parent = container.querySelector<HTMLInputElement>('input[aria-label="hifuu-parent"]');
     expect(parent?.checked).toBe(true);
     expect(container.querySelector('[data-testid="preset-stats"]')?.textContent).toContain("378 / 378");
+  });
+
+  it("开局后真的会出声：回合开始把当前角色的曲子播起来（回归：实际游戏无声）", async () => {
+    installDataFetchStub(dataDir);
+    const audios = installFakeAudio();
+    const { container } = await renderApp();
+    await waitFor(container, (value) => value.includes("Player"));
+    // 载入完成后再接管计时器：前面的轮询要真实 timer
+    vi.useFakeTimers();
+
+    const click = async (label: string, selector?: string): Promise<void> => {
+      const element = selector
+        ? container.querySelector(selector)
+        : Array.from(container.querySelectorAll("button")).find((button) => button.textContent === label);
+      await act(async () => {
+        element!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      });
+    };
+
+    // 进游戏页 → 补满自家牌库 → 开局
+    await click("Match");
+    await click("Random Fill", '[data-testid="random-fill"]');
+    await click("Start", '[data-testid="start-game"]');
+    expect(useGame.getState().game.state).toBe("countdown");
+
+    // 倒计时期间：铃在响，正曲必须停着
+    expect(audios[0]!.paused).toBe(true);
+
+    // 3 秒倒计时结束 → 回合开始 → 当前角色的曲子起播
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(TURN_COUNTDOWN_MS + 50);
+    });
+    expect(useGame.getState().game.state).toBe("turnStart");
+    const currentKey = useGame.getState().game.currentKey!;
+    const character = useGame.getState().game.order.includes(currentKey);
+    expect(character).toBe(true);
+    expect(audios[0]!.src).not.toBe("");
+    expect(audios[0]!.paused).toBe(false);
   });
 
   it("数据缺失时给出可读错误而不是白屏", async () => {

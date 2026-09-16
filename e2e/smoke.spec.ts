@@ -1,4 +1,5 @@
 /** 双引擎冒烟：数据加载、页签切换、预设交互、对战回合。 */
+import { captureAudio, waitForPlaying } from "./audio";
 import { expect, test } from "@playwright/test";
 
 test("加载数据并渲染页签与播放页", async ({ page }) => {
@@ -57,14 +58,24 @@ test("仅单曲模式下拉只列预设启用的曲目", async ({ page }) => {
 });
 
 test("对战页：随机补满 → 开局 → 倒计时后进入回合 → 下一回合推进", async ({ page }) => {
+  await captureAudio(page);
   await page.goto("/");
   await page.getByRole("button", { name: "Match" }).click();
   await page.getByTestId("random-fill").click();
   await page.getByTestId("start-game").click();
   await expect(page.getByTestId("game-timer")).toBeVisible();
   await expect(page.getByText(/turn #0 · countdown/)).toBeVisible();
+  // 3 秒倒计时期间正曲必须停着（这 3 秒只有铃）
+  const duringCountdown = await page.evaluate(() => (window as unknown as { __audios: HTMLAudioElement[] })
+    .__audios.map((audio) => audio.paused));
+  expect(duringCountdown.every((paused) => paused)).toBe(true);
+
   // 3 秒倒计时后进入回合
   await expect(page.getByText(/turn #1 · turnStart/)).toBeVisible({ timeout: 15_000 });
+  // **实际出声**：回合开始后当前角色的曲子真的在播（回归：实际游戏无声）
+  const playing = await waitForPlaying(page);
+  expect(playing.time).toBeGreaterThan(0);
+
   await page.getByTestId("deck-you-card-0").click();
   await page.getByTestId("next-turn").click();
   await expect(page.getByText(/turn #2 ·/)).toBeVisible({ timeout: 15_000 });

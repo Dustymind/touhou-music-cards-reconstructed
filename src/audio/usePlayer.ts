@@ -59,6 +59,10 @@ export interface PlayerApi {
   setVolume: (value: number) => void;
   seek: (seconds: number) => void;
   play: () => void;
+  /** 立刻起播这一首（不响铃）；曲目若还在解析，解析完自动起播。对局里用。 */
+  playImmediate: () => void;
+  /** 只响一声倒计时铃（会先停掉正曲）。对局倒计时用。 */
+  ringBell: () => void;
   pause: () => void;
   next: () => void;
   previous: () => void;
@@ -71,6 +75,8 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
   const bellRef = useRef<BellHandle | null>(null);
   /** 每次 `play` 一个令牌：铃响期间按了暂停/关了页面就不再自动起播 */
   const playTokenRef = useRef(0);
+  /** 换歌后是否要接着放（上游 `handleAudioLoadedData` 的语义：Playing/TimeoutPause 时自动续播） */
+  const pendingPlayRef = useRef(false);
   const failedRef = useRef<Set<string>>(new Set());
   const timeoutRef = useRef<number | null>(null);
   const [version, setVersion] = useState(0);
@@ -179,6 +185,13 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
     audio.src = resolved.url;
     audio.load();
     setCurrentTime(0);
+    if (pendingPlayRef.current) {
+      // 曲目在解析中就点了播放/对局进入回合：等这一首挂上再起播
+      const token = playTokenRef.current;
+      void audio.play().then(() => {
+        if (playTokenRef.current === token) setPlayback("playing");
+      }).catch(() => setPlayback("stopped"));
+    }
     if (setting.randomStart) {
       const applyRandomStart = () => {
         audio.currentTime = randomStartPosition(audio.duration, inputs.seed);
@@ -203,10 +216,23 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
     };
   }, [playback, setting.durationSeconds]);
 
+  /** 切歌：保留"正在播"的意愿（上游切歌后会继续播；暂停状态下切歌保持暂停）。 */
+  const switchTrack = useCallback((key: string) => {
+    const wasPlaying = pendingPlayRef.current
+      || playback === "playing" || playback === "timeoutPause";
+    playTokenRef.current += 1;
+    pendingPlayRef.current = wasPlaying;
+    bellRef.current?.stop();
+    audioRef.current?.pause();
+    inputs.setCurrent(key);
+  }, [inputs, playback]);
+
   const play = useCallback(() => {
     const audio = audioRef.current;
-    if (!audio || !resolved) return;
+    if (!audio) return;
     const token = (playTokenRef.current += 1);
+    pendingPlayRef.current = true;
+    if (!resolved) return; // 解析完由加载 effect 起播
     const startMusic = () => {
       if (playTokenRef.current !== token) return; // 期间被暂停/卸载
       void audio.play().then(() => setPlayback("playing")).catch(() => setPlayback("stopped"));
@@ -219,8 +245,31 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
     startMusic();
   }, [resolved, setting.countdown]);
 
+  /** 立刻起播（不响铃）。对局回合开始用：倒计时铃在 countdown 阶段已经响过。 */
+  const playImmediate = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const token = (playTokenRef.current += 1);
+    pendingPlayRef.current = true;
+    if (!resolved) return;
+    setPlayback("playing");
+    void audio.play().then(() => {
+      if (playTokenRef.current === token) setPlayback("playing");
+    }).catch(() => setPlayback("stopped"));
+  }, [resolved]);
+
+  /** 只响铃：先停掉正曲，再响一声（铃声结束时不做任何事，由调用方决定何时起播）。 */
+  const ringBell = useCallback(() => {
+    playTokenRef.current += 1;
+    pendingPlayRef.current = false;
+    audioRef.current?.pause();
+    setPlayback("countingDown");
+    bellRef.current?.ring();
+  }, []);
+
   const pause = useCallback(() => {
     playTokenRef.current += 1;
+    pendingPlayRef.current = false;
     bellRef.current?.stop();
     audioRef.current?.pause();
     setPlayback("stopped");
@@ -229,20 +278,14 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
   const next = useCallback(() => {
     const key = inputs.step(1);
     if (key === null) return;
-    playTokenRef.current += 1;
-    bellRef.current?.stop();
-    audioRef.current?.pause();
-    inputs.setCurrent(key);
-  }, [inputs]);
+    switchTrack(key);
+  }, [inputs, switchTrack]);
 
   const previous = useCallback(() => {
     const key = inputs.step(-1);
     if (key === null) return;
-    playTokenRef.current += 1;
-    bellRef.current?.stop();
-    audioRef.current?.pause();
-    inputs.setCurrent(key);
-  }, [inputs]);
+    switchTrack(key);
+  }, [inputs, switchTrack]);
 
   const setVolume = useCallback((value: number) => {
     setVolumeState(Math.min(1, Math.max(0, value)));
@@ -277,6 +320,8 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
     setVolume,
     seek,
     play,
+    playImmediate,
+    ringBell,
     pause,
     next,
     previous,

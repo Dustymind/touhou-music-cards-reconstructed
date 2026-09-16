@@ -111,6 +111,59 @@ describe("usePlayer", () => {
     expect(hook.result.current.playback).toBe("stopped");
   });
 
+  it("playImmediate：不响铃直接起播（对局回合开始用）", async () => {
+    const hook = await renderHook(() => usePlayer(inputs()));
+    await vi.waitFor(() => expect(hook.result.current.url).not.toBeNull());
+    hook.result.current.setSetting({ countdown: true });   // 即使玩家开了倒计时也不该再响铃
+    await hook.rerender();
+    hook.result.current.playImmediate();
+    await hook.rerender();
+    expect(audios[0]!.paused).toBe(false);
+    expect(hook.result.current.playback).toBe("playing");
+  });
+
+  it("ringBell：只响铃，不停在正曲上（对局倒计时用）", async () => {
+    const hook = await renderHook(() => usePlayer(inputs()));
+    await vi.waitFor(() => expect(hook.result.current.url).not.toBeNull());
+    hook.result.current.playImmediate();
+    await hook.rerender();
+    expect(audios[0]!.paused).toBe(false);
+
+    hook.result.current.ringBell();
+    await hook.rerender();
+    expect(hook.result.current.playback).toBe("countingDown");
+    expect(audios[0]!.paused).toBe(true);
+
+    // 铃响完不会自己起播：起播时机由对局决定
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, BELL_DURATION_MS + 50));
+    });
+    await hook.rerender();
+    expect(audios[0]!.paused).toBe(true);
+  });
+
+  it("切歌时保留播放意愿：正在播就接着播，暂停状态切歌保持暂停", async () => {
+    let current = "cirno";
+    const step = vi.fn(() => "kirisame-marisa");
+    const setCurrent = vi.fn((key: string | null) => { current = key ?? current; });
+    const hook = await renderHook(() => usePlayer(inputs({ currentKey: current, step, setCurrent })));
+    await vi.waitFor(() => expect(hook.result.current.url).not.toBeNull());
+    hook.result.current.playImmediate();
+    await hook.rerender();
+    expect(audios[0]!.paused).toBe(false);
+
+    await act(async () => { hook.result.current.next(); });
+    // 两次 rerender：第一次选曲、第二次把新 URL 挂到 audio 上
+    await hook.rerender();
+    await hook.rerender();
+    expect(setCurrent).toHaveBeenCalledWith("kirisame-marisa");
+    expect(audios[0]!.paused).toBe(false);                    // 换歌后继续播
+
+    hook.result.current.pause();
+    await hook.rerender();
+    expect(audios[0]!.paused).toBe(true);
+  });
+
   it("step 返回 null 时不切换角色", async () => {
     const setCurrent = vi.fn();
     const hook = await renderHook(() => usePlayer(inputs({ setCurrent, step: () => null })));

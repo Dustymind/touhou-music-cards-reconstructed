@@ -369,6 +369,22 @@ export function stopGame(state: GameState): GameState {
   };
 }
 
+/**
+ * 一回合的选曲种子：由**已同步**的 `(turnSeq, currentKey)` 派生，两端算出来必然相同。
+ *
+ * 上游由主机每个回合随机一个种子再下发；这里用纯函数从快照里派生，省掉一个同步字段，
+ * 效果一样（同一回合两端选同一首），而且重放/重连也不会变。
+ */
+export function turnSeed(turnSeq: number, key: string | null): number {
+  const text = `${turnSeq}\u0000${key ?? ""}`;
+  let hash = 2166136261;                     // FNV-1a
+  for (let index = 0; index < text.length; index += 1) {
+    hash ^= text.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return Math.abs(hash) % 2147483647;
+}
+
 /** 按牌库收窄轮播：把不在任何牌库/收集区里的角色标记为临时禁用。 */
 export function filterMusicByDeck(state: GameState): GameState {
   const present = new Set<string>();

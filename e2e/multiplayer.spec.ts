@@ -2,6 +2,7 @@
 import { chromium, expect, firefox, test, type Page } from "@playwright/test";
 
 import { BASE_URL } from "../playwright.config";
+import { captureAudio, waitForPlaying } from "./audio";
 
 const PEER_QUERY = "?peerhost=127.0.0.1&peerport=9100&peerpath=/&peersecure=0";
 
@@ -34,6 +35,8 @@ test("同浏览器两个标签页联机：握手 / 聊天 / 快照同步", async
   const context = await browser.newContext();
   const host = await context.newPage();
   const guest = await context.newPage();
+  await captureAudio(host);
+  await captureAudio(guest);
   await openGame(host, "/");
   await openGame(guest, "/");
 
@@ -62,6 +65,13 @@ test("同浏览器两个标签页联机：握手 / 聊天 / 快照同步", async
   await expect(guest.getByText(/turn #1 · turnStart/)).toBeVisible({ timeout: 20_000 });
   expect(await digest(guest)).toBe(await digest(host));
 
+  // 两端都要真的出声：主机本地起播，客户端拿到快照后起播
+  const hostPlaying = await waitForPlaying(host);
+  const guestPlaying = await waitForPlaying(guest);
+  expect(guestPlaying.src).toBeTruthy();
+  // 同一回合两端听的是同一首（种子由 (turnSeq, currentKey) 派生）
+  expect(new URL(guestPlaying.src).pathname).toBe(new URL(hostPlaying.src).pathname);
+
   // 客户端抢拍 → 主机落地 → 两端仍一致
   // 客户端抢拍 → 主机必须收到意图并落到状态里（摘要是含抢拍记录的状态总结）
   const before = await digest(host);
@@ -82,6 +92,8 @@ test("跨浏览器联机：Chromium 主机 + Firefox 客户端（本地 PeerServ
   });
   const host = await browserA.newPage();
   const guest = await browserB.newPage();
+  await captureAudio(host);
+  await captureAudio(guest);
   await openGame(host, `${BASE_URL}/${PEER_QUERY}`);
   await openGame(guest, `${BASE_URL}/${PEER_QUERY}`);
 
@@ -104,6 +116,11 @@ test("跨浏览器联机：Chromium 主机 + Firefox 客户端（本地 PeerServ
   await expect(guest.getByText(/turn #0 · countdown/)).toBeVisible({ timeout: 30_000 });
   await expect(guest.getByText(/turn #1 · turnStart/)).toBeVisible({ timeout: 30_000 });
   expect(await digest(guest)).toBe(await digest(host));
+
+  // Firefox 客户端同样出声（跨浏览器 autoplay 与同步都验证）
+  await waitForPlaying(host, 30_000);
+  const guestPlaying = await waitForPlaying(guest, 30_000);
+  expect(guestPlaying.src).toBeTruthy();
 
   // Firefox 客户端抢拍 → Chromium 主机状态变化 → 两端一致
   const beforeCross = await digest(host);
