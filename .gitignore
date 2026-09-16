@@ -1,0 +1,31 @@
+# 上游只读参考与调研产物（约 200 MB，不进版本库）
+.ref/
+
+# Python / uv
+tools/.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.uv/
+
+# Node / 前端
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+coverage/
+
+# 端到端测试产物
+test-results/
+playwright-report/
+.playwright/
+
+# 本地曲库助手配置（机器相关）
+local-source.toml
+
+# 编辑器 / 系统
+.DS_Store
+.vscode/*
+!.vscode/settings.json
+.idea/
+*.swp
