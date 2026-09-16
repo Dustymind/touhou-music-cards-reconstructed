@@ -62,7 +62,7 @@ describe("useGame store", () => {
     // 找到当前角色的卡并抢中
     const slot = inTurn.players[0]!.deck.findIndex((entry) => entry?.characterKey === inTurn.currentKey);
     if (slot >= 0) {
-      useGame.getState().pick(0, slot);
+      useGame.getState().pick(0, 0, slot);
       const after = useGame.getState().game;
       expect(after.state).toBe("turnWinner");
       expect(after.players[0]!.collected).toHaveLength(1);
@@ -78,7 +78,7 @@ describe("useGame store", () => {
     const game = useGame.getState().game;
     const wrongSlot = game.players[0]!.deck.findIndex(
       (entry) => entry && entry.characterKey !== game.currentKey);
-    if (wrongSlot >= 0) useGame.getState().pick(0, wrongSlot);
+    if (wrongSlot >= 0) useGame.getState().pick(0, 0, wrongSlot);
     expect(useGame.getState().game.pickEvents.length).toBeGreaterThan(0);
 
     const turnBefore = useGame.getState().game.turnSeq;
@@ -96,7 +96,7 @@ describe("useGame store", () => {
     useGame.getState().advanceCountdown();
     const game = useGame.getState().game;
     expect(filledSlots(game.players[0]!.deck)).toBe(1);
-    useGame.getState().pick(0, 0);
+    useGame.getState().pick(0, 0, 0);
     const after = useGame.getState().game;
     expect(after.state).toBe("finished");
     expect(after.winner).toBe(0);

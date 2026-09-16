@@ -32,12 +32,22 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
   const [cardWidth, setCardWidth] = useState(56);
   const net = useNet();
   const isClient = net.role === "client";
+  /** 牌桌视角：客户端看自己的那一侧（主机/单机 = 0） */
+  const myIndex: 0 | 1 = (isClient ? net.myIndex : 0) === 1 ? 1 : 0;
+  const oppIndex: 0 | 1 = myIndex === 0 ? 1 : 0;
+  const mine = game.players[myIndex]!;
+  const theirs = game.players[oppIndex]!;
+  /** 罚牌符号是主机视角的，客户端要翻过来 */
+  const iOweCards = myIndex === 0 ? game.givesLeft > 0 : game.givesLeft < 0;
+  const iReceiveCards = myIndex === 0 ? game.givesLeft < 0 : game.givesLeft > 0;
 
   /** 联机客户端：动作改发意图；主机/单机：直接落本地状态。 */
   const act = useMemo(() => ({
+    /** `side` 是被点的那张牌所在的一侧；抢拍者恒为本机（联机时主机以发送方为准）。
+     *  对齐上游：牌可能躺在对手那一侧，抢到的人仍是点牌的人。 */
     pick: (side: 0 | 1, slot: number) => {
       if (isClient) net.intent({ kind: "pick", side, slot, timestamp: Math.max(0, Date.now() - game.turnStartTimestamp) });
-      else pick(side, slot);
+      else pick(myIndex, side, slot);
     },
     resize: (rows: number, columns: number) => {
       if (isClient) net.intent({ kind: "adjustDeckSize", rows, columns });
@@ -71,7 +81,7 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
       if (isClient) net.intent({ kind: "give" });
       else give();
     },
-  }), [isClient, net, pick, resize, setMode, setTraditional, filterByDeck, fill, clear, shuffle, start, stop, next, give, game.turnStartTimestamp]);
+  }), [isClient, net, myIndex, pick, resize, setMode, setTraditional, filterByDeck, fill, clear, shuffle, start, stop, next, give, game.turnStartTimestamp]);
 
   const cardFiles = useMemo(() => {
     const map: Record<string, string[]> = {};
@@ -99,12 +109,17 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
   // 只有单机/CPU 与主机跑计时器；客户端完全由主机快照驱动
   useGameLoop(!isClient);
 
-  const pickStates = useMemo(() => {
-    const states: Record<0 | 1, Record<number, CardState>> = { 0: {}, 1: {} };
+  // 染色按**牌的实体**（角色 + 卡序）走，和上游一致：同一张卡出现在两侧牌库里就两侧都染色。
+  const cardStateOf = useMemo(() => {
+    const states = new Map<string, CardState>();
     for (const event of game.pickEvents) {
-      states[event.side][event.slot] = event.card.characterKey === game.currentKey ? "correct" : "incorrect";
+      states.set(
+        `${event.card.characterKey}:${event.card.cardIndex}`,
+        event.card.characterKey === game.currentKey ? "correct" : "incorrect",
+      );
     }
-    return states;
+    return (card: CardInfo | null): CardState =>
+      card === null ? "normal" : states.get(`${card.characterKey}:${card.cardIndex}`) ?? "normal";
   }, [game.pickEvents, game.currentKey]);
 
   // 彩蛋：开启后把答案卡圈出来（对齐上游 CheatRect 行为）
@@ -124,15 +139,20 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
 
   const handleOwnCard = (slot: number, _card: CardInfo) => {
     if (game.state === "turnStart") {
-      act.pick(0, slot);
+      act.pick(myIndex, slot);
       return;
     }
-    if (game.state === "turnWinner" && game.givesLeft > 0) setSelectedSlot(slot);
+    if (game.state === "turnWinner" && iOweCards) setSelectedSlot(slot);
   };
 
   const handleOpponentEmpty = (slot: number) => {
-    if (game.state !== "turnWinner" || game.givesLeft >= 0 || selectedSlot === null) return;
-    moveCard(0, selectedSlot, 1, slot);
+    if (game.state !== "turnWinner" || !iOweCards || selectedSlot === null) return;
+    if (isClient) {
+      // 客户端把"自己给对手"转成主机的 moveCard 语义（主机侧：1 → 0）
+      net.intent({ kind: "give" });
+    } else {
+      moveCard(myIndex, selectedSlot, oppIndex, slot);
+    }
     setSelectedSlot(null);
   };
 
@@ -222,48 +242,48 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
         )}
         {game.state === "turnWinner" && game.givesLeft !== 0 && (
           <Alert severity="info" sx={{ mb: 1 }} data-testid="give-hint">
-            {game.givesLeft > 0
-              ? `You must give ${game.givesLeft} card(s): click your card, then an empty slot on the opponent side — or press Next to give randomly.`
-              : `You will receive ${-game.givesLeft} card(s) — press Next.`}
+            {iOweCards
+              ? `You must give ${Math.abs(game.givesLeft)} card(s): click your card, then an empty slot on the opponent side — or press Next to give randomly.`
+              : `You will receive ${Math.abs(game.givesLeft)} card(s) — press Next.`}
           </Alert>
         )}
 
         <Typography variant="caption" color="text.secondary">
-          Opponent · collected {game.players[1]!.collected.length}
+          Opponent · collected {theirs.collected.length}
         </Typography>
         <DeckGrid
           testId="deck-opponent"
-          deck={game.players[1]!.deck}
+          deck={theirs.deck}
           rows={game.deckRows}
           columns={game.deckColumns}
           cardSet={cardSet}
           cardFiles={cardFiles}
           width={cardWidth}
           upsideDown
-          interactive={game.state === "turnStart" || (game.state === "turnWinner" && game.givesLeft < 0)}
-          cardStates={pickStates[1]}
-          cheatSlot={cheatSlotOf(1)}
+          interactive={game.state === "turnStart" || (game.state === "turnWinner" && iReceiveCards)}
+          cardStateOf={cardStateOf}
+          cheatSlot={cheatSlotOf(oppIndex)}
           glitch={glitch}
-          onCardClick={(slot) => act.pick(1, slot)}
+          onCardClick={(slot) => act.pick(oppIndex, slot)}
           onEmptyClick={handleOpponentEmpty}
         />
 
         <Divider sx={{ my: 1.5 }} />
 
         <Typography variant="caption" color="text.secondary">
-          You · collected {game.players[0]!.collected.length}
+          You · collected {mine.collected.length}
         </Typography>
         <DeckGrid
           testId="deck-you"
-          deck={game.players[0]!.deck}
+          deck={mine.deck}
           rows={game.deckRows}
           columns={game.deckColumns}
           cardSet={cardSet}
           cardFiles={cardFiles}
           width={cardWidth}
-          interactive={game.state === "turnStart" || (game.state === "turnWinner" && game.givesLeft > 0)}
-          cardStates={pickStates[0]}
-          cheatSlot={cheatSlotOf(0)}
+          interactive={game.state === "turnStart" || (game.state === "turnWinner" && iOweCards)}
+          cardStateOf={cardStateOf}
+          cheatSlot={cheatSlotOf(myIndex)}
           glitch={glitch}
           onCardClick={handleOwnCard}
         />

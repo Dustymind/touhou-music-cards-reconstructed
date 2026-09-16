@@ -30,8 +30,9 @@ export interface GameSlice {
   stop: () => void;
   /** 倒计时结束 → 进入当前回合 */
   advanceCountdown: () => void;
-  /** 抢拍：`side` 是牌桌的一侧（0 = 自己，1 = 对手） */
-  pick: (side: 0 | 1, slot: number) => void;
+  /** 抢拍：`player` 是**点牌的人**，`side`/`slot` 是被点的那张牌**实际所在**的位置。
+   *  上游语义：抢到的牌归点牌的人，牌本身可能躺在对手的牌库里（`GameTab.tsx` 的 `PickEvent`）。 */
+  pick: (player: PlayerIndex, side: 0 | 1, slot: number, timestamp?: number) => void;
   /** CPU 规划一次抢拍（返回 null 表示无法出手） */
   planCpu: (cpuPlayer: PlayerIndex) => CpuPlan | null;
   /** 灌入轮播顺序（角色 key） */
@@ -101,13 +102,15 @@ export const useGame = create<GameSlice>((set, get) => ({
     set({ game: rules.countdownFinished(game) });
   },
 
-  pick(side, slot) {
+  pick(player, side, slot, at) {
     const game = get().game;
     if (game.state !== "turnStart") return;
     const card = game.players[side]?.deck[slot];
     if (!card) return;
-    const timestamp = Math.max(0, Date.now() - game.turnStartTimestamp);
-    const result = rules.notifyPickEvent(game, { timestamp, player: side, card, side, slot });
+    // 显式传入的时间戳（联机时由抢拍方给出）只允许落在这个回合内
+    const elapsed = Math.max(0, Date.now() - game.turnStartTimestamp);
+    const timestamp = at === undefined ? elapsed : Math.min(Math.max(0, at), elapsed);
+    const result = rules.notifyPickEvent(game, { timestamp, player, card, side, slot });
     if (result.accepted) set({ game: result.state });
   },
 
@@ -157,5 +160,10 @@ export const useGame = create<GameSlice>((set, get) => ({
     set({ game: rules.filterMusicByDeck(get().game) });
   },
 }));
+
+// 开发/E2E 调试钩子（仅 dev 构建挂到 window，生产构建里不存在）
+if (import.meta.env.DEV && typeof window !== "undefined") {
+  (window as unknown as { __TMC_GAME__?: unknown }).__TMC_GAME__ = useGame;
+}
 
 export { slotCount };

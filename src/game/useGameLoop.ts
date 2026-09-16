@@ -32,7 +32,7 @@ export function useGameLoop(enabled = true): void {
       if (game.state !== "turnStart") return;
       const slot = game.players[1]!.deck.findIndex(
         (card) => card && card.characterKey === plan.card!.characterKey && card.cardIndex === plan.card!.cardIndex);
-      if (slot >= 0) pick(1, slot);
+      if (slot >= 0) pick(1, 1, slot);
     }, plan.delayMs);
     return () => {
       if (cpuTimer.current !== null) window.clearTimeout(cpuTimer.current);

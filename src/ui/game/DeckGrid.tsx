@@ -16,8 +16,8 @@ export interface DeckGridProps {
   width: number;
   upsideDown?: boolean;
   interactive?: boolean;
-  /** `slot → 状态`（抢对的绿、抢错的红） */
-  cardStates?: Record<number, CardState>;
+  /** 由**牌本身**决定状态（抢对的绿、抢错的红）；同一张卡在两侧都会染色 */
+  cardStateOf?: (card: CardInfo | null) => CardState;
   onCardClick?: (slot: number, card: CardInfo) => void;
   onEmptyClick?: (slot: number) => void;
   /** 彩蛋：答案卡的槽位（会在它周围画一圈色块） */
@@ -29,7 +29,7 @@ export interface DeckGridProps {
 
 export function DeckGrid(props: DeckGridProps) {
   const {
-    deck, rows, columns, cardSet, cardFiles, width, upsideDown, interactive, cardStates,
+    deck, rows, columns, cardSet, cardFiles, width, upsideDown, interactive, cardStateOf,
     onCardClick, onEmptyClick,
   } = props;
 
@@ -46,7 +46,7 @@ export function DeckGrid(props: DeckGridProps) {
     >
       {Array.from({ length: rows * columns }).map((_unused, slot) => {
         const card: CardInfo | null = deck[slot] ?? null;
-        const state: CardState = card ? (cardStates?.[slot] ?? "normal") : "placeholder";
+        const state: CardState = card ? (cardStateOf?.(card) ?? "normal") : "placeholder";
         const file = card ? (cardFiles[card.characterKey]?.[card.cardIndex] ?? "") : "";
         return (
           <Paper
