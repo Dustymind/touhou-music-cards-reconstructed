@@ -11,7 +11,7 @@
  * 加上卡片组件 `memo`，所以拖滑块不会触发上百个卡片节点重排/重渲染。
  */
 import { Box, Slider } from "@mui/material";
-import { memo, useCallback, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 
 import type { CardSetRecord } from "../../data/types";
 import { DRAG_MIME } from "../../game/drag";
@@ -133,6 +133,10 @@ export function CardStrip(props: CardStripProps) {
   const [pan, setPan] = useState(0);
   const [dragging, setDragging] = useState(false);
   const rowRef = useRef<HTMLDivElement | null>(null);
+  const stripRef = useRef<HTMLDivElement | null>(null);
+  /** 卡条**实际**渲染宽度：外面可能因为 `max-width: 100%` 把它压窄，
+   *  滑块必须按实际宽度内缩，否则拇指会探出卡片边缘。 */
+  const [stripWidth, setStripWidth] = useState(visibleWidth);
 
   // 回调放进 ref：卡片是 memo 的，父组件每次渲染都换新函数会把它全部打回重渲染
   const clickRef = useRef(props.onCardClick);
@@ -143,7 +147,16 @@ export function CardStrip(props: CardStripProps) {
   const handleDragStart = useCallback((card: StripCard) => dragRef.current?.(card), []);
   const handleHover = useCallback((id: string | null) => setHovered(id), []);
 
-  const { step, maxOffset } = stripLayout(cards.length, width, gap, visibleWidth);
+  useEffect(() => {
+    const element = stripRef.current;
+    if (!element || typeof ResizeObserver === "undefined") return undefined;
+    const observer = new ResizeObserver(() => setStripWidth(element.clientWidth));
+    observer.observe(element);
+    setStripWidth(element.clientWidth);
+    return () => observer.disconnect();
+  }, [visibleWidth]);
+
+  const { step, maxOffset } = stripLayout(cards.length, width, gap, stripWidth);
   const offset = -pan * maxOffset;
 
   /** 拖动中：直接把 transform 写到 DOM，绕开 React 重渲染；松手后才落状态。 */
@@ -180,6 +193,7 @@ export function CardStrip(props: CardStripProps) {
       >
         <Box
           data-testid={stripTestId}
+          ref={stripRef}
           sx={{
             position: "relative",
             width: visibleWidth,
@@ -230,7 +244,7 @@ export function CardStrip(props: CardStripProps) {
           <Box
             sx={{
               position: "relative",
-              width: visibleWidth,
+              width: stripWidth,
               maxWidth: "100%",
               mx: "auto",
               mt: 0.5,
@@ -270,7 +284,8 @@ export function CardStrip(props: CardStripProps) {
               }}
               sx={{
                 position: "relative",
-                width: Math.max(40, visibleWidth - SLIDER_THUMB_RADIUS * 2),
+                // 按卡条实际宽度内缩一个拇指半径：拇指外缘与卡片边缘齐平
+                width: Math.max(40, stripWidth - SLIDER_THUMB_RADIUS * 2),
                 maxWidth: "100%",
                 // MUI 自带的轨与进度条会短一个拇指半径，这里藏掉，用上面那条自绘滑轨
                 "& .MuiSlider-rail": { display: "none" },

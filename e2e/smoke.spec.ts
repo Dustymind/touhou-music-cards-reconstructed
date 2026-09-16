@@ -470,27 +470,39 @@ test("卡片大小按钮按 0.01 步进并夹在 0.04~0.40", async ({ page }) =>
   expect(stored).toContain("cardWidthPercentage");
 });
 
-test("两个界面的选卡滑块样式一致（同一份实现，不许漂移）", async ({ page }) => {
-  const readSlider = (testId: string) => page.evaluate((id) => {
+test("两个界面的选卡滑块样式与对齐方式一致（同一份实现，不许漂移）", async ({ page }) => {
+  const readSlider = (testId: string, stripTestId: string) => page.evaluate(([id, stripId]) => {
     const root = document.querySelector(`[data-testid="${id}"]`)!;
-    const thumb = getComputedStyle(root.querySelector(".MuiSlider-thumb")!);
-    const rail = getComputedStyle(document.querySelector(`[data-testid="${id}-rail"]`)!);
+    const strip = document.querySelector(`[data-testid="${stripId}"]`)!.getBoundingClientRect();
+    const thumbStyle = getComputedStyle(root.querySelector(".MuiSlider-thumb")!);
+    const railEl = document.querySelector(`[data-testid="${id}-rail"]`)!;
+    const railStyle = getComputedStyle(railEl);
+    const rail = railEl.getBoundingClientRect();
+    const thumb = root.querySelector(".MuiSlider-thumb")!.getBoundingClientRect();
+    const round = (value: number): number => Math.round(value);
     return {
-      thumb: [thumb.width, thumb.height, thumb.backgroundColor, thumb.borderRadius, thumb.boxShadow].join("|"),
-      rail: [rail.height, rail.backgroundColor, rail.opacity, rail.borderRadius].join("|"),
+      thumb: [thumbStyle.width, thumbStyle.height, thumbStyle.backgroundColor, thumbStyle.borderRadius,
+        thumbStyle.boxShadow].join("|"),
+      rail: [railStyle.height, railStyle.backgroundColor, railStyle.opacity, railStyle.borderRadius].join("|"),
+      // 对齐关系：滑轨两端和拇指外缘相对卡条边界的偏移
+      align: [round(rail.left - strip.left), round(rail.right - strip.right),
+        round(thumb.left - strip.left)].join("|"),
+      // 拇指中线的垂直距离
+      vertical: round((thumb.top + thumb.height / 2) - strip.bottom),
     };
-  }, testId);
+  }, [testId, stripTestId]);
 
   await page.goto("/");
   await page.getByRole("button", { name: "Match" }).click();
-  const game = await readSlider("card-selection-slider");
+  const game = await readSlider("card-selection-slider", "unused-cards-strip");
   await page.getByRole("button", { name: "Player" }).click();
   await expect(page.getByTestId("upcoming-fan-slider")).toBeVisible();
-  const player = await readSlider("upcoming-fan-slider");
+  const player = await readSlider("upcoming-fan-slider", "upcoming-fan-strip");
 
   expect(player).toEqual(game);
   expect(game.thumb).toContain("20px|20px");   // 拇指尺寸/颜色/圆角/阴影
   expect(game.rail).toContain("4px");
+  expect(game.align).toBe("0|0|0");            // 滑轨/拇指与卡条边界对齐（两端 + 拇指外缘）
 });
 
 test("播放页解析出音源（真实源表 + 远程 URL 写入 audio.src）", async ({ page }) => {
