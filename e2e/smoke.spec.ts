@@ -172,9 +172,39 @@ test("拖动放置卡牌：拖进指定槽位、拖回未使用区、牌位互�
   await dragCard(page, unused.first(), page.getByTestId("deck-you-empty-1"));
   const img = (slot: number) => page.getByTestId(`deck-you-card-${slot}`).locator("img").getAttribute("src");
   const before = [await img(0), await img(1)];
+
+  // 交换时两张卡都要"滑过去"（曾经有一张会瞬移：渲染顺序随格子变化会让 React 重排 DOM、
+  // 被移动的节点丢掉 CSS 过渡）。这里逐帧记录两张卡的位置。
+  const startX = await page.evaluate(() => window.__TMC_GAME__.getState().game.players[0].deck
+    .slice(0, 2).map((card) => {
+      const element = card && document.querySelector(`[data-card-key="${card.characterKey}-${card.cardIndex}"]`);
+      return element ? element.getBoundingClientRect().left : -1;
+    }));
+  await page.evaluate(() => {
+    const state = window as unknown as { __swapSamples: number[][] };
+    state.__swapSamples = [];
+    const started = performance.now();
+    const tick = (): void => {
+      const deck = window.__TMC_GAME__.getState().game.players[0].deck;
+      state.__swapSamples.push(deck.slice(0, 2).map((card) => {
+        const element = card && document.querySelector(`[data-card-key="${card.characterKey}-${card.cardIndex}"]`);
+        return element ? Math.round(element.getBoundingClientRect().left) : -1;
+      }));
+      if (performance.now() - started < 400) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
   await dragCard(page, page.getByTestId("deck-you-card-0"), page.getByTestId("deck-you-card-1"));
   expect(await img(0)).toBe(before[1]);
   expect(await img(1)).toBe(before[0]);
+
+  // 两张卡都从原位出发（各自都出现过"接近起点"的一帧），即都在做位移动画而不是瞬移
+  const samples = (await page.evaluate(() =>
+    (window as unknown as { __swapSamples: number[][] }).__swapSamples)) as number[][];
+  expect(samples.length).toBeGreaterThan(4);
+  const nearStart = samples.map((frame) => frame.map((x, index) =>
+    Math.abs(x - startX[index]!) <= 20));
+  expect(nearStart.some((frame) => frame[0] && frame[1])).toBe(true);
 
   // 主机可以把未使用的卡拖到电脑卡组的指定空位
   await dragCard(page, unused.first(), page.getByTestId("deck-opponent-empty-3"));

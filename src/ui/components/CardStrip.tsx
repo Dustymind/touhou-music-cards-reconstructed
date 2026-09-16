@@ -275,6 +275,11 @@ export function CardStrip(props: CardStripProps) {
                 // MUI 自带的轨与进度条会短一个拇指半径，这里藏掉，用上面那条自绘滑轨
                 "& .MuiSlider-rail": { display: "none" },
                 "& .MuiSlider-track": { display: "none" },
+                // 单击/悬停/拖动都不留光圈（MUI 的 ripple 画在拇指的 box-shadow 上）；
+                // 只保留键盘 focus-visible 的提示，鼠标操作完不会常驻一圈
+                "& .MuiSlider-thumb": {
+                  "&:hover, &.Mui-active": { boxShadow: "none" },
+                },
               }}
             />
           </Box>
