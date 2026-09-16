@@ -247,6 +247,13 @@ test("动效：牌桌卡牌滑位；播放页牌堆用滑块平移、hover 只�
     return { stripRadius, cardRadius: getComputedStyle(paper).borderRadius };
   });
   expect(fanRadii.stripRadius).toBe(fanRadii.cardRadius);
+  const fanRail = await page.evaluate(() => {
+    const strip = document.querySelector('[data-testid="upcoming-fan-strip"]')!.getBoundingClientRect();
+    const rail = document.querySelector('[data-testid="upcoming-fan-slider-rail"]')!.getBoundingClientRect();
+    return { left: Math.round(rail.left - strip.left), right: Math.round(rail.right - strip.right) };
+  });
+  expect(Math.abs(fanRail.left)).toBeLessThanOrEqual(1);
+  expect(Math.abs(fanRail.right)).toBeLessThanOrEqual(1);
 
   const fanGap = await page.evaluate(() => {
     const cards = [...document.querySelectorAll('[data-testid^="upcoming-card-"]')].slice(0, 2);
@@ -332,6 +339,22 @@ test("游戏卡槽：外框居中 + 滑块平移；拖动不碰卡片节点", as
   expect(radii.stripRadius).not.toBe("0px");
   expect(radii.stripRadius).toBe(radii.cardRadius);
 
+  // 左端：滑轨端点、拇指外缘、第一张卡的边缘都在同一条竖线上
+  const leftEdges = await page.evaluate(() => {
+    const strip = document.querySelector('[data-testid="unused-cards-strip"]')!.getBoundingClientRect();
+    const rail = document.querySelector('[data-testid="card-selection-slider-rail"]')!.getBoundingClientRect();
+    const thumb = document.querySelector('[data-testid="card-selection-slider"] .MuiSlider-thumb')!.getBoundingClientRect();
+    const card = document.querySelector('[data-testid^="unused-card-"]')!.getBoundingClientRect();
+    return {
+      rail: Math.round(rail.left - strip.left),
+      thumb: Math.round(thumb.left - strip.left),
+      card: Math.round(card.left - strip.left),
+    };
+  });
+  expect(Math.abs(leftEdges.rail)).toBeLessThanOrEqual(1);
+  expect(Math.abs(leftEdges.thumb)).toBeLessThanOrEqual(1);
+  expect(Math.abs(leftEdges.card)).toBeLessThanOrEqual(1);
+
   // 拖动滑块：只改"整行"的 transform，卡片节点一个都不动（性能）
   await page.evaluate(() => {
     const strip = document.querySelector('[data-testid="unused-cards-strip"]')!;
@@ -363,14 +386,32 @@ test("游戏卡槽：外框居中 + 滑块平移；拖动不碰卡片节点", as
   expect(mutations.cards).toBe(0);      // 卡片位置是静态的
   expect(mutations.row).toBeGreaterThan(0);   // 只动整行的那一个 transform
 
-  // 滑块推到两端也不能顶出外框（MUI 拇指半径 10px，外框左右各留 12px）
-  const ends = await page.evaluate(() => {
+  // 先把滑块推到最右端（拖到轨道外一点，保证取到 1）
+  await page.mouse.move(sliderBox.x + sliderBox.width * 0.8, sliderBox.y + sliderBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(sliderBox.x + sliderBox.width + 40, sliderBox.y + sliderBox.height / 2, { steps: 8 });
+  await page.mouse.up();
+  await expect.poll(async () => page.getAttribute('[data-testid="unused-cards"]', "data-pan")).toBe("1.000");
+
+  // 右端：滑轨端点、拇指外缘、最后一张卡的边缘同样在一条线上，且不顶出外框
+  const rightEdges = await page.evaluate(() => {
+    const strip = document.querySelector('[data-testid="unused-cards-strip"]')!.getBoundingClientRect();
     const frame = document.querySelector('[data-testid="unused-cards-frame"]')!.getBoundingClientRect();
+    const rail = document.querySelector('[data-testid="card-selection-slider-rail"]')!.getBoundingClientRect();
     const thumb = document.querySelector('[data-testid="card-selection-slider"] .MuiSlider-thumb')!.getBoundingClientRect();
-    return { insideLeft: thumb.left >= frame.left, insideRight: thumb.right <= frame.right };
+    const cards = [...document.querySelectorAll('[data-testid^="unused-card-"]')];
+    const last = cards[cards.length - 1]!.getBoundingClientRect();
+    return {
+      rail: Math.round(rail.right - strip.right),
+      thumb: Math.round(thumb.right - strip.right),
+      card: Math.round(last.right - strip.right),
+      inside: thumb.left >= frame.left && thumb.right <= frame.right,
+    };
   });
-  expect(ends.insideLeft).toBe(true);
-  expect(ends.insideRight).toBe(true);
+  expect(Math.abs(rightEdges.rail)).toBeLessThanOrEqual(1);
+  expect(Math.abs(rightEdges.thumb)).toBeLessThanOrEqual(1);
+  expect(Math.abs(rightEdges.card)).toBeLessThanOrEqual(1);
+  expect(rightEdges.inside).toBe(true);
 });
 
 test("卡片大小按钮按 0.01 步进并夹在 0.04~0.40", async ({ page }) => {

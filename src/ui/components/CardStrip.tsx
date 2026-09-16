@@ -62,6 +62,10 @@ export interface StripLayout {
   maxOffset: number;
 }
 
+/** MUI 默认滑块拇指直径 20px → 半径 10px；滑轨两端各内缩这么多，
+ *  推到 0 / 1 时拇指外缘正好与卡牌显示区的左右边界齐平。 */
+export const SLIDER_THUMB_RADIUS = 10;
+
 /** 等距排布：`step = 卡宽 + 间距`；总宽 = 首张 + 其余每张一个 step。 */
 export function stripLayout(count: number, width: number, gap: number, visibleWidth: number): StripLayout {
   const step = width + gap;
@@ -221,24 +225,59 @@ export function CardStrip(props: CardStripProps) {
         </Box>
 
         {interactive && (
-          <Slider
-            data-testid={sliderTestId}
-            aria-label={sliderLabel}
-            min={0}
-            max={1}
-            step={0.001}
-            value={pan}
-            onChange={(_event, value) => {
-              setDragging(true);
-              applyOffset(value as number, false);
-              setPan(value as number);
+          // 自绘滑轨 + MUI 滑块：滑轨**与卡牌显示区左右边界齐平**（原生滚动条那种"轨 + 钮"），
+          // 滑块本体两端各内缩一个拇指半径，于是拇指外缘也正好落在同一条线上。
+          <Box
+            sx={{
+              position: "relative",
+              width: visibleWidth,
+              maxWidth: "100%",
+              mx: "auto",
+              mt: 0.5,
+              display: "flex",
+              justifyContent: "center",
             }}
-            onChangeCommitted={(_event, value) => {
-              setDragging(false);
-              applyOffset(value as number, true);
-            }}
-            sx={{ width: visibleWidth, maxWidth: "100%", display: "block", mt: 0.5 }}
-          />
+          >
+            <Box
+              data-testid={`${sliderTestId}-rail`}
+              sx={{
+                position: "absolute",
+                left: 0,
+                right: 0,
+                top: "50%",
+                height: 4,
+                borderRadius: 2,
+                backgroundColor: "primary.main",
+                opacity: 0.35,
+                transform: "translateY(-50%)",
+              }}
+            />
+            <Slider
+              data-testid={sliderTestId}
+              aria-label={sliderLabel}
+              min={0}
+              max={1}
+              step={0.001}
+              value={pan}
+              onChange={(_event, value) => {
+                setDragging(true);
+                applyOffset(value as number, false);
+                setPan(value as number);
+              }}
+              onChangeCommitted={(_event, value) => {
+                setDragging(false);
+                applyOffset(value as number, true);
+              }}
+              sx={{
+                position: "relative",
+                width: Math.max(40, visibleWidth - SLIDER_THUMB_RADIUS * 2),
+                maxWidth: "100%",
+                // MUI 自带的轨与进度条会短一个拇指半径，这里藏掉，用上面那条自绘滑轨
+                "& .MuiSlider-rail": { display: "none" },
+                "& .MuiSlider-track": { display: "none" },
+              }}
+            />
+          </Box>
         )}
       </Box>
     </Box>
