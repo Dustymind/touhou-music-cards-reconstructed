@@ -227,6 +227,21 @@ test("动效：牌桌卡牌滑位；播放页牌堆用滑块平移、hover 只�
   const fanSliderBox = (await fanSlider.boundingBox())!;
   expect(fanSliderBox.y).toBeGreaterThanOrEqual(fanBox.y + fanBox.height);   // 滑块不遮卡片
 
+  // 播放页的选卡区域同样有外框并居中
+  const fanFrame = await page.evaluate(() => {
+    const root = document.querySelector('[data-testid="upcoming-fan"]')!;
+    const frame = document.querySelector('[data-testid="upcoming-fan-frame"]')!;
+    const rootBox = root.getBoundingClientRect();
+    const frameBox = frame.getBoundingClientRect();
+    return {
+      border: getComputedStyle(frame).borderStyle,
+      leftGap: Math.round(frameBox.left - rootBox.left),
+      rightGap: Math.round(rootBox.right - frameBox.right),
+    };
+  });
+  expect(fanFrame.border).toBe("solid");
+  expect(Math.abs(fanFrame.leftGap - fanFrame.rightGap)).toBeLessThanOrEqual(2);
+
   const fanGap = await page.evaluate(() => {
     const cards = [...document.querySelectorAll('[data-testid^="upcoming-card-"]')].slice(0, 2);
     if (cards.length < 2) return -1;
@@ -269,7 +284,7 @@ test("动效：牌桌卡牌滑位；播放页牌堆用滑块平移、hover 只�
   await expect.poll(async () => (await firstCard.boundingBox())!.x).toBeLessThan(beforeX - 100);
 });
 
-test("游戏卡槽用上游那条滑块滚动（不挡住卡片）", async ({ page }) => {
+test("游戏卡槽：外框居中 + 滑块平移；拖动不碰卡片节点", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1500 });
   await page.goto("/");
   await page.getByRole("button", { name: "Match" }).click();
@@ -286,14 +301,52 @@ test("游戏卡槽用上游那条滑块滚动（不挡住卡片）", async ({ pa
   const deckBox = (await page.getByTestId("deck-you").boundingBox())!;
   expect(Math.abs(stripBox.width - deckBox.width)).toBeLessThanOrEqual(1);
 
-  // 拖动滑块 → 整条卡槽被平移（不是靠原生滚动条）
+  // 选卡区域有外框并居中（用户要求）
+  const framed = await page.evaluate(() => {
+    const root = document.querySelector('[data-testid="unused-cards"]')!;
+    const frame = document.querySelector('[data-testid="unused-cards-frame"]')!;
+    const style = getComputedStyle(frame);
+    const rootBox = root.getBoundingClientRect();
+    const frameBox = frame.getBoundingClientRect();
+    return {
+      border: `${style.borderStyle} ${style.borderWidth}`,
+      leftGap: Math.round(frameBox.left - rootBox.left),
+      rightGap: Math.round(rootBox.right - frameBox.right),
+    };
+  });
+  expect(framed.border).toBe("solid 1px");
+  expect(Math.abs(framed.leftGap - framed.rightGap)).toBeLessThanOrEqual(2);
+
+  // 拖动滑块：只改"整行"的 transform，卡片节点一个都不动（性能）
+  await page.evaluate(() => {
+    const strip = document.querySelector('[data-testid="unused-cards-strip"]')!;
+    const state = window as unknown as { __cardMutations: number; __rowMutations: number };
+    state.__cardMutations = 0;
+    state.__rowMutations = 0;
+    const observer = new MutationObserver((records) => {
+      for (const record of records) {
+        const id = (record.target as Element).getAttribute?.("data-testid") ?? "";
+        if (id.startsWith("unused-card-")) state.__cardMutations += 1;
+        else state.__rowMutations += 1;
+      }
+    });
+    observer.observe(strip, { attributes: true, attributeFilter: ["style"], subtree: true });
+  });
   const firstCard = page.locator('[data-testid^="unused-card-"]').first();
   const before = (await firstCard.boundingBox())!.x;
-  await page.mouse.move(sliderBox.x + sliderBox.width * 0.5, sliderBox.y + sliderBox.height / 2);
+  await page.mouse.move(sliderBox.x + sliderBox.width * 0.2, sliderBox.y + sliderBox.height / 2);
   await page.mouse.down();
-  await page.mouse.move(sliderBox.x + sliderBox.width * 0.9, sliderBox.y + sliderBox.height / 2, { steps: 12 });
+  for (let step = 1; step <= 20; step += 1) {
+    await page.mouse.move(sliderBox.x + sliderBox.width * (0.2 + 0.03 * step), sliderBox.y + sliderBox.height / 2);
+  }
   await page.mouse.up();
   await expect.poll(async () => (await firstCard.boundingBox())!.x).toBeLessThan(before - 100);
+  const mutations = await page.evaluate(() => {
+    const state = window as unknown as { __cardMutations: number; __rowMutations: number };
+    return { cards: state.__cardMutations, row: state.__rowMutations };
+  });
+  expect(mutations.cards).toBe(0);      // 卡片位置是静态的
+  expect(mutations.row).toBeGreaterThan(0);   // 只动整行的那一个 transform
 });
 
 test("卡片大小按钮按 0.01 步进并夹在 0.04~0.40", async ({ page }) => {

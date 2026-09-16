@@ -394,15 +394,29 @@ describe("GamePanel", () => {
     });
     expect(Number(container.querySelector('[data-testid="unused-cards"]')?.getAttribute("data-pan"))).toBe(1);
     expect(offsetOf()).toBeLessThan(0);
+    // 平移写在"整行"的 transform 上；卡片自身位置是静态的（拖滑块不碰上百个卡片节点）
+    const row = container.querySelector<HTMLElement>('[data-testid="unused-cards-strip-row"]')!;
+    expect(row.style.transform).not.toBe("translateX(0px)");
+    const card = container.querySelector<HTMLElement>('[data-testid^="unused-card-"]')!;
+    expect(card.style.left).toBe("");
 
     await act(async () => {
       slider!.dispatchEvent(new KeyboardEvent("keydown", { key: "Home", bubbles: true }));
     });
     expect(offsetOf()).toBe(0);
+    expect(row.style.transform).toBe("translateX(0px)");
 
     // 滑块在卡条**下方**（DOM 顺序在卡条之后），不会盖住卡槽
     expect(strip.compareDocumentPosition(container.querySelector('[data-testid="card-selection-slider"]')!)
       & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    // 选卡区域有外框（框住卡条 + 滑块）
+    const frame = container.querySelector('[data-testid="unused-cards-frame"]')!;
+    expect(frame).not.toBeNull();
+    expect(frame.contains(strip)).toBe(true);
+    expect(frame.contains(container.querySelector('[data-testid="card-selection-slider"]')!)).toBe(true);
+
+
   });
 
   it("按卡组筛选音乐：不在场上的角色被临时禁用", async () => {

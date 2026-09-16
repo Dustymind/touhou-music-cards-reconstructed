@@ -573,6 +573,34 @@ hover 后 `transform` 仍是 `none`（无悬浮动效）；空卡槽 `border: 1p
 
 ---
 
+## D26 选卡区加外框并居中；滑动改成整行一个 transform
+
+**需求**（用户）：两个界面的选卡区域加外框、居中；优化滑块条性能。
+
+**做法**：
+
+1. **外框 + 居中**：`CardStrip` 里加一层带 `border: 1px solid divider`、圆角、内边距的框，
+   把"卡条 + 滑块"一起框住，外层用 `display: flex; justifyContent: center` 居中。
+   实测：牌桌宽 668 → 框 678（左右各留 144px，居中），播放页同理。
+2. **性能**：原来卡片是 `left = 序号 × step + offset`，每动一格滑块就要重算并改写上百个卡片节点的
+   `left`（React 还要重渲染 127 个卡片组件）。现在：
+   - 卡片位置**静态**（`left = 序号 × step`，永不变化），平移只用**一个** `translateX` 加在整行容器上；
+   - 拖动过程中把 transform **直接写进 DOM**（`ref`），React 状态只在拖动结束（`onChangeCommitted`）落一次，
+     `data-pan` 等读数照旧；
+   - 拖动时关掉 `transition`（跟手），松手后恢复 `0.3s` 缓动；
+   - 单卡片抽成 `memo` 组件，回调放进 `ref`（父组件每次渲染换新函数会把 memo 全部打回重渲染），
+     所以拖滑块时 127 个卡片组件一个都不重渲染；
+   - 行容器加 `will-change: transform`。
+
+**实测**（真浏览器，MutationObserver 盯卡条子树）：拖动滑块 30 步 ——
+**卡片节点 0 次 style 变更**、整行 31 次（每步一次 transform），耗时 522ms（其中大部分是 Playwright
+每次鼠标移动的往返开销）。E2E 里就把这条锁住：`mutations.cards === 0 && mutations.row > 0`。
+
+**回归锁**：`GamePanel` 用例补上前置断言（外框存在且同时包含卡条与滑块、平移写在整行 transform 上、
+卡片自身没有内联 `left`）；E2E 补上外框 `solid 1px` + 左右留白差 ≤2px（居中）+ 拖动时卡片零变更。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |
