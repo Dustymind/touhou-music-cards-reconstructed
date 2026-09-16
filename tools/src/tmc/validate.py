@@ -143,55 +143,43 @@ def check_sources(referenced: set[tuple[str, str]], p: Problems):
 
 
 STAGE_LABEL = re.compile(r"^(?:第?(\d+)面|(最终)面|(Extra)面|(Phantasm)面)主题曲$")
-OWN_STAGE = re.compile(r"^(?:第?(\d+)面|(最终)面|(Extra)面|(Phantasm)面|(Extra关卡)|(最终关卡))")
-
-
-def _stage_key(label: str, pattern: re.Pattern[str]) -> str:
-    m = pattern.match(label)
-    if not m:
-        return ""
-    return next((g for g in m.groups() if g), "")
 
 
 def check_stage_attribution(chars: list[dict]) -> dict[str, list[str]]:
-    """M2 复核用：把「道中曲/更多道中曲」与该角色在该作品的本人 BOSS 面对拍。
+    """逐条核对「道中曲/更多道中曲」的面次归属（依据 THBWiki 作品页的 BOSS 表）。
 
-    R2/R3 当前口径 = "标签为面主题曲 + 作品 == 首发作品"，**不**校验面次是否与该角色的
-    BOSS 面一致（中 BOSS 没有主题曲标签，需要角色×面次参照表）。这里输出可对拍清单：
-    `match` / `MISMATCH` / `no-own-theme`。
+    规则：该曲所属作品该面次的登场角色里必须出现本角色（E1：中 BOSS 与面 BOSS 同等）。
+    `alias-gap` 表示面次角色看起来就是本角色、但双方中文名用字不同 —— 需要补别名而不是改数据。
     """
     from .roles import RoleIndex
+    from .stages import StageCast
 
     index = RoleIndex.load()
+    cast = StageCast.load()
     rows: dict[str, list[str]] = {}
     for char in chars:
-        names = [n for n in char["searchNames"] if n and not n.isascii()]
+        names = [n for n in char["searchNames"] if n]
         for album, title, extra in char["music"]:
             if extra not in ("道中曲", "更多道中曲"):
                 continue
             work = next((w for k, _n, _kind, w, _o in repo.ALBUM_SEED
                          if k and _n == album and w), "")
-            if not work:
-                rows[f"{char['key']}\t{album}\t{title}"] = [f"{extra}\t-\t-\tno-workpage"]
-                continue
-            stage_keys = {_stage_key(lab, STAGE_LABEL) for lab in index.labels(work, title)}
-            stage_keys.discard("")
-            own_keys: set[str] = set()
-            for other_album, other_title, _e in char["music"]:
-                if other_album != album:
-                    continue
-                for lab in index.labels(work, other_title):
-                    if not any(name in lab for name in names):
-                        continue
-                    if "角色曲" in lab or "主题曲" in lab or "BOSS" in lab:
-                        own_keys.add(_stage_key(lab, OWN_STAGE))
-            own_keys.discard("")
-            verdict = "no-own-theme" if not own_keys else (
-                "match" if stage_keys & own_keys else "MISMATCH")
-            rows[f"{char['key']}\t{album}\t{title}"] = [
-                f"{extra}\t{'、'.join(sorted(stage_keys)) or '-'}"
-                f"\t{'、'.join(sorted(own_keys)) or '-'}\t{verdict}"]
+            stage = next((next(g for g in m.groups() if g) for lab in index.labels(work, title)
+                          if (m := STAGE_LABEL.match(lab))), "") if work else ""
+            if not work or not stage:
+                verdict, who = "no-label", "-"
+            else:
+                who_list = cast.who(work, stage)
+                who = "、".join(sorted(set(who_list))) or "-"
+                verdict = "verified" if cast.has(work, stage, names) else (
+                    "alias-gap" if any(_loose(n, w) for n in names for w in who_list) else "REVIEW")
+            rows[f"{char['key']}\t{album}\t{title}"] = [f"{extra}\t{stage or '-'}\t{who}\t{verdict}"]
     return rows
+
+
+def _loose(a: str, b: str) -> bool:
+    """只用于把"名字用字不同"与"角色不对"区分开：比较前两字。"""
+    return len(a) >= 2 and len(b) >= 2 and a[:2] == b[:2]
 
 
 def check_pending(chars: list[dict], p: Problems):
@@ -243,13 +231,24 @@ def main(argv: list[str] | None = None) -> int:
     char_stats, source_stats, pending = stats, stats["sources"], stats["pending"]
 
     stage_rows = stats["stage_rows"]
-    mismatches = [k for k, v in stage_rows.items() if v[0].endswith("MISMATCH")]
     out = repo.ROOT / "reports" / "stage-check.tsv"
-    out.write_text("角色key\t专辑\t曲目\t类别\t该曲面次\t该角色本人曲面次\t结论\n" +
+    out.write_text("角色key\t专辑\t曲目\t类别\t面次\t该面登场角色\t结论\n" +
                    "\n".join(f"{k}\t{v[0]}" for k, v in sorted(stage_rows.items())) + "\n",
                    encoding="utf-8")
-    if mismatches:
-        p.note(f"道中曲面次对拍：{len(mismatches)} 条 MISMATCH（见 reports/stage-check.tsv）")
+    counts = collections.Counter(v[0].rsplit("\t", 1)[-1] for v in stage_rows.values())
+    for verdict in ("REVIEW", "alias-gap", "no-label"):
+        if counts.get(verdict):
+            p.note(f"道中曲面次核对：{counts[verdict]} 条 {verdict}（见 reports/stage-check.tsv）")
+    # 把用到的面次参照表固化成数据，便于离线复核
+    from .stages import StageCast
+
+    meta = repo.DATA / "meta"
+    meta.mkdir(parents=True, exist_ok=True)
+    lines = ["作品\t面次\t类型\t曲目\t登场角色"]
+    for work, entries in StageCast.load()._rows.items():  # noqa: SLF001 - 只读导出
+        for row in entries:
+            lines.append(f"{work}\t{row['stage']}\t{row['kind']}\t{row['title']}\t{row['cast']}")
+    (meta / "stage-cast.tsv").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     lines = ["# 校验报告", "",
              f"- 角色：{stats['characters']}", f"- 专辑：{stats['albums']}",

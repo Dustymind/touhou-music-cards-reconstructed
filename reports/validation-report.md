@@ -30,4 +30,4 @@
 ## 提示
 
 - thbwiki: 1 个 URL 被多个曲目共用（需人工确认，见报告）
-- 道中曲面次对拍：14 条 MISMATCH（见 reports/stage-check.tsv）
+- 道中曲面次核对：2 条 alias-gap（见 reports/stage-check.tsv）
