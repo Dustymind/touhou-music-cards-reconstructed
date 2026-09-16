@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AlbumRecord, CharacterRecord } from "../data/types";
 import { defaultPreset } from "../music/selection";
 import { buildEntries, type TableMap } from "../music/sources";
+import { BELL_DURATION_MS } from "./bell";
 import { fakeTables, installFakeAudio, renderHook, type FakeAudio } from "../test-utils";
 import { usePlayer, type PlayerInputs } from "./usePlayer";
 
@@ -78,7 +79,8 @@ describe("usePlayer", () => {
     expect(audios[0]!.paused).toBe(true);
   });
 
-  it("开启倒计时时先播铃声再播正曲", async () => {
+  it("开启倒计时时先响铃再播正曲（铃是现场合成，仓库里没有二进制铃声）", async () => {
+    vi.useFakeTimers();
     const hook = await renderHook(() => usePlayer(inputs()));
     await vi.waitFor(() => expect(hook.result.current.url).not.toBeNull());
     hook.result.current.setSetting({ countdown: true });
@@ -86,8 +88,27 @@ describe("usePlayer", () => {
     hook.result.current.play();
     await hook.rerender();
     expect(hook.result.current.playback).toBe("countingDown");
-    expect(audios[1]!.paused).toBe(false);   // Bell3
-    expect(audios[0]!.paused).toBe(true);    // 正曲还没开始
+    expect(audios).toHaveLength(1);              // 只有一个 <audio>：正曲
+    expect(audios[0]!.paused).toBe(true);        // 铃还没响完，正曲不抢跑
+    await vi.advanceTimersByTimeAsync(BELL_DURATION_MS + 20);
+    await hook.rerender();
+    expect(audios[0]!.paused).toBe(false);
+    expect(hook.result.current.playback).toBe("playing");
+  });
+
+  it("铃响期间按暂停，正曲不会偷偷起播", async () => {
+    vi.useFakeTimers();
+    const hook = await renderHook(() => usePlayer(inputs()));
+    await vi.waitFor(() => expect(hook.result.current.url).not.toBeNull());
+    hook.result.current.setSetting({ countdown: true });
+    await hook.rerender();
+    hook.result.current.play();
+    await hook.rerender();
+    hook.result.current.pause();
+    await vi.advanceTimersByTimeAsync(BELL_DURATION_MS + 20);
+    await hook.rerender();
+    expect(audios[0]!.paused).toBe(true);
+    expect(hook.result.current.playback).toBe("stopped");
   });
 
   it("step 返回 null 时不切换角色", async () => {

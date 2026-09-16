@@ -7,6 +7,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { createBell, type BellHandle } from "./bell";
 import type { AlbumRecord, CharacterRecord, MusicEntry } from "../data/types";
 import { displayTitle, trackId } from "../data/types";
 import { newSeed, pickWithSeed, randomStartPosition } from "../music/rng";
@@ -18,7 +19,7 @@ export type PlaybackState = "stopped" | "countingDown" | "playing" | "timeoutPau
 export interface PlaybackSetting {
   /** 播放位置随机（跳过最后 10 秒） */
   randomStart: boolean;
-  /** 换歌前先播 Bell3 倒计时铃 */
+  /** 换歌前先响一声倒计时铃 */
   countdown: boolean;
   /** 播放多少秒后自动暂停；0 = 无限 */
   durationSeconds: number;
@@ -65,11 +66,11 @@ export interface PlayerApi {
   reload: () => void;
 }
 
-const BELL_SRC = "./Bell3.mp3";
-
 export function usePlayer(inputs: PlayerInputs): PlayerApi {
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const bellRef = useRef<HTMLAudioElement | null>(null);
+  const bellRef = useRef<BellHandle | null>(null);
+  /** 每次 `play` 一个令牌：铃响期间按了暂停/关了页面就不再自动起播 */
+  const playTokenRef = useRef(0);
   const failedRef = useRef<Set<string>>(new Set());
   const timeoutRef = useRef<number | null>(null);
   const [version, setVersion] = useState(0);
@@ -100,14 +101,12 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
     return pickWithSeed(entries, seedKey);
   }, [character, inputs.pinned, inputs.preset, inputs.seed]);
 
-  // ---- 创建两个 <audio>（不挂进 DOM 也能播） ----
+  // ---- 创建 <audio> 与铃（都不挂进 DOM 也能播） ----
   useEffect(() => {
     const audio = new Audio();
-    const bell = new Audio();
-    bell.src = BELL_SRC;
-    bell.preload = "auto";
     audio.preload = "auto";
     audioRef.current = audio;
+    const bell = createBell();
     bellRef.current = bell;
 
     const onTimeUpdate = () => setCurrentTime(audio.currentTime);
@@ -133,12 +132,13 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
       audio.removeEventListener("pause", onPause);
       audio.removeEventListener("error", onError);
       audio.pause();
+      bell.dispose();
+      bellRef.current = null;
     };
   }, []);
 
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = volume;
-    if (bellRef.current) bellRef.current.volume = volume;
   }, [volume]);
 
   // ---- 换歌：解析 URL ----
@@ -206,22 +206,22 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
   const play = useCallback(() => {
     const audio = audioRef.current;
     if (!audio || !resolved) return;
+    const token = (playTokenRef.current += 1);
+    const startMusic = () => {
+      if (playTokenRef.current !== token) return; // 期间被暂停/卸载
+      void audio.play().then(() => setPlayback("playing")).catch(() => setPlayback("stopped"));
+    };
     if (setting.countdown) {
       setPlayback("countingDown");
-      const bell = bellRef.current;
-      if (bell) {
-        bell.currentTime = 0;
-        void bell.play().catch(() => undefined);
-        bell.onended = () => {
-          void audio.play().catch(() => setPlayback("stopped"));
-        };
-        return;
-      }
+      bellRef.current?.ring(startMusic);
+      return;
     }
-    void audio.play().then(() => setPlayback("playing")).catch(() => setPlayback("stopped"));
+    startMusic();
   }, [resolved, setting.countdown]);
 
   const pause = useCallback(() => {
+    playTokenRef.current += 1;
+    bellRef.current?.stop();
     audioRef.current?.pause();
     setPlayback("stopped");
   }, []);
@@ -229,6 +229,8 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
   const next = useCallback(() => {
     const key = inputs.step(1);
     if (key === null) return;
+    playTokenRef.current += 1;
+    bellRef.current?.stop();
     audioRef.current?.pause();
     inputs.setCurrent(key);
   }, [inputs]);
@@ -236,6 +238,8 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
   const previous = useCallback(() => {
     const key = inputs.step(-1);
     if (key === null) return;
+    playTokenRef.current += 1;
+    bellRef.current?.stop();
     audioRef.current?.pause();
     inputs.setCurrent(key);
   }, [inputs]);
