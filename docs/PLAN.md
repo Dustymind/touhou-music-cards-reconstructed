@@ -648,7 +648,7 @@ interface Transport {
 
 - [x] **步 1** 决策定稿：`docs/DECISIONS.md` + `docs/rules-classification-v1.md`（R0–R6 + E1/E3，E2 撤销）。
 - [x] **M0 地基**：`git init`（无远端）、目录骨架、README、决策与规则文档、`tools/` 的 uv 工程。
-- [ ] **M1 数据迁移**：`data/` TOML（121 角色 / 39 专辑 / 3 源表数组化）+ `tools/` 的迁移/校验/生成脚本 → **产出"数据体检报告"给你看**。
+- [x] **M1 数据迁移**：`data/` TOML（121 角色 / 39 专辑 / 3 源表数组化）+ `tools/` 的迁移/校验/生成脚本 + 24 个测试 → 体检报告见 [`reports/M1-data-health.md`](../reports/M1-data-health.md)（待判定 19 条、面次待判 14 条）。
 - [ ] **M2a**：`extra-proposal.md`（秘封 + 正作 OST 批）复核表 → 你确认后落库。
 - [ ] **M2b**：格斗/arrange + 孤儿归属的第二批复核表。
 - [ ] **M3–M9**：按里程碑推进，每个里程碑结束汇报（改动清单 + 测试结果）再继续。
