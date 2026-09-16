@@ -15,6 +15,13 @@ export interface LobbyPanelProps {
 
 export function LobbyPanel(_props: LobbyPanelProps) {
   const net = useNet();
+  /** 连接状态在界面上的名字。 */
+  const statusLabel = {
+    offline: Localization.GameStatusOffline,
+    hosting: Localization.GameStatusHosting,
+    connected: Localization.GameStatusConnected,
+    error: Localization.GameStatusError,
+  } as const;
   const [name, setName] = useState("Player");
   const [room, setRoom] = useState("");
   const [chatDraft, setChatDraft] = useState("");
@@ -25,11 +32,11 @@ export function LobbyPanel(_props: LobbyPanelProps) {
   return (
     <Paper variant="outlined" sx={{ p: 2, fontFamily: NoFontFamily }} data-testid="lobby">
       <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", alignItems: "center", gap: 1 }}>
-        <Typography variant="subtitle1">Online</Typography>
-        <Chip size="small" label={net.status} data-testid="net-status" />
+        <Typography variant="subtitle1">{t(Localization.GameLobbyOnline)}</Typography>
+        <Chip size="small" label={t(statusLabel[net.status])} data-testid="net-status" />
         <TextField
           size="small"
-          label="Name"
+          label={t(Localization.GameConnectionMyName)}
           value={name}
           onChange={(event) => setName(event.target.value)}
           sx={{ width: "10em" }}
@@ -46,15 +53,15 @@ export function LobbyPanel(_props: LobbyPanelProps) {
                   slotProps={{ input: { "aria-label": "net-peer-mode" } }}
                 />
               }
-              label={<Typography variant="caption">cross-machine (PeerJS)</Typography>}
+              label={<Typography variant="caption">{t(Localization.GameConnectionPeerMode)}</Typography>}
             />
             <Button size="small" variant="contained" data-testid="net-host"
               onClick={() => void net.host({ name, peer: peerMode })}>
-              Host
+              {t(Localization.GameConnectionHost)}
             </Button>
             <TextField
               size="small"
-              label="Room"
+              label={t(Localization.GameConnectionRoom)}
               value={room}
               onChange={(event) => setRoom(event.target.value)}
               sx={{ width: "9em" }}
@@ -62,7 +69,7 @@ export function LobbyPanel(_props: LobbyPanelProps) {
             />
             <Button size="small" data-testid="net-join" disabled={!room}
               onClick={() => net.join({ roomId: room, name, peer: peerMode })}>
-              Join
+              {t(Localization.GameConnectionJoin)}
             </Button>
           </>
         )}
@@ -72,18 +79,20 @@ export function LobbyPanel(_props: LobbyPanelProps) {
               <Chip
                 size="small"
                 color="primary"
-                label={`code: ${net.shareCode}`}
+                label={t(Localization.GameConnectionShareCode, { code: net.shareCode })}
                 data-testid="net-share-code"
                 onClick={() => void navigator.clipboard?.writeText(net.shareCode ?? "")}
               />
             )}
-            <Button size="small" data-testid="net-leave" onClick={() => net.leave()}>Leave</Button>
+            <Button size="small" data-testid="net-leave" onClick={() => net.leave()}>
+              {t(Localization.GameConnectionLeave)}
+            </Button>
           </>
         )}
         <Box sx={{ flex: 1 }} />
         {/* 界面上只显示前 24 个字符（布局考虑），完整摘要在 `data-digest` 里给 E2E 断言用 */}
         <Typography variant="caption" color="text.secondary" data-testid="net-digest" data-digest={net.digest}>
-          digest {net.digest.slice(0, 24) || "-"}
+          {t(Localization.GameDigest, { digest: net.digest.slice(0, 24) || "-" })}
         </Typography>
       </Stack>
 
@@ -99,13 +108,15 @@ export function LobbyPanel(_props: LobbyPanelProps) {
                 size="small"
                 color={peer.isHost ? "primary" : "default"}
                 variant={peer.index === net.myIndex ? "filled" : "outlined"}
-                label={`${peer.index}: ${peer.name}${peer.isObserver ? " (obs)" : ""}${peer.isHost ? " ★" : ""}`}
+                label={`${peer.index}: ${peer.isObserver
+                  ? t(Localization.GameParticipantObserver, { name: peer.name })
+                  : peer.name}${peer.isHost ? " ★" : ""}`}
               />
             ))}
           </Stack>
 
           <Divider sx={{ my: 1 }} />
-          <Typography variant="caption" color="text.secondary">Chat</Typography>
+          <Typography variant="caption" color="text.secondary">{t(Localization.ChatMessageTitle)}</Typography>
           <Stack spacing={0.25} sx={{ maxHeight: 120, overflowY: "auto", my: 0.5 }} data-testid="chat-log">
             {net.chat.map((line, index) => (
               <Typography key={index} variant="caption">
@@ -137,7 +148,7 @@ export function LobbyPanel(_props: LobbyPanelProps) {
                 setChatDraft("");
               }}
             >
-              Send
+              {t(Localization.ChatMessageSend)}
             </Button>
           </Stack>
         </>

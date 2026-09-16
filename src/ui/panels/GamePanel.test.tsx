@@ -4,6 +4,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { DataBundle } from "../../data/types";
+import { setLocale } from "../../i18n/localization";
 import { loadRealBundle } from "../../test-utils";
 import { useGame } from "../../game/useGame";
 import { TURN_COUNTDOWN_MS } from "../../game/useGameLoop";
@@ -34,6 +35,7 @@ describe("GamePanel", () => {
   beforeEach(async () => {
     vi.useFakeTimers();
     localStorage.clear();
+    setLocale("en");   // 断言用的都是英文文案；中文另见下一个用例
     bundle = await loadRealBundle();
     // 每个用例都从干净的对局状态开始，避免上一个用例的计时器/状态串味
     useGame.setState({
@@ -141,6 +143,56 @@ describe("GamePanel", () => {
     // CPU 抢中后进入结算阶段
     expect(useGame.getState().game.state).toBe("turnWinner");
     expect(container.textContent).toContain("Answer:");
+  });
+
+  it("切到中文后游戏页全部是中文（不留英文标签）", async () => {
+    setLocale("zh");
+    const container = await render();
+    const text = container.textContent ?? "";
+    for (const label of ["开始游戏", "中止游戏", "随机补满", "补满电脑", "清空卡组", "打乱卡组",
+      "卡组 3×8", "减行", "加行", "减列", "加列", "单人", "电脑", "经典", "休闲",
+      "对手 · 已得 0", "你 · 已得 0", "下一回合", "随机交出", "牌堆", "轮播",
+      "正在播放：—", "第 0 回合 · 选牌中 · 罚牌 0", "卡牌缩小", "卡牌放大", "联机", "名称", "房间号"]) {
+      expect(text, `缺少中文文案：${label}`).toContain(label);
+    }
+    // 英文标签不该再出现在中文界面里
+    for (const leftover of ["Random Fill", "Clear Deck", "Shuffle Deck", "Next Turn",
+      "Now playing", "deck 3×8", "Opponent · collected", "cross-machine", "Chat"]) {
+      expect(text).not.toContain(leftover);
+    }
+    // 开局后的状态名也走中文
+    await click(container, "random-fill");
+    await click(container, "start-game");
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(TURN_COUNTDOWN_MS + 50);
+    });
+    expect(container.textContent).toContain("抢拍中");
+    expect(container.textContent).toContain("正在播放：???");
+  });
+
+  it("中文下的结算与罚牌提示", async () => {
+    setLocale("zh");
+    const container = await render();
+    await click(container, "random-fill");
+    await click(container, "start-game");
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(TURN_COUNTDOWN_MS + 50);
+    });
+    // 保证自己手里就有当前角色：随机补满不保证发到，抢拍必须命中才能进结算
+    const currentKey = useGame.getState().game.currentKey!;
+    await act(async () => {
+      useGame.setState((slice) => {
+        const players = slice.game.players.map((player) => ({ ...player, deck: player.deck.slice() }));
+        players[0]!.deck[0] = { characterKey: currentKey, cardIndex: 0 };
+        return { game: { ...slice.game, players } };
+      });
+    });
+    await act(async () => {
+      useGame.getState().pick(0, 0, 0);
+    });
+    expect(useGame.getState().game.state).toBe("turnWinner");
+    expect(container.textContent).toContain("答案：");
+    expect(container.textContent).toContain("结算中");
   });
 
   it("按卡组筛选音乐：不在场上的角色被临时禁用", async () => {

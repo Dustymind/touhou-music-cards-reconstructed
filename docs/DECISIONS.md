@@ -265,6 +265,38 @@ Paper 容器，再加一层只是重复描边，因此只取色不改结构。�
 
 ---
 
+## D16 游戏页本地化：文案全部走 `t()`，`en` 保留上游原始枚举名
+
+**问题**（用户指出）：界面切成中文后，**游戏页仍然整页英文**（`Solo` / `Random Fill` / `Next Turn` /
+`turn #1 · turnStart` / 大厅的 `Online` / `Host` / 未本地化的大厅与玩家面板）。原因是这些字符串当初是
+**硬编码英文**写进 JSX 的，没走 `src/i18n/localization.ts`。
+
+**结论**：游戏页（`GamePanel`）、联机大厅（`LobbyPanel`）、播放页的队列统计，全部改成
+`t(Localization.X)`，新增 46 个键（`GameModeSolo` … `PlayerTabRotation`）。判定状态额外加一层
+`STATE_LABEL: Record<JudgeState, keyof typeof Localization>`：
+
+| 状态 | en（保持原样） | zh |
+|---|---|---|
+| `selecting` | selecting | 选牌中 |
+| `countdown` | countdown | 倒计时 |
+| `turnStart` | turnStart | 抢拍中 |
+| `turnWinner` | turnWinner | 结算中 |
+| `finished` | finished | 已结束 |
+
+**为什么 `en` 不翻译状态名**：上游枚举名就是这些字符串，Playwright（en-US）与单测都对
+`turn #0 · countdown` / `turn #1 · turnStart` 做了断言；把英文侧也"美化"会平白打碎一批测试，
+而英文读者看 `turnStart` 与看 `picking` 的收益一样。
+
+**回归锁**：`GamePanel.test.tsx` 新增两个中文用例（逐条检查中文标签存在 + 英文标签不存在 + 结算提示），
+`e2e/smoke.spec.ts` 新增"中文界面：游戏页全部中文"用例（真浏览器 `?locale=zh`，同样检查英文残留为零）。
+
+**还没本地化的（有意留下，见下）**：`src/net/engines.ts`（拒绝加入/断线）、`src/audio/usePlayer.ts`
+（取不到音源）、`src/data/load.ts` 与 `src/persist.ts`（数据校验与存档迁移的诊断信息）目前都只有中文，
+是历史遗留。它们**只在异常路径上出现**，且上游同样只本地化 UI 文案、不本地化数据错误
+（上游 `Localization.ts` 里没有对应键）。要补齐说一声，改动量约 8 条文案 + 4 个测试文件。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |

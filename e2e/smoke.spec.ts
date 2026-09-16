@@ -70,6 +70,33 @@ test("对战页：随机补满 → 开局 → 倒计时后进入回合 → 下�
   await expect(page.getByText(/turn #2 ·/)).toBeVisible({ timeout: 15_000 });
 });
 
+test("中文界面：游戏页（含联机大厅）全部是中文，不留英文标签", async ({ page }) => {
+  await page.goto("/?locale=zh");
+  await page.getByRole("button", { name: "游戏" }).click();
+  await expect(page.getByTestId("lobby")).toBeVisible();
+
+  const lobby = page.getByTestId("lobby");
+  for (const label of ["联机", "名称", "建立房间", "房间号", "加入", "状态摘要", "跨机器（PeerJS）"]) {
+    await expect(lobby.getByText(label, { exact: false }).first()).toBeVisible();
+  }
+  for (const label of ["单人", "电脑", "经典", "休闲", "卡组 3×8", "减行", "加行", "减列", "加列",
+    "随机补满", "补满电脑", "清空卡组", "打乱卡组", "开始游戏", "中止游戏",
+    "正在播放：—", "第 0 回合 · 选牌中 · 罚牌 0", "卡牌缩小", "卡牌放大",
+    "对手 · 已得 0", "你 · 已得 0", "下一回合", "随机交出", "牌堆", "轮播"]) {
+    await expect(page.getByText(label, { exact: false }).first()).toBeVisible();
+  }
+  // 英文标签不该再出现
+  for (const leftover of ["Random Fill", "Clear Deck", "Shuffle Deck", "Next Turn", "Now playing",
+    "deck 3×8", "Opponent · collected", "cross-machine"]) {
+    await expect(page.getByText(leftover, { exact: false })).toHaveCount(0);
+  }
+
+  // 开局后的状态名也走中文
+  await page.getByTestId("random-fill").click();
+  await page.getByTestId("start-game").click();
+  await expect(page.getByText(/第 1 回合 · 抢拍中/)).toBeVisible({ timeout: 15_000 });
+});
+
 test("播放页解析出音源（真实源表 + 远程 URL 写入 audio.src）", async ({ page }) => {
   await page.goto("/");
   // 源表来自本机 /data/sources/*.json，解析成功后显示音源标签

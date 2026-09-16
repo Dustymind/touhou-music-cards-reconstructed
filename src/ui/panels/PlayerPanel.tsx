@@ -143,7 +143,10 @@ export function PlayerPanel(props: PlayerPanelProps) {
           />
           <Box sx={{ flex: 1 }} />
           <Typography variant="caption" color="text.secondary">
-            {order.length} in rotation · {Object.keys(props.tables).length} sources
+            {t(Localization.PlayerTabRotation, {
+              tracks: String(order.length),
+              sources: String(Object.keys(props.tables).length),
+            })}
           </Typography>
         </Stack>
       </Paper>
