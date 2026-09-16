@@ -5,6 +5,7 @@
  */
 import {
   type AlbumRecord,
+  type CardSetRecord,
   type CharacterRecord,
   type DataBundle,
   type DataIndex,
@@ -85,25 +86,44 @@ export function validateSources(raw: unknown): SourceRecord[] {
   return sources as SourceRecord[];
 }
 
+export function validateCardSets(raw: unknown): CardSetRecord[] {
+  const payload = raw as { default?: unknown; cardSets?: unknown } | null;
+  assert(Array.isArray(payload?.cardSets) && payload.cardSets.length > 0, "cardsets.json 缺少 cardSets");
+  const sets = payload.cardSets as CardSetRecord[];
+  const ids = new Set<string>();
+  for (const set of sets) {
+    assert(typeof set.id === "string" && set.id.length > 0, "图集缺 id");
+    assert(!ids.has(set.id), `图集 id 重复：${set.id}`);
+    ids.add(set.id);
+    assert(Array.isArray(set.origins) && set.origins.length > 0, `图集 ${set.id} 没有 origin`);
+    assert(typeof set.dir === "string" && set.dir.length > 0, `图集 ${set.id} 缺目录`);
+  }
+  assert(typeof payload.default === "string" && ids.has(payload.default),
+    `图集默认值非法：${String(payload.default)}`);
+  return sets;
+}
+
 /** 载入全部运行时数据；`base` 默认相对当前页面（部署到子目录也可用）。 */
 export async function loadDataBundle(base = "./data"): Promise<DataBundle> {
   const url = (name: string) => `${base.replace(/\/$/, "")}/${name}`;
   const index = validateIndex(await fetchJson(url("index.json")));
-  const [rawCharacters, rawAlbums, rawSources] = await Promise.all([
+  const [rawCharacters, rawAlbums, rawSources, rawCardSets] = await Promise.all([
     fetchJson(url("characters.json")),
     fetchJson(url("albums.json")),
     fetchJson(url("sources.json")),
+    fetchJson(url("cardsets.json")),
   ]);
   const characters = validateCharacters(rawCharacters, index.counts.characters);
   const albums = validateAlbums(rawAlbums);
   const sources = validateSources(rawSources);
+  const cardSets = validateCardSets(rawCardSets);
 
   const characterByKey = new Map(characters.map((c) => [c.key, c]));
   const albumByName = new Map(albums.map((a) => [a.name, a]));
   for (const album of albums) {
     assert(album.kind !== "hifuu" || album.name.length > 0, "秘封专辑缺名字");
   }
-  return { index, characters, albums, sources, characterByKey, albumByName };
+  return { index, characters, albums, sources, cardSets, characterByKey, albumByName };
 }
 
 /** 某角色的曲目按附加信息分组（预设 UI 与统计用）。 */

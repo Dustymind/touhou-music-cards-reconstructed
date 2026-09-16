@@ -71,6 +71,24 @@ def build_sources() -> dict:
     return {"schema": SCHEMA_VERSION, "sources": sources}
 
 
+def build_card_sets() -> dict:
+    """卡面图集注册表 → 运行时 JSON（素材不入库，前端按 origins 顺序远程取）。"""
+    with open(repo.DATA / "card-sets.toml", "rb") as fh:
+        data = tomllib.load(fh)
+    sets = []
+    for entry in data.get("card_set", []):
+        sets.append({
+            "id": entry["id"],
+            "dir": entry["dir"],
+            "label": {"en": entry["label_en"], "zh": entry["label_zh"]},
+            "localPrefix": entry.get("local_prefix", "./"),
+            "origins": list(entry["origins"]),
+        })
+    if not sets:
+        raise SystemExit("data/card-sets.toml 里没有任何 [[card_set]]")
+    return {"schema": SCHEMA_VERSION, "default": data.get("default", sets[0]["id"]), "cardSets": sets}
+
+
 def content_hash(characters: dict, albums: dict) -> str:
     blob = json.dumps([characters, albums], ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(blob.encode("utf-8")).hexdigest()
@@ -84,6 +102,7 @@ def main(argv: list[str] | None = None) -> int:
     characters, chars = build_characters()
     albums = build_albums()
     sources = build_sources()
+    card_sets = build_card_sets()
     digest = content_hash(characters, albums)
     index = {
         "schema": SCHEMA_VERSION,
@@ -94,6 +113,7 @@ def main(argv: list[str] | None = None) -> int:
             "trackEntries": sum(len(c["music"]) for c in chars),
             "distinctTracks": len({(a, t) for c in chars for a, t, _e in c["music"]}),
             "sources": len(sources["sources"]),
+            "cardSets": len(card_sets["cardSets"]),
         },
     }
     outputs = {
@@ -101,6 +121,7 @@ def main(argv: list[str] | None = None) -> int:
         repo.PUBLIC_DATA / "albums.json": _dumps(albums),
         repo.PUBLIC_DATA / "index.json": _dumps(index),
         repo.PUBLIC_DATA / "sources.json": _dumps(sources),
+        repo.PUBLIC_DATA / "cardsets.json": _dumps(card_sets),
     }
     for source_id in ("netease163", "cloudflare_r2", "thbwiki"):
         outputs[repo.PUBLIC_DATA / "sources" / f"{source_id}.json"] = (

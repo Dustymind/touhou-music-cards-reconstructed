@@ -6,11 +6,10 @@ import { useDataBundle } from "./data/useData";
 import { Localization, t } from "./i18n/localization";
 import { buildTheme, NoFontFamily } from "./theme/theme";
 import { AppShell } from "./ui/shell/AppShell";
-import { useSession } from "./store/session";
+
 
 export default function App() {
   const { status, bundle, error, reload } = useDataBundle();
-  const setTab = useSession((state) => state.setTab);
 
   return (
     <ThemeProvider theme={buildTheme()}>
@@ -39,7 +38,7 @@ export default function App() {
           )}
         </Stack>
       )}
-      {status === "ready" && bundle && <AppShell bundle={bundle} onAlice={() => setTab("player")} />}
+      {status === "ready" && bundle && <AppShell bundle={bundle} />}
     </ThemeProvider>
   );
 }

@@ -1,0 +1,85 @@
+# 卡面图集注册表。素材**不随仓库分发**（版权与体积），运行时按 origins 顺序远程加载；
+# 用户若把图集放进 public/cards*/（结构与本地助手同），local_prefix 会优先生效。
+#
+# r2 参数（?r2=1）等价于"把 origins 的第一项提到最前"（上游的语义）。
+# default = 首次进入使用的图集（上游是 dairi-sd）。
+
+default = "dairi-sd"
+
+[[card_set]]
+id = "dairi-sd"
+dir = "cards"
+label_en = "dairi (super-deformed)"
+label_zh = "dairi（Q 版）"
+local_prefix = "./"
+origins = [
+  "https://r2bucket-touhou.hgjertkljw.org/",
+  "https://lightbulb128.github.io/touhou-card-player-v3/",
+  "https://cdn.jsdelivr.net/gh/lightbulb128/touhou-card-player-v3@main/public/",
+  "https://raw.githubusercontent.com/lightbulb128/touhou-card-player-v3/main/public/",
+]
+
+[[card_set]]
+id = "dairi"
+dir = "cards-dairi"
+label_en = "dairi (full body)"
+label_zh = "dairi（全身）"
+local_prefix = "./"
+origins = [
+  "https://r2bucket-touhou.hgjertkljw.org/",
+  "https://lightbulb128.github.io/touhou-card-player-v3/",
+  "https://cdn.jsdelivr.net/gh/lightbulb128/touhou-card-player-v3@main/public/",
+  "https://raw.githubusercontent.com/lightbulb128/touhou-card-player-v3/main/public/",
+]
+
+[[card_set]]
+id = "enbu"
+dir = "cards-enbu"
+label_en = "Enbu (RPG tachie)"
+label_zh = "幻想人形演舞"
+local_prefix = "./"
+origins = [
+  "https://r2bucket-touhou.hgjertkljw.org/",
+  "https://lightbulb128.github.io/touhou-card-player-v3/",
+  "https://cdn.jsdelivr.net/gh/lightbulb128/touhou-card-player-v3@main/public/",
+  "https://raw.githubusercontent.com/lightbulb128/touhou-card-player-v3/main/public/",
+]
+
+[[card_set]]
+id = "enbu-dolls"
+dir = "cards-enbu-dolls"
+label_en = "Enbu (dolls)"
+label_zh = "幻想人形演舞（人偶）"
+local_prefix = "./"
+origins = [
+  "https://r2bucket-touhou.hgjertkljw.org/",
+  "https://lightbulb128.github.io/touhou-card-player-v3/",
+  "https://cdn.jsdelivr.net/gh/lightbulb128/touhou-card-player-v3@main/public/",
+  "https://raw.githubusercontent.com/lightbulb128/touhou-card-player-v3/main/public/",
+]
+
+[[card_set]]
+id = "thbwiki-sd"
+dir = "cards-thwiki"
+label_en = "THBWiki"
+label_zh = "THBWiki"
+local_prefix = "./"
+origins = [
+  "https://r2bucket-touhou.hgjertkljw.org/",
+  "https://lightbulb128.github.io/touhou-card-player-v3/",
+  "https://cdn.jsdelivr.net/gh/lightbulb128/touhou-card-player-v3@main/public/",
+  "https://raw.githubusercontent.com/lightbulb128/touhou-card-player-v3/main/public/",
+]
+
+[[card_set]]
+id = "zun"
+dir = "cards-zun"
+label_en = "ZUN art"
+label_zh = "ZUN 原画"
+local_prefix = "./"
+origins = [
+  "https://r2bucket-touhou-hgjertkljw.org/",
+  "https://lightbulb128.github.io/touhou-card-player-v3/",
+  "https://cdn.jsdelivr.net/gh/lightbulb128/touhou-card-player-v3@main/public/",
+  "https://raw.githubusercontent.com/lightbulb128/touhou-card-player-v3/main/public/",
+]

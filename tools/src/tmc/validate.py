@@ -120,6 +120,30 @@ def check_characters(chars: list[dict], albums: dict[str, dict], p: Problems):
             "referenced": referenced, "hifuu_entries": hifuu_entries}
 
 
+def check_card_sets(p: Problems) -> int:
+    """`data/card-sets.toml`：id 唯一、目录非空、origins 都是 https。"""
+    import tomllib as _tomllib
+
+    with open(repo.DATA / "card-sets.toml", "rb") as fh:
+        data = _tomllib.load(fh)
+    ids = set()
+    for entry in data.get("card_set", []):
+        if entry["id"] in ids:
+            p.error(f"图集 id 重复：{entry['id']}")
+        ids.add(entry["id"])
+        if not entry.get("dir"):
+            p.error(f"图集 {entry['id']} 缺 dir")
+        for origin in entry.get("origins", []):
+            if not origin.startswith("https://"):
+                p.error(f"图集 {entry['id']} 的 origin 不是 https：{origin}")
+        if not entry.get("origins"):
+            p.error(f"图集 {entry['id']} 没有 origin")
+    default = data.get("default")
+    if default not in ids:
+        p.error(f"图集默认值非法：{default}")
+    return len(ids)
+
+
 def check_source_registry(p: Problems) -> int:
     """`data/sources/sources.toml`：id/order 唯一，远程源的表文件必须存在。"""
     import tomllib as _tomllib
@@ -298,6 +322,7 @@ def run() -> tuple["Problems", dict]:
     char_stats = check_characters(chars, albums, p)
     source_stats = check_sources(char_stats["referenced"], p)
     source_registry = check_source_registry(p)
+    card_sets = check_card_sets(p)
     pending = check_pending(chars, p)
     overrides = check_overrides(chars, p)
     alias_stats = check_alias_tables(chars, p)
@@ -307,7 +332,8 @@ def run() -> tuple["Problems", dict]:
     return p, {
         "albums": len(albums), "characters": len(chars), "pending": pending,
         "digest": digest, "sources": source_stats, "stage_rows": stage_rows,
-        "overrides": overrides, "source_registry": source_registry, **alias_stats,
+        "overrides": overrides, "source_registry": source_registry,
+        "card_sets": card_sets, **alias_stats,
         **{k: v for k, v in char_stats.items() if k != "referenced"},
     }
 

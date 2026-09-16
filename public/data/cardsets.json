@@ -1,0 +1,96 @@
+{
+ "schema": 1,
+ "default": "dairi-sd",
+ "cardSets": [
+  {
+   "id": "dairi-sd",
+   "dir": "cards",
+   "label": {
+    "en": "dairi (super-deformed)",
+    "zh": "dairi（Q 版）"
+   },
+   "localPrefix": "./",
+   "origins": [
+    "https://r2bucket-touhou.hgjertkljw.org/",
+    "https://lightbulb128.github.io/touhou-card-player-v3/",
+    "https://cdn.jsdelivr.net/gh/lightbulb128/touhou-card-player-v3@main/public/",
+    "https://raw.githubusercontent.com/lightbulb128/touhou-card-player-v3/main/public/"
+   ]
+  },
+  {
+   "id": "dairi",
+   "dir": "cards-dairi",
+   "label": {
+    "en": "dairi (full body)",
+    "zh": "dairi（全身）"
+   },
+   "localPrefix": "./",
+   "origins": [
+    "https://r2bucket-touhou.hgjertkljw.org/",
+    "https://lightbulb128.github.io/touhou-card-player-v3/",
+    "https://cdn.jsdelivr.net/gh/lightbulb128/touhou-card-player-v3@main/public/",
+    "https://raw.githubusercontent.com/lightbulb128/touhou-card-player-v3/main/public/"
+   ]
+  },
+  {
+   "id": "enbu",
+   "dir": "cards-enbu",
+   "label": {
+    "en": "Enbu (RPG tachie)",
+    "zh": "幻想人形演舞"
+   },
+   "localPrefix": "./",
+   "origins": [
+    "https://r2bucket-touhou.hgjertkljw.org/",
+    "https://lightbulb128.github.io/touhou-card-player-v3/",
+    "https://cdn.jsdelivr.net/gh/lightbulb128/touhou-card-player-v3@main/public/",
+    "https://raw.githubusercontent.com/lightbulb128/touhou-card-player-v3/main/public/"
+   ]
+  },
+  {
+   "id": "enbu-dolls",
+   "dir": "cards-enbu-dolls",
+   "label": {
+    "en": "Enbu (dolls)",
+    "zh": "幻想人形演舞（人偶）"
+   },
+   "localPrefix": "./",
+   "origins": [
+    "https://r2bucket-touhou.hgjertkljw.org/",
+    "https://lightbulb128.github.io/touhou-card-player-v3/",
+    "https://cdn.jsdelivr.net/gh/lightbulb128/touhou-card-player-v3@main/public/",
+    "https://raw.githubusercontent.com/lightbulb128/touhou-card-player-v3/main/public/"
+   ]
+  },
+  {
+   "id": "thbwiki-sd",
+   "dir": "cards-thwiki",
+   "label": {
+    "en": "THBWiki",
+    "zh": "THBWiki"
+   },
+   "localPrefix": "./",
+   "origins": [
+    "https://r2bucket-touhou.hgjertkljw.org/",
+    "https://lightbulb128.github.io/touhou-card-player-v3/",
+    "https://cdn.jsdelivr.net/gh/lightbulb128/touhou-card-player-v3@main/public/",
+    "https://raw.githubusercontent.com/lightbulb128/touhou-card-player-v3/main/public/"
+   ]
+  },
+  {
+   "id": "zun",
+   "dir": "cards-zun",
+   "label": {
+    "en": "ZUN art",
+    "zh": "ZUN 原画"
+   },
+   "localPrefix": "./",
+   "origins": [
+    "https://r2bucket-touhou-hgjertkljw.org/",
+    "https://lightbulb128.github.io/touhou-card-player-v3/",
+    "https://cdn.jsdelivr.net/gh/lightbulb128/touhou-card-player-v3@main/public/",
+    "https://raw.githubusercontent.com/lightbulb128/touhou-card-player-v3/main/public/"
+   ]
+  }
+ ]
+}

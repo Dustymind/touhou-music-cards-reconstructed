@@ -37,10 +37,23 @@ export interface SourceRecord {
   description: { en: string; zh: string };
 }
 
+export interface CardSetRecord {
+  id: string;
+  dir: string;
+  label: { en: string; zh: string };
+  /** 用户自己放了图集时优先用（默认 "./"） */
+  localPrefix: string;
+  /** 远程 origin，按顺序兜底 */
+  origins: string[];
+}
+
 export interface DataIndex {
   schema: number;
   contentHash: string;
-  counts: { characters: number; albums: number; trackEntries: number; distinctTracks: number; sources?: number };
+  counts: {
+    characters: number; albums: number; trackEntries: number; distinctTracks: number;
+    sources?: number; cardSets?: number;
+  };
 }
 
 /** 内部曲目身份：`专辑\u0001曲目`（同步、持久化、查表都用它）。 */
@@ -63,6 +76,7 @@ export interface DataBundle {
   characters: CharacterRecord[];
   albums: AlbumRecord[];
   sources: SourceRecord[];
+  cardSets: CardSetRecord[];
   characterByKey: Map<string, CharacterRecord>;
   albumByName: Map<string, AlbumRecord>;
 }
