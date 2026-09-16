@@ -1,8 +1,21 @@
 /** 对战页：模式/规则设置 + 双方牌库 + 收集数 + 计时器 + 回合操作。 */
 import {
-  Alert, Box, Button, Chip, Divider, Paper, Stack, TextField, ToggleButton, ToggleButtonGroup, Typography,
+  Alert, Box, Button, ButtonGroup, Chip, Divider, Paper, Stack, TextField, ToggleButton,
+  ToggleButtonGroup, Typography,
 } from "@mui/material";
 import { useEffect, useMemo, useRef, useState } from "react";
+import AddRounded from "@mui/icons-material/AddRounded";
+import CardGiftcardRounded from "@mui/icons-material/CardGiftcardRounded";
+import CasinoRounded from "@mui/icons-material/CasinoRounded";
+import ClearRounded from "@mui/icons-material/ClearRounded";
+import EastRounded from "@mui/icons-material/EastRounded";
+import FilterAltRounded from "@mui/icons-material/FilterAltRounded";
+import PlayArrowRounded from "@mui/icons-material/PlayArrowRounded";
+import RemoveRounded from "@mui/icons-material/RemoveRounded";
+import ShuffleRounded from "@mui/icons-material/ShuffleRounded";
+import SkipNextRounded from "@mui/icons-material/SkipNextRounded";
+import StopRounded from "@mui/icons-material/StopRounded";
+import WestRounded from "@mui/icons-material/WestRounded";
 
 import type { DataBundle } from "../../data/types";
 import { Localization, t } from "../../i18n/localization";
@@ -305,86 +318,59 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
   return (
     <Stack spacing={2} sx={{ width: "100%", maxWidth: 1000, fontFamily: NoFontFamily }} ref={canvasRef}>
       <LobbyPanel />
-      <Paper variant="outlined" sx={{ p: 2 }}>
-        <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", alignItems: "center", gap: 1 }}>
-          <ToggleButtonGroup size="small" exclusive value={game.mode}
-            onChange={(_event, value) => value && act.setMode(value)}>
-            <ToggleButton value="solo" data-testid="mode-solo">{t(Localization.GameModeSolo)}</ToggleButton>
-            <ToggleButton value="cpu" data-testid="mode-cpu">{t(Localization.GameModeCPU)}</ToggleButton>
-          </ToggleButtonGroup>
+      {/* 对局设置：模式 / 规则 / 开始中止（上游把"切模式"和"开始中止"也放在一起） */}
+      <Paper variant="outlined" sx={{ p: 2 }} data-testid="game-setup">
+        <Stack direction="row" spacing={2} sx={{ flexWrap: "wrap", alignItems: "center", gap: 1 }}>
+          <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
+            <Typography variant="caption" color="text.secondary">
+              {t(Localization.GameGroupMode)}
+            </Typography>
+            <ToggleButtonGroup size="small" exclusive value={game.mode}
+              onChange={(_event, value) => value && act.setMode(value)}>
+              <ToggleButton value="solo" data-testid="mode-solo">{t(Localization.GameModeSolo)}</ToggleButton>
+              <ToggleButton value="cpu" data-testid="mode-cpu">{t(Localization.GameModeCPU)}</ToggleButton>
+            </ToggleButtonGroup>
+          </Stack>
 
-          <ToggleButtonGroup
-            size="small"
-            exclusive
-            value={game.traditional ? "traditional" : "leisure"}
-            onChange={(_event, value) => value && act.setTraditional(value === "traditional")}
-          >
-            <ToggleButton value="traditional" data-testid="rule-traditional">
-              {t(Localization.GameModeTraditional)}
-            </ToggleButton>
-            <ToggleButton value="leisure" data-testid="rule-leisure">
-              {t(Localization.GameModeLeisure)}
-            </ToggleButton>
-          </ToggleButtonGroup>
+          <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
+            <Typography variant="caption" color="text.secondary">
+              {t(Localization.GameGroupRule)}
+            </Typography>
+            <ToggleButtonGroup
+              size="small"
+              exclusive
+              value={game.traditional ? "traditional" : "leisure"}
+              onChange={(_event, value) => value && act.setTraditional(value === "traditional")}
+            >
+              <ToggleButton value="traditional" data-testid="rule-traditional">
+                {t(Localization.GameModeTraditional)}
+              </ToggleButton>
+              <ToggleButton value="leisure" data-testid="rule-leisure">
+                {t(Localization.GameModeLeisure)}
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Stack>
 
-          <Chip
-            size="small"
-            data-testid="deck-size"
-            label={t(Localization.GameDeckSize, { rows: String(game.deckRows), columns: String(game.deckColumns) })}
-          />
-          <Button size="small" onClick={() => act.resize(game.deckRows - 1, game.deckColumns)}>
-            {t(Localization.GameRowDecrease)}
-          </Button>
-          <Button size="small" onClick={() => act.resize(game.deckRows + 1, game.deckColumns)}>
-            {t(Localization.GameRowIncrease)}
-          </Button>
-          <Button size="small" onClick={() => act.resize(game.deckRows, game.deckColumns - 1)}>
-            {t(Localization.GameColumnDecrease)}
-          </Button>
-          <Button size="small" onClick={() => act.resize(game.deckRows, game.deckColumns + 1)}>
-            {t(Localization.GameColumnIncrease)}
-          </Button>
-          {/* 自己的卡组 */}
-          <Button size="small" disabled={!building}
-            onClick={() => act.fill(myIndex)} data-testid="random-fill">
-            {t(Localization.GameRandomFill)}
-          </Button>
-          <Button size="small" disabled={!building}
-            onClick={() => act.shuffle(myIndex)} data-testid="shuffle-deck">
-            {t(Localization.GameShuffleDeck)}
-          </Button>
-          <Button size="small" disabled={!building}
-            onClick={() => act.clear(myIndex)} data-testid="clear-deck">
-            {t(Localization.GameClearDeck)}
-          </Button>
-          {/* 电脑/对手的卡组：只有主机能改别人的牌库 */}
-          {!isClient && (
-            <>
-              <Button size="small" disabled={!building}
-                onClick={() => act.fill(oppIndex)} data-testid="fill-cpu-deck">
-                {t(Localization.GameFillCPU)}
-              </Button>
-              <Button size="small" disabled={!building}
-                onClick={() => act.shuffle(oppIndex)} data-testid="shuffle-cpu-deck">
-                {t(Localization.GameShuffleCPUDeck)}
-              </Button>
-              <Button size="small" disabled={!building}
-                onClick={() => act.clear(oppIndex)} data-testid="clear-cpu-deck">
-                {t(Localization.GameClearCPUDeck)}
-              </Button>
-            </>
-          )}
           <Box sx={{ flex: 1 }} />
           <Button
             size="small"
             variant="contained"
+            color="success"
+            startIcon={<PlayArrowRounded />}
             onClick={act.start}
             disabled={game.state !== "selecting" || filledSlots(game.players[0]!.deck) === 0}
             data-testid="start-game"
           >
             {t(Localization.GameStart)}
           </Button>
-          <Button size="small" onClick={act.stop} disabled={game.state === "selecting"} data-testid="stop-game">
+          <Button
+            size="small"
+            color="error"
+            startIcon={<StopRounded />}
+            onClick={act.stop}
+            disabled={game.state === "selecting"}
+            data-testid="stop-game"
+          >
             {t(Localization.GameStop)}
           </Button>
         </Stack>
@@ -407,6 +393,113 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
         )}
       </Paper>
 
+      {/* 卡组设置：尺寸 / 卡牌大小 / 双方卡组操作（按上游"按钮成组、每侧一组"的风格重排） */}
+      <Paper variant="outlined" sx={{ p: 2 }} data-testid="deck-setup">
+        <Stack spacing={1}>
+          <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", alignItems: "center", gap: 1 }}>
+            <Typography variant="subtitle2">{t(Localization.GameGroupDeck)}</Typography>
+            <Chip
+              size="small"
+              data-testid="deck-size"
+              label={t(Localization.GameDeckSize, {
+                rows: String(game.deckRows), columns: String(game.deckColumns),
+              })}
+            />
+            <Typography variant="caption" color="text.secondary">
+              {t(Localization.GameRowsLabel)}
+            </Typography>
+            <ButtonGroup size="small" variant="outlined">
+              <Button data-testid="row-minus" startIcon={<RemoveRounded />}
+                onClick={() => act.resize(game.deckRows - 1, game.deckColumns)}>
+                {t(Localization.GameRowDecrease)}
+              </Button>
+              <Button data-testid="row-plus" startIcon={<AddRounded />}
+                onClick={() => act.resize(game.deckRows + 1, game.deckColumns)}>
+                {t(Localization.GameRowIncrease)}
+              </Button>
+            </ButtonGroup>
+            <Typography variant="caption" color="text.secondary">
+              {t(Localization.GameColumnsLabel)}
+            </Typography>
+            <ButtonGroup size="small" variant="outlined">
+              <Button data-testid="col-minus" startIcon={<RemoveRounded />}
+                onClick={() => act.resize(game.deckRows, game.deckColumns - 1)}>
+                {t(Localization.GameColumnDecrease)}
+              </Button>
+              <Button data-testid="col-plus" startIcon={<AddRounded />}
+                onClick={() => act.resize(game.deckRows, game.deckColumns + 1)}>
+                {t(Localization.GameColumnIncrease)}
+              </Button>
+            </ButtonGroup>
+            <Box sx={{ flex: 1 }} />
+            <Typography variant="caption" color="text.secondary">
+              {t(Localization.GameCardSizeLabel)}
+            </Typography>
+            <ButtonGroup size="small" variant="outlined">
+              <Button
+                data-testid="card-smaller"
+                startIcon={<WestRounded />}
+                disabled={cardWidthPercentage <= CARD_WIDTH_PERCENTAGE.min}
+                onClick={() => setCardWidthPercentage((value) =>
+                  clampCardWidthPercentage(value - CARD_WIDTH_PERCENTAGE.step))}
+              >
+                {t(Localization.GameCardSmaller)}
+              </Button>
+              <Button
+                data-testid="card-larger"
+                startIcon={<EastRounded />}
+                disabled={cardWidthPercentage >= CARD_WIDTH_PERCENTAGE.max}
+                onClick={() => setCardWidthPercentage((value) =>
+                  clampCardWidthPercentage(value + CARD_WIDTH_PERCENTAGE.step))}
+              >
+                {t(Localization.GameCardLarger)}
+              </Button>
+            </ButtonGroup>
+          </Stack>
+
+          <Stack direction="row" spacing={2} sx={{ flexWrap: "wrap", gap: 1 }}>
+            <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
+              <Typography variant="caption" color="text.secondary" sx={{ minWidth: "3.5em" }}>
+                {t(Localization.GameSideYou)}
+              </Typography>
+              <Button size="small" startIcon={<CasinoRounded />} disabled={!building}
+                onClick={() => act.fill(myIndex)} data-testid="random-fill">
+                {t(Localization.GameRandomFill)}
+              </Button>
+              <Button size="small" startIcon={<ShuffleRounded />} disabled={!building}
+                onClick={() => act.shuffle(myIndex)} data-testid="shuffle-deck">
+                {t(Localization.GameShuffleDeck)}
+              </Button>
+              <Button size="small" startIcon={<ClearRounded />} disabled={!building}
+                onClick={() => act.clear(myIndex)} data-testid="clear-deck">
+                {t(Localization.GameClearDeck)}
+              </Button>
+            </Stack>
+
+            {/* 电脑/对手的卡组：只有主机能改别人的牌库 */}
+            {!isClient && (
+              <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
+                <Typography variant="caption" color="text.secondary" sx={{ minWidth: "5em" }}>
+                  {t(Localization.GameSideOpponent)}
+                </Typography>
+                <Button size="small" startIcon={<CasinoRounded />} disabled={!building}
+                  onClick={() => act.fill(oppIndex)} data-testid="fill-cpu-deck">
+                  {t(Localization.GameFillCPU)}
+                </Button>
+                <Button size="small" startIcon={<ShuffleRounded />} disabled={!building}
+                  onClick={() => act.shuffle(oppIndex)} data-testid="shuffle-cpu-deck">
+                  {t(Localization.GameShuffleCPUDeck)}
+                </Button>
+                <Button size="small" startIcon={<ClearRounded />} disabled={!building}
+                  onClick={() => act.clear(oppIndex)} data-testid="clear-cpu-deck">
+                  {t(Localization.GameClearCPUDeck)}
+                </Button>
+              </Stack>
+            )}
+          </Stack>
+        </Stack>
+      </Paper>
+
       <Paper variant="outlined" sx={{ p: 2 }}>
         <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 1 }}>
           <TimerDisplay state={game.state} turnStartTimestamp={game.turnStartTimestamp} />
@@ -424,25 +517,6 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
               })}
             </Typography>
           </Stack>
-          <Box sx={{ flex: 1 }} />
-          <Button
-            size="small"
-            data-testid="card-smaller"
-            disabled={cardWidthPercentage <= CARD_WIDTH_PERCENTAGE.min}
-            onClick={() => setCardWidthPercentage((value) =>
-              clampCardWidthPercentage(value - CARD_WIDTH_PERCENTAGE.step))}
-          >
-            {t(Localization.GameCardSmaller)}
-          </Button>
-          <Button
-            size="small"
-            data-testid="card-larger"
-            disabled={cardWidthPercentage >= CARD_WIDTH_PERCENTAGE.max}
-            onClick={() => setCardWidthPercentage((value) =>
-              clampCardWidthPercentage(value + CARD_WIDTH_PERCENTAGE.step))}
-          >
-            {t(Localization.GameCardLarger)}
-          </Button>
         </Stack>
 
         {game.state === "finished" && (
@@ -535,16 +609,22 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
         />
 
         <Stack direction="row" spacing={1} sx={{ mt: 1.5, alignItems: "center", flexWrap: "wrap" }}>
-          <Button size="small" variant="contained" onClick={act.next}
+          <Typography variant="caption" color="text.secondary">
+            {t(Localization.GameGroupTurn)}
+          </Typography>
+          <Button size="small" variant="contained" startIcon={<SkipNextRounded />} onClick={act.next}
             disabled={game.state !== "turnStart" && game.state !== "turnWinner"} data-testid="next-turn">
             {t(Localization.GameNextTurn)}
           </Button>
-          <Button size="small" onClick={act.give} disabled={game.givesLeft === 0} data-testid="give-cards">
+          <Button size="small" startIcon={<CardGiftcardRounded />} onClick={act.give}
+            disabled={game.givesLeft === 0} data-testid="give-cards">
             {t(Localization.GameGiveRandomly)}
           </Button>
-          <Button size="small" onClick={act.filterByDeck} data-testid="filter-by-deck">
+          <Button size="small" startIcon={<FilterAltRounded />} onClick={act.filterByDeck}
+            data-testid="filter-by-deck">
             {t(Localization.GameFilterByDeck)}
           </Button>
+          <Box sx={{ flex: 1 }} />
           <Chip size="small" variant="outlined"
             label={t(Localization.GamePoolCount, { count: String(pool.length) })} />
           <Chip size="small" variant="outlined"
