@@ -377,6 +377,34 @@ describe("GamePanel", () => {
     expect(container.querySelectorAll(`[data-card-key="${cardKey}"]`)).toHaveLength(1);
   });
 
+  it("卡槽用上游那条滑块平移（拖动滑块 → 整条卡槽位移；滑块不压住卡片）", async () => {
+    const container = await render();
+    const strip = container.querySelector('[data-testid="unused-cards-strip"]')!;
+    const slider = container.querySelector<HTMLInputElement>('[data-testid="card-selection-slider"] input[type="range"]');
+    expect(slider).not.toBeNull();
+
+    const offsetOf = (): number =>
+      Number(container.querySelector('[data-testid="unused-cards"]')?.getAttribute("data-pan-offset") ?? 0);
+    expect(offsetOf()).toBe(0);
+
+    // 把滑块推到中间：卡槽整体左移（上游 `offset = -sliderValue * (totalWidth - visibleWidth)`）
+    // MUI Slider 把键盘事件挂在隐藏的 range input 上：按 End 跳到最右（上游 max=1）
+    await act(async () => {
+      slider!.dispatchEvent(new KeyboardEvent("keydown", { key: "End", bubbles: true }));
+    });
+    expect(Number(container.querySelector('[data-testid="unused-cards"]')?.getAttribute("data-pan"))).toBe(1);
+    expect(offsetOf()).toBeLessThan(0);
+
+    await act(async () => {
+      slider!.dispatchEvent(new KeyboardEvent("keydown", { key: "Home", bubbles: true }));
+    });
+    expect(offsetOf()).toBe(0);
+
+    // 滑块在卡条**下方**（DOM 顺序在卡条之后），不会盖住卡槽
+    expect(strip.compareDocumentPosition(container.querySelector('[data-testid="card-selection-slider"]')!)
+      & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it("按卡组筛选音乐：不在场上的角色被临时禁用", async () => {
     const container = await render();
     await click(container, "random-fill");

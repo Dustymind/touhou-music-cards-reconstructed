@@ -17,7 +17,7 @@ import {
 } from "../../game/gameSetting";
 import type { CardState } from "../components/CharacterCard";
 import { fadeInSx, NoFontFamily } from "../../theme/theme";
-import { DeckGrid } from "../game/DeckGrid";
+import { DECK_GAP, DeckGrid } from "../game/DeckGrid";
 import { UnusedCards } from "../game/UnusedCards";
 import { LobbyPanel } from "../game/LobbyPanel";
 import { useNet } from "../../net/useNet";
@@ -525,8 +525,9 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
           cards={unused}
           cardSet={cardSet}
           cardFiles={cardFiles}
-          // 与卡槽同尺寸（上游所有卡都用同一个 cardWidth）
+          // 与卡槽同尺寸（上游所有卡都用同一个 cardWidth），窗口宽度对齐牌桌
           width={cardWidth}
+          visibleWidth={game.deckColumns * cardWidth + (game.deckColumns - 1) * DECK_GAP}
           interactive={building}
           onPick={(card) => act.addCard(card)}
           onCardDragStart={(card) => beginDrag({ kind: "unused", card })}

@@ -260,6 +260,33 @@ test("动效：牌桌卡牌滑位 + hover 抬起；播放页牌堆叠放 + 点�
   expect(await target.evaluate(grayscaleOf)).toContain("grayscale");
 });
 
+test("游戏卡槽用上游那条滑块滚动（不挡住卡片）", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 1500 });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Match" }).click();
+  const strip = page.getByTestId("unused-cards-strip");
+  const slider = page.getByTestId("card-selection-slider");
+  await expect(strip).toBeVisible();
+  await expect(slider).toBeVisible();
+
+  // 滑块在卡条**下方**：不遮挡卡槽
+  const stripBox = (await strip.boundingBox())!;
+  const sliderBox = (await slider.boundingBox())!;
+  expect(sliderBox.y).toBeGreaterThanOrEqual(stripBox.y + stripBox.height);
+  // 卡条宽度与牌桌一致（上游同样用 deckWidth）
+  const deckBox = (await page.getByTestId("deck-you").boundingBox())!;
+  expect(Math.abs(stripBox.width - deckBox.width)).toBeLessThanOrEqual(1);
+
+  // 拖动滑块 → 整条卡槽被平移（不是靠原生滚动条）
+  const firstCard = page.locator('[data-testid^="unused-card-"]').first();
+  const before = (await firstCard.boundingBox())!.x;
+  await page.mouse.move(sliderBox.x + sliderBox.width * 0.5, sliderBox.y + sliderBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(sliderBox.x + sliderBox.width * 0.9, sliderBox.y + sliderBox.height / 2, { steps: 12 });
+  await page.mouse.up();
+  await expect.poll(async () => (await firstCard.boundingBox())!.x).toBeLessThan(before - 100);
+});
+
 test("卡片大小按钮按 0.01 步进并夹在 0.04~0.40", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Match" }).click();

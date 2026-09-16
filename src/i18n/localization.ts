@@ -86,6 +86,7 @@ export const Localization = {
   GameShuffleCPUDeck: u("Shuffle CPU Deck", "打乱电脑卡组"),
   GameClearCPUDeck: u("Clear CPU Deck", "清空电脑卡组"),
   GameUnusedCards: u("Unused Cards ({count})", "未使用卡牌（{count}）"),
+  GameCardSelectionSlider: u("Card Selection Slider", "卡槽滚动条"),
   GameDeckBuildHint: u(
     "Click an unused card to put it in your deck; click a card in your deck to take it out.",
     "点未使用的卡放进卡组；点卡组里的卡拿出来。"),

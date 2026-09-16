@@ -517,6 +517,33 @@ hover 后 `transform` 仍是 `none`（无悬浮动效）；空卡槽 `border: 1p
 
 ---
 
+## D24 游戏卡槽改用上游那条可拖动的滑块（Card Selection Slider）
+
+**需求**（用户）：上游游戏界面有个类似滚动条的物件，可拖动用来滚动卡槽；用上游实现替代卡槽的滚动，
+**并且不能挡住卡槽**。
+
+**上游实现**（`GameTab.tsx`）：
+
+- 未使用卡牌（selectable cards）排成一条**互相叠 30%** 的长条（`cardSelectionOverlap = cardWidth * 0.3`），
+  `x = deckLeft + index * (cardWidth - overlap) + offset`、`zIndex = 总数 - 序号`（左边的压在上面）；
+- `offset = -sliderValue * (totalWidth - deckWidth)`，可见窗口与滑块宽度都取 `deckWidth`；
+- 滑块是 MUI `Slider`（`min 0 / max 1 / step 0.001`，`aria-label="Card Selection Slider"`），
+  位置 `top = 卡条底部 + 16`、只在选牌阶段出现 —— 也就是**在卡条下方**，不覆盖卡片。
+
+**做法**：未使用卡牌区整块照上游重做 —— 卡条 `position: relative` + `overflow: hidden`、宽 = 牌桌宽、
+居中；卡片绝对定位叠 30%、`transition: left 0.3s ease`；下方渲染 MUI `Slider`（同宽、居中），
+拖动即平移整条卡槽。原生横向滚动条在这块**被滑块替代**（播放页牌堆仍保留原生滚动条）。
+滑块给了 `data-testid="card-selection-slider"`、卡条给了 `unused-cards-strip`，
+容器上挂 `data-pan` / `data-pan-offset` 便于测试读数。
+
+**实测**：卡条 668px（与牌桌同宽、左边缘与牌桌对齐 386）、滑块 y 1309 > 卡条底 1305（**不重叠**）、
+把滑块从 50% 拖到 90% 后 `data-pan=0.900`、首张卡的 x 从 386 → **-5435**（整条被平移）。
+
+**与播放页的区别**：播放页那条"接下来"牌堆仍是不重叠 + 原生滚动条（用户上一轮的要求），
+游戏卡槽按本轮要求用上游的叠放 + 滑块。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |

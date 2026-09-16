@@ -44,8 +44,9 @@ export interface DeckGridProps {
   testId?: string;
 }
 
-/** 与上游 `canvasSpacing` 同量级；网格 gap 保持一致。 */
-const GAP = 4;
+/** 与上游 `canvasSpacing` 同量级；网格 gap 保持一致（未使用卡牌区也按这个宽度对齐）。 */
+export const DECK_GAP = 4;
+const GAP = DECK_GAP;
 
 export function DeckGrid(props: DeckGridProps) {
   const {
