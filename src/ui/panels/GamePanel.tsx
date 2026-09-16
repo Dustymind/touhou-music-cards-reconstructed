@@ -8,11 +8,13 @@ import type { DataBundle } from "../../data/types";
 import { Localization, t } from "../../i18n/localization";
 import type { CardInfo, JudgeState } from "../../game/types";
 import { filledSlots } from "../../game/types";
+import * as rules from "../../game/rules";
 import { useGame } from "../../game/useGame";
 import { useGameLoop } from "../../game/useGameLoop";
 import type { CardState } from "../components/CharacterCard";
 import { NoFontFamily } from "../../theme/theme";
 import { DeckGrid } from "../game/DeckGrid";
+import { UnusedCards } from "../game/UnusedCards";
 import { LobbyPanel } from "../game/LobbyPanel";
 import { useNet } from "../../net/useNet";
 import { glitchEnabled } from "../../runtime";
@@ -34,7 +36,7 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
   const cpu = useGame((slice) => slice.cpu);
   const {
     init, setMode, setTraditional, setCpu, resize, fill, clear, shuffle, start, stop,
-    pick, next, give, filterByDeck, setOrder, moveCard,
+    pick, next, give, filterByDeck, setOrder, moveCard, addCard, removeCard,
   } = useGame.getState();
 
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
@@ -74,9 +76,29 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
       if (isClient) net.intent({ kind: "filterMusicByDeck" });
       else filterByDeck();
     },
-    fill: (player: number) => { if (!isClient) fill(player); },
-    clear: (player: number) => { if (!isClient) clear(player); },
-    shuffle: (player: number) => { if (!isClient) shuffle(player); },
+    /** 牌组编辑：主机直接落地，客户端发意图（主机侧只允许客户端动自己那一份） */
+    fill: (player: number) => {
+      if (isClient) net.intent({ kind: "fillDeck", player });
+      else fill(player);
+    },
+    clear: (player: number) => {
+      if (isClient) net.intent({ kind: "clearDeck", player });
+      else clear(player);
+    },
+    shuffle: (player: number) => {
+      if (isClient) net.intent({ kind: "shuffleDeck", player });
+      else shuffle(player);
+    },
+    /** 自定义卡组：放一张卡进自己的牌库（槽位由规则选第一个空位） */
+    addCard: (card: CardInfo) => {
+      if (isClient) net.intent({ kind: "addCard", player: myIndex, card });
+      else addCard(myIndex, card);
+    },
+    /** 自定义卡组：把某一侧牌库里的一张拿出来（回到未使用卡牌） */
+    removeCardFrom: (player: number, slot: number) => {
+      if (isClient) net.intent({ kind: "removeCard", player, slot });
+      else removeCard(player, slot);
+    },
     start: () => {
       if (isClient) net.intent({ kind: "confirmStart" });
       else start();
@@ -90,7 +112,8 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
       if (isClient) net.intent({ kind: "give" });
       else give();
     },
-  }), [isClient, net, myIndex, pick, resize, setMode, setTraditional, filterByDeck, fill, clear, shuffle, start, stop, next, give, game.turnStartTimestamp]);
+  }), [isClient, net, myIndex, pick, resize, setMode, setTraditional, filterByDeck, fill, clear, shuffle,
+    addCard, removeCard, start, stop, next, give, game.turnStartTimestamp]);
 
   const cardFiles = useMemo(() => {
     const map: Record<string, string[]> = {};
@@ -145,8 +168,16 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
     : "—";
   const revealAnswer = game.state === "turnWinner" || game.state === "finished";
   const rotation = game.order.filter((key) => !game.temporaryDisabled[key]).length;
+  /** 卡池里还没进任何牌库/收集区的卡（上游"未使用卡牌"区） */
+  const unused = useMemo(() => rules.unusedCards(game, pool), [game, pool]);
+  const building = game.state === "selecting";
 
   const handleOwnCard = (slot: number, _card: CardInfo) => {
+    if (game.state === "selecting") {
+      // 自定义卡组：选牌阶段点自己的牌＝把它拿回"未使用卡牌"
+      act.removeCardFrom(myIndex, slot);
+      return;
+    }
     if (game.state === "turnStart") {
       act.pick(myIndex, slot);
       return;
@@ -207,12 +238,36 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
           <Button size="small" onClick={() => act.resize(game.deckRows, game.deckColumns + 1)}>
             {t(Localization.GameColumnIncrease)}
           </Button>
-          <Button size="small" onClick={() => act.fill(0)} data-testid="random-fill">
+          {/* 自己的卡组 */}
+          <Button size="small" disabled={!building}
+            onClick={() => act.fill(myIndex)} data-testid="random-fill">
             {t(Localization.GameRandomFill)}
           </Button>
-          <Button size="small" onClick={() => act.fill(1)}>{t(Localization.GameFillCPU)}</Button>
-          <Button size="small" onClick={() => act.clear(0)}>{t(Localization.GameClearDeck)}</Button>
-          <Button size="small" onClick={() => act.shuffle(0)}>{t(Localization.GameShuffleDeck)}</Button>
+          <Button size="small" disabled={!building}
+            onClick={() => act.shuffle(myIndex)} data-testid="shuffle-deck">
+            {t(Localization.GameShuffleDeck)}
+          </Button>
+          <Button size="small" disabled={!building}
+            onClick={() => act.clear(myIndex)} data-testid="clear-deck">
+            {t(Localization.GameClearDeck)}
+          </Button>
+          {/* 电脑/对手的卡组：只有主机能改别人的牌库 */}
+          {!isClient && (
+            <>
+              <Button size="small" disabled={!building}
+                onClick={() => act.fill(oppIndex)} data-testid="fill-cpu-deck">
+                {t(Localization.GameFillCPU)}
+              </Button>
+              <Button size="small" disabled={!building}
+                onClick={() => act.shuffle(oppIndex)} data-testid="shuffle-cpu-deck">
+                {t(Localization.GameShuffleCPUDeck)}
+              </Button>
+              <Button size="small" disabled={!building}
+                onClick={() => act.clear(oppIndex)} data-testid="clear-cpu-deck">
+                {t(Localization.GameClearCPUDeck)}
+              </Button>
+            </>
+          )}
           <Box sx={{ flex: 1 }} />
           <Button
             size="small"
@@ -301,11 +356,18 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
           cardFiles={cardFiles}
           width={cardWidth}
           upsideDown
-          interactive={game.state === "turnStart" || (game.state === "turnWinner" && iReceiveCards)}
+          interactive={(building && !isClient) || game.state === "turnStart"
+            || (game.state === "turnWinner" && iReceiveCards)}
           cardStateOf={cardStateOf}
           cheatSlot={cheatSlotOf(oppIndex)}
           glitch={glitch}
-          onCardClick={(slot) => act.pick(oppIndex, slot)}
+          onCardClick={(slot) => {
+            if (game.state === "selecting") {
+              if (!isClient) act.removeCardFrom(oppIndex, slot);
+              return;
+            }
+            act.pick(oppIndex, slot);
+          }}
           onEmptyClick={handleOpponentEmpty}
         />
 
@@ -322,11 +384,21 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
           cardSet={cardSet}
           cardFiles={cardFiles}
           width={cardWidth}
-          interactive={game.state === "turnStart" || (game.state === "turnWinner" && iOweCards)}
+          interactive={building || game.state === "turnStart"
+            || (game.state === "turnWinner" && iOweCards)}
           cardStateOf={cardStateOf}
           cheatSlot={cheatSlotOf(myIndex)}
           glitch={glitch}
           onCardClick={handleOwnCard}
+        />
+
+        <UnusedCards
+          cards={unused}
+          cardSet={cardSet}
+          cardFiles={cardFiles}
+          width={Math.max(28, Math.round(cardWidth * 0.6))}
+          interactive={building}
+          onPick={(card) => act.addCard(card)}
         />
 
         <Stack direction="row" spacing={1} sx={{ mt: 1.5, alignItems: "center", flexWrap: "wrap" }}>

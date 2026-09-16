@@ -331,6 +331,68 @@ E2E：对局页在 chromium/firefox 上断言 `audio.currentTime > 0` 且正在�
 
 ---
 
+## D18 自定义卡组 + 电脑卡组也补上打乱/清空（参照上游 UI）
+
+**需求**（用户）：游戏界面要有"打乱卡组""清空卡组"（原文写的是"情况卡组"），**电脑卡组也要这两个按键**；
+并且**参照原版 UI，允许自定义卡组**。
+
+**结论**：
+
+1. **电脑/对手卡组也有了三个按键**：`补满电脑` / `打乱电脑卡组` / `清空电脑卡组`（上游 `GameTab.tsx` 里同样有
+   "shuffle deck for opponent"、"clear deck for opponent"、"random fill opponent deck"，只是散在牌桌两侧）。
+   自己那一侧的三个按键补了 `data-testid`（`shuffle-deck` / `clear-deck`），电脑侧是
+   `fill-cpu-deck` / `shuffle-cpu-deck` / `clear-cpu-deck`。**只有主机显示电脑侧按键**（上游的对手按键也只在
+   CPU 模式出现，且客户端永远看不到），客户端只能改自己那一份。
+2. **自定义卡组**（上游 `GameUnusedCards` + `addToDeck` / `removeFromDeck`）：
+   - 新增"未使用卡牌（N）"区，列出卡池里既不在任何牌库、也不在任何收集区的卡（横向滚动，卡片缩小到 60%）；
+   - **点未使用的卡 → 放进自己牌库的第一个空位**；**点自己牌库里的卡 → 拿回未使用区**；
+     主机在选牌阶段点**电脑牌库**里的卡同样可以拿出来；
+   - 规则层加 `holderOf` / `unusedCards`，并给 `addCard` 加"同一张卡面全盘只能存在一份"的守卫（上游
+     `addToDeck` 的同一个判断）；新加 `removeCard`；
+   - 三个按键（补满/打乱/清空）与卡池都只在 `selecting`（选牌阶段）可用，开局后禁用（上游也是
+     `state !== SelectingCards` 就隐藏）。
+3. **联机下也能改卡组**：`fillDeck` / `shuffleDeck` 两个意图补进协议，`addCard` / `removeCard` / `clearDeck`
+   之前只在协议里占位、`applyIntentLocally` 直接忽略，现在全部真正落地。权限边界：**只有主机能改别人的牌库**，
+   客户端发来的意图一律以发送方下标为准（`from !== 0 && intent.player !== from` 直接丢弃），
+   避免客户端把牌塞进主机牌库。打乱的随机数在主机上抽，快照同步下去，两端仍然一致。
+
+**与上游的差异**：上游是**拖拽**（拖到指定牌位，点一下则落到第一个空位）。本项目自 M9 起就是点击式交互
+（不做拖拽），所以这里沿用上游"点击"分支的语义：点未使用卡落第一个空位、点牌库卡拿回来 —— 想拖到指定牌位
+上游才支持。这条差异记在 `reports/M9-acceptance.md` 的已知限制里。
+
+**回归锁**：`rules` 三个用例（加/取/未使用区含收集区）、`GamePanel` 四个用例（电脑侧打乱清空、自己侧只动自己、
+点进点出、主机拿电脑牌 + 开局后禁用）、`net/intents` 四个用例（客户端只能动自己那一份、主机可替电脑改、
+重复加卡被拒、指定槽位）、E2E 一条（真浏览器里点进点出 + 电脑卡组打乱清空）+ 中英文案断言。
+
+---
+
+## D19 开局洗牌：每局的第一首不再固定
+
+**问题**（用户指出）：**不筛选音乐开始游戏时，每次播放的第一首都是一样的**。
+
+**原因**：`startGame` 把"当前角色"设为轮播顺序的**最后一个**，而首次 `nextTurn` 环形推进到**第 0 个** ——
+顺序本身从没洗过（一直是无过滤时 `data/characters` 的自然顺序），所以每局都从同一个角色开始；
+再加上选曲种子只由 `(turnSeq, currentKey)` 派生，同一个角色永远选到同一首。两项叠起来就是"第一首固定"。
+
+**结论**（回到上游语义）：
+
+1. `startGame` **洗牌**轮播顺序，并记下本局种子 `gameSeed`（`shuffleWithSeed(order, gameSeed)`）。
+   上游 `handleGameStart` 本来就是 `createPlayingOrder(..., true)`（洗牌）再把 `currentCharacterId`
+   设为洗好顺序的最后一个。
+2. 选曲种子改为 `turnSeed(gameSeed, turnSeq, currentKey)`：同一局内两端一致（`gameSeed` 随快照同步），
+   不同局之间同一个角色也会换曲子。
+3. `GameState` 增加 `gameSeed`（主机开局时抽、随快照下发），`PROTOCOL_VERSION` 1 → 2；
+   `stateDigest` 也带上 `seed=`，两端种子不一致会在同步断言里露出来。
+
+**实测**：连开四局，四个不同的开局角色、四首不同的第一曲（`himemushi-momoyo` / `yamashiro-takane` /
+`kamishirasawa-keine` / `medicine-melancholy`，种子的确都不同）。
+
+**测试影响**：单测里凡是"开局后当前角色一定是 order[0]"的假设都不再成立，改成从
+`game.order[0]` 读第一个回合的角色（`GamePanel.test` 的 CPU 用例、`useGameLoop.test` 的开局断言），
+`startGame` 用例改成给定 rng 断言"洗过但仍是同一批角色 + 同种子可复现 + 不同种子首个角色不同"。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |

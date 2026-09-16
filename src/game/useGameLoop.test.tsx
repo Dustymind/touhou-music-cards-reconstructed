@@ -18,7 +18,7 @@ function setup(order: string[], decks: [CardInfo[], CardInfo[]]): void {
         { name: "CPU", isObserver: false, deck: decks[1], collected: [], confirmStart: false, confirmNext: false },
       ],
       deckRows: 1, deckColumns: Math.max(decks[0].length, 1), traditional: true, melee: false,
-      order, temporaryDisabled: {}, currentKey: null, turnSeq: 0, state: "selecting",
+      order, gameSeed: 0, temporaryDisabled: {}, currentKey: null, turnSeq: 0, state: "selecting",
       turnStartTimestamp: 0, pickEvents: [], turnWinner: null, givesLeft: 0, winner: null,
     },
     pool: [],
@@ -49,7 +49,9 @@ describe("useGameLoop", () => {
     await vi.advanceTimersByTimeAsync(TURN_COUNTDOWN_MS + 50);
     await hook.rerender();
     expect(useGame.getState().game.state).toBe("turnStart");
-    expect(useGame.getState().game.currentKey).toBe("a");
+    // 开局洗牌，开局角色不一定还是 "a"，但一定来自轮播顺序
+    const game = useGame.getState().game;
+    expect(game.order).toContain(game.currentKey!);
   });
 
   it("CPU 在计划延迟后抢走正确卡", async () => {

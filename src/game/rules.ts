@@ -4,6 +4,7 @@
  * 与上游的**有意差异**：真正进入 `finished` 并算出胜者（上游从不进入 `GameFinished`，只能手动 Stop），
  * 见 `docs/DECISIONS.md` D9。
  */
+import { shuffleWithSeed } from "../music/rng";
 import {
   type CardInfo, type GameState, type PickEvent, type PlayerIndex, type PlayerState, type Slot,
   emptySlots, filledSlots, makePlayer, sameCard, slotCount,
@@ -45,14 +46,41 @@ export function setCard(state: GameState, playerIndex: PlayerIndex, slot: number
   return withPlayer(state, playerIndex, { deck });
 }
 
+/** 某张卡面现在在谁手里（牌库或收集区）；没有则 null。 */
+export function holderOf(state: GameState, card: CardInfo): { player: PlayerIndex; slot: number } | null {
+  for (let index = 0; index < state.players.length; index += 1) {
+    const slot = state.players[index]!.deck.findIndex((entry) => sameCard(entry, card));
+    if (slot >= 0) return { player: index, slot };
+    if (state.players[index]!.collected.some((entry) => sameCard(entry, card))) {
+      return { player: index, slot: -1 };
+    }
+  }
+  return null;
+}
+
+/** 自定义卡组：把一张卡放进取牌库（`slot` 指定槽位，否则第一个空位）。
+ *  每个卡面在整局里只能存在一份，所以场上已有就直接拒绝（对齐上游 `addToDeck`）。 */
 export function addCard(state: GameState, playerIndex: PlayerIndex, card: CardInfo, slot?: number): GameState {
   const player = state.players[playerIndex];
   if (!player) return state;
+  if (holderOf(state, card) !== null) return state;
   const target = slot !== undefined && player.deck[slot] === null
     ? slot
     : player.deck.findIndex((entry) => entry === null);
   if (target < 0) return state;
   return setCard(state, playerIndex, target, card);
+}
+
+/** 自定义卡组：把一张卡从牌库里拿出来（回到"未使用卡牌"区）。 */
+export function removeCard(state: GameState, playerIndex: PlayerIndex, slot: number): GameState {
+  const player = state.players[playerIndex];
+  if (!player || player.deck[slot] === null || player.deck[slot] === undefined) return state;
+  return setCard(state, playerIndex, slot, null);
+}
+
+/** 未使用卡牌：卡池里既不在任何牌库、也不在任何收集区的卡（上游 `GameUnusedCards`）。 */
+export function unusedCards(state: GameState, pool: readonly CardInfo[]): CardInfo[] {
+  return pool.filter((card) => holderOf(state, card) === null);
 }
 
 export function clearDeck(state: GameState, playerIndex: PlayerIndex): GameState {
@@ -117,15 +145,23 @@ function allConfirmed(state: GameState, field: "confirmStart" | "confirmNext"): 
   return active.every((player) => player[field]);
 }
 
-/** 开局：洗牌轮播顺序，当前角色取最后一个（上游语义：首次 nextTurn 落到第 0 个）。 */
-export function startGame(state: GameState, shuffleOrder?: (order: readonly string[]) => string[]): GameState {
-  const order = shuffleOrder ? shuffleOrder(state.order) : state.order.slice();
+/**
+ * 开局：**洗牌轮播顺序**并记下本局种子，当前角色取最后一个
+ * （上游语义：首次 `nextTurn` 会落到洗好的第 0 个）。
+ *
+ * 上游 `handleGameStart` 就是 `createPlayingOrder(..., true)`（洗牌）→ 每局从哪个角色开始是随机的；
+ * 种子随快照同步，所以两端洗出同一个顺序、每回合也选到同一首。
+ */
+export function startGame(state: GameState, rng: Rng = Math.random): GameState {
+  const gameSeed = Math.min(2147483646, Math.floor(rng() * 2147483647));
+  const order = shuffleWithSeed(state.order, gameSeed);
   const players = state.players.map((player) => ({
     ...player, collected: [], confirmStart: false, confirmNext: false,
   }));
   return {
     ...state,
     order,
+    gameSeed,
     players,
     melee: players.filter((player) => !player.isObserver).length > 2,
     currentKey: order[order.length - 1] ?? null,
@@ -375,8 +411,8 @@ export function stopGame(state: GameState): GameState {
  * 上游由主机每个回合随机一个种子再下发；这里用纯函数从快照里派生，省掉一个同步字段，
  * 效果一样（同一回合两端选同一首），而且重放/重连也不会变。
  */
-export function turnSeed(turnSeq: number, key: string | null): number {
-  const text = `${turnSeq}\u0000${key ?? ""}`;
+export function turnSeed(gameSeed: number, turnSeq: number, key: string | null): number {
+  const text = `${gameSeed}\u0000${turnSeq}\u0000${key ?? ""}`;
   let hash = 2166136261;                     // FNV-1a
   for (let index = 0; index < text.length; index += 1) {
     hash ^= text.charCodeAt(index);

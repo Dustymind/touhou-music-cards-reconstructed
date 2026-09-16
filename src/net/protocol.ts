@@ -6,7 +6,8 @@
  */
 import type { CardInfo, GameState, MatchMode } from "../game/types";
 
-export const PROTOCOL_VERSION = 1;
+/** 2：`GameState` 加了 `gameSeed`（开局洗牌/选曲种子）。 */
+export const PROTOCOL_VERSION = 2;
 
 export interface PeerInfo {
   index: number;
@@ -25,9 +26,11 @@ export type ClientIntent =
   | { kind: "confirmNext" }
   | { kind: "give" }
   | { kind: "chat"; text: string }
-  | { kind: "addCard"; player: number; card: CardInfo; slot: number }
+  | { kind: "addCard"; player: number; card: CardInfo; slot?: number }
   | { kind: "removeCard"; player: number; slot: number }
   | { kind: "clearDeck"; player: number }
+  | { kind: "fillDeck"; player: number }
+  | { kind: "shuffleDeck"; player: number }
   | { kind: "adjustDeckSize"; rows: number; columns: number }
   | { kind: "setMode"; mode: MatchMode }
   | { kind: "setTraditional"; traditional: boolean }
@@ -58,6 +61,7 @@ export function stateDigest(state: GameState): string {
     `gives=${state.givesLeft}`,
     `winner=${state.winner ?? "-"}`,
     `mode=${state.mode}`,
+    `seed=${state.gameSeed}`,
     `rows=${state.deckRows}x${state.deckColumns}`,
   ];
   state.players.forEach((player, index) => {

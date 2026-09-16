@@ -83,7 +83,7 @@ test("对战页：随机补满 → 开局 → 倒计时后进入回合 → 下�
 
 test("中文界面：游戏页（含联机大厅）全部是中文，不留英文标签", async ({ page }) => {
   await page.goto("/?locale=zh");
-  await page.getByRole("button", { name: "游戏" }).click();
+  await page.getByRole("button", { name: "游戏", exact: true }).click();
   await expect(page.getByTestId("lobby")).toBeVisible();
 
   const lobby = page.getByTestId("lobby");
@@ -106,6 +106,30 @@ test("中文界面：游戏页（含联机大厅）全部是中文，不留英�
   await page.getByTestId("random-fill").click();
   await page.getByTestId("start-game").click();
   await expect(page.getByText(/第 1 回合 · 抢拍中/)).toBeVisible({ timeout: 15_000 });
+});
+
+test("自定义卡组：未使用卡可以点进牌库，也能点回来；电脑卡组能打乱/清空", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Match" }).click();
+  const unused = page.locator('[data-testid^="unused-card-"]');
+
+  // 点第一张未使用的卡 → 进自己牌库
+  const before = await unused.count();
+  await unused.first().click();
+  await expect(page.getByTestId("deck-you-card-0")).toBeVisible();
+  await expect(unused).toHaveCount(before - 1);
+
+  // 再点牌库里那张 → 回到未使用区
+  await page.getByTestId("deck-you-card-0").click();
+  await expect(unused).toHaveCount(before);
+  await expect(page.getByTestId("deck-you-empty-0")).toBeVisible();
+
+  // 电脑卡组：补满 → 打乱 → 清空
+  await page.getByTestId("fill-cpu-deck").click();
+  await expect(page.getByTestId("deck-opponent-card-0")).toBeVisible();
+  await page.getByTestId("shuffle-cpu-deck").click();
+  await page.getByTestId("clear-cpu-deck").click();
+  await expect(page.getByTestId("deck-opponent-empty-0")).toBeVisible();
 });
 
 test("播放页解析出音源（真实源表 + 远程 URL 写入 audio.src）", async ({ page }) => {

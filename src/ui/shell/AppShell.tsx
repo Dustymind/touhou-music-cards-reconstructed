@@ -101,7 +101,7 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
     // 对局听回合角色，平时听轮播队列
     currentKey: gameActive ? game.currentKey : queue.currentKey,
     // 对局里用 (回合号, 角色) 派生的种子：两端必然选到同一首
-    seed: gameActive ? turnSeed(game.turnSeq, game.currentKey) : queue.seed,
+    seed: gameActive ? turnSeed(game.gameSeed, game.turnSeq, game.currentKey) : queue.seed,
     setCurrent: queue.setCurrent,
     step: (direction) => queue.step(direction, queue.order),
   });

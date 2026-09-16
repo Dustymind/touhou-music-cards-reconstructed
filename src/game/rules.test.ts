@@ -59,16 +59,29 @@ describe("牌库编辑", () => {
 });
 
 describe("开局与回合推进", () => {
-  it("startGame 洗牌后当前角色取最后一个（首次 nextTurn 落到第 0 个）", () => {
+  it("startGame 洗牌后当前角色取最后一个（首次 nextTurn 落到洗好的第 0 个）", () => {
     const state = { ...threeByTwo(), order: ["a", "b", "c"], state: "selecting" as const };
-    const started = rules.startGame(state, (order) => order.slice().reverse());
-    expect(started.order).toEqual(["c", "b", "a"]);
-    expect(started.currentKey).toBe("a");
+    const started = rules.startGame(state, () => 0.5);
+    // 洗过但仍是同一批角色
+    expect(started.order.slice().sort()).toEqual(["a", "b", "c"]);
+    expect(started.currentKey).toBe(started.order[started.order.length - 1]);
     expect(started.state).toBe("countdown");
+    expect(started.gameSeed).toBeGreaterThanOrEqual(0);
     const next = rules.countdownFinished(started, 1000);
-    expect(next.currentKey).toBe("c");
+    expect(next.currentKey).toBe(started.order[0]);
     expect(next.state).toBe("turnStart");
     expect(next.turnSeq).toBe(1);
+  });
+
+  it("每局洗出来的顺序不同（同一 rng 则可复现）", () => {
+    const state = { ...threeByTwo(), order: ["a", "b", "c", "d", "e", "f"], state: "selecting" as const };
+    const first = rules.startGame(state, () => 0.11);
+    const second = rules.startGame(state, () => 0.77);
+    expect(first.gameSeed).not.toBe(second.gameSeed);
+    expect(first.currentKey).not.toBe(second.currentKey);      // 开局第一首不再固定
+    expect(rules.startGame(state, () => 0.11).order).toEqual(first.order);   // 同种子可复现
+    // 原状态不被就地改掉
+    expect(state.order).toEqual(["a", "b", "c", "d", "e", "f"]);
   });
 
   it("nextTurn 环形推进并跳过临时禁用的角色", () => {
@@ -329,24 +342,68 @@ describe("按牌库筛选音乐", () => {
 
 describe("回合选曲种子", () => {
   it("同一 (回合号, 角色) 派生同一种子（两端同步）", () => {
-    expect(rules.turnSeed(3, "kirisame-marisa")).toBe(rules.turnSeed(3, "kirisame-marisa"));
-    expect(rules.turnSeed(3, null)).toBe(rules.turnSeed(3, null));
+    expect(rules.turnSeed(7, 3, "kirisame-marisa")).toBe(rules.turnSeed(7, 3, "kirisame-marisa"));
+    expect(rules.turnSeed(7, 3, null)).toBe(rules.turnSeed(7, 3, null));
   });
 
   it("回合号或角色变了就是另一种子（不会老是同一首）", () => {
-    const base = rules.turnSeed(1, "cirno");
-    expect(rules.turnSeed(2, "cirno")).not.toBe(base);
-    expect(rules.turnSeed(1, "kirisame-marisa")).not.toBe(base);
+    const base = rules.turnSeed(7, 1, "cirno");
+    expect(rules.turnSeed(7, 2, "cirno")).not.toBe(base);
+    expect(rules.turnSeed(7, 1, "kirisame-marisa")).not.toBe(base);
     // 段间不能串（"1" + "23" 与 "12" + "3" 必须不同）
-    expect(rules.turnSeed(1, "23")).not.toBe(rules.turnSeed(12, "3"));
+    expect(rules.turnSeed(7, 1, "23")).not.toBe(rules.turnSeed(7, 12, "3"));
   });
 
   it("种子落在 pickWithSeed 能吃的范围内", () => {
     for (const [turn, key] of [[0, null], [1, "cirno"], [9999, "zzz"]] as const) {
-      const seed = rules.turnSeed(turn, key);
+      const seed = rules.turnSeed(7, turn, key);
       expect(Number.isInteger(seed)).toBe(true);
       expect(seed).toBeGreaterThanOrEqual(0);
       expect(seed).toBeLessThan(2147483647);
     }
+  });
+});
+
+describe("自定义卡组", () => {
+  const pool = ["a", "b", "c", "d"].map((key) => ({ characterKey: key, cardIndex: 0 }));
+
+  it("addCard 放第一个空位，指定槽位也行；同一个卡面只能有一份", () => {
+    let state = rules.adjustDeckSize(emptyState(), 2, 2);
+    state = rules.addCard(state, 0, pool[0]!);
+    expect(state.players[0]!.deck[0]).toEqual(pool[0]);
+    state = rules.addCard(state, 0, pool[1]!, 1);
+    expect(state.players[0]!.deck[1]).toEqual(pool[1]);
+    // 已在牌库里的卡再放一次：不动
+    const before = state;
+    state = rules.addCard(state, 1, pool[0]!);
+    expect(state).toBe(before);
+    // 牌库满了也放不进去
+    state = rules.addCard(state, 0, pool[2]!);
+    state = rules.addCard(state, 0, pool[3]!);
+    expect(state.players[0]!.deck.filter((card) => card !== null)).toHaveLength(4);
+  });
+
+  it("removeCard 把卡拿回未使用区；空槽位是空操作", () => {
+    let state = rules.adjustDeckSize(emptyState(), 2, 2);
+    state = rules.addCard(state, 0, pool[0]!);
+    expect(rules.unusedCards(state, pool).map((card) => card.characterKey)).toEqual(["b", "c", "d"]);
+    state = rules.removeCard(state, 0, 0);
+    expect(state.players[0]!.deck[0]).toBeNull();
+    expect(rules.unusedCards(state, pool)).toHaveLength(4);
+    const before = state;
+    expect(rules.removeCard(state, 0, 1)).toBe(before);   // 本来就空
+  });
+
+  it("收集区里的卡也不算未使用（混战换手后不会重复出现）", () => {
+    let state = rules.adjustDeckSize(emptyState(), 2, 2);
+    state = rules.addCard(state, 0, pool[0]!);
+    state = {
+      ...state,
+      players: [
+        state.players[0]!,
+        { ...state.players[1]!, collected: [pool[0]!] },
+      ],
+    };
+    expect(rules.unusedCards(state, pool).map((card) => card.characterKey)).toEqual(["b", "c", "d"]);
   });
 });

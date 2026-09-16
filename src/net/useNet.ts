@@ -239,10 +239,36 @@ export function applyIntentLocally(intent: ClientIntent, from: number): void {
       game.filterByDeck();
       return;
     }
+    // 牌组编辑（自定义卡组 / 补满 / 打乱 / 清空）：只有主机能改别人的牌库，
+    // 客户端只能动自己那一份（`from` 是发送方下标，不可信的自报字段一律不用）
     case "addCard":
     case "removeCard":
-    case "clearDeck": {
-      if (intent.kind === "clearDeck") game.clear(intent.player);
+    case "clearDeck":
+    case "fillDeck":
+    case "shuffleDeck": {
+      if (from !== 0 && intent.player !== from) return;
+      switch (intent.kind) {
+        case "addCard": {
+          game.addCard(intent.player, intent.card, intent.slot);
+          return;
+        }
+        case "removeCard": {
+          game.removeCard(intent.player, intent.slot);
+          return;
+        }
+        case "clearDeck": {
+          game.clear(intent.player);
+          return;
+        }
+        case "fillDeck": {
+          game.fill(intent.player);
+          return;
+        }
+        case "shuffleDeck": {
+          game.shuffle(intent.player);
+          return;
+        }
+      }
       return;
     }
     default:

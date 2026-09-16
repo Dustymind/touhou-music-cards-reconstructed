@@ -13,7 +13,7 @@ function freshGame(): void {
         { name: "You", isObserver: false, deck: [], collected: [], confirmStart: false, confirmNext: false },
         { name: "Opponent", isObserver: false, deck: [], collected: [], confirmStart: false, confirmNext: false },
       ],
-      deckRows: 1, deckColumns: 2, traditional: true, melee: false, order: ["a", "b"],
+      deckRows: 1, deckColumns: 2, traditional: true, melee: false, order: ["a", "b"], gameSeed: 0,
       temporaryDisabled: {}, currentKey: null, turnSeq: 0, state: "selecting",
       turnStartTimestamp: 0, pickEvents: [], turnWinner: null, givesLeft: 0, winner: null,
     },
@@ -57,7 +57,9 @@ describe("useGame store", () => {
     useGame.getState().advanceCountdown();
     const inTurn = useGame.getState().game;
     expect(inTurn.state).toBe("turnStart");
-    expect(inTurn.currentKey).toBe("a");   // 开局把 currentKey 设为 order 末尾，首次推进即落到第 0 个
+    // 开局会洗牌，所以不假定是哪个角色，只要求它来自轮播顺序且手里有这张
+    expect(inTurn.currentKey).not.toBeNull();
+    expect(inTurn.currentKey).not.toBe("");
 
     // 找到当前角色的卡并抢中
     const slot = inTurn.players[0]!.deck.findIndex((entry) => entry?.characterKey === inTurn.currentKey);
@@ -94,6 +96,17 @@ describe("useGame store", () => {
     useGame.getState().fill(0);
     useGame.getState().start();
     useGame.getState().advanceCountdown();
+    // 开局洗牌后手里那一张未必是当前角色，这里直接摆成"就剩当前角色这一张"
+    const current = useGame.getState().game.currentKey!;
+    useGame.setState((slice) => ({
+      game: {
+        ...slice.game,
+        players: [
+          { ...slice.game.players[0]!, deck: [{ characterKey: current, cardIndex: 0 }] },
+          slice.game.players[1]!,
+        ],
+      },
+    }));
     const game = useGame.getState().game;
     expect(filledSlots(game.players[0]!.deck)).toBe(1);
     useGame.getState().pick(0, 0, 0);

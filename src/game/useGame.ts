@@ -26,6 +26,10 @@ export interface GameSlice {
   fill: (player: PlayerIndex) => void;
   clear: (player: PlayerIndex) => void;
   shuffle: (player: PlayerIndex) => void;
+  /** 自定义卡组：放一张卡进牌库（`slot` 省略则取第一个空位） */
+  addCard: (player: PlayerIndex, card: CardInfo, slot?: number) => void;
+  /** 自定义卡组：把牌库里某张卡拿出来 */
+  removeCard: (player: PlayerIndex, slot: number) => void;
   start: () => void;
   stop: () => void;
   /** 倒计时结束 → 进入当前回合 */
@@ -84,6 +88,14 @@ export const useGame = create<GameSlice>((set, get) => ({
 
   shuffle(player) {
     set({ game: rules.shuffleDeck(get().game, player) });
+  },
+
+  addCard(player, card, slot) {
+    set({ game: rules.addCard(get().game, player, card, slot) });
+  },
+
+  removeCard(player, slot) {
+    set({ game: rules.removeCard(get().game, player, slot) });
   },
 
   start() {

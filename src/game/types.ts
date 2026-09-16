@@ -42,8 +42,10 @@ export interface GameState {
   traditional: boolean;
   /** 混战（>2 名非观察者）时罚牌与终局规则不同 */
   melee: boolean;
-  /** 轮播顺序（角色 key） */
+  /** 轮播顺序（角色 key）；开局时由主机洗牌，随快照同步 */
   order: string[];
+  /** 本局的开局随机种子（主机抽、随快照同步）：决定洗牌结果与每回合选哪首 */
+  gameSeed: number;
   temporaryDisabled: Record<string, boolean>;
   currentKey: string | null;
   /** 回合序号：联机时作为事件幂等键与快照标识 */
@@ -66,6 +68,7 @@ export function emptyState(overrides: Partial<GameState> = {}): GameState {
     traditional: true,
     melee: false,
     order: [],
+    gameSeed: 0,
     temporaryDisabled: {},
     currentKey: null,
     turnSeq: 0,
