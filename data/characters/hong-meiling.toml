@@ -1,0 +1,13 @@
+key = "hong-meiling"
+name = "紅美鈴"
+order = 7
+card = ["美鈴.png"]
+searchNames = ["紅美鈴", "Hong Meiling", "红美铃", "hongmeiling"]
+
+music = [
+  ["東方紅魔郷 ～ the Embodiment of Scarlet Devil", "明治十七年の上海アリス", "角色曲"],
+  ["東方紅魔郷 ～ the Embodiment of Scarlet Devil", "上海紅茶館　～ Chinese Tea", "道中曲"],
+  ["核熱造神ヒソウテンソク ～ 東方非想天則", "05. 上海紅茶館 ～ Chinese Tea", "角色曲"],
+  ["蓬莱人形 ～ Dolls in Pseudo Paradise", "04. 明治十七年の上海アリス", "秘封曲"],
+  ["夢違科学世紀 ～ Changeability of Strange Dream", "03. 上海紅茶館 ～ Chinese Tea", "秘封曲"],
+]

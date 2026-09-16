@@ -1,0 +1,12 @@
+key = "cirno"
+name = "チルノ"
+order = 6
+card = ["チルノ.png"]
+searchNames = ["チルノ", "Cirno", "琪露诺", "qilunuo"]
+
+music = [
+  ["東方紅魔郷 ～ the Embodiment of Scarlet Devil", "おてんば恋娘", "角色曲"],
+  ["東方妖々夢 ～ Perfect Cherry Blossom", "無何有の郷　～ Deep Mountain", "更多道中曲"],
+  ["東方輝針城 ～ Double Dealing Character", "ミストレイク", "更多道中曲"],
+  ["核熱造神ヒソウテンソク ～ 東方非想天則", "04. おてんば恋娘", "角色曲"],
+]

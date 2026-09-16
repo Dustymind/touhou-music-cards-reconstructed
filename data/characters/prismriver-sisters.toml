@@ -1,0 +1,9 @@
+key = "prismriver-sisters"
+name = "ルナサ/メルラン/リリカ・プリズムリバー"
+order = 16
+card = ["ルナサ.png", "メルラン.png", "リリカ.png"]
+searchNames = ["姐妹", "jiemei", "3", "プリズムリバー三姉妹", "Prismriver Sisters", "Purizumuriba", "普莉兹姆利巴", "pulizumuliba", "Lunasa", "Merlin", "Lyrica"]
+
+music = [
+  ["東方妖々夢 ～ Perfect Cherry Blossom", "幽霊楽団　～ Phantom Ensemble", "角色曲"],
+]
