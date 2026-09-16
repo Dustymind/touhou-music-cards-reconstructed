@@ -68,6 +68,9 @@ export const Localization = {
   ConfigTabSingleNoTracks: u("No tracks under this preset", "该预设下无可用曲目"),
   ConfigTabSingleMode: u("Single track mode", "仅单曲模式"),
 
+  GameFilterByDeck: u("Filter Music by Deck", "按卡组筛选音乐"),
+  GameUpcoming: u("Turn", "回合"),
+
   ListTabOrder: u("Order", "顺序"),
   ListTabTracks: u("Tracks", "曲目"),
   ListTabAlbum: u("Album", "专辑"),

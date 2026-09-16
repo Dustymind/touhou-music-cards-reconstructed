@@ -1,0 +1,101 @@
+/** 对战数据结构（对齐上游 `GameJudge.ts`，字段名沿用其语义）。 */
+
+export type PlayerIndex = number;
+
+export interface CardInfo {
+  characterKey: string;
+  cardIndex: number;
+}
+
+/** 牌库槽位：`null` 表示空格子。 */
+export type Slot = CardInfo | null;
+
+export interface PickEvent {
+  /** 反应时间（毫秒，越小越早） */
+  timestamp: number;
+  player: PlayerIndex;
+  card: CardInfo;
+  /** 该卡所在的一侧（0 = 我方视角的上方，1 = 下方） */
+  side: 0 | 1;
+  slot: number;
+}
+
+export interface PlayerState {
+  name: string;
+  isObserver: boolean;
+  deck: Slot[];
+  collected: CardInfo[];
+  confirmStart: boolean;
+  confirmNext: boolean;
+}
+
+export type MatchMode = "solo" | "cpu" | "host" | "client" | "observer";
+
+export type JudgeState = "selecting" | "countdown" | "turnStart" | "turnWinner" | "finished";
+
+export interface GameState {
+  mode: MatchMode;
+  players: PlayerState[];
+  deckRows: number;
+  deckColumns: number;
+  /** 经典模式：抢错/从对方托盘抢到要交牌；休闲模式：忽略罚牌 */
+  traditional: boolean;
+  /** 混战（>2 名非观察者）时罚牌与终局规则不同 */
+  melee: boolean;
+  /** 轮播顺序（角色 key） */
+  order: string[];
+  temporaryDisabled: Record<string, boolean>;
+  currentKey: string | null;
+  /** 回合序号：联机时作为事件幂等键与快照标识 */
+  turnSeq: number;
+  state: JudgeState;
+  turnStartTimestamp: number;
+  pickEvents: PickEvent[];
+  turnWinner: PlayerIndex | null;
+  /** >0：玩家 0 需给玩家 1 交牌；<0：玩家 1 需给玩家 0 交牌 */
+  givesLeft: number;
+  winner: PlayerIndex | null;
+}
+
+export function emptyState(overrides: Partial<GameState> = {}): GameState {
+  return {
+    mode: "solo",
+    players: [makePlayer("Player 1"), makePlayer("Player 2")],
+    deckRows: 3,
+    deckColumns: 8,
+    traditional: true,
+    melee: false,
+    order: [],
+    temporaryDisabled: {},
+    currentKey: null,
+    turnSeq: 0,
+    state: "selecting",
+    turnStartTimestamp: 0,
+    pickEvents: [],
+    turnWinner: null,
+    givesLeft: 0,
+    winner: null,
+    ...overrides,
+  };
+}
+
+export function makePlayer(name: string, isObserver = false): PlayerState {
+  return { name, isObserver, deck: [], collected: [], confirmStart: false, confirmNext: false };
+}
+
+export function slotCount(state: Pick<GameState, "deckRows" | "deckColumns">): number {
+  return state.deckRows * state.deckColumns;
+}
+
+export function filledSlots(deck: readonly Slot[]): number {
+  return deck.filter((slot) => slot !== null).length;
+}
+
+export function emptySlots(deck: readonly Slot[]): number {
+  return deck.filter((slot) => slot === null).length;
+}
+
+export function sameCard(a: CardInfo | null, b: CardInfo | null): boolean {
+  if (a === null || b === null) return a === b;
+  return a.characterKey === b.characterKey && a.cardIndex === b.cardIndex;
+}
