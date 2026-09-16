@@ -370,6 +370,11 @@ def main(argv: list[str] | None = None) -> int:
             album, title = repo.split_track_path(path)
             referenced.add((unicodedata.normalize("NFC", album), unicodedata.normalize("NFC", title)))
 
+    # 人工补配的曲目也算"被引用"，否则它们会同时出现在未归属清单里
+    for rows in additions.values():
+        for album, title, *_rest in rows:
+            referenced.add((unicodedata.normalize("NFC", album), unicodedata.normalize("NFC", title)))
+
     migrate_albums()
     migrate_characters(index, report, overrides, aliases, additions)
     migrate_sources(referenced, report)
