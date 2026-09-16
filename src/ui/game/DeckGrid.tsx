@@ -100,15 +100,16 @@ export function DeckGrid(props: DeckGridProps) {
               outlineOffset: "-2px",
             }}
           >
+            {/* 内层填满槽位（`p: 2px` → 内容宽 = 宽度 - 4），未使用卡牌区用同样的算法 */}
             <CharacterCard
               cardSet={cardSet}
               file={file}
               state={state}
-              width={`${width - 8}px`}
+              width="100%"
               glitch={Boolean(props.glitch) && Boolean(card)}
             />
             {card && props.cheatSlot === slot && (
-              <CheatRect width={width - 8} height={(width - 8) / 0.703} />
+              <CheatRect width={width - 4} height={(width - 4) / 0.703} />
             )}
           </Paper>
         );

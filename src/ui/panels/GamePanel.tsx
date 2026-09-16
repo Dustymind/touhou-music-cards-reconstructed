@@ -525,7 +525,8 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
           cards={unused}
           cardSet={cardSet}
           cardFiles={cardFiles}
-          width={Math.max(28, Math.round(cardWidth * 0.6))}
+          // 与卡槽同尺寸（上游所有卡都用同一个 cardWidth）
+          width={cardWidth}
           interactive={building}
           onPick={(card) => act.addCard(card)}
           onCardDragStart={(card) => beginDrag({ kind: "unused", card })}

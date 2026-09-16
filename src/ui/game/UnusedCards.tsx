@@ -37,6 +37,8 @@ export function UnusedCards(props: UnusedCardsProps) {
     <Box
       sx={{ mt: 1.5 }}
       data-testid={props.testId ?? "unused-cards"}
+      // 和 DeckGrid 一样把宽度挂出来：jsdom 没有布局，测试只能这么读
+      data-card-width={width}
       onDragOver={(event) => {
         if (!onDropCard) return;
         event.preventDefault();
@@ -81,13 +83,13 @@ export function UnusedCards(props: UnusedCardsProps) {
               event.dataTransfer.effectAllowed = "move";
               onCardDragStart?.(card);
             }}
-            sx={{ p: "2px", flex: "0 0 auto", cursor: interactive ? "grab" : "default" }}
+            sx={{ p: "2px", width: `${width}px`, flex: "0 0 auto", cursor: interactive ? "grab" : "default" }}
           >
             <CharacterCard
               cardSet={cardSet}
               file={cardFiles[card.characterKey]?.[card.cardIndex] ?? ""}
               state={"normal" as CardState}
-              width={`${width - 8}px`}
+              width="100%"
             />
           </Paper>
         ))}

@@ -321,14 +321,20 @@ describe("GamePanel", () => {
     const container = await render();
     const cardWidth = (): string =>
       container.querySelector('[data-testid="deck-you"]')?.getAttribute("data-card-width") ?? "";
+    const trayWidth = (): string =>
+      container.querySelector('[data-testid="unused-cards"]')?.getAttribute("data-card-width") ?? "";
+
     // jsdom 没有布局，容器宽度取兜底值 1000 → 0.08 × 1000 = 80px
     expect(cardWidth()).toBe("80");
+    expect(trayWidth()).toBe("80");     // 未使用卡牌区与卡槽同尺寸
 
     await click(container, "card-larger");
     expect(cardWidth()).toBe("90");
+    expect(trayWidth()).toBe("90");
     await click(container, "card-smaller");
     await click(container, "card-smaller");
     expect(cardWidth()).toBe("70");
+    expect(trayWidth()).toBe("70");
 
     for (let i = 0; i < 12; i += 1) await click(container, "card-smaller");
     expect(cardWidth()).toBe("40");                             // 0.04 × 1000 = 下限

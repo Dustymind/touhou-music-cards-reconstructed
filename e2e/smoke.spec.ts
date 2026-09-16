@@ -141,14 +141,20 @@ test("拖动放置卡牌：拖进指定槽位、拖回未使用区、牌位互�
   const unused = page.locator('[data-testid^="unused-card-"]');
 
   // 默认卡片大小 = 容器宽度 × 0.08（上游默认值，之前固定 56px 偏小）
-  const ratio = await page.evaluate(() => {
+  const sizes = await page.evaluate(() => {
     const card = document.querySelector('[data-testid="deck-you"] [data-testid^="deck-you-"]');
     const board = document.querySelector('[data-testid="deck-you"]')?.parentElement;
-    if (!card || !board) return 0;
-    return card.getBoundingClientRect().width / board.getBoundingClientRect().width;
+    const tray = document.querySelector('[data-testid="unused-cards"] [data-testid^="unused-card-"]');
+    return {
+      ratio: (card?.getBoundingClientRect().width ?? 0) / (board?.getBoundingClientRect().width ?? 1),
+      slot: card?.getBoundingClientRect().width ?? 0,
+      tray: tray?.getBoundingClientRect().width ?? 0,
+    };
   });
-  expect(ratio).toBeGreaterThan(0.075);
-  expect(ratio).toBeLessThan(0.09);
+  expect(sizes.ratio).toBeGreaterThan(0.075);
+  expect(sizes.ratio).toBeLessThan(0.09);
+  // 未使用卡牌区与卡槽同尺寸（用户报过它没跟着变大）
+  expect(Math.abs(sizes.tray - sizes.slot)).toBeLessThanOrEqual(1);
 
   // 拖一张未使用的卡到第 5 个空位（点击只能落到第一个空位，拖动才能指定位置）
   const dragged = await unused.first().getAttribute("data-testid");
