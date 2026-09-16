@@ -1,19 +1,15 @@
 /** 未使用卡牌区：卡池里还没进任何牌库/收集区的卡。
  *
- * 滚动方式照抄上游 `GameTab.tsx`：卡片是一条**互相叠 30%** 的长条，
- * 下方一个 MUI `Slider`（上游的 "Card Selection Slider"）拖动它横向平移整条卡槽：
- * `offset = -sliderValue * (totalWidth - visibleWidth)`。
- * 滑块放在卡条**下面**、与卡条同宽，所以不会挡住卡槽。
+ * 版式与滚动方式用共享的 `CardStrip`（上游 "Card Selection Slider" 的实现）：
+ * 卡片等距排开、不重叠，下方滑块拖动平移整条卡槽，滑块不遮挡卡片。
  */
-import { Box, Slider, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import { useState } from "react";
 
 import type { CardSetRecord } from "../../data/types";
 import type { CardInfo } from "../../game/types";
-import { DRAG_MIME } from "../../game/drag";
-import { CardAspectRatio } from "../../theme/theme";
 import { t, Localization } from "../../i18n/localization";
-import { CharacterCard, type CardState } from "../components/CharacterCard";
+import { CardStrip, type StripCard } from "../components/CardStrip";
 
 export interface UnusedCardsProps {
   cards: readonly CardInfo[];
@@ -34,30 +30,25 @@ export interface UnusedCardsProps {
   testId?: string;
 }
 
-/** 上游 `cardSelectionOverlap = cardWidth * 0.3`。 */
-const OVERLAP_RATIO = 0.3;
-
 export function UnusedCards(props: UnusedCardsProps) {
   const {
     cards, cardSet, cardFiles, width, visibleWidth, onPick, interactive, onCardDragStart, onDropCard,
   } = props;
   const [over, setOver] = useState(false);
-  const [hovered, setHovered] = useState<string | null>(null);
-  const [slider, setSlider] = useState(0);
 
-  const step = width * (1 - OVERLAP_RATIO);
-  const totalWidth = width + Math.max(0, cards.length - 1) * step;
-  const maxOffset = Math.max(0, totalWidth - visibleWidth);
-  const offset = -slider * maxOffset;
+  const strip: StripCard[] = cards.map((card) => ({
+    id: `${card.characterKey}-${card.cardIndex}`,
+    characterKey: card.characterKey,
+    cardIndex: card.cardIndex,
+    file: cardFiles[card.characterKey]?.[card.cardIndex] ?? "",
+    // 游戏选卡：hover 只变底色（与播放页一致），不做抬起位移
+    state: "normal",
+    hoverState: "hover",
+  }));
 
   return (
     <Box
       sx={{ mt: 1.5 }}
-      data-testid={props.testId ?? "unused-cards"}
-      // 和 DeckGrid 一样把宽度挂出来：jsdom 没有布局，测试只能这么读
-      data-card-width={width}
-      data-pan={slider.toFixed(3)}
-      data-pan-offset={Math.round(offset)}
       onDragOver={(event) => {
         if (!onDropCard) return;
         event.preventDefault();
@@ -80,73 +71,30 @@ export function UnusedCards(props: UnusedCardsProps) {
           {t(Localization.GameDeckBuildHint)}
         </Typography>
       )}
-
-      {/* 卡条：与牌桌同宽、居中；卡片叠 30%，靠下面的滑块平移 */}
-      <Box
-        data-testid="unused-cards-strip"
-        sx={{
-          position: "relative",
-          width: visibleWidth,
-          height: width / CardAspectRatio,
-          overflow: "hidden",
-          mx: "auto",
-          outline: over ? "2px dashed" : "none",
-          outlineColor: "primary.main",
-          outlineOffset: "-2px",
+      <CardStrip
+        cards={strip}
+        cardSet={cardSet}
+        width={width}
+        visibleWidth={visibleWidth}
+        interactive={interactive}
+        sliderLabel={t(Localization.GameCardSelectionSlider)}
+        testId="unused-cards"
+        stripTestId="unused-cards-strip"
+        sliderTestId="card-selection-slider"
+        cardTestIdPrefix="unused-card"
+        draggable={interactive && Boolean(onCardDragStart)}
+        dropActive={over}
+        onCardClick={(card) => {
+          const found = cards.find((entry) =>
+            entry.characterKey === card.characterKey && entry.cardIndex === card.cardIndex);
+          if (found) onPick(found);
         }}
-      >
-        {cards.map((card, index) => {
-          const id = `${card.characterKey}-${card.cardIndex}`;
-          return (
-            <Box
-              key={id}
-              data-testid={`unused-card-${id}`}
-              onMouseEnter={() => setHovered(id)}
-              onMouseLeave={() => setHovered((current) => (current === id ? null : current))}
-              onClick={() => { if (interactive) onPick(card); }}
-              draggable={interactive && Boolean(onCardDragStart)}
-              onDragStart={(event) => {
-                event.dataTransfer.setData(DRAG_MIME, "card");
-                event.dataTransfer.effectAllowed = "move";
-                onCardDragStart?.(card);
-              }}
-              sx={{
-                position: "absolute",
-                left: index * step + offset,
-                top: 0,
-                width,
-                // 上游 `zIndex = 总数 - 序号`：左边的卡压在右边上面
-                zIndex: cards.length - index,
-                cursor: interactive ? "grab" : "default",
-                transition: "left 0.3s ease",
-              }}
-            >
-              <CharacterCard
-                cardSet={cardSet}
-                file={cardFiles[card.characterKey]?.[card.cardIndex] ?? ""}
-                state={"normal" as CardState}
-                width="100%"
-                bare
-                raised={hovered === id}
-              />
-            </Box>
-          );
-        })}
-      </Box>
-
-      {/* 上游的 "Card Selection Slider"：拖它平移卡槽；放在卡条下方，不会压住卡片 */}
-      {interactive && (
-        <Slider
-          data-testid="card-selection-slider"
-          aria-label={t(Localization.GameCardSelectionSlider)}
-          min={0}
-          max={1}
-          step={0.001}
-          value={slider}
-          onChange={(_event, value) => setSlider(value as number)}
-          sx={{ width: visibleWidth, mx: "auto", display: "block", mt: 0.5 }}
-        />
-      )}
+        onCardDragStart={(card) => {
+          const found = cards.find((entry) =>
+            entry.characterKey === card.characterKey && entry.cardIndex === card.cardIndex);
+          if (found) onCardDragStart?.(found);
+        }}
+      />
     </Box>
   );
 }

@@ -544,6 +544,35 @@ hover 后 `transform` 仍是 `none`（无悬浮动效）；空卡槽 `border: 1p
 
 ---
 
+## D25 播放页也用滑块；卡片不重叠；去掉选卡的悬浮位移动效
+
+**需求**（用户）：把滑块条也部署到主界面播放器；部署后**卡牌不重叠**；去掉主界面播放器与游戏界面选卡的
+**光标悬浮动效**，只保留背景变色（游戏选卡与播放器一致）。
+
+**做法**：把"卡条 + 下方滑块"抽成共享组件 `src/ui/components/CardStrip.tsx`，两处共用：
+
+| | 游戏卡槽（未使用卡牌） | 播放页"接下来" |
+|---|---|---|
+| 卡片 | 等距、间距 6px，**不重叠**（原来叠 30%） | 等距、间距 6px，不重叠 |
+| 可视宽度 | 牌桌宽度 | 容器实测宽度（`ResizeObserver`） |
+| 滑块 | `card-selection-slider`（卡条下方，与卡条同宽） | `upcoming-fan-slider`（同规则） |
+| 点击 | 放进自己的卡组 | 临时跳过（灰度） |
+| hover | **只变底色**（白 → `#b3f9ff`），无位移 | 同左（禁用项 → `disabledHover`） |
+
+`CardStrip` 里卡片只剩 `left` 过渡（`left 0.3s ease`）；`raised`（`translateY(-10%)`）不再用于这两处 ——
+用户明确要"仅保留背景变色"。滚动统一由滑块完成（两处都不再依赖原生横向滚动条）。
+
+**实测**（真浏览器）：
+
+- 播放页：卡条底部 626 / 滑块顶部 630（不遮挡）；相邻卡间隙 `[6, 6]`（不重叠）；拖滑块到 85% 后
+  首张卡 x 从 287 → **-15812**；hover 底色 `#71d7ff → #b3f9ff` 且 `transform: none`；点击一张后转灰度。
+- 游戏卡槽：相邻卡间隙 `[6, 6]`；hover 底色 `#ffffff → #b3f9ff` 且 `transform: none`。
+
+**注意**：`CardStrip` 的 `testId` 会派生 `-strip` / `-slider`，也支持 `stripTestId` / `sliderTestId`
+显式指定，以保持既有 E2E 选择器（`unused-cards-strip` / `card-selection-slider` 等）不变。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |

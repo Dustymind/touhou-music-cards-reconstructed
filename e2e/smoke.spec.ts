@@ -181,7 +181,7 @@ test("拖动放置卡牌：拖进指定槽位、拖回未使用区、牌位互�
   await expect(page.getByTestId("deck-opponent-card-3")).toBeVisible();
 });
 
-test("动效：牌桌卡牌滑位 + hover 抬起；播放页牌堆叠放 + 点击跳过", async ({ page }) => {
+test("动效：牌桌卡牌滑位；播放页牌堆用滑块平移、hover 只变色、点击跳过", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1500 });
   await page.goto("/");
   await page.getByRole("button", { name: "Match" }).click();
@@ -217,47 +217,56 @@ test("动效：牌桌卡牌滑位 + hover 抬起；播放页牌堆叠放 + 点�
     getComputedStyle(element.parentElement!.parentElement!.parentElement!).backgroundColor);
   expect(cellShadow).toBe("rgba(0, 0, 0, 0)");
 
-  // 播放页：牌堆每张卡都有上游那条 0.5s 横向过渡，点击＝临时跳过（底色转灰）
+  // 播放页：牌堆也是"卡条 + 下方滑块"，卡片等距不重叠、hover 只变底色
   await page.getByRole("button", { name: "Player" }).click();
-  const fanCard = page.locator('[data-testid^="upcoming-card-"]').first();
-  await expect(fanCard).toBeVisible();
-  const fanTransition = await fanCard.evaluate((element) => getComputedStyle(element).transition);
-  expect(fanTransition).toContain("left 0.5s ease-in-out");
-  expect(fanTransition).toContain("transform 0.3s");
-  // 播放页的牌堆要能横向滚动（用户要求：选卡区要有滚动条）
-  const scrollable = await page.getByTestId("upcoming-fan").evaluate((element) => ({
-    overflowX: getComputedStyle(element).overflowX,
-    wider: element.scrollWidth > element.clientWidth,
-  }));
-  expect(scrollable.overflowX).toBe("auto");
-  expect(scrollable.wider).toBe(true);
-  // 卡与卡之间不重叠（用户要求修掉重合）
-  const gap = await page.evaluate(() => {
+  const fanStrip = page.getByTestId("upcoming-fan-strip");
+  const fanSlider = page.getByTestId("upcoming-fan-slider");
+  await expect(fanStrip).toBeVisible();
+  await expect(fanSlider).toBeVisible();
+  const fanBox = (await fanStrip.boundingBox())!;
+  const fanSliderBox = (await fanSlider.boundingBox())!;
+  expect(fanSliderBox.y).toBeGreaterThanOrEqual(fanBox.y + fanBox.height);   // 滑块不遮卡片
+
+  const fanGap = await page.evaluate(() => {
     const cards = [...document.querySelectorAll('[data-testid^="upcoming-card-"]')].slice(0, 2);
-    if (cards.length < 2) return 0;
+    if (cards.length < 2) return -1;
     const a = cards[0]!.getBoundingClientRect();
     const b = cards[1]!.getBoundingClientRect();
     return Math.round(b.left - a.right);
   });
-  expect(gap).toBeGreaterThanOrEqual(0);
-  // hover 抬起 = 内层卡片 translateY(-10%)（上游 `raised`），且不被容器裁掉
+  expect(fanGap).toBeGreaterThanOrEqual(0);            // 不重叠
+
+  // hover 只变底色，不做位移（用户要求去掉光标悬浮动效）
+  const firstCard = page.locator('[data-testid^="upcoming-card-"]').first();
+  const hovered = await firstCard.evaluate(async (element) => {
+    const paper = element.firstElementChild as HTMLElement;
+    const before = getComputedStyle(paper).backgroundColor;
+    element.dispatchEvent(new MouseEvent("mouseover", { bubbles: true }));
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    return { before, after: getComputedStyle(paper).backgroundColor, transform: getComputedStyle(paper).transform };
+  });
+  expect(hovered.transform).toBe("none");
+  expect(hovered.after).not.toBe(hovered.before);
+
+  // 点击一张牌＝临时跳过（灰度反馈）
   const targetId = await page.locator('[data-testid^="upcoming-card-"]').nth(3).getAttribute("data-testid");
   const target = page.getByTestId(targetId!);
-  await target.hover();
-  await expect.poll(async () => target.evaluate((element) => {
-    const matrix = getComputedStyle(element.firstElementChild!).transform;
-    const match = /matrix\(1, 0, 0, 1, [\d.]+, (-?[\d.]+)\)/.exec(matrix);
-    return match ? Number(match[1]) : 0;
-  })).toBeLessThan(0);
-  // 跳过的反馈是灰度（`bare` 模式不铺底色，只留描边圈；灰度加在 img 上）
   const grayscaleOf = (element: Element): string => {
     const image = element.querySelector("img");
     return image ? getComputedStyle(image).filter : "";
   };
-  const before = await target.evaluate(grayscaleOf);
+  const beforeFilter = await target.evaluate(grayscaleOf);
   await target.click();
-  await expect.poll(async () => target.evaluate(grayscaleOf)).not.toBe(before);
+  await expect.poll(async () => target.evaluate(grayscaleOf)).not.toBe(beforeFilter);
   expect(await target.evaluate(grayscaleOf)).toContain("grayscale");
+
+  // 拖动滑块 → 整条牌堆平移（放在最后：平移后靠边的卡片会移出可视区）
+  const beforeX = (await firstCard.boundingBox())!.x;
+  await page.mouse.move(fanSliderBox.x + fanSliderBox.width * 0.5, fanSliderBox.y + fanSliderBox.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(fanSliderBox.x + fanSliderBox.width * 0.9, fanSliderBox.y + fanSliderBox.height / 2, { steps: 12 });
+  await page.mouse.up();
+  await expect.poll(async () => (await firstCard.boundingBox())!.x).toBeLessThan(beforeX - 100);
 });
 
 test("游戏卡槽用上游那条滑块滚动（不挡住卡片）", async ({ page }) => {
