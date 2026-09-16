@@ -470,6 +470,29 @@ test("卡片大小按钮按 0.01 步进并夹在 0.04~0.40", async ({ page }) =>
   expect(stored).toContain("cardWidthPercentage");
 });
 
+test("两个界面的选卡滑块样式一致（同一份实现，不许漂移）", async ({ page }) => {
+  const readSlider = (testId: string) => page.evaluate((id) => {
+    const root = document.querySelector(`[data-testid="${id}"]`)!;
+    const thumb = getComputedStyle(root.querySelector(".MuiSlider-thumb")!);
+    const rail = getComputedStyle(document.querySelector(`[data-testid="${id}-rail"]`)!);
+    return {
+      thumb: [thumb.width, thumb.height, thumb.backgroundColor, thumb.borderRadius, thumb.boxShadow].join("|"),
+      rail: [rail.height, rail.backgroundColor, rail.opacity, rail.borderRadius].join("|"),
+    };
+  }, testId);
+
+  await page.goto("/");
+  await page.getByRole("button", { name: "Match" }).click();
+  const game = await readSlider("card-selection-slider");
+  await page.getByRole("button", { name: "Player" }).click();
+  await expect(page.getByTestId("upcoming-fan-slider")).toBeVisible();
+  const player = await readSlider("upcoming-fan-slider");
+
+  expect(player).toEqual(game);
+  expect(game.thumb).toContain("20px|20px");   // 拇指尺寸/颜色/圆角/阴影
+  expect(game.rail).toContain("4px");
+});
+
 test("播放页解析出音源（真实源表 + 远程 URL 写入 audio.src）", async ({ page }) => {
   await page.goto("/");
   // 源表来自本机 /data/sources/*.json，解析成功后显示音源标签
