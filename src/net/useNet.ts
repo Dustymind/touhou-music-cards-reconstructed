@@ -42,6 +42,27 @@ export interface NetApi {
 /** 测试与"同页多实例"用：可替换传输工厂。 */
 export type TransportMode = "local" | "peer";
 
+/** `?peerhost=127.0.0.1&peerport=9100&peerpath=/&peersecure=0` 指向自建信令服务器。 */
+export function peerServerOptions(search = typeof window === "undefined" ? "" : window.location.search) {
+  const params = new URLSearchParams(search);
+  const port = params.get("peerport");
+  return {
+    host: params.get("peerhost") ?? undefined,
+    port: port ? Number(port) : undefined,
+    path: params.get("peerpath") ?? undefined,
+    secure: params.get("peersecure") === undefined ? undefined : params.get("peersecure") !== "0",
+  };
+}
+
+/** 链接里带了 `?peerhost=` / `?peerport=` / `?peer=1` 时，默认勾选"跨机器联机（PeerJS）"，
+ *  这样分享出去带信令参数的链接打开即可直接开房/加入。 */
+export function peerModeFromSearch(
+  search = typeof window === "undefined" ? "" : window.location.search,
+): boolean {
+  const params = new URLSearchParams(search);
+  return params.has("peerhost") || params.has("peerport") || params.get("peer") === "1";
+}
+
 export let transportFactory: (role: Role, roomId: string, mode: TransportMode) => Transport =
   defaultTransportFactory;
 export function __setTransportFactory(factory: typeof transportFactory): void {
@@ -54,7 +75,7 @@ export function __busHub(): BusHub {
 }
 
 function defaultTransportFactory(role: Role, roomId: string, mode: TransportMode): Transport {
-  if (mode === "peer") return new PeerTransport(role, roomId);
+  if (mode === "peer") return new PeerTransport(role, roomId, peerServerOptions());
   if (supportsBroadcastChannel()) {
     return new BroadcastChannelTransport(role, role === "host" ? 0 : Math.floor(Math.random() * 100000) + 1, roomId);
   }
@@ -175,12 +196,18 @@ export const useNet = create<NetApi>((set, get) => {
   };
 });
 
+// 开发/E2E 调试钩子（仅 dev 构建挂到 window，生产构建里不存在）
+if (import.meta.env.DEV && typeof window !== "undefined") {
+  (window as unknown as { __TMC_NET__?: unknown }).__TMC_NET__ = useNet;
+}
+
 /** 主机侧把意图落到本地 store（复用规则层）。 */
 export function applyIntentLocally(intent: ClientIntent, from: number): void {
   const game = useGame.getState();
   switch (intent.kind) {
     case "pick": {
-      game.pick(intent.side, intent.slot);
+      // 抢拍者永远是意图的发送方，客户端自报的 player 不可信
+      game.pick(from, intent.side, intent.slot, intent.timestamp);
       return;
     }
     case "confirmStart": {

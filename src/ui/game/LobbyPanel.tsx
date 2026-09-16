@@ -5,7 +5,7 @@ import {
 import { useState } from "react";
 
 import { Localization, t } from "../../i18n/localization";
-import { useNet } from "../../net/useNet";
+import { peerModeFromSearch, useNet } from "../../net/useNet";
 import { NoFontFamily } from "../../theme/theme";
 
 export interface LobbyPanelProps {
@@ -18,7 +18,8 @@ export function LobbyPanel(_props: LobbyPanelProps) {
   const [name, setName] = useState("Player");
   const [room, setRoom] = useState("");
   const [chatDraft, setChatDraft] = useState("");
-  const [peerMode, setPeerMode] = useState(false);
+  // 带信令服务器参数的链接默认就走 PeerJS（跨浏览器 / 跨机器）
+  const [peerMode, setPeerMode] = useState(peerModeFromSearch);
   const online = net.role !== null;
 
   return (
@@ -80,7 +81,8 @@ export function LobbyPanel(_props: LobbyPanelProps) {
           </>
         )}
         <Box sx={{ flex: 1 }} />
-        <Typography variant="caption" color="text.secondary" data-testid="net-digest">
+        {/* 界面上只显示前 24 个字符（布局考虑），完整摘要在 `data-digest` 里给 E2E 断言用 */}
+        <Typography variant="caption" color="text.secondary" data-testid="net-digest" data-digest={net.digest}>
           digest {net.digest.slice(0, 24) || "-"}
         </Typography>
       </Stack>

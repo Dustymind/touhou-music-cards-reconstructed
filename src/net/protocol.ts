@@ -65,6 +65,11 @@ export function stateDigest(state: GameState): string {
     const collected = player.collected.map((card) => `${card.characterKey}:${card.cardIndex}`).join(",");
     parts.push(`p${index}[${deck}|${collected}]`);
   });
+  // 抢拍记录也是状态的一部分（决定谁抢到、卡片染色），必须进摘要
+  const picks = state.pickEvents
+    .map((event) => `${event.player}@${event.side}:${event.slot}:${event.card.characterKey}`)
+    .join(",");
+  parts.push(`picks=${picks}`);
   return parts.join(" ");
 }
 
