@@ -1,0 +1,331 @@
+"""本地曲库助手：给应用提供「本地专辑源」+ 音频文件（支持 Range / CORS）。
+
+应用会向它请求两样东西：
+
+1. ``GET /manifest.json`` —— 曲目表，形状与远端源表一致：``[专辑, 曲目, URL]`` 数组，
+   外加 ``pack`` 标识（预留给多重架构：本地曲目属于哪个曲包）。**动态生成**：
+   扫一遍曲库就知道有哪些曲目，URL 按请求的 Host 拼，所以换端口/加文件都不用重新生成。
+2. ``GET /media/<专辑>/<曲目>.mp3`` —— 音频本体，支持 Range 与 CORS。
+
+为什么不能直接用 ``python3 -m http.server``：
+
+* 应用用 ``fetch()`` 拉 manifest，会被 CORS 挡住（http.server 不发 ``Access-Control-Allow-Origin``）；
+* ``http.server`` 不支持 Range，拖进度条会失效。
+
+配置（默认读仓库根的 ``local-source.toml``，已被 .gitignore）：
+
+.. code-block:: toml
+
+    [server]
+    host = "127.0.0.1"
+    port = 8011
+    port_tries = 10
+
+    [library]
+    root = "../.music"        # 相对配置文件所在目录
+
+    [pack]
+    id = "otomads"
+    label_en = "Local album"
+    label_zh = "本地专辑"
+
+用法::
+
+    uv run python -m tmc.local_source                 # 起服务
+    uv run python -m tmc.local_source --print-url     # 只打印实际地址
+    uv run python -m tmc.local_source --print-table   # 只打印曲目表 JSON
+    uv run python -m tmc.local_source --root /mnt/music --port 8022
+"""
+from __future__ import annotations
+
+import argparse
+import http.server
+import json
+import os
+import re
+import socket
+import socketserver
+import sys
+import tomllib
+from urllib.parse import quote, unquote
+
+from . import repo
+
+DEFAULT_CONFIG = repo.ROOT / "local-source.toml"
+DEFAULT_HOST = "127.0.0.1"
+DEFAULT_PORT = 8011
+DEFAULT_TRIES = 10
+DEFAULT_ROOT = repo.ROOT.parent / ".music"
+MANIFEST_PATH = "manifest.json"
+AUDIO_EXTENSIONS = (".mp3",)
+RANGE_RE = re.compile(r"bytes=(\d*)-(\d*)")
+
+
+def load_config(path, *, host=None, port=None, root=None, pack_id=None) -> dict:
+    """优先级：命令行 > local-source.toml > 内置默认值。"""
+    cfg: dict = {}
+    base_dir = repo.ROOT
+    if path and os.path.exists(path):
+        base_dir = os.path.dirname(os.path.abspath(path))
+        with open(path, "rb") as fh:
+            cfg = tomllib.load(fh)
+
+    def resolve(value):
+        if not value:
+            return None
+        return os.path.normpath(value if os.path.isabs(value) else os.path.join(base_dir, value))
+
+    server = cfg.get("server", {})
+    library = cfg.get("library", {})
+    pack = cfg.get("pack", {})
+    return {
+        "config_file": path if path and os.path.exists(path) else None,
+        "host": host or server.get("host", DEFAULT_HOST),
+        "port": int(port if port is not None else server.get("port", DEFAULT_PORT)),
+        "port_tries": int(server.get("port_tries", DEFAULT_TRIES)),
+        "root": resolve(root) or resolve(library.get("root")) or str(DEFAULT_ROOT),
+        "pack_id": pack_id or pack.get("id", "otomads"),
+        "pack_label_en": pack.get("label_en", "Local album"),
+        "pack_label_zh": pack.get("label_zh", "本地专辑"),
+    }
+
+
+def scan_library(root: str) -> list[tuple[str, str]]:
+    """曲库 → `[(专辑, 曲目), …]`。专辑 = 第一层目录名，曲目 = 去掉扩展名的文件名。"""
+    found: list[tuple[str, str]] = []
+    for dirpath, _dirnames, filenames in os.walk(root):
+        for name in filenames:
+            if not name.lower().endswith(AUDIO_EXTENSIONS):
+                continue
+            rel = os.path.relpath(os.path.join(dirpath, name), root).replace(os.sep, "/")
+            album, _, filename = rel.rpartition("/")
+            found.append((album, os.path.splitext(filename)[0]))
+    return sorted(found)
+
+
+def media_path(album: str, title: str) -> str:
+    """曲目 → ``/media/<专辑>/<曲目>.mp3``（非 ASCII 按 URL 规范编码）。"""
+    return f"/media/{quote(album)}/{quote(title)}.mp3"
+
+
+def build_manifest(root: str, base_url: str, pack_id: str) -> dict:
+    return {
+        "schema": 1,
+        "pack": pack_id,
+        "tracks": [[album, title, base_url.rstrip("/") + media_path(album, title)]
+                   for album, title in scan_library(root)],
+    }
+
+
+def find_bindable_port(host: str, port: int, tries: int) -> int | None:
+    for offset in range(max(1, tries)):
+        candidate = port + offset
+        if candidate > 65535:
+            break
+        probe = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            probe.bind((host, candidate))
+            return candidate
+        except OSError:
+            continue
+        finally:
+            probe.close()
+    return None
+
+
+class _LimitedReader:
+    """只让 copyfile 读走 Range 指定的那一段。"""
+
+    def __init__(self, handle, remaining: int) -> None:
+        self.handle, self.remaining = handle, remaining
+
+    def read(self, size: int = -1) -> bytes:
+        if self.remaining <= 0:
+            return b""
+        if size is None or size < 0 or size > self.remaining:
+            size = self.remaining
+        data = self.handle.read(size)
+        self.remaining -= len(data)
+        return data
+
+    def close(self) -> None:
+        self.handle.close()
+
+
+class LocalMusicHandler(http.server.SimpleHTTPRequestHandler):
+    server_version = "TMC-LocalMusic/0.1"
+
+    # ---- 基地址：按请求 Host 拼，换端口不必改任何表 ----
+    @property
+    def base_url(self) -> str:
+        host = self.headers.get("Host") or f"{self.server.server_address[0]}:{self.server.server_address[1]}"  # type: ignore[attr-defined]
+        return f"http://{host}/"
+
+    def end_headers(self) -> None:
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Range")
+        self.send_header("Access-Control-Expose-Headers",
+                         "Content-Range, Content-Length, Accept-Ranges")
+        super().end_headers()
+
+    def do_OPTIONS(self) -> None:  # noqa: N802
+        self.send_response(204)
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+
+    def translate_path(self, path: str) -> str:
+        """URL 去掉 ``/media/`` 前缀并把百分号解码，中文/空格文件名照常命中。"""
+        path = unquote(path.split("?", 1)[0].split("#", 1)[0], errors="surrogatepass")
+        if path.startswith("/media/"):
+            path = path[len("/media"):]
+        return super().translate_path(path)
+
+    def log_message(self, fmt: str, *args) -> None:  # noqa: A003
+        sys.stderr.write("  %s\n" % (fmt % args))
+
+    # ---- manifest ----
+    def _send_manifest(self, body: bool) -> None:
+        payload = json.dumps(
+            build_manifest(self.server.music_root, self.base_url, self.server.pack_id),  # type: ignore[attr-defined]
+            ensure_ascii=False, indent=1).encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Content-Length", str(len(payload)))
+        self.end_headers()
+        if body:
+            self.wfile.write(payload)
+
+    def send_head(self):  # noqa: ANN201
+        if unquote(self.path.split("?", 1)[0].lstrip("/")) == MANIFEST_PATH:
+            self._send_manifest(body=self.command != "HEAD")
+            return None
+
+        raw_range = self.headers.get("Range")
+        if not raw_range or self.command not in ("GET", "HEAD"):
+            return super().send_head()
+
+        matched = RANGE_RE.fullmatch(raw_range.strip())
+        if not matched:
+            return super().send_head()
+
+        path = self.translate_path(self.path)
+        if os.path.isdir(path):
+            return super().send_head()
+        try:
+            handle = open(path, "rb")  # noqa: SIM115
+        except OSError:
+            self.send_error(404, "File not found")
+            return None
+
+        try:
+            size = os.fstat(handle.fileno()).st_size
+        except OSError:
+            handle.close()
+            return super().send_head()
+
+        start_s, end_s = matched.group(1), matched.group(2)
+        if start_s == "":
+            start = max(0, size - int(end_s or 0))
+            end = size - 1
+        else:
+            start = int(start_s)
+            end = min(int(end_s) if end_s else size - 1, size - 1)
+
+        if start >= size or start > end:
+            handle.close()
+            self.send_response(416)
+            self.send_header("Content-Range", f"bytes */{size}")
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return None
+
+        self.send_response(206)
+        self.send_header("Content-Type", self.guess_type(path))
+        self.send_header("Accept-Ranges", "bytes")
+        self.send_header("Content-Range", f"bytes {start}-{end}/{size}")
+        self.send_header("Content-Length", str(end - start + 1))
+        self.end_headers()
+        if self.command == "HEAD":
+            handle.close()
+            return None
+        handle.seek(start)
+        return _LimitedReader(handle, end - start + 1)
+
+
+class ThreadingServer(socketserver.ThreadingTCPServer):
+    allow_reuse_address = True
+    daemon_threads = True
+
+
+def serve(conf: dict, *, strict_port: bool = False) -> int:
+    if not os.path.isdir(conf["root"]):
+        print(f"❌ 曲库目录不存在：{conf['root']}\n"
+              f"   用 --root 指定，或在 {DEFAULT_CONFIG} 的 [library].root 里配置。", file=sys.stderr)
+        return 2
+
+    port = conf["port"]
+    if not strict_port:
+        found = find_bindable_port(conf["host"], port, conf["port_tries"])
+        if found is None:
+            print(f"❌ {conf['host']}:{port} 起连续 {conf['port_tries']} 个端口都不可用", file=sys.stderr)
+            return 3
+        port = found
+
+    handler = lambda *a, **kw: LocalMusicHandler(*a, directory=conf["root"], **kw)  # noqa: E731
+    try:
+        httpd = ThreadingServer((conf["host"], port), handler)
+    except OSError as exc:
+        print(f"❌ 无法监听 {conf['host']}:{port}：{exc}", file=sys.stderr)
+        return 3
+
+    httpd.music_root = conf["root"]          # type: ignore[attr-defined]
+    httpd.pack_id = conf["pack_id"]          # type: ignore[attr-defined]
+    tracks = scan_library(conf["root"])
+    base_url = f"http://{conf['host']}:{port}/"
+    if port != conf["port"]:
+        print(f"⚠️  端口 {conf['port']} 被占用，已改用 {port}；应用侧填 {base_url}")
+    print(f"配置文件  : {conf['config_file'] or '(未使用，取默认值)'}")
+    print(f"曲库目录  : {conf['root']}（{len(tracks)} 首）")
+    print(f"曲包      : {conf['pack_id']}")
+    print(f"manifest  : {base_url}{MANIFEST_PATH}")
+    print("Ctrl-C 停止。\n")
+    with httpd:
+        try:
+            httpd.serve_forever()
+        except KeyboardInterrupt:
+            print("\n已停止。")
+    return 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--config", default=str(DEFAULT_CONFIG))
+    ap.add_argument("--host")
+    ap.add_argument("--port", type=int)
+    ap.add_argument("--root")
+    ap.add_argument("--pack")
+    ap.add_argument("--strict-port", action="store_true")
+    ap.add_argument("--print-url", action="store_true")
+    ap.add_argument("--print-table", action="store_true")
+    args = ap.parse_args(argv)
+
+    conf = load_config(args.config, host=args.host, port=args.port,
+                       root=args.root, pack_id=args.pack)
+    port = conf["port"] if args.strict_port else (
+        find_bindable_port(conf["host"], conf["port"], conf["port_tries"]) or conf["port"])
+    base_url = f"http://{conf['host']}:{port}/"
+    if args.print_url:
+        print(base_url)
+        return 0
+    if args.print_table:
+        print(json.dumps(build_manifest(conf["root"], base_url, conf["pack_id"]),
+                         ensure_ascii=False, indent=1))
+        return 0
+    return serve(conf, strict_port=args.strict_port)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

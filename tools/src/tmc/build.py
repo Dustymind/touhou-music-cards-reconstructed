@@ -50,6 +50,27 @@ def build_albums() -> dict:
     return {"schema": SCHEMA_VERSION, "albums": albums}
 
 
+def build_sources() -> dict:
+    """音乐源注册表 → 运行时 JSON（前端只读这一份，不在代码里硬编码音源）。"""
+    with open(repo.DATA / "sources" / "sources.toml", "rb") as fh:
+        data = tomllib.load(fh)
+    sources = []
+    for entry in data["source"]:
+        sources.append({
+            "id": entry["id"],
+            "label": {"en": entry["label_en"], "zh": entry["label_zh"]},
+            "tableUrl": entry["table_url"],
+            "kind": entry["kind"],
+            "order": entry["order"],
+            "enabled": entry["enabled"],
+            "proxyable": entry.get("proxyable", False),
+            "description": {"en": entry.get("description_en", ""),
+                            "zh": entry.get("description_zh", "")},
+        })
+    sources.sort(key=lambda s: s["order"])
+    return {"schema": SCHEMA_VERSION, "sources": sources}
+
+
 def content_hash(characters: dict, albums: dict) -> str:
     blob = json.dumps([characters, albums], ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(blob.encode("utf-8")).hexdigest()
@@ -62,6 +83,7 @@ def main(argv: list[str] | None = None) -> int:
 
     characters, chars = build_characters()
     albums = build_albums()
+    sources = build_sources()
     digest = content_hash(characters, albums)
     index = {
         "schema": SCHEMA_VERSION,
@@ -71,12 +93,14 @@ def main(argv: list[str] | None = None) -> int:
             "albums": len(albums["albums"]),
             "trackEntries": sum(len(c["music"]) for c in chars),
             "distinctTracks": len({(a, t) for c in chars for a, t, _e in c["music"]}),
+            "sources": len(sources["sources"]),
         },
     }
     outputs = {
         repo.PUBLIC_DATA / "characters.json": _dumps(characters),
         repo.PUBLIC_DATA / "albums.json": _dumps(albums),
         repo.PUBLIC_DATA / "index.json": _dumps(index),
+        repo.PUBLIC_DATA / "sources.json": _dumps(sources),
     }
     for source_id in ("netease163", "cloudflare_r2", "thbwiki"):
         outputs[repo.PUBLIC_DATA / "sources" / f"{source_id}.json"] = (

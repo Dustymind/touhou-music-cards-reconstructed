@@ -11,6 +11,7 @@
 - R1/R5: 216
 - R2: 90
 - R3: 7
+- alias-added: 15
 - duplicate-dropped: 1
 
 ## 源表迁移

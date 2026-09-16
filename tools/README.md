@@ -16,7 +16,9 @@ uv run pytest    # 跑数据/规则测试
 | `tmc.migrate` | 上游 v3 JSON → TOML / 专辑注册表 / 数组化源表 + 报告 |
 | `tmc.validate` | 不变量校验、面次核对、覆盖表一致性 |
 | `tmc.build` | 生成 `public/data/*.json`（`--check` 做漂移守卫） |
+| `tmc.local_source` | 本地曲库助手：`/manifest.json` + `/media/...`（Range/CORS、端口回退） |
+| `tmc.check_urls` | 远程音源实链抽查（Range 请求 + 音频嗅探） |
 
-待做：`tmc.local_source`（本地音乐源服务器，M3）。
+
 
 > 本机沙箱下 `$HOME/.cache` 只读，因此必须给 `uv` 指定仓库内的缓存目录（`UV_CACHE_DIR=.uv/cache`，已在 `.gitignore` 中忽略）。

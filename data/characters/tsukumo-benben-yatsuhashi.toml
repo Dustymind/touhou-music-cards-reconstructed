@@ -2,7 +2,7 @@ key = "tsukumo-benben-yatsuhashi"
 name = "九十九弁々・八橋"
 order = 67
 card = ["弁々.png", "八橋.png"]
-searchNames = ["九十九弁々・八橋", "Tsukumo Benben Yatsuhashi", "九十九弁弁·八桥", "jiushijiu bianbian baqiao"]
+searchNames = ["九十九弁々・八橋", "Tsukumo Benben Yatsuhashi", "九十九弁弁·八桥", "jiushijiu bianbian baqiao", "九十九八桥", "九十九弁弁", "九十九八橋", "九十九弁々"]
 
 music = [
   ["東方輝針城 ～ Double Dealing Character", "幻想浄瑠璃", "角色曲"],

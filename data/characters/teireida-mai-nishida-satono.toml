@@ -2,7 +2,7 @@ key = "teireida-mai-nishida-satono"
 name = "丁礼田舞・爾子田里乃"
 order = 82
 card = ["舞.png", "里乃.png"]
-searchNames = ["丁礼田舞・爾子田里乃", "Teireida Mai Nishida Satono", "丁礼田舞·尔子田里乃", "dinglitian wu erzitian linai"]
+searchNames = ["丁礼田舞・爾子田里乃", "Teireida Mai Nishida Satono", "丁礼田舞·尔子田里乃", "dinglitian wu erzitian linai", "丁礼田舞", "尔子田里乃"]
 
 music = [
   ["東方天空璋 ～ Hidden Star in Four Seasons", "クレイジーバックダンサーズ", "角色曲"],

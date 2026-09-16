@@ -26,6 +26,23 @@ from .roles import RoleIndex, classify, load_overrides
 #: 无法判定时的占位值（同时写入 extra-pending.tsv，M2 必须清零）
 PROVISIONAL_EXTRA = "角色曲"
 
+#: 人工补充的搜索别名 `data/meta/character-aliases.tsv`（key → [别名, …]）
+ALIASES_FILE = "character-aliases.tsv"
+
+
+def load_aliases() -> dict[str, list[str]]:
+    path = repo.DATA / "meta" / ALIASES_FILE
+    table: dict[str, list[str]] = {}
+    if not path.exists():
+        return table
+    for line in path.read_text(encoding="utf-8").splitlines()[1:]:
+        if not line.strip():
+            continue
+        cells = line.split("\t")
+        if len(cells) >= 2 and cells[1]:
+            table.setdefault(cells[0], []).append(cells[1])
+    return table
+
 
 def _escape(value: str) -> str:
     return value.replace("\\", "\\\\").replace('"', '\\"')
@@ -82,7 +99,9 @@ def _load_upstream() -> dict:
 
 
 def migrate_characters(index: RoleIndex, report: Migration,
-                       overrides: dict | None = None) -> None:
+                       overrides: dict | None = None,
+                       aliases: dict[str, list[str]] | None = None) -> None:
+    aliases = aliases or {}
     upstream = _load_upstream()
     taken: set[str] = set()
     for order, (name, cfg) in enumerate(upstream.items(), start=1):
@@ -92,13 +111,18 @@ def migrate_characters(index: RoleIndex, report: Migration,
         albums = {repo.split_track_path(p)[0] for p in musics}
         debut = debut_work_of(name, tags, albums)
         slug = choose_slug(name, cfg["searchNames"], taken)
+        search_names = list(cfg["searchNames"])
+        for extra in aliases.get(slug, []):
+            if extra not in search_names:
+                search_names.append(extra)
+                report.reasons["alias-added"] += 1
 
         lines = [
             f"key = {_toml_str(slug)}",
             f"name = {_toml_str(name)}",
             f"order = {order}",
             "card = [" + ", ".join(_toml_str(c) for c in cards) + "]",
-            "searchNames = [" + ", ".join(_toml_str(s) for s in cfg["searchNames"]) + "]",
+            "searchNames = [" + ", ".join(_toml_str(s) for s in search_names) + "]",
             "",
             "music = [",
         ]
@@ -223,6 +247,7 @@ def main(argv: list[str] | None = None) -> int:
 
     index = RoleIndex.load()
     overrides = load_overrides()
+    aliases = load_aliases()
     report = Migration()
     referenced: set[tuple[str, str]] = set()
     upstream = _load_upstream()
@@ -232,7 +257,7 @@ def main(argv: list[str] | None = None) -> int:
             referenced.add((unicodedata.normalize("NFC", album), unicodedata.normalize("NFC", title)))
 
     migrate_albums()
-    migrate_characters(index, report, overrides)
+    migrate_characters(index, report, overrides, aliases)
     migrate_sources(referenced, report)
     write_reports(report)
     print(f"角色 {report.characters} / 条目 {report.entries} / 待判定 {len(report.pending)}")

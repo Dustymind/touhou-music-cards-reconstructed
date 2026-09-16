@@ -120,6 +120,29 @@ def check_characters(chars: list[dict], albums: dict[str, dict], p: Problems):
             "referenced": referenced, "hifuu_entries": hifuu_entries}
 
 
+def check_source_registry(p: Problems) -> int:
+    """`data/sources/sources.toml`：id/order 唯一，远程源的表文件必须存在。"""
+    import tomllib as _tomllib
+
+    with open(repo.DATA / "sources" / "sources.toml", "rb") as fh:
+        entries = _tomllib.load(fh)["source"]
+    ids, orders = set(), set()
+    for entry in entries:
+        if entry["id"] in ids:
+            p.error(f"音源 id 重复：{entry['id']}")
+        ids.add(entry["id"])
+        if entry["order"] in orders:
+            p.error(f"音源 order 重复：{entry['order']}")
+        orders.add(entry["order"])
+        if entry["kind"] == "remote":
+            rel = entry["table_url"].lstrip("/").replace("data/sources/", "")
+            if not (repo.DATA / "sources" / rel).exists():
+                p.error(f"音源 {entry['id']} 的表文件不存在：{entry['table_url']}")
+        elif entry["kind"] != "local":
+            p.error(f"音源 {entry['id']} 的 kind 非法：{entry['kind']}")
+    return len(entries)
+
+
 def check_sources(referenced: set[tuple[str, str]], p: Problems):
     stats = {}
     for source_id in ("netease163", "cloudflare_r2", "thbwiki"):
@@ -203,6 +226,48 @@ def check_overrides(chars: list[dict], p: Problems) -> int:
     return len(table)
 
 
+def check_alias_tables(chars: list[dict], p: Problems) -> dict[str, int]:
+    """`character-aliases.tsv` 的别名必须真的写进了角色文件；合并条目表的成员名必须能在别名里找到。"""
+    meta = repo.DATA / "meta"
+    by_key = {c["key"]: c for c in chars}
+    added = 0
+    alias_file = meta / "character-aliases.tsv"
+    if alias_file.exists():
+        for line in alias_file.read_text(encoding="utf-8").splitlines()[1:]:
+            if not line.strip():
+                continue
+            key, alias, *_src = (line.split("\t") + ["", ""])
+            char = by_key.get(key)
+            if char is None:
+                p.error(f"别名表指向未知角色：{key}")
+                continue
+            if alias not in char["searchNames"]:
+                p.error(f"别名未落进角色文件：{key} / {alias}")
+            else:
+                added += 1
+
+    composites = 0
+    comp_file = meta / "composite-characters.tsv"
+    if comp_file.exists():
+        for line in comp_file.read_text(encoding="utf-8").splitlines()[1:]:
+            if not line.strip():
+                continue
+            cells = line.split("\t")
+            key, members = cells[0], cells[2]
+            char = by_key.get(key)
+            if char is None:
+                p.error(f"合并条目表指向未知角色：{key}")
+                continue
+            composites += 1
+            if len(char["card"]) < 2:
+                p.error(f"{key}: 合并条目应有多个卡面，实际 {char['card']}")
+            for member in members.split(" / "):
+                member = member.strip()
+                if member and not any(member in n or n in member for n in char["searchNames"]):
+                    p.error(f"{key}: 成员「{member}」不在 searchNames 里")
+    return {"aliases": added, "composites": composites}
+
+
 def check_pending(chars: list[dict], p: Problems):
     path = repo.ROOT / "reports" / "extra-pending.tsv"
     if not path.exists():
@@ -232,15 +297,17 @@ def run() -> tuple["Problems", dict]:
     chars = load_characters(p)
     char_stats = check_characters(chars, albums, p)
     source_stats = check_sources(char_stats["referenced"], p)
+    source_registry = check_source_registry(p)
     pending = check_pending(chars, p)
     overrides = check_overrides(chars, p)
+    alias_stats = check_alias_tables(chars, p)
     stage_rows = check_stage_attribution(chars)
     digest = hashlib.sha256(
         json.dumps(sorted(char_stats["referenced"]), ensure_ascii=False).encode()).hexdigest()[:12]
     return p, {
         "albums": len(albums), "characters": len(chars), "pending": pending,
         "digest": digest, "sources": source_stats, "stage_rows": stage_rows,
-        "overrides": overrides,
+        "overrides": overrides, "source_registry": source_registry, **alias_stats,
         **{k: v for k, v in char_stats.items() if k != "referenced"},
     }
 

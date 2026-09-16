@@ -27,7 +27,3 @@
 - 東方虹龍洞 ～ Unconnected Marketeers / 幻想の地下大線路網: himemushi-momoyo, kudamaki-tsukasa
 - 東方輝針城 ～ Double Dealing Character / ミストレイク: cirno, wakasagihime
 - 東方鬼形獣 ～ Wily Beast and Weakest Creature / 輝かしき弱肉強食の掟: kurokoma-saki, niwatari-kutaka
-
-## 提示
-
-- 道中曲面次核对：2 条 alias-gap（见 reports/stage-check.tsv）
