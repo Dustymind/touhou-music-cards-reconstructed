@@ -59,6 +59,20 @@ describe("App 冒烟（真实数据）", () => {
     expect(text).toContain("121 in rotation");
   });
 
+  it("首次进入配置页：预设默认全选（父项勾选、统计 全库可用）", async () => {
+    installDataFetchStub(dataDir);
+    const { container } = await renderApp();
+    await waitFor(container, (value) => value.includes("Player"));
+    const config = Array.from(container.querySelectorAll("button"))
+      .find((button) => button.textContent === "Config");
+    await act(async () => {
+      config!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    const parent = container.querySelector<HTMLInputElement>('input[aria-label="hifuu-parent"]');
+    expect(parent?.checked).toBe(true);
+    expect(container.querySelector('[data-testid="preset-stats"]')?.textContent).toContain("378 / 378");
+  });
+
   it("数据缺失时给出可读错误而不是白屏", async () => {
     globalThis.fetch = (async () => new Response("not found", { status: 404 })) as typeof fetch;
     const { container } = await renderApp();

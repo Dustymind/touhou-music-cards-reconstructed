@@ -48,6 +48,13 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
   // 预设：持久化状态与新专辑默认勾选合并（首帧就要用它算队列，不能等 effect）
   const activePreset = useMemo(() => mergeWithDefaults(preset, bundle.albums), [preset, bundle.albums]);
 
+  // 把合并结果写回 store：配置页读的是 store，首帧之后必须与 activePreset 一致
+  // （否则界面会显示"全部未勾选"，而队列却按默认全选在跑 —— 浏览器实测踩到过）
+  useEffect(() => {
+    preset.sync(bundle.albums);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bundle]);
+
   /** 仅单曲模式：每角色固定一首（未手选则取预设允许的第一首）。 */
   const pinned = useMemo(() => {
     if (!single.enabled) return {};
