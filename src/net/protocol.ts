@@ -1,0 +1,73 @@
+/** 联机协议：主机权威 + 快照同步。
+ *
+ * 与上游（事件回放 + 增量事件）的差别：这里主机在**每次接受动作后广播完整快照**并带自增 `seq`。
+ * 状态很小（几百字节到几 KB），换来的是"任意时刻都能收敛、重连只要一份快照、无需处理丢事件"，
+ * 直接满足"必须保证多人模式同步"的硬要求。协议版本与数据哈希在握手时校验，不一致就拒绝开局。
+ */
+import type { CardInfo, GameState, MatchMode } from "../game/types";
+
+export const PROTOCOL_VERSION = 1;
+
+export interface PeerInfo {
+  index: number;
+  name: string;
+  isObserver: boolean;
+  isHost: boolean;
+  /** 该端的静态数据哈希（`public/data/index.json` 的 contentHash） */
+  dataHash: string;
+}
+
+/** 客户端 → 主机的意图（主机负责校验与落地）。 */
+export type ClientIntent =
+  | { kind: "hello"; name: string; isObserver: boolean; dataHash: string; protocol: number }
+  | { kind: "pick"; side: 0 | 1; slot: number; timestamp: number }
+  | { kind: "confirmStart" }
+  | { kind: "confirmNext" }
+  | { kind: "give" }
+  | { kind: "chat"; text: string }
+  | { kind: "addCard"; player: number; card: CardInfo; slot: number }
+  | { kind: "removeCard"; player: number; slot: number }
+  | { kind: "clearDeck"; player: number }
+  | { kind: "adjustDeckSize"; rows: number; columns: number }
+  | { kind: "setMode"; mode: MatchMode }
+  | { kind: "setTraditional"; traditional: boolean }
+  | { kind: "filterMusicByDeck" }
+  | { kind: "requestSync" };
+
+/** 主机 → 客户端。 */
+export type HostMessage =
+  | { kind: "welcome"; yourIndex: number; peers: PeerInfo[]; state: GameState; seq: number; melee: boolean }
+  | { kind: "snapshot"; state: GameState; seq: number }
+  | { kind: "peers"; peers: PeerInfo[] }
+  | { kind: "chat"; from: number; text: string; system?: boolean }
+  | { kind: "reject"; reason: "protocol" | "data" | "full"; detail: string }
+  | { kind: "goodbye"; reason: string };
+
+export type Message = ClientIntent | HostMessage;
+
+export function isHostMessage(message: Message): message is HostMessage {
+  return ["welcome", "snapshot", "peers", "reject", "goodbye"].includes(message.kind);
+}
+
+/** 状态摘要：用于两端一致性自检（角色 / 牌库 / 收集 / 回合）。 */
+export function stateDigest(state: GameState): string {
+  const parts: string[] = [
+    `st=${state.state}`,
+    `turn=${state.turnSeq}`,
+    `cur=${state.currentKey ?? "-"}`,
+    `gives=${state.givesLeft}`,
+    `winner=${state.winner ?? "-"}`,
+    `mode=${state.mode}`,
+    `rows=${state.deckRows}x${state.deckColumns}`,
+  ];
+  state.players.forEach((player, index) => {
+    const deck = player.deck.map((card) => (card ? `${card.characterKey}:${card.cardIndex}` : "-")).join(",");
+    const collected = player.collected.map((card) => `${card.characterKey}:${card.cardIndex}`).join(",");
+    parts.push(`p${index}[${deck}|${collected}]`);
+  });
+  return parts.join(" ");
+}
+
+export function dataHashMismatch(a: string, b: string): boolean {
+  return a.slice(0, 12) !== b.slice(0, 12);
+}

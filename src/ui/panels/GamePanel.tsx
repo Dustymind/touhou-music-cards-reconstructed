@@ -13,6 +13,8 @@ import { useGameLoop } from "../../game/useGameLoop";
 import type { CardState } from "../components/CharacterCard";
 import { NoFontFamily } from "../../theme/theme";
 import { DeckGrid } from "../game/DeckGrid";
+import { LobbyPanel } from "../game/LobbyPanel";
+import { useNet } from "../../net/useNet";
 import { markCountdownStart, TimerDisplay } from "../game/TimerDisplay";
 
 export function GamePanel({ bundle }: { bundle: DataBundle }) {
@@ -26,6 +28,48 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
 
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
   const [cardWidth, setCardWidth] = useState(56);
+  const net = useNet();
+  const isClient = net.role === "client";
+
+  /** 联机客户端：动作改发意图；主机/单机：直接落本地状态。 */
+  const act = useMemo(() => ({
+    pick: (side: 0 | 1, slot: number) => {
+      if (isClient) net.intent({ kind: "pick", side, slot, timestamp: Math.max(0, Date.now() - game.turnStartTimestamp) });
+      else pick(side, slot);
+    },
+    resize: (rows: number, columns: number) => {
+      if (isClient) net.intent({ kind: "adjustDeckSize", rows, columns });
+      else resize(rows, columns);
+    },
+    setMode: (mode: typeof game.mode) => {
+      if (isClient) net.intent({ kind: "setMode", mode });
+      else setMode(mode);
+    },
+    setTraditional: (traditional: boolean) => {
+      if (isClient) net.intent({ kind: "setTraditional", traditional });
+      else setTraditional(traditional);
+    },
+    filterByDeck: () => {
+      if (isClient) net.intent({ kind: "filterMusicByDeck" });
+      else filterByDeck();
+    },
+    fill: (player: number) => { if (!isClient) fill(player); },
+    clear: (player: number) => { if (!isClient) clear(player); },
+    shuffle: (player: number) => { if (!isClient) shuffle(player); },
+    start: () => {
+      if (isClient) net.intent({ kind: "confirmStart" });
+      else start();
+    },
+    stop: () => { if (!isClient) stop(); },
+    next: () => {
+      if (isClient) net.intent({ kind: "confirmNext" });
+      else next();
+    },
+    give: () => {
+      if (isClient) net.intent({ kind: "give" });
+      else give();
+    },
+  }), [isClient, net, pick, resize, setMode, setTraditional, filterByDeck, fill, clear, shuffle, start, stop, next, give, game.turnStartTimestamp]);
 
   const cardFiles = useMemo(() => {
     const map: Record<string, string[]> = {};
@@ -50,7 +94,8 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
     if (game.state === "countdown") markCountdownStart();
   }, [game.state, game.turnSeq]);
 
-  useGameLoop(true);
+  // 只有单机/CPU 与主机跑计时器；客户端完全由主机快照驱动
+  useGameLoop(!isClient);
 
   const pickStates = useMemo(() => {
     const states: Record<0 | 1, Record<number, CardState>> = { 0: {}, 1: {} };
@@ -68,7 +113,7 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
 
   const handleOwnCard = (slot: number, _card: CardInfo) => {
     if (game.state === "turnStart") {
-      pick(0, slot);
+      act.pick(0, slot);
       return;
     }
     if (game.state === "turnWinner" && game.givesLeft > 0) setSelectedSlot(slot);
@@ -82,10 +127,11 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
 
   return (
     <Stack spacing={2} sx={{ width: "100%", maxWidth: 1000, fontFamily: NoFontFamily }}>
+      <LobbyPanel />
       <Paper variant="outlined" sx={{ p: 2 }}>
         <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", alignItems: "center", gap: 1 }}>
           <ToggleButtonGroup size="small" exclusive value={game.mode}
-            onChange={(_event, value) => value && setMode(value)}>
+            onChange={(_event, value) => value && act.setMode(value)}>
             <ToggleButton value="solo" data-testid="mode-solo">Solo</ToggleButton>
             <ToggleButton value="cpu" data-testid="mode-cpu">CPU</ToggleButton>
           </ToggleButtonGroup>
@@ -94,32 +140,32 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
             size="small"
             exclusive
             value={game.traditional ? "traditional" : "leisure"}
-            onChange={(_event, value) => value && setTraditional(value === "traditional")}
+            onChange={(_event, value) => value && act.setTraditional(value === "traditional")}
           >
             <ToggleButton value="traditional" data-testid="rule-traditional">Classic</ToggleButton>
             <ToggleButton value="leisure" data-testid="rule-leisure">Leisure</ToggleButton>
           </ToggleButtonGroup>
 
           <Chip size="small" label={`deck ${game.deckRows}×${game.deckColumns}`} data-testid="deck-size" />
-          <Button size="small" onClick={() => resize(game.deckRows - 1, game.deckColumns)}>-row</Button>
-          <Button size="small" onClick={() => resize(game.deckRows + 1, game.deckColumns)}>+row</Button>
-          <Button size="small" onClick={() => resize(game.deckRows, game.deckColumns - 1)}>-col</Button>
-          <Button size="small" onClick={() => resize(game.deckRows, game.deckColumns + 1)}>+col</Button>
-          <Button size="small" onClick={() => fill(0)} data-testid="random-fill">Random Fill</Button>
-          <Button size="small" onClick={() => fill(1)}>Fill CPU</Button>
-          <Button size="small" onClick={() => clear(0)}>Clear Deck</Button>
-          <Button size="small" onClick={() => shuffle(0)}>Shuffle Deck</Button>
+          <Button size="small" onClick={() => act.resize(game.deckRows - 1, game.deckColumns)}>-row</Button>
+          <Button size="small" onClick={() => act.resize(game.deckRows + 1, game.deckColumns)}>+row</Button>
+          <Button size="small" onClick={() => act.resize(game.deckRows, game.deckColumns - 1)}>-col</Button>
+          <Button size="small" onClick={() => act.resize(game.deckRows, game.deckColumns + 1)}>+col</Button>
+          <Button size="small" onClick={() => act.fill(0)} data-testid="random-fill">Random Fill</Button>
+          <Button size="small" onClick={() => act.fill(1)}>Fill CPU</Button>
+          <Button size="small" onClick={() => act.clear(0)}>Clear Deck</Button>
+          <Button size="small" onClick={() => act.shuffle(0)}>Shuffle Deck</Button>
           <Box sx={{ flex: 1 }} />
           <Button
             size="small"
             variant="contained"
-            onClick={start}
+            onClick={act.start}
             disabled={game.state !== "selecting" || filledSlots(game.players[0]!.deck) === 0}
             data-testid="start-game"
           >
             Start
           </Button>
-          <Button size="small" onClick={stop} disabled={game.state === "selecting"} data-testid="stop-game">
+          <Button size="small" onClick={act.stop} disabled={game.state === "selecting"} data-testid="stop-game">
             Stop
           </Button>
         </Stack>
@@ -185,7 +231,7 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
           upsideDown
           interactive={game.state === "turnStart" || (game.state === "turnWinner" && game.givesLeft < 0)}
           cardStates={pickStates[1]}
-          onCardClick={(slot) => pick(1, slot)}
+          onCardClick={(slot) => act.pick(1, slot)}
           onEmptyClick={handleOpponentEmpty}
         />
 
@@ -208,14 +254,14 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
         />
 
         <Stack direction="row" spacing={1} sx={{ mt: 1.5, alignItems: "center", flexWrap: "wrap" }}>
-          <Button size="small" variant="contained" onClick={next}
+          <Button size="small" variant="contained" onClick={act.next}
             disabled={game.state !== "turnStart" && game.state !== "turnWinner"} data-testid="next-turn">
             Next Turn
           </Button>
-          <Button size="small" onClick={give} disabled={game.givesLeft === 0} data-testid="give-cards">
+          <Button size="small" onClick={act.give} disabled={game.givesLeft === 0} data-testid="give-cards">
             Give randomly
           </Button>
-          <Button size="small" onClick={filterByDeck} data-testid="filter-by-deck">
+          <Button size="small" onClick={act.filterByDeck} data-testid="filter-by-deck">
             {t(Localization.GameFilterByDeck)}
           </Button>
           <Chip size="small" variant="outlined" label={`pool ${pool.length}`} />

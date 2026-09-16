@@ -69,6 +69,7 @@ export const Localization = {
   ConfigTabSingleMode: u("Single track mode", "仅单曲模式"),
 
   GameFilterByDeck: u("Filter Music by Deck", "按卡组筛选音乐"),
+  ChatMessageHint: u("Type a message to chat...", "输入消息以聊天..."),
   GameUpcoming: u("Turn", "回合"),
 
   ListTabOrder: u("Order", "顺序"),

@@ -40,6 +40,11 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
   const queue = useQueue();
   const single = useSingleTrack();
 
+  // 联机握手要用静态数据哈希：挂在 window 上，避免层层透传
+  useEffect(() => {
+    (window as unknown as { __TMC_DATA_HASH__?: string }).__TMC_DATA_HASH__ = bundle.index.contentHash;
+  }, [bundle.index.contentHash]);
+
   // 预设：持久化状态与新专辑默认勾选合并（首帧就要用它算队列，不能等 effect）
   const activePreset = useMemo(() => mergeWithDefaults(preset, bundle.albums), [preset, bundle.albums]);
 
