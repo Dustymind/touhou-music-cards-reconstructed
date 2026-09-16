@@ -107,3 +107,5 @@ pnpm e2e:peer            # 单独起本地 PeerJS 信令服务器（127.0.0.1:91
 - 参考文档 `.ref/notes/*.md` 是对上游的只读调研产物，不随仓库分发。
 - 端到端测试是"必须真浏览器跑"的那一层：MUI/浏览器行为（`Switch` 的 `slotProps.input`、三态开关的
   `aria-checked="mixed"`、PeerJS 真正的 WebRTC 建连）在 jsdom 里都验证不了。
+- dev 构建会把 `useGame` / `useNet` 两个 store 挂到 `window.__TMC_GAME__` / `window.__TMC_NET__`
+  供调试与 E2E 断言；生产构建里这两行不会存在（`import.meta.env.DEV` 守卫）。
