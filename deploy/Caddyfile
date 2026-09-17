@@ -1,0 +1,38 @@
+# 单端口部署：应用 + 本地曲库 + 联机信令走同一个端口。
+#
+#   caddy run --config deploy/Caddyfile            # 默认监听 :8080
+#   DOMAIN=cards.example.com caddy run --config deploy/Caddyfile   # 换个域名/自动 HTTPS
+#
+# 前置：
+#   1) pnpm build                       → dist/
+#   2) cd tools && uv run python -m tmc.local_source   → 127.0.0.1:8011（曲库）
+#   3) pnpm e2e:peer                    → 127.0.0.1:9100（自建信令；只用公网 PeerJS 时可删掉那段）
+#
+# 关键点：Caddy 反代会**自动带上 X-Forwarded-Proto/Host**，所以本地助手生成的音频地址
+# 会跟着对外域名与协议走（https 站点不会触发混合内容拦截）。若换成不转发这些头的代理，
+# 用 `--public-base https://cards.example.com/` 显式指定。
+
+{
+	# 本地调试用固定端口；去掉这行默认就是 :80 / :443
+	http_port 8080
+}
+
+{$DOMAIN:localhost}:{$PORT:8080} {
+	encode zstd gzip
+
+	# 本地曲库助手的 manifest 与音频（Range 由助手自己处理，Caddy 原样透传）
+	@local path /manifest.json /media/*
+	reverse_proxy @local 127.0.0.1:8011 {
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Forwarded-Host {host}
+	}
+
+	# 自建 PeerJS 信令（页面上加 ?peerhost=<域名>&peerport=<端口>&peerpath=/peerjs&peersecure=1）
+	@peer path /peerjs /peerjs/*
+	reverse_proxy @peer 127.0.0.1:9100
+
+	# 其余全部是应用（dist/ 静态产物；SPA 回退交给 try_files）
+	root * dist
+	try_files {path} /index.html
+	file_server
+}

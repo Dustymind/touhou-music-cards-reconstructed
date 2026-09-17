@@ -19,6 +19,33 @@ export interface ResolvedTrack {
   url: string;
 }
 
+/** 本地曲库 manifest 的固定文件名（助手与 v2 的约定）。 */
+export const LOCAL_MANIFEST_FILE = "manifest.json";
+
+/**
+ * 归一化本地曲库地址：
+ * - 空 → `null`（用数据里的默认值，单端口部署时就是同源的 `/manifest.json`）；
+ * - 带 `.json` → 视为完整 manifest 地址；
+ * - 否则视为基地址，补上 `manifest.json`（`127.0.0.1:8011` 这种也认，自动补 `http://`）。
+ */
+export function normalizeLocalManifestUrl(raw: string | null | undefined): string | null {
+  let value = (raw ?? "").trim();
+  if (value === "") return null;
+  if (!/^https?:\/\//i.test(value)) value = `http://${value}`;
+  if (value.endsWith(".json")) return value;
+  return value.endsWith("/") ? `${value}${LOCAL_MANIFEST_FILE}` : `${value}/${LOCAL_MANIFEST_FILE}`;
+}
+
+/** 应用覆盖值：只改 `kind === "local"` 的源，其余源原样。 */
+export function applyLocalManifestUrl(
+  sources: readonly SourceRecord[],
+  raw: string | null | undefined,
+): SourceRecord[] {
+  const url = normalizeLocalManifestUrl(raw);
+  if (!url) return [...sources];
+  return sources.map((source) => (source.kind === "local" ? { ...source, tableUrl: url } : source));
+}
+
 /** 把 `[[专辑, 曲目, URL], …]` 收成查表用的 Map。 */
 export function buildEntries(rows: unknown): Map<string, string> {
   const entries = new Map<string, string>();

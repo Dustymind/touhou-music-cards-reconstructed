@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { buildEntries, countResolvable, loadSourceTables, nextCandidate, resolveTrack } from "./sources";
+import { applyLocalManifestUrl, normalizeLocalManifestUrl, buildEntries, countResolvable, loadSourceTables, nextCandidate, resolveTrack } from "./sources";
 import { trackId } from "../data/types";
 
 const rows = [["紅魔郷", "おてんば恋娘", "https://a/1.mp3"], ["妖々夢", "クリスタライズシルバー", "https://a/2.mp3"]];
@@ -56,5 +56,40 @@ describe("sources resolver", () => {
       { id: "local", label: { en: "l", zh: "l" }, tableUrl: "http://127.0.0.1:8011/manifest.json", kind: "local", order: 1, enabled: true, proxyable: false, description: { en: "", zh: "" } },
     ], {}, fetcher);
     expect(result.tables.local!.entries.size).toBe(2);
+  });
+});
+
+describe("本地曲库地址（单端口同源 / 本机分离两种形态）", () => {
+  const sources = [
+    { id: "netease163", kind: "remote", tableUrl: "/data/sources/netease163.json" },
+    { id: "local", kind: "local", tableUrl: "/manifest.json" },
+  ] as unknown as Parameters<typeof applyLocalManifestUrl>[0];
+
+  it("归一化：空 → null；基地址补 manifest.json；host:port 补协议；完整 json 原样", () => {
+    expect(normalizeLocalManifestUrl("")).toBeNull();
+    expect(normalizeLocalManifestUrl("   ")).toBeNull();
+    expect(normalizeLocalManifestUrl("127.0.0.1:8011")).toBe("http://127.0.0.1:8011/manifest.json");
+    expect(normalizeLocalManifestUrl("127.0.0.1:8011/")).toBe("http://127.0.0.1:8011/manifest.json");
+    expect(normalizeLocalManifestUrl("http://127.0.0.1:8011")).toBe("http://127.0.0.1:8011/manifest.json");
+    expect(normalizeLocalManifestUrl("https://cards.example.com/music/"))
+      .toBe("https://cards.example.com/music/manifest.json");
+    expect(normalizeLocalManifestUrl("https://x/y/table.json")).toBe("https://x/y/table.json");
+  });
+
+  it("默认（空覆盖）保持数据里的相对路径 = 同源", () => {
+    const applied = applyLocalManifestUrl(sources, "");
+    expect(applied.find((source) => source.id === "local")!.tableUrl).toBe("/manifest.json");
+    expect(applied.find((source) => source.id === "netease163")!.tableUrl)
+      .toBe("/data/sources/netease163.json");
+  });
+
+  it("给了覆盖值：只改 local 源，镜像源不受影响", () => {
+    const applied = applyLocalManifestUrl(sources, "127.0.0.1:8011");
+    expect(applied.find((source) => source.id === "local")!.tableUrl)
+      .toBe("http://127.0.0.1:8011/manifest.json");
+    expect(applied.find((source) => source.id === "netease163")!.tableUrl)
+      .toBe("/data/sources/netease163.json");
+    // 不改写入参
+    expect(sources[1]!.tableUrl).toBe("/manifest.json");
   });
 });

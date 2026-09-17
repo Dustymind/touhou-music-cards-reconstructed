@@ -22,12 +22,15 @@ interface SessionState {
   tab: TabId;
   cardCollection: string;
   musicMode: MusicMode;
+  localMusicUrl: string;
   sourceOverrides: Record<string, SourceOverride>;
   setLocale: (locale: Locale) => void;
   setTab: (tab: TabId) => void;
   setCardCollection: (collection: string) => void;
   /** 音乐模式（原曲 / 音MAD）：只影响"接下来能选哪些曲目"，不打断正在播放的曲目。 */
   setMusicMode: (mode: MusicMode) => void;
+  /** 本地曲库地址覆盖（设置页可填；`?localmusic=` 优先） */
+  setLocalMusicUrl: (url: string) => void;
   /** 开关某个源：只改 enabled，**不动**它在回退顺序里的位置。 */
   toggleSource: (id: string, enabled: boolean, allIds: string[]) => void;
   /** 上移/下移：交换相邻两个源的位置，其它源（含"默认关闭"的）保持原状。 */
@@ -39,7 +42,10 @@ const LOCALES = ["en", "zh"] as const;
 const sessionStore = defineStore<SessionPrefs>({
   name: "session",
   version: 1,
-  fallback: { locale: "en", tab: "player", cardCollection: "dairi-sd", musicMode: DEFAULT_MUSIC_MODE },
+  fallback: {
+    locale: "en", tab: "player", cardCollection: "dairi-sd",
+    musicMode: DEFAULT_MUSIC_MODE, localMusicUrl: "",
+  },
   validate(raw) {
     if (!isRecord(raw)) return null;
     const locale = pickString(raw.locale, LOCALES) as Locale | null;
@@ -48,7 +54,8 @@ const sessionStore = defineStore<SessionPrefs>({
     // 老存档没有 musicMode → 用默认值（原曲），不因为缺字段就丢弃整份偏好
     const musicMode = (pickString(raw.musicMode, MUSIC_MODES) as MusicMode | null) ?? DEFAULT_MUSIC_MODE;
     if (!locale || !tab || !cardCollection) return null;
-    return { locale, tab, cardCollection, musicMode };
+    const localMusicUrl = pickString(raw.localMusicUrl) ?? "";
+    return { locale, tab, cardCollection, musicMode, localMusicUrl };
   },
 });
 
@@ -58,6 +65,8 @@ interface SessionPrefs {
   tab: TabId;
   cardCollection: string;
   musicMode: MusicMode;
+  /** 本地曲库地址覆盖（空 = 用数据里的默认值：单端口部署下就是同源的 `/manifest.json`） */
+  localMusicUrl: string;
 }
 
 const sourceStore = defineStore<Record<string, SourceOverride>>({
@@ -91,6 +100,8 @@ export const useSession = create<SessionState>((set, get) => ({
   tab: initial.tab,
   cardCollection: initial.cardCollection,
   musicMode: initial.musicMode,
+  // URL 参数优先于存档：方便同一份构建在"同源部署"和"本机 8011"之间切换
+  localMusicUrl: localMusicUrlFromQuery() ?? initial.localMusicUrl,
   sourceOverrides: sourceStore.load(),
 
   setLocale(locale) {
@@ -109,6 +120,10 @@ export const useSession = create<SessionState>((set, get) => ({
   setMusicMode(musicMode) {
     set({ musicMode });
     sessionStore.save({ ...pickSession(get()), musicMode });
+  },
+  setLocalMusicUrl(localMusicUrl) {
+    set({ localMusicUrl });
+    sessionStore.save({ ...pickSession(get()), localMusicUrl });
   },
   toggleSource(id, enabled, allIds) {
     const overrides = get().sourceOverrides;
@@ -143,13 +158,23 @@ export const useSession = create<SessionState>((set, get) => ({
   },
 }));
 
-function pickSession(state: Pick<SessionState, "locale" | "tab" | "cardCollection" | "musicMode">) {
+function pickSession(
+  state: Pick<SessionState, "locale" | "tab" | "cardCollection" | "musicMode" | "localMusicUrl">,
+) {
   return {
     locale: state.locale,
     tab: state.tab,
     cardCollection: state.cardCollection,
     musicMode: state.musicMode,
+    localMusicUrl: state.localMusicUrl,
   };
+}
+
+/** `?localmusic=127.0.0.1:8011` 覆盖本地曲库地址（单端口部署不需要它）。 */
+function localMusicUrlFromQuery(): string | null {
+  if (typeof window === "undefined") return null;
+  const value = new URLSearchParams(window.location.search).get("localmusic");
+  return value && value.trim() !== "" ? value.trim() : null;
 }
 
 /** 按覆盖表算出实际的 fallback 顺序（未覆盖的按注册表顺序排在后面）。 */

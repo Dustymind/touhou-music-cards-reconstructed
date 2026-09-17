@@ -1,10 +1,11 @@
 /** 音乐源：开关 + fallback 顺序（拖不动就用按钮）+ 状态。 */
 import {
-  Avatar, Box, Chip, FormControlLabel, IconButton, Radio, RadioGroup, Stack, Switch, Typography,
+  Avatar, Box, Button, Chip, FormControlLabel, IconButton, Radio, RadioGroup, Stack, Switch, TextField,
+  Typography,
 } from "@mui/material";
 import { ArrowDownward, ArrowUpward } from "@mui/icons-material";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import { SectionPanel } from "./SectionCard";
 import type { DataBundle } from "../../../data/types";
@@ -14,7 +15,11 @@ import { MUSIC_MODES } from "../../../music/mode";
 import type { TableMap } from "../../../music/sources";
 
 export function SourceSection({ bundle, tables }: { bundle: DataBundle; tables: TableMap }) {
-  const { locale, sourceOverrides, toggleSource, moveSource, musicMode, setMusicMode } = useSession();
+  const {
+    locale, sourceOverrides, toggleSource, moveSource, musicMode, setMusicMode,
+    localMusicUrl, setLocalMusicUrl,
+  } = useSession();
+  const [draftUrl, setDraftUrl] = useState(localMusicUrl);
   const ids = bundle.sources.map((source) => source.id);
   const order = effectiveOrder(sourceOverrides, ids);
   /** 按 id 查源（原来在 labelOf/isEnabled/渲染里各做一次线性查找）。 */
@@ -62,6 +67,28 @@ export function SourceSection({ bundle, tables }: { bundle: DataBundle; tables: 
             {t(Localization.MusicModeLocalHint)}
           </Typography>
         )}
+      </Stack>
+
+      {/* 本地曲库地址：留空 = 用数据里的默认值（单端口部署就是同源的 /manifest.json） */}
+      <Stack direction="row" spacing={1} sx={{ mb: 2, alignItems: "center" }} data-testid="local-music-url">
+        <TextField
+          size="small"
+          fullWidth
+          label={t(Localization.LocalMusicUrl)}
+          placeholder={bundle.sources.find((source) => source.kind === "local")?.tableUrl ?? "/manifest.json"}
+          value={draftUrl}
+          onChange={(event) => setDraftUrl(event.target.value)}
+          slotProps={{ htmlInput: { "aria-label": "local-music-url" } }}
+        />
+        <Button
+          size="small"
+          variant="outlined"
+          sx={{ flexShrink: 0 }}
+          data-testid="local-music-apply"
+          onClick={() => setLocalMusicUrl(draftUrl.trim())}
+        >
+          {t(Localization.LocalMusicApply)}
+        </Button>
       </Stack>
 
       {/* 回退顺序显示：编号 + 实际名称（原来直接把内部 id 拼成字符串，既不可读也不随语言变） */}

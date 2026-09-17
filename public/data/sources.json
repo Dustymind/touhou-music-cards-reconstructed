@@ -55,7 +55,7 @@
     "en": "Local library",
     "zh": "本地曲库"
    },
-   "tableUrl": "http://127.0.0.1:8011/manifest.json",
+   "tableUrl": "/manifest.json",
    "kind": "local",
    "order": 4,
    "enabled": false,

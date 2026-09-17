@@ -40,7 +40,7 @@ export function aliceLabel(smallScreen: boolean): string {
 }
 
 export function AppShell({ bundle }: { bundle: DataBundle }) {
-  const { tab, setTab, locale, cardCollection, sourceOverrides, musicMode } = useSession();
+  const { tab, setTab, locale, cardCollection, sourceOverrides, musicMode, localMusicUrl } = useSession();
   const preset = usePreset();
   const queue = useQueue();
   const single = useSingleTrack();
@@ -98,7 +98,7 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
     () => effectiveSourceOverrides(bundle.sources, sourceOverrides, musicMode),
     [bundle.sources, sourceOverrides, musicMode],
   );
-  const sources = useSources(bundle.sources, activeSourceOverrides);
+  const sources = useSources(bundle.sources, activeSourceOverrides, localMusicUrl);
 
   const player = usePlayer({
     characters: bundle.characters,

@@ -7,6 +7,11 @@
    扫一遍曲库就知道有哪些曲目，URL 按请求的 Host 拼，所以换端口/加文件都不用重新生成。
 2. ``GET /media/<专辑>/<曲目>.mp3`` —— 音频本体，支持 Range 与 CORS。
 
+manifest 里的音频地址按**请求**现拼（所以换域名/端口不用重新生成）：优先取反向代理的
+``X-Forwarded-Proto`` / ``X-Forwarded-Host``，其次取 ``Host``；两者都没有时才退回监听地址。
+单端口部署（应用与曲库同源，见 `deploy/Caddyfile`）走的就是这条路，因此 https 站点也能拿到
+``https://`` 的音频地址，不会触发混合内容拦截。显式覆盖用 ``[server].public_base_url`` 或 ``--public-base``。
+
 为什么不能直接用 ``python3 -m http.server``：
 
 * 应用用 ``fetch()`` 拉 manifest，会被 CORS 挡住（http.server 不发 ``Access-Control-Allow-Origin``）；
@@ -61,7 +66,8 @@ AUDIO_EXTENSIONS = (".mp3",)
 RANGE_RE = re.compile(r"bytes=(\d*)-(\d*)")
 
 
-def load_config(path, *, host=None, port=None, root=None, pack_id=None) -> dict:
+def load_config(path, *, host=None, port=None, root=None, pack_id=None,
+                public_base=None) -> dict:
     """优先级：命令行 > local-source.toml > 内置默认值。"""
     cfg: dict = {}
     base_dir = repo.ROOT
@@ -84,6 +90,8 @@ def load_config(path, *, host=None, port=None, root=None, pack_id=None) -> dict:
         "port": int(port if port is not None else server.get("port", DEFAULT_PORT)),
         "port_tries": int(server.get("port_tries", DEFAULT_TRIES)),
         "root": resolve(root) or resolve(library.get("root")) or str(DEFAULT_ROOT),
+        # 反向代理可能既不发 X-Forwarded-*、Host 也不是对外域名 → 显式覆盖
+        "public_base_url": ((public_base or server.get("public_base_url") or "").strip() or None),
         "pack_id": pack_id or pack.get("id", "otomads"),
         "pack_label_en": pack.get("label_en", "Local album"),
         "pack_label_zh": pack.get("label_zh", "本地专辑"),
@@ -123,6 +131,9 @@ def find_bindable_port(host: str, port: int, tries: int) -> int | None:
         if candidate > 65535:
             break
         probe = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # 真正的服务器也开了 SO_REUSEADDR；探测时不设的话，端口上残留的 TIME_WAIT
+        # 会让探测误判"被占用"，于是助手白白跳到 8012/8013（实测踩过）
+        probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         try:
             probe.bind((host, candidate))
             return candidate
@@ -155,11 +166,20 @@ class _LimitedReader:
 class LocalMusicHandler(http.server.SimpleHTTPRequestHandler):
     server_version = "TMC-LocalMusic/0.1"
 
-    # ---- 基地址：按请求 Host 拼，换端口不必改任何表 ----
+    # ---- 基地址：按请求现拼，换域名/端口/协议都不必改任何表 ----
     @property
     def base_url(self) -> str:
-        host = self.headers.get("Host") or f"{self.server.server_address[0]}:{self.server.server_address[1]}"  # type: ignore[attr-defined]
-        return f"http://{host}/"
+        # 显式覆盖优先（代理没转发 Host/Proto 时用得上）
+        configured = getattr(self.server, "public_base_url", None)  # type: ignore[attr-defined]
+        if configured:
+            return configured if configured.endswith("/") else configured + "/"
+        # 反向代理：scheme 看 X-Forwarded-Proto（Caddy/nginx 默认会加，缺省按 http）
+        proto = (self.headers.get("X-Forwarded-Proto") or "http").split(",")[0].strip() or "http"
+        # host 看 X-Forwarded-Host，其次 Host，最后才用监听地址
+        host = (self.headers.get("X-Forwarded-Host")
+                or self.headers.get("Host")
+                or f"{self.server.server_address[0]}:{self.server.server_address[1]}")  # type: ignore[attr-defined]
+        return f"{proto}://{host.split(',')[0].strip()}/"
 
     def end_headers(self) -> None:
         self.send_header("Access-Control-Allow-Origin", "*")
@@ -280,8 +300,9 @@ def serve(conf: dict, *, strict_port: bool = False) -> int:
         print(f"❌ 无法监听 {conf['host']}:{port}：{exc}", file=sys.stderr)
         return 3
 
-    httpd.music_root = conf["root"]          # type: ignore[attr-defined]
-    httpd.pack_id = conf["pack_id"]          # type: ignore[attr-defined]
+    httpd.music_root = conf["root"]              # type: ignore[attr-defined]
+    httpd.pack_id = conf["pack_id"]              # type: ignore[attr-defined]
+    httpd.public_base_url = conf["public_base_url"]  # type: ignore[attr-defined]
     tracks = scan_library(conf["root"])
     base_url = f"http://{conf['host']}:{port}/"
     if port != conf["port"]:
@@ -290,6 +311,10 @@ def serve(conf: dict, *, strict_port: bool = False) -> int:
     print(f"曲库目录  : {conf['root']}（{len(tracks)} 首）")
     print(f"曲包      : {conf['pack_id']}")
     print(f"manifest  : {base_url}{MANIFEST_PATH}")
+    if conf["public_base_url"]:
+        print(f"对外基地址: {conf['public_base_url']}（manifest 里的音频地址按它拼）")
+    else:
+        print("音频地址  : 按请求的 X-Forwarded-Proto/Host（单端口反代部署）或 Host 现拼")
     print("Ctrl-C 停止。\n")
     with httpd:
         try:
@@ -307,13 +332,14 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--port", type=int)
     ap.add_argument("--root")
     ap.add_argument("--pack")
+    ap.add_argument("--public-base", help="对外基地址（反向代理未转发 Host/Proto 时用），如 https://example.com/music/")
     ap.add_argument("--strict-port", action="store_true")
     ap.add_argument("--print-url", action="store_true")
     ap.add_argument("--print-table", action="store_true")
     args = ap.parse_args(argv)
 
     conf = load_config(args.config, host=args.host, port=args.port,
-                       root=args.root, pack_id=args.pack)
+                       root=args.root, pack_id=args.pack, public_base=args.public_base)
     port = conf["port"] if args.strict_port else (
         find_bindable_port(conf["host"], conf["port"], conf["port_tries"]) or conf["port"])
     base_url = f"http://{conf['host']}:{port}/"

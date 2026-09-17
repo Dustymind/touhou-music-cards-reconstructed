@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 
 import type { SourceRecord } from "../data/types";
-import { loadSourceTables, type TableMap } from "./sources";
+import { applyLocalManifestUrl, loadSourceTables, type TableMap } from "./sources";
 
 export interface SourcesState {
   tables: TableMap;
@@ -13,6 +13,8 @@ export interface SourcesState {
 export function useSources(
   sources: readonly SourceRecord[],
   overrides: Record<string, { enabled: boolean; order: number }>,
+  /** 本地曲库地址的运行时覆盖（空 = 用数据里的默认值） */
+  localManifestUrl = "",
 ): SourcesState {
   const [state, setState] = useState<SourcesState>({ tables: {}, order: [], status: "loading" });
   const overrideKey = JSON.stringify(overrides);
@@ -20,7 +22,8 @@ export function useSources(
   useEffect(() => {
     let cancelled = false;
     setState((current) => ({ ...current, status: "loading" }));
-    loadSourceTables(sources, JSON.parse(overrideKey) as typeof overrides)
+    loadSourceTables(applyLocalManifestUrl(sources, localManifestUrl),
+      JSON.parse(overrideKey) as typeof overrides)
       .then((result) => {
         if (!cancelled) setState({ ...result, status: "ready" });
       })
@@ -30,7 +33,7 @@ export function useSources(
     return () => {
       cancelled = true;
     };
-  }, [sources, overrideKey]);
+  }, [sources, overrideKey, localManifestUrl]);
 
   return state;
 }

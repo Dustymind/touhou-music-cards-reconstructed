@@ -31,6 +31,8 @@ export const Localization = {
   ConfigTabSearchCharacter: u("Search Character", "搜索角色"),
   ConfigTabSourceEnabled: u("Enabled", "已启用"),
   ConfigTabSourceDisabled: u("Disabled", "未启用"),
+  LocalMusicUrl: u("Local library manifest", "本地曲库地址"),
+  LocalMusicApply: u("Apply", "应用"),
   MusicMode: u("Music Mode", "音乐模式"),
   MusicModeOriginals: u("Originals", "原曲"),
   MusicModeOtomads: u("Otomads", "音MAD"),

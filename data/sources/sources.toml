@@ -2,6 +2,8 @@
 # kind: remote = 远程镜像；local = 本机助手（tools/src/tmc/local_source.py）
 # order: 默认 fallback 顺序（用户在设置页可调）；enabled: 默认开关状态
 # proxyable: 预留 —— 出现混合内容/跨域时可由助手代理
+# table_url 用**相对路径** = 同源（单端口部署：应用与本地曲库走同一个端口，见 deploy/Caddyfile）；
+# 本机分开跑（应用 5173 + 助手 8011）时用 ?localmusic=127.0.0.1:8011 或设置页填地址覆盖。
 
 [[source]]
 id = "netease163"
@@ -43,7 +45,7 @@ description_zh = "THBWiki 镜像。有时很慢。"
 id = "local"
 label_en = "Local library"
 label_zh = "本地曲库"
-table_url = "http://127.0.0.1:8011/manifest.json"
+table_url = "/manifest.json"
 kind = "local"
 order = 4
 enabled = false

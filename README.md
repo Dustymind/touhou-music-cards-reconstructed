@@ -27,6 +27,7 @@
 - [功能一览](#功能一览)
 - [快速开始](#快速开始)
 - [音MAD（otomads）模式与本地曲库](#音madotomads模式与本地曲库)
+- [部署（单端口）](#部署单端口)
 - [测试](#测试)
 - [数据管线](#数据管线)
 - [目录结构](#目录结构)
@@ -143,6 +144,31 @@ UV_CACHE_DIR=.uv/cache uv run python -m tmc.local_source --print-table   # 只�
 
 ---
 
+## 部署（单端口）
+
+`deploy/` 里给了**方案 B**：应用、本地曲库、联机信令都走**一个端口**，由反向代理分流。
+
+| 路径 | 去处 | 说明 |
+|---|---|---|
+| `/manifest.json`、`/media/*` | `127.0.0.1:8011` | 本地曲库助手；manifest 里的音频地址按 `X-Forwarded-Proto`/`Host` 现拼，**https 站点也不会混合内容拦截** |
+| `/peerjs`、`/peerjs/*` | `127.0.0.1:9100` | 自建 PeerJS 信令（可选，只用公网 PeerJS 时删掉这段） |
+| 其余 | `dist/` | 应用静态产物 + SPA 回退 |
+
+```bash
+pnpm build                                     # 应用产物
+cd tools && uv run python -m tmc.local_source   # 曲库助手（8011）
+pnpm e2e:peer                                   # 信令（9100，可选）
+caddy run --config deploy/Caddyfile             # 一个端口对外（默认 :8080）
+
+# 没装 Caddy 时等价的本机验证（Node 版代理，逻辑与 Caddyfile 一致）
+node deploy/single-port-proxy.mjs               # http://127.0.0.1:8090
+```
+
+细节与"本机分开跑（5173 + 8011）怎么办"见 [`deploy/README.md`](deploy/README.md)：
+数据里 `local` 源的 `table_url` 默认是**相对路径** `/manifest.json`（同源 ✓ 不需要 CORS ✓）；
+分开跑时用 `?localmusic=127.0.0.1:8011` 或设置页的「本地曲库地址」覆盖。
+**联机的音视频仍是 WebRTC P2P（UDP）**，不在这一个端口里，跨 NAT 另需 STUN/TURN。
+
 ## 测试
 
 | 层 | 命令 | 规模 | 覆盖重点 |
@@ -214,6 +240,7 @@ src/
  ├─ store/        session / preset / queue / single（版本化 localStorage）
  ├─ theme/        MD2 主题（类型比例、形状、组件规格、深色基准配色）
  └─ ui/           shell（AppBar+Tabs）/ panels（播放、列表、设置、对战）/ components / game / player
+deploy/          单端口部署（Caddyfile + Node 版等价代理）与说明
 e2e/             Playwright 用例 + 本地 PeerJS 信令服务器 + 拖动辅助
 tools/           Python 数据管线与本地曲库助手（uv 工程）
 reports/         验收与体检报告、核对表
@@ -237,6 +264,8 @@ reports/         验收与体检报告、核对表
 - **联机**：`net/engines.ts` 主机权威（意图 → 本地落地 → 广播快照），客户端只发意图；
   `transport.ts` 抽掉传输层（BroadcastChannel / PeerJS）；协议带 `PROTOCOL_VERSION` + 数据指纹校验，
   快照附带**音乐模式**（两端模式不同会导致轮换分叉）。
+- **部署形态**：默认就是"应用 + 本地曲库 + 信令一个端口"（`deploy/Caddyfile`）；数据里本地源用相对路径，
+  所以换域名/端口/协议都不用改数据，也不需要 CORS。
 - **可测性**：dev 构建把 `useGame` / `useNet` 挂到 `window.__TMC_GAME__` / `window.__TMC_NET__`
   供调试与 E2E（`import.meta.env.DEV` 守卫，生产构建里不存在）。
 

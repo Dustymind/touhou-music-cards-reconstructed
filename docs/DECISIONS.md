@@ -1498,6 +1498,47 @@ git push -u origin main        # [new branch] main -> main，并设置上游跟�
 
 ---
 
+## D55 单端口部署（方案 B）：应用 + 本地曲库 + 信令同一个端口
+
+**需求**（用户）：从三个方案里选 B —— 反向代理把三样东西并到一个端口。
+
+**改了三处代码 + 一处数据 + 一份部署配置**：
+
+1. **本地助手认代理头**（`tools/src/tmc/local_source.py`）：manifest 里的音频地址按**请求**现拼，
+   顺序是 `X-Forwarded-Proto` → `X-Forwarded-Host` → `Host` → 监听地址；scheme 缺省 `http`。
+   于是：直连 8011 得到 `http://127.0.0.1:8011/media/…`（与改前一致），经代理得到
+   `http://<对外域名>:<端口>/media/…`（**与页面同源**），https 代理得到 `https://…`（**不会混合内容拦截**）。
+   另加 `[server].public_base_url` / `--public-base` 作为"代理不转发这些头"时的显式覆盖。
+2. **顺手修一个真 bug**：`find_bindable_port` 探测端口时没设 `SO_REUSEADDR`，端口上残留的 `TIME_WAIT`
+   会被误判为"被占用"，助手于是白白跳到 8012/8013（实测：`8011 可绑? 8013` → 修完 `8011`）。
+3. **前端：本地源地址可运行时覆盖**（`sources.ts` 的 `normalizeLocalManifestUrl` / `applyLocalManifestUrl`、
+   `useSources` 多一个参数、会话新增持久化的 `localMusicUrl`）：`?localmusic=127.0.0.1:8011`
+   （URL 参数**优先于**存档）或在设置页「本地曲库地址」填地址再点「应用」。接受完整 manifest 地址、
+   基地址（自动补 `/manifest.json`）、`host:port`（自动补 `http://`）三种写法。
+4. **数据**：`data/sources/sources.toml` 里 `local` 源的 `table_url` 由
+   `http://127.0.0.1:8011/manifest.json` 改成 **`/manifest.json`**（同源）。同源 → 不需要 CORS；
+   换域名/端口/协议都不必改数据。本机分开跑（5173 + 8011）用第 3 条的覆盖值。
+5. **部署**：`deploy/Caddyfile`（分流 `/manifest.json`+`/media/*` → 8011、`/peerjs*` → 9100、其余 `dist/`，
+   并显式 `header_up X-Forwarded-Proto/Host`）+ `deploy/README.md` + `deploy/single-port-proxy.mjs`
+   （没装 Caddy 时的等价 Node 代理，逻辑同 Caddyfile）。
+
+**实测**：
+
+| 检查 | 结果 |
+|---|---|
+| 三条 URL 生成路径 | 直连 → `http://127.0.0.1:8011/media/…`；经代理 → `http://127.0.0.1:8090/media/…`；伪造 https 头 → `https://cards.example.com/media/…` ✓ |
+| 代理分流（全在 :8090） | `/` 200、`/manifest.json` 200（24 条）、`/data/index.json` 200 ✓ |
+| Range 透传 | `Range: bytes=0-1023` → **206** + `content-range: bytes 0-1023/4604401` ✓ |
+| 真浏览器走单端口 | `?locale=zh` → 切音MAD → 请求 `200 127.0.0.1:8090/manifest.json`（**同源**）→ 音频 `206 127.0.0.1:8090/media/…`，页面 13 个音MAD 角色 ✓ |
+
+**回归锁**：单测（`sources.test.ts`）覆盖地址归一化与"只改 local 源、不动镜像源、不改写入参"；
+E2E 新增"本地曲库地址：默认同源，`?localmusic=` 可指向本机助手"（断言默认请求打在应用自己的 origin 上、
+覆盖后打在 `http://127.0.0.1:8011/manifest.json`，并断言设置页回显存档值）。
+
+**不改的**：WebRTC 的 P2P 媒体流（UDP）本来就不在端口里，跨 NAT 仍需 STUN/TURN —— 这条与单端口无关。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |
