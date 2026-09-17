@@ -660,6 +660,8 @@ interface Transport {
 - [x] **M7 对战核心**：纯规则 reducer（回合推进/判定/罚牌夹紧/牌库转移/经典·休闲终局）+ CPU 对手（反应分布与失误率）+ 本地计时循环 + 对战页棋盘。
 - [x] **M8 联机**：传输层抽象（进程内总线 / 同浏览器 BroadcastChannel / PeerJS）+ **主机权威 + 每次动作广播完整快照 + 自增 seq + 数据哈希与协议握手** + 大厅（分享码/参与者/聊天/断线重连 requestSync）。
 - [x] **M9 打磨**：彩蛋（答案提示框、`?g` 卡片倾斜、`?r2`/`?local` 图集源、`?cheatcode=`）、文案与文档补全 → 验收报告 [`reports/M9-acceptance.md`](../reports/M9-acceptance.md)。
+- [x] **M28 顶部菜单对齐与间距**（用户反馈）：按钮统一 30px 高/12px 内边距/65px 最小宽，间距恒 17px，
+  分隔线 18px 居中。见 `docs/DECISIONS.md` §D34。
 - [x] **M27 分组间距与对齐统一**（用户反馈）：标题↔控件 8px、同组按钮 6px、组间 24px、标题与按钮同高居中。
   见 `docs/DECISIONS.md` §D33。
 - [x] **M26 游戏页按钮统一**（用户要求）：`GameButton` / `gameToggleSx` 统一高度 30、内边距 10、

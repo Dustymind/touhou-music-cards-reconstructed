@@ -1,7 +1,7 @@
 /** 应用外壳：页签栏（含 Alice 彩蛋按钮）+ 当前页。 */
 import { Box, Button, Divider, Stack, Typography } from "@mui/material";
 
-import { useEffect, useMemo, useRef } from "react";
+import { Fragment, useEffect, useMemo, useRef } from "react";
 
 import { Localization, t } from "../../i18n/localization";
 import { stableHash } from "../../cheat";
@@ -21,6 +21,21 @@ import { PlayerPanel } from "../panels/PlayerPanel";
 import { ConfigPanel } from "../panels/ConfigPanel";
 import { GamePanel } from "../panels/GamePanel";
 import { ListPanel } from "../panels/ListPanel";
+
+/** 顶部菜单按钮：尺寸/内边距/最小宽度统一，且**选中与未选中同宽同内边距**（否则切换标签时文字会跳）。 */
+const NAV_BUTTON_SX = {
+  height: 30,
+  minHeight: 30,
+  px: 1.5,
+  py: 0,
+  minWidth: "5em",
+  fontSize: "0.8125rem",
+  fontFamily: NoFontFamily,
+  textTransform: "none",
+} as const;
+
+/** 顶部菜单分隔线：固定高度、垂直居中，不随行高拉伸。 */
+const NAV_DIVIDER_SX = { height: 18, alignSelf: "center" } as const;
 
 const ALICE_LABELS = [
   "Alice is the best!",
@@ -139,29 +154,29 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
   return (
     <Box sx={{ display: "flex", justifyContent: "center", p: 2, fontFamily: NoFontFamily }}>
       <Stack spacing={2} sx={{ width: "100%", maxWidth: 1000, alignItems: "center" }}>
-        <Stack direction="row" spacing={0.5} alignItems="center" sx={{ flexWrap: "wrap" }}>
+        <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap", rowGap: 1 }}>
           {TAB_ORDER.map((id, index) => (
-            <Box key={id} sx={{ display: "flex", alignItems: "center" }}>
-              {index > 0 && <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />}
+            <Fragment key={id}>
+              {index > 0 && <Divider orientation="vertical" sx={NAV_DIVIDER_SX} />}
               <Button
                 size="small"
                 variant={tab === id ? "contained" : "text"}
                 onClick={() => setTab(id)}
                 disabled={gameActive && id !== "game"}
-                sx={{ fontFamily: NoFontFamily, minWidth: "4em" }}
+                sx={NAV_BUTTON_SX}
               >
                 {names[id]}
               </Button>
-            </Box>
+            </Fragment>
           ))}
-          <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
+          <Divider orientation="vertical" sx={NAV_DIVIDER_SX} />
           <Button
             size="small"
             color="success"
             variant="text"
             onClick={jumpToAlice}
             disabled={gameActive}
-            sx={{ fontFamily: NoFontFamily, minWidth: "4em" }}
+            sx={NAV_BUTTON_SX}
           >
             {aliceLabel(false)}
           </Button>

@@ -522,6 +522,54 @@ test("游戏页按钮尺寸、内边距与图标间距统一", async ({ page }) 
     .every((entry) => entry.gap === 6)).toBe(true);
 });
 
+test("顶部菜单按钮尺寸、间距与分隔线统一", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Player" }).waitFor();
+
+  const nav = await page.evaluate(() => {
+    const buttons = [...document.querySelectorAll("button")].filter((element) => {
+      const text = (element.textContent ?? "").trim();
+      return ["Player", "List", "Config", "Match"].includes(text) || text.startsWith("Alice");
+    }).map((element) => {
+      const style = getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
+      return {
+        height: Math.round(rect.height),
+        padding: `${style.paddingLeft}|${style.paddingRight}`,
+        minWidth: style.minWidth,
+        centerY: Math.round(rect.top + rect.height / 2),
+        left: rect.left, right: rect.right,
+      };
+    });
+    const gaps: number[] = [];
+    for (let i = 1; i < buttons.length; i += 1) {
+      gaps.push(Math.round(buttons[i]!.left - buttons[i - 1]!.right));
+    }
+    const dividers = [...document.querySelectorAll(".MuiDivider-root")]
+      .filter((element) => {
+        const style = getComputedStyle(element);
+        return style.borderRightWidth !== "0px" && element.getBoundingClientRect().top < 60;
+      })
+      .map((element) => {
+        const rect = element.getBoundingClientRect();
+        return {
+          height: Math.round(rect.height),
+          centerY: Math.round(rect.top + rect.height / 2),
+        };
+      });
+    return { buttons, gaps: [...new Set(gaps)], dividers };
+  });
+
+  expect(nav.buttons).toHaveLength(5);
+  expect([...new Set(nav.buttons.map((entry) => entry.height))]).toEqual([30]);
+  expect([...new Set(nav.buttons.map((entry) => entry.padding))]).toEqual(["12px|12px"]);
+  expect([...new Set(nav.buttons.map((entry) => entry.minWidth))]).toEqual(["65px"]);
+  expect([...new Set(nav.buttons.map((entry) => entry.centerY))]).toHaveLength(1);   // 同一水平线
+  expect(nav.gaps).toEqual([17]);                                                    // 8 + 分隔线 1 + 8
+  expect([...new Set(nav.dividers.map((entry) => entry.height))]).toEqual([18]);
+  expect([...new Set(nav.dividers.map((entry) => entry.centerY))]).toEqual(nav.buttons.slice(0, 1).map((entry) => entry.centerY));
+});
+
 test("游戏页分组标题与按钮的间距、垂直对齐统一", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Match" }).click();
