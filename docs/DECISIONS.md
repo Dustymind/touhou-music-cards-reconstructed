@@ -1443,6 +1443,28 @@ E2E +1（模式切换 / 统计 / 本地请求 / 落盘 / 切回）。
 
 ---
 
+## D53 音MAD 音频落位 + 本地助手常驻 + 完整 README
+
+**需求**（用户）：把 v2 工作区的音MAD 音频复制过来并启动服务器；给本仓库编写完整的 README。
+
+**音频与助手**：
+
+* 从 `/home/molten-core/touhou-otomad-cards-workspace-v2/.music/otomads/` 复制 **24 个 mp3（82 MB）**
+  到本仓库 `.music/otomads/`；`.gitignore` 补上 `.music/`（音频不进仓库，与"不搬运上游二进制素材"一致）。
+* 仓库根写 `local-source.toml`（已 gitignore）：`root = ".music"`、`pack.id = "otomads"`。
+* `cd tools && uv run python -m tmc.local_source` 起服务（127.0.0.1:8011），实测：
+  `GET /manifest.json` → 200（`pack: otomads`，24 条）、`GET /media/…` → **206**（1 KB Range 请求，
+  `audio/mpeg`，验证了 Range/CORS 都对）。
+* 应用侧实测：设置页切到**音MAD** → 播放页自动拉 `manifest.json` → 音频从本地服务流式播放
+  （响应 `206 川先僧 - 普通肥猫魔法使.mp3`），卡条显示 **13** 个有音MAD 曲目的角色。
+
+**README**：整篇重写（116 → 314 行），覆盖：项目定位与与上游的差异、M0–M46 / D1–D52 与数据指纹、
+功能一览（四个页面 + 联机 + i18n）、快速开始（含数据管线命令与端口）、**音MAD 模式与本地曲库四步操作**、
+测试三层（199 单测 / 49 E2E / 33 数据测试）、数据管线与目录结构、架构速览（状态、选曲派生、模式、播放、联机、可测性）、
+MD2 设计规范表、外部依赖、约定、已知限制、文档索引。README 内所有相对链接与目录锚点都做过校验（无失效）。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |

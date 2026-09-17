@@ -24,6 +24,8 @@ playwright-report/
 
 # 本地曲库助手配置（机器相关）
 local-source.toml
+# 本地曲库（音MAD 音频等，几十 MB 起）：只放本机，不进仓库
+.music/
 
 # 编辑器 / 系统
 .DS_Store

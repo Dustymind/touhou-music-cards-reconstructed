@@ -660,6 +660,8 @@ interface Transport {
 - [x] **M7 对战核心**：纯规则 reducer（回合推进/判定/罚牌夹紧/牌库转移/经典·休闲终局）+ CPU 对手（反应分布与失误率）+ 本地计时循环 + 对战页棋盘。
 - [x] **M8 联机**：传输层抽象（进程内总线 / 同浏览器 BroadcastChannel / PeerJS）+ **主机权威 + 每次动作广播完整快照 + 自增 seq + 数据哈希与协议握手** + 大厅（分享码/参与者/聊天/断线重连 requestSync）。
 - [x] **M9 打磨**：彩蛋（答案提示框、`?g` 卡片倾斜、`?r2`/`?local` 图集源、`?cheatcode=`）、文案与文档补全 → 验收报告 [`reports/M9-acceptance.md`](../reports/M9-acceptance.md)。
+- [x] **M47 音频落位 + 本地助手 + 完整 README**（用户要求）：24 首音MAD 音频落位 `.music/`、
+  本地曲库助手跑起来（8011）、README 整篇重写。见 `docs/DECISIONS.md` §D53。
 - [x] **M46 音MAD（otomads）模式**（用户要求）：填满 `data/packs/` 预留接口，移植改版仓库的
   originals / otomads 模式（数据 + 模式过滤 + 本地曲库 + 联机同步 + 设置页入口）。见 `docs/DECISIONS.md` §D52。
 - [x] **M45 卡面图集示例卡右对齐**（用户要求）：label 内容撑满整行、示例卡不伸缩 → 六行右边缘一致。
