@@ -5,7 +5,7 @@ import {
 
 import type { AlbumRecord, DataBundle } from "../../../data/types";
 import { Localization, t } from "../../../i18n/localization";
-import { SectionCard } from "./SectionCard";
+import { SectionPanel } from "./SectionCard";
 import { CATEGORY_KEYS, type Tri } from "../../../music/selection";
 import { groupAlbums, presetStats } from "../../../music/presetView";
 import { hifuuParentState, usePreset } from "../../../store/preset";
@@ -59,13 +59,7 @@ export function PresetSection({ bundle }: { bundle: DataBundle }) {
   };
 
   return (
-    <SectionCard
-      testId="preset-section"
-      title={t(Localization.ConfigTabMusicSelectionPresets)}
-      action={<Button size="small" onClick={() => preset.reset(bundle.albums)}>
-        {t(Localization.ConfigTabPresetReset)}
-      </Button>}
-    >
+    <SectionPanel id="preset" title={t(Localization.ConfigTabMusicSelectionPresets)}>
       <Typography variant="caption" color="text.secondary" data-testid="preset-stats">
         {t(Localization.ConfigTabPresetStats, {
           enabled: String(stats.enabledTracks),
@@ -175,6 +169,6 @@ export function PresetSection({ bundle }: { bundle: DataBundle }) {
       <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
         {allAlbums.length} albums · {t(Localization.ShellDataHash)} {bundle.index.contentHash.slice(0, 8)}
       </Typography>
-    </SectionCard>
+    </SectionPanel>
   );
 }

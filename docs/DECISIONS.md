@@ -1227,6 +1227,49 @@ E2E 在"卡面图集设置对游戏页生效"里加了整套菜单结构断言�
 
 ---
 
+## D47 设置分区改 MD2 可折叠面板 + 修掉单曲模式的重复开关
+
+**需求**（用户）：仅单曲模式菜单多了个开关，修正并优化布局；设置项菜单改成可折叠的，
+遵循 MD2 制作动效并优化性能，默认折叠。
+
+### 1. 重复开关
+
+D38 把设置分区标题换成 `CardHeader` 时，把开关同时放进了 `action` 槽，而正文里原本就有一个 →
+**同一个开关出现两次**（`single-mode` 与 `single-mode-enabled`）。现在只留正文那一个
+（`aria-label="single-mode"`），测试里的旧标签统一成新标签。
+
+### 2. 布局优化
+
+- 原来正文的开关行是 `[占位 spacer][开关]`（开关被推到最右、左边空着）→ 改成
+  **「开关 + 标题」在左，说明文字在右**（MD2 的开关行）；
+- 搜索框原来只是 `placeholder`，改成带 `label` 的 filled 输入框（与其它输入框一致，标签在框内）；
+- 模式关闭时把选曲列表置灰（`opacity 0.5` + 禁点），避免"看着能改其实没生效"。
+
+### 3. 可折叠设置分区（MD2 扩展面板）
+
+`SectionCard` → **`SectionPanel`**（`Accordion` + `AccordionSummary` + `AccordionDetails`）：
+
+| 维度 | 做法 |
+|---|---|
+| MD2 规格 | 主题里加 `MuiAccordion` / `MuiAccordionSummary` / `MuiAccordionDetails`：4dp 圆角、elevation 1、去掉头部上方的分隔线、头部 **56dp**、左右 16dp 内边距、展开图标用次要文字色；折叠时上下不留 margin |
+| 动效 | MD2 标准缓动 `cubic-bezier(0.4, 0, 0.2, 1)`，展开 250ms / 收起 200ms（`MD2.accordion`）；`ExpandMoreRounded` 图标随展开旋转（MUI 自带） |
+| 性能 | **折叠时不挂载内容**（`slotProps.transition.unmountOnExit`）：首屏只有五个标题，实测 DOM 从 616 个节点（全折叠）到展开一个分区后 2467 —— 预设区那几百个复选框、音乐源/单曲列表默认都不渲染 |
+| 默认 | 全部折叠（用户要求），标题始终可见 |
+
+`data-testid`：`section-<id>` / `section-<id>-summary` / `section-<id>-content`（内容是内层 `Box`，
+因为 MUI v7 的 `AccordionDetails` 不转发任意 props）。
+
+### 测试改动
+
+分区默认折叠 → 内容不挂载，凡是要操作分区内容的用例都先展开：
+单测加了 `expand(container, id)` 辅助（点击 summary + 等 320ms），并新增"默认折叠 / 展开才挂载 /
+单曲分区只有一个开关"的回归用例；E2E 加了 `expandSection(page, id)`，卡面图集、音乐源回退顺序、
+MD2 细节、中文界面、秘封父项、仅单曲模式各处用例相应更新；`App.test.tsx` 的配置页冒烟也先展开预设区。
+
+**实测**：5 个分区默认 0 个内容挂载；展开后 `仅单曲模式` 只有一个 checkbox；圆角 4px、头部 56px。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |

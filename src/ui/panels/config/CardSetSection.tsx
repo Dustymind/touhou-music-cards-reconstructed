@@ -11,7 +11,7 @@ import { Localization, t } from "../../../i18n/localization";
 import { useSession } from "../../../store/session";
 import { CharacterCard } from "../../components/CharacterCard";
 import { cardSetDescription } from "./cardSetDescriptions";
-import { SectionCard } from "./SectionCard";
+import { SectionPanel } from "./SectionCard";
 
 /** 示例卡数量（上游也是三张）与宽度。 */
 const EXAMPLE_COUNT = 3;
@@ -27,7 +27,7 @@ export function CardSetSection({ bundle }: { bundle: DataBundle }) {
     .map((character) => ({ key: character.key, file: character.card[0]! }));
 
   return (
-    <SectionCard title={t(Localization.ConfigTabCardCollection)}>
+    <SectionPanel id="cardset" title={t(Localization.ConfigTabCardCollection)}>
       <Stack divider={<Divider flexItem />} spacing={2}>
         {bundle.cardSets.map((set) => {
           const selected = cardCollection === set.id;
@@ -64,6 +64,6 @@ export function CardSetSection({ bundle }: { bundle: DataBundle }) {
           );
         })}
       </Stack>
-    </SectionCard>
+    </SectionPanel>
   );
 }

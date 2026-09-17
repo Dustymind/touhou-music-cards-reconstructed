@@ -1,7 +1,7 @@
 /** 双引擎冒烟：数据加载、页签切换、预设交互、对战回合。 */
 import { captureAudio, waitForPlaying } from "./audio";
 import { dragCard } from "./dnd";
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 test("加载数据并渲染页签与播放页", async ({ page }) => {
   await page.goto("/");
@@ -24,6 +24,7 @@ test("列表页列出全部角色并能搜索", async ({ page }) => {
 test("设置页：秘封父项是批量控制，三态开关改变统计", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("tab", { name: "Config", exact: true }).click();
+  await expandSection(page, "preset");
   const stats = page.getByTestId("preset-stats");
   // 首次进入必须是"全选 + 全库可用"，而不是 0 / 378
   await expect(stats).toContainText("378 / 378");
@@ -47,8 +48,10 @@ test("设置页：秘封父项是批量控制，三态开关改变统计", async
 test("仅单曲模式下拉只列预设启用的曲目", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("tab", { name: "Config", exact: true }).click();
+  await expandSection(page, "preset");
+  await expandSection(page, "single");
   await page.getByTestId("tri-角色曲-off").click();
-  await page.getByLabel("single-mode-enabled").check();
+  await page.getByLabel("single-mode").check();
   const select = page.getByTestId("single-select-chirizuka-ubame").getByRole("combobox");
   await select.click();
   const options = page.getByRole("option");
@@ -95,6 +98,13 @@ test("中文界面：游戏页（含联机大厅）全部是中文，不留英�
     "对手 · 已得 0", "你 · 已得 0", "下一回合", "随机交出", "牌堆", "轮播"]) {
     await expect(page.getByText(label, { exact: false }).first()).toBeVisible();
   }
+
+  // 设置页：分区标题始终可见（内容折叠）
+  await page.getByRole("tab", { name: "设置", exact: true }).click();
+  for (const label of ["数据", "卡面图集", "音乐源", "音乐选择预设", "仅单曲模式"]) {
+    await expect(page.getByText(label, { exact: false }).first()).toBeVisible();
+  }
+  await page.getByRole("tab", { name: "游戏", exact: true }).click();
 
   // 多人模式：联机栏才出现
   await page.getByTestId("mode-multi").click();
@@ -480,6 +490,12 @@ test("卡片大小按钮按 0.01 步进并夹在 0.04~0.40", async ({ page }) =>
   expect(stored).toContain("cardWidthPercentage");
 });
 
+/** 展开设置页的某个分区（MD2 扩展面板默认折叠，内容不挂载）。 */
+async function expandSection(page: Page, id: string): Promise<void> {
+  await page.getByTestId(`section-${id}-summary`).click();
+  await page.waitForTimeout(400);   // 等展开动画（250ms）
+}
+
 test("卡面图集设置对游戏页生效（选卡菜单 + 牌桌，用户反馈后）", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("tab", { name: "Match", exact: true }).click();
@@ -504,6 +520,7 @@ test("卡面图集设置对游戏页生效（选卡菜单 + 牌桌，用户反�
 
   // 设置页换成 ZUN 原画 → 游戏页选卡菜单与牌桌都换成 cards-zun/
   await page.getByRole("tab", { name: "Config", exact: true }).click();
+  await expandSection(page, "cardset");
   await page.getByTestId("cardset-zun").waitFor();
 
   // 原版的图集菜单：每套一行（名称 + 使用按钮 + 原版说明 + 三张示例卡）
@@ -542,6 +559,7 @@ test("卡面图集设置对游戏页生效（选卡菜单 + 牌桌，用户反�
 test("音乐源回退顺序：显示用源名称，重排不打乱开关（用户反馈后）", async ({ page }) => {
   await page.goto("/?locale=zh");
   await page.getByRole("tab", { name: "设置", exact: true }).click();
+  await expandSection(page, "source");
   const display = page.getByTestId("source-fallback-order");
   await expect(display).toBeVisible();
 
@@ -658,6 +676,7 @@ test("MD2 细节：下拉标签入框、搜索框居中、边框可见（用户�
 
   // 设置页音乐源的顺序编号是圆形
   await page.getByRole("tab", { name: "Config", exact: true }).click();
+  await expandSection(page, "source");
   await page.getByTestId("source-order-netease163").waitFor();
   const orderBadges = await page.evaluate(() =>
     [...document.querySelectorAll('[data-testid^="source-order-"]')].map((element) => {

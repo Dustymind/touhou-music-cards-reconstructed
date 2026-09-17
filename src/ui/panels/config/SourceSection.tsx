@@ -6,7 +6,7 @@ import { ArrowDownward, ArrowUpward } from "@mui/icons-material";
 
 import { useMemo } from "react";
 
-import { SectionCard } from "./SectionCard";
+import { SectionPanel } from "./SectionCard";
 import type { DataBundle } from "../../../data/types";
 import { Localization, localized, t } from "../../../i18n/localization";
 import { effectiveOrder, useSession } from "../../../store/session";
@@ -34,7 +34,7 @@ export function SourceSection({ bundle, tables }: { bundle: DataBundle; tables: 
     .filter((source): source is NonNullable<typeof source> => source !== undefined);
 
   return (
-    <SectionCard title={t(Localization.ConfigTabMusicSource)}>
+    <SectionPanel id="source" title={t(Localization.ConfigTabMusicSource)}>
       {/* 回退顺序显示：编号 + 实际名称（原来直接把内部 id 拼成字符串，既不可读也不随语言变） */}
       <Stack
         direction="row"
@@ -140,6 +140,6 @@ export function SourceSection({ bundle, tables }: { bundle: DataBundle; tables: 
           );
         })}
       </Stack>
-    </SectionCard>
+    </SectionPanel>
   );
 }

@@ -3,7 +3,7 @@ import {
   Chip, Divider, Stack, Typography,
 } from "@mui/material";
 
-import { SectionCard } from "./config/SectionCard";
+import { SectionPanel } from "./config/SectionCard";
 import type { DataBundle } from "../../data/types";
 import { Localization, t, type Locale } from "../../i18n/localization";
 import { useSession } from "../../store/session";
@@ -23,7 +23,7 @@ export function ConfigPanel({ bundle, tables }: { bundle: DataBundle; tables: Ta
 
   return (
     <Stack spacing={2} sx={{ width: "100%", fontFamily: NoFontFamily }}>
-      <SectionCard title={t(Localization.ShellDataSummary)}>
+      <SectionPanel id="data" title={t(Localization.ShellDataSummary)}>
         <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", gap: 1 }}>
           <Chip label={`${bundle.index.counts.characters} ${t(Localization.ShellCharacters)}`} />
           <Chip label={`${bundle.index.counts.albums} ${t(Localization.ShellAlbums)}`} />
@@ -46,7 +46,7 @@ export function ConfigPanel({ bundle, tables }: { bundle: DataBundle; tables: Ta
             />
           ))}
         </Stack>
-      </SectionCard>
+      </SectionPanel>
 
       <CardSetSection bundle={bundle} />
       <SourceSection bundle={bundle} tables={tables} />

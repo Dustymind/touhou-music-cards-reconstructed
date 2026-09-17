@@ -1,24 +1,55 @@
-/** 设置页分区外壳：MD2 卡片 + `CardHeader`（标题 h6）+ 内容区。
+/** 设置页分区：MD2 扩展面板（默认折叠）。
  *
- * 六个分区原来各写一遍 `<Card><CardHeader titleTypographyProps={{ variant: "h6" }} /><CardContent>`，
- * 抽成一个组件，标题层级与内边距只有一处定义。
+ * 动效：MD2 标准缓动（cubic-bezier(0.4, 0, 0.2, 1)）、展开 250ms / 收起 200ms；
+ * 性能：折叠时**不挂载**内容（`unmountOnExit`）——预设那一区有几百个复选框，
+ * 音乐源/单曲也各有列表，默认折叠后首屏只渲染五个标题。
  */
-import { Card, CardContent, CardHeader, type SxProps } from "@mui/material";
+import ExpandMoreRounded from "@mui/icons-material/ExpandMoreRounded";
+import {
+  Accordion, AccordionDetails, AccordionSummary, Box, Typography, type SxProps,
+} from "@mui/material";
 
-export interface SectionCardProps {
+import { MD2 } from "../../../theme/theme";
+
+export interface SectionPanelProps {
+  /** 折叠面板标题（也是 `data-testid` 的前缀） */
   title: string;
-  /** 右上角动作（重置按钮、开关等） */
-  action?: React.ReactNode;
-  testId?: string;
+  /** 面板 id：用于 `section-<id>` / `section-<id>-summary` 测试选择器 */
+  id: string;
   children: React.ReactNode;
+  /** 内容区附加样式 */
   contentSx?: SxProps;
+  /** 默认是否展开（默认折叠，用户要求） */
+  defaultExpanded?: boolean;
 }
 
-export function SectionCard({ title, action, testId, children, contentSx }: SectionCardProps) {
+export function SectionPanel({ title, id, children, contentSx, defaultExpanded = false }: SectionPanelProps) {
+  const summaryId = `section-${id}-summary`;
   return (
-    <Card data-testid={testId}>
-      <CardHeader title={title} action={action} titleTypographyProps={{ variant: "h6" }} />
-      <CardContent sx={contentSx}>{children}</CardContent>
-    </Card>
+    <Accordion
+      defaultExpanded={defaultExpanded}
+      data-testid={`section-${id}`}
+      slotProps={{
+        transition: {
+          unmountOnExit: true,
+          timeout: MD2.accordion.timeout,
+          easing: MD2.accordion.easing,
+        },
+      }}
+    >
+      <AccordionSummary
+        id={summaryId}
+        data-testid={summaryId}
+        aria-controls={`section-${id}-content`}
+        expandIcon={<ExpandMoreRounded />}
+      >
+        <Typography variant="h6">{title}</Typography>
+      </AccordionSummary>
+      <AccordionDetails sx={contentSx}>
+        <Box data-testid={`section-${id}-content`} id={`section-${id}-content`}>
+          {children}
+        </Box>
+      </AccordionDetails>
+    </Accordion>
   );
 }

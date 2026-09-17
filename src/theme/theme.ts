@@ -94,6 +94,8 @@ export const MD2 = {
   tab: { height: 48, padding: 16 },
   /** MD2 图标按钮：48dp 触控区 + 24dp 图标。 */
   iconButton: { size: 48, icon: 24 },
+  /** MD2 扩展面板：头部 56dp、展开动画用标准缓动。 */
+  accordion: { header: 56, timeout: { enter: 250, exit: 200 }, easing: "cubic-bezier(0.4, 0, 0.2, 1)" },
   listItem: { minHeight: 56 },
   field: { height: 56 },
   /** 响应式页边距（移动 16 / 桌面 24）。 */
@@ -193,6 +195,32 @@ export function buildTheme(): Theme {
       },
       MuiTextField: { defaultProps: { variant: "filled" } },
       MuiSelect: { defaultProps: { variant: "filled" } },
+      // MD2 扩展面板（Expansion panel）：4dp 圆角、elevation 1、头上没有分隔线、头部 56dp
+      MuiAccordion: {
+        defaultProps: { elevation: 1, square: false, disableGutters: true },
+        styleOverrides: {
+          root: {
+            borderRadius: MD2.shape,
+            "&:before": { display: "none" },
+            "&.Mui-expanded": { margin: 0 },
+          },
+        },
+      },
+      MuiAccordionSummary: {
+        styleOverrides: {
+          root: {
+            minHeight: MD2.accordion.header,
+            paddingLeft: MD2.card.padding,
+            paddingRight: MD2.card.padding,
+            "&.Mui-expanded": { minHeight: MD2.accordion.header },
+          },
+          content: { margin: "12px 0", "&.Mui-expanded": { margin: "12px 0" } },
+          expandIconWrapper: { color: "rgba(255, 255, 255, 0.7)" },
+        },
+      },
+      MuiAccordionDetails: {
+        styleOverrides: { root: { padding: MD2.card.padding, paddingTop: 0 } },
+      },
       MuiAppBar: {
         defaultProps: { color: "default", elevation: 4 },
         styleOverrides: { root: { borderRadius: 0 } },

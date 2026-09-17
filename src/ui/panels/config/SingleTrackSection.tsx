@@ -1,13 +1,13 @@
 /** 仅单曲模式：总开关 + 逐角色选曲（只列预设启用的曲目）+ 禁用角色。 */
 import {
-  Box, Chip, FormControl, FormControlLabel, MenuItem, Select, Stack, Switch, TextField, Typography,
+  Chip, FormControl, FormControlLabel, MenuItem, Select, Stack, Switch, TextField, Typography,
 } from "@mui/material";
 import { useMemo, useState } from "react";
 
 import type { DataBundle, MusicEntry } from "../../../data/types";
 import { displayTitle, trackId } from "../../../data/types";
 import { Localization, t } from "../../../i18n/localization";
-import { SectionCard } from "./SectionCard";
+import { SectionPanel } from "./SectionCard";
 import { usePreset } from "../../../store/preset";
 import { useSingleTrack } from "../../../store/single";
 import { singleModeRows } from "../../../music/presetView";
@@ -27,10 +27,10 @@ export function SingleTrackSection({ bundle }: { bundle: DataBundle }) {
   );
 
   return (
-    <SectionCard
-      testId="single-section"
-      title={t(Localization.ConfigTabMusicSelectionSingle)}
-      action={<FormControlLabel
+    <SectionPanel id="single" title={t(Localization.ConfigTabMusicSelectionSingle)}>
+      {/* 开关行：开关在左、说明在右（原来只有一个右对齐的开关 + 空的左半边） */}
+      <Stack direction="row" spacing={2} sx={{ alignItems: "center", flexWrap: "wrap", mb: 1 }}>
+        <FormControlLabel
           control={
             <Switch
               size="small"
@@ -39,38 +39,32 @@ export function SingleTrackSection({ bundle }: { bundle: DataBundle }) {
               slotProps={{ input: { "aria-label": "single-mode" } }}
             />
           }
-          label={<Typography variant="body2">{t(Localization.ConfigTabSingleMode)}</Typography>}
-        />}
-    >
-      <Stack direction="row" alignItems="center" spacing={1}>
-        <Box sx={{ flex: 1 }} />
-        <FormControlLabel
-          control={
-            <Switch
-              size="small"
-              checked={single.enabled}
-              onChange={(event) => single.setEnabled(event.target.checked)}
-              slotProps={{ input: { "aria-label": "single-mode-enabled" } }}
-            />
-          }
           label={t(Localization.ConfigTabSingleMode)}
         />
+        <Typography variant="caption" color="text.secondary" sx={{ flex: 1 }}>
+          {t(Localization.ConfigTabSingleHint)}
+        </Typography>
       </Stack>
-      <Typography variant="caption" color="text.secondary">
-        {t(Localization.ConfigTabSingleHint)}
-      </Typography>
 
       <TextField
         size="small"
         fullWidth
-        sx={{ mt: 1, mb: 1 }}
-        placeholder={t(Localization.ConfigTabSearchCharacter)}
+        label={t(Localization.ConfigTabSearchCharacter)}
         value={query}
         onChange={(event) => setQuery(event.target.value)}
-        inputProps={{ "aria-label": "single-search" }}
+        slotProps={{ htmlInput: { "aria-label": "single-search" } }}
+        sx={{ mb: 1 }}
       />
 
-      <Stack spacing={0.5} sx={{ maxHeight: 420, overflowY: "auto" }}>
+      <Stack
+        spacing={0.5}
+        sx={{
+          maxHeight: 420,
+          overflowY: "auto",
+          opacity: single.enabled ? 1 : 0.5,
+          pointerEvents: single.enabled ? "auto" : "none",
+        }}
+      >
         {rows.map(({ character, allowed, pinned, disabled }) => {
           const current = pinned ?? allowed[0] ?? null;
           const value = current ? trackId(current[0], current[1]) : "";
@@ -120,6 +114,6 @@ export function SingleTrackSection({ bundle }: { bundle: DataBundle }) {
           );
         })}
       </Stack>
-    </SectionCard>
+    </SectionPanel>
   );
 }

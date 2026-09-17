@@ -71,6 +71,12 @@ describe("App 冒烟（真实数据）", () => {
     await act(async () => {
       config!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     });
+    // 设置分区默认折叠（D47），先展开"音乐选择预设"
+    await act(async () => {
+      container.querySelector('[data-testid="section-preset-summary"]')!
+        .dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await new Promise((resolve) => setTimeout(resolve, 320));
+    });
     const parent = container.querySelector<HTMLInputElement>('input[aria-label="hifuu-parent"]');
     expect(parent?.checked).toBe(true);
     expect(container.querySelector('[data-testid="preset-stats"]')?.textContent).toContain("378 / 378");
