@@ -470,6 +470,55 @@ test("卡片大小按钮按 0.01 步进并夹在 0.04~0.40", async ({ page }) =>
   expect(stored).toContain("cardWidthPercentage");
 });
 
+test("游戏页按钮尺寸、内边距与图标间距统一", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Match" }).click();
+  await page.getByTestId("deck-setup").waitFor();
+
+  const metrics = await page.evaluate(() => {
+    const ids = ["mode-solo", "mode-cpu", "rule-traditional", "rule-leisure", "start-game", "stop-game",
+      "row-minus", "row-plus", "col-minus", "col-plus", "card-smaller", "card-larger",
+      "random-fill", "shuffle-deck", "clear-deck", "fill-cpu-deck", "shuffle-cpu-deck", "clear-cpu-deck",
+      "next-turn", "give-cards", "filter-by-deck", "net-host", "net-join"];
+    return ids.map((id) => {
+      const element = document.querySelector(`[data-testid="${id}"]`);
+      if (!element) return { id, missing: true };
+      const style = getComputedStyle(element);
+      const svg = element.querySelector("svg");
+      let gap: number | null = null;
+      if (svg) {
+        // 文字节点：取最后一个非空文本节点
+        const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+        const texts: Node[] = [];
+        let node: Node | null;
+        while ((node = walker.nextNode())) if (node.textContent?.trim()) texts.push(node);
+        if (texts.length > 0) {
+          const range = document.createRange();
+          range.selectNodeContents(texts[texts.length - 1]!);
+          gap = Math.round(range.getBoundingClientRect().left - svg.getBoundingClientRect().right);
+        }
+      }
+      return {
+        id,
+        height: Math.round(element.getBoundingClientRect().height),
+        padding: `${style.paddingLeft}|${style.paddingRight}`,
+        fontSize: style.fontSize,
+        gap,
+      };
+    });
+  });
+
+  expect(metrics.filter((entry) => "missing" in entry)).toEqual([]);
+  const heights = new Set(metrics.map((entry) => entry.height));
+  const paddings = new Set(metrics.map((entry) => entry.padding));
+  const fonts = new Set(metrics.map((entry) => entry.fontSize));
+  const gaps = new Set(metrics.map((entry) => entry.gap).filter((value): value is number => value !== null));
+  expect([...heights]).toEqual([30]);
+  expect([...paddings]).toEqual(["10px|10px"]);
+  expect([...fonts]).toEqual(["13px"]);
+  expect([...gaps]).toEqual([6]);
+});
+
 test("两个界面的选卡滑块样式与对齐方式一致（同一份实现，不许漂移）", async ({ page }) => {
   const readSlider = (testId: string, stripTestId: string) => page.evaluate(([id, stripId]) => {
     const root = document.querySelector(`[data-testid="${id}"]`)!;

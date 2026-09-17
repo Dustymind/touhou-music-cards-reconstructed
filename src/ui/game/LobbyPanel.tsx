@@ -1,10 +1,11 @@
 /** 联机大厅：昵称、开房/加入、分享码、参与者列表、聊天、数据一致性自检。 */
 import {
-  Alert, Box, Button, Chip, Divider, FormControlLabel, Paper, Stack, Switch, TextField, Typography,
+  Alert, Box, Chip, Divider, FormControlLabel, Paper, Stack, Switch, TextField, Typography,
 } from "@mui/material";
 import { useState } from "react";
 
 import { Localization, t } from "../../i18n/localization";
+import { GameButton } from "./GameButton";
 import { peerModeFromSearch, useNet } from "../../net/useNet";
 import { NoFontFamily } from "../../theme/theme";
 
@@ -55,10 +56,10 @@ export function LobbyPanel(_props: LobbyPanelProps) {
               }
               label={<Typography variant="caption">{t(Localization.GameConnectionPeerMode)}</Typography>}
             />
-            <Button size="small" variant="contained" data-testid="net-host"
+            <GameButton size="small" variant="contained" data-testid="net-host"
               onClick={() => void net.host({ name, peer: peerMode })}>
               {t(Localization.GameConnectionHost)}
-            </Button>
+            </GameButton>
             <TextField
               size="small"
               label={t(Localization.GameConnectionRoom)}
@@ -67,10 +68,10 @@ export function LobbyPanel(_props: LobbyPanelProps) {
               sx={{ width: "9em" }}
               slotProps={{ htmlInput: { "aria-label": "net-room" } }}
             />
-            <Button size="small" data-testid="net-join" disabled={!room}
+            <GameButton size="small" data-testid="net-join" disabled={!room}
               onClick={() => net.join({ roomId: room, name, peer: peerMode })}>
               {t(Localization.GameConnectionJoin)}
-            </Button>
+            </GameButton>
           </>
         )}
         {online && (
@@ -84,9 +85,9 @@ export function LobbyPanel(_props: LobbyPanelProps) {
                 onClick={() => void navigator.clipboard?.writeText(net.shareCode ?? "")}
               />
             )}
-            <Button size="small" data-testid="net-leave" onClick={() => net.leave()}>
+            <GameButton size="small" data-testid="net-leave" onClick={() => net.leave()}>
               {t(Localization.GameConnectionLeave)}
-            </Button>
+            </GameButton>
           </>
         )}
         <Box sx={{ flex: 1 }} />
@@ -139,7 +140,7 @@ export function LobbyPanel(_props: LobbyPanelProps) {
               }}
               slotProps={{ htmlInput: { "aria-label": "chat-input" } }}
             />
-            <Button
+            <GameButton
               size="small"
               data-testid="chat-send"
               onClick={() => {
@@ -149,7 +150,7 @@ export function LobbyPanel(_props: LobbyPanelProps) {
               }}
             >
               {t(Localization.ChatMessageSend)}
-            </Button>
+            </GameButton>
           </Stack>
         </>
       )}
