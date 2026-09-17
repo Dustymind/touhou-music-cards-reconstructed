@@ -95,7 +95,14 @@ export const MD2 = {
   /** MD2 图标按钮：48dp 触控区 + 24dp 图标。 */
   iconButton: { size: 48, icon: 24 },
   /** MD2 扩展面板：头部 56dp、展开动画用标准缓动。 */
-  accordion: { header: 56, timeout: { enter: 250, exit: 200 }, easing: "cubic-bezier(0.4, 0, 0.2, 1)" },
+  accordion: {
+    header: 56,
+    timeout: { enter: 250, exit: 200 },
+    easing: "cubic-bezier(0.4, 0, 0.2, 1)",
+    /** MD2：展开图标 onSurface 60%、头部与内容之间 1px 分隔线（onSurface 12%） */
+    icon: "rgba(255, 255, 255, 0.6)",
+    divider: "rgba(255, 255, 255, 0.12)",
+  },
   listItem: { minHeight: 56 },
   field: { height: 56 },
   /** 响应式页边距（移动 16 / 桌面 24）。 */
@@ -202,7 +209,10 @@ export function buildTheme(): Theme {
           root: {
             borderRadius: MD2.shape,
             "&:before": { display: "none" },
-            "&.Mui-expanded": { margin: 0 },
+            // 面板自身不留 margin：间距统一由外层容器的 gap 提供。
+            // （别再写 `&.Mui-expanded { margin: 0 }`：MUI 的 Stack spacing 是用子元素 margin 实现的，
+            //   覆盖展开态的 margin 会让展开时头部往上滑 16px —— 用户反馈过的问题。）
+            margin: 0,
           },
         },
       },
@@ -215,11 +225,18 @@ export function buildTheme(): Theme {
             "&.Mui-expanded": { minHeight: MD2.accordion.header },
           },
           content: { margin: "12px 0", "&.Mui-expanded": { margin: "12px 0" } },
-          expandIconWrapper: { color: "rgba(255, 255, 255, 0.7)" },
+          // MD2：展开图标 24dp、onSurface 60%
+          expandIconWrapper: { color: MD2.accordion.icon },
         },
       },
       MuiAccordionDetails: {
-        styleOverrides: { root: { padding: MD2.card.padding, paddingTop: 0 } },
+        styleOverrides: {
+          root: {
+            padding: MD2.card.padding,
+            // MD2 扩展面板：头部与内容之间有一条 1px 分隔线
+            borderTop: `1px solid ${MD2.accordion.divider}`,
+          },
+        },
       },
       MuiAppBar: {
         defaultProps: { color: "default", elevation: 4 },

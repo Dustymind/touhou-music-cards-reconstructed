@@ -516,6 +516,59 @@ async function expandSection(page: Page, id: string): Promise<void> {
   await page.waitForTimeout(400);   // 等展开动画（250ms）
 }
 
+/** 分区的头部（summary）位置，用来验证展开时头部不会移动。 */
+async function summaryTop(page: Page, id: string): Promise<number> {
+  return page.getByTestId(`section-${id}-summary`).evaluate((element) =>
+    Math.round(element.getBoundingClientRect().top));
+}
+
+test("设置分区展开时头部不移动，且符合 MD2 扩展面板规格", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("tab", { name: "Config", exact: true }).click();
+  const summary = page.getByTestId("section-preset-summary");
+  await summary.waitFor();
+
+  // MD2 规格：4dp 圆角 / elevation 1 / 头部 56dp / 默认折叠
+  const spec = await page.getByTestId("section-preset").evaluate((accordion) => {
+    const head = accordion.querySelector(".MuiAccordionSummary-root")!;
+    const style = getComputedStyle(accordion);
+    return {
+      radius: style.borderRadius,
+      shadow: style.boxShadow !== "none",
+      header: Math.round(head.getBoundingClientRect().height),
+      collapsed: accordion.className.includes("Mui-expanded") === false,
+    };
+  });
+  expect(spec.radius).toBe("4px");
+  expect(spec.shadow).toBe(true);
+  expect(spec.header).toBe(56);
+  expect(spec.collapsed).toBe(true);
+
+  // 展开过程中头部位置不变（间距由容器 gap 提供，面板自身 margin 恒为 0）
+  const before = await summaryTop(page, "preset");
+  await summary.click();
+  const during = await summaryTop(page, "preset");
+  await page.waitForTimeout(120);
+  const mid = await summaryTop(page, "preset");
+  await page.waitForTimeout(400);
+  const after = await summaryTop(page, "preset");
+  expect([during, mid, after]).toEqual([before, before, before]);
+
+  // 展开后：头部仍是 56dp，且头部与内容之间有一条分隔线（MD2）
+  const expanded = await page.getByTestId("section-preset").evaluate((accordion) => {
+    const head = accordion.querySelector(".MuiAccordionSummary-root")!;
+    const details = accordion.querySelector(".MuiAccordionDetails-root")!;
+    return {
+      header: Math.round(head.getBoundingClientRect().height),
+      borderTop: getComputedStyle(details).borderTopWidth,
+      content: details.getBoundingClientRect().height > 0,
+    };
+  });
+  expect(expanded.header).toBe(56);
+  expect(expanded.borderTop).toBe("1px");
+  expect(expanded.content).toBe(true);
+});
+
 test("卡面图集设置对游戏页生效（选卡菜单 + 牌桌，用户反馈后）", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("tab", { name: "Match", exact: true }).click();

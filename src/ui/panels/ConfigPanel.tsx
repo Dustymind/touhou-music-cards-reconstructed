@@ -22,7 +22,7 @@ export function ConfigPanel({ bundle, tables }: { bundle: DataBundle; tables: Ta
   const stats = presetStats(preset, bundle.characters);
 
   return (
-    <Stack spacing={2} sx={{ width: "100%", fontFamily: NoFontFamily }}>
+    <Stack sx={{ width: "100%", fontFamily: NoFontFamily, display: "flex", flexDirection: "column", gap: 2 }}>
       <SectionPanel id="data" title={t(Localization.ShellDataSummary)}>
         <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", gap: 1 }}>
           <Chip label={`${bundle.index.counts.characters} ${t(Localization.ShellCharacters)}`} />

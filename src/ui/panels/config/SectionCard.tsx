@@ -43,7 +43,8 @@ export function SectionPanel({ title, id, children, contentSx, defaultExpanded =
         aria-controls={`section-${id}-content`}
         expandIcon={<ExpandMoreRounded />}
       >
-        <Typography variant="h6">{title}</Typography>
+        {/* MD2：扩展面板头部文字是 subtitle1（16sp/400） */}
+        <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>{title}</Typography>
       </AccordionSummary>
       <AccordionDetails sx={contentSx}>
         <Box data-testid={`section-${id}-content`} id={`section-${id}-content`}>

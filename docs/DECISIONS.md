@@ -1291,6 +1291,45 @@ MD2 细节、中文界面、秘封父项、仅单曲模式各处用例相应更�
 
 ---
 
+## D49 展开时头部不移动 + 按 MD2 重绘扩展面板
+
+**需求**（用户）：展开设置栏时不要让头部移动；同时按 MD2 重绘这几个栏。
+
+### 1. "头部移动"的根因
+
+MUI 的 **`Stack spacing` 是用子元素 `margin` 实现的**（`.MuiStack-root > :not(style) ~ :not(style) { margin-top: 16px }`），
+而我在 D47 的主题里为了消掉 MUI 自带的 `&.Mui-expanded { margin: 16px 0 }` 写了
+`"&.Mui-expanded": { margin: 0 }` —— 这条的优先级（0,2,0）**高于** Stack 的（0,1,2），
+于是**展开的那一栏自己把 Stack 给的 16px 上边距动画掉了**，头部在 150ms 内往上滑 16px ✗
+（实测：折叠 `margin 16px|0`，展开过程 `8.67 → 0.5 → 0`）。
+
+改法两条一起：
+
+- 容器改用 **flex + `gap`**（`display:flex; flexDirection:column; gap:2`），不再让 Stack 用 margin 撑间距；
+- 主题里面板**只留一条 `margin: 0`**，不再写 expanded 的覆盖（并在注释里写明原因，避免以后又加回去）。
+
+**实测**（点击"音乐选择预设"，采样 0/60/150/300/500ms）：该栏头部始终 `top = 304`，**位移 0**；
+只有它下面的栏正常下移（自然回流）。
+
+### 2. 按 MD2 扩展面板规格重绘
+
+| 规格（m2.material.io Expansion panels） | 落地 |
+|---|---|
+| 容器：surface、4dp 圆角、elevation 1 | `MuiAccordion` 默认 `elevation: 1 / square: false`，圆角取 `MD2.shape` |
+| 头部高度 48（dense）/ 56–64 | **56dp**，且展开前后**同高**（覆盖 MUI 默认的 64） |
+| 头部文字 subtitle1（16sp/400）+ 水平 16dp | 标题改 `subtitle1`（`fontWeight: 500`）、左右各 16dp |
+| 展开图标 24dp、onSurface 60% | `MD2.accordion.icon = rgba(255,255,255,0.6)`（原来是 70%） |
+| **头部与内容之间 1px 分隔线** | `MuiAccordionDetails` 加 `borderTop: 1px solid rgba(255,255,255,0.12)`（原来没有） |
+| 动效：标准缓动 | `cubic-bezier(0.4, 0, 0.2, 1)`，展开 250ms / 收起 200ms |
+| 折叠时不渲染内容 | `slotProps.transition.unmountOnExit`（D47 已有：首屏 DOM 616 vs 展开后 2467） |
+| 面板之间的间距 | 容器 `gap: 16px`（8dp 栅格） |
+
+**回归锁**：E2E 新增"设置分区展开时头部不移动，且符合 MD2 扩展面板规格"——断言圆角 4px、有 elevation、
+头部 56dp、默认折叠，点击后头部位置在 0/120/520ms 三个时刻**都与展开前相同**，
+展开后头部仍 56dp 且头部与内容之间有 1px 分隔线。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |
