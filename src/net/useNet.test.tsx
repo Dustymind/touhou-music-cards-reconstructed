@@ -42,8 +42,9 @@ describe("联机（React 层）", () => {
     bundle = await loadRealBundle();
     (window as unknown as { __TMC_DATA_HASH__?: string }).__TMC_DATA_HASH__ = bundle.index.contentHash;
     __setTransportFactory((role) => __busHub().connect(role));
+    // 联机栏只在"多人"模式下出现（用户要求），联机用例都从多人模式起
     useGame.setState({
-      game: rules.adjustDeckSize(emptyState(), 2, 2),
+      game: { ...rules.adjustDeckSize(emptyState(), 2, 2), mode: "multi" },
       pool: [],
     });
     useNet.getState().leave();
@@ -118,7 +119,7 @@ describe("联机（React 层）", () => {
         players[1]!.deck[1] = { characterKey: "z", cardIndex: 1 };
         return {
           game: {
-            ...slice.game, players, order: ["a"], currentKey: "a", mode: "host",
+            ...slice.game, players, order: ["a"], currentKey: "a", mode: "multi",
             state: "turnStart", turnStartTimestamp: Date.now(),
           },
         };

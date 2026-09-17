@@ -8,7 +8,9 @@ const PEER_QUERY = "?peerhost=127.0.0.1&peerport=9100&peerpath=/&peersecure=0";
 
 async function openGame(page: Page, url: string): Promise<void> {
   await page.goto(url);
-  await page.getByRole("button", { name: "Match" }).click();
+  await page.getByRole("button", { name: "Match", exact: true }).click();
+  // 联机栏只在"多人"模式下出现（用户要求）
+  await page.getByTestId("mode-multi").click();
   await expect(page.getByTestId("lobby")).toBeVisible();
 }
 
@@ -57,9 +59,10 @@ test("同浏览器两个标签页联机：握手 / 聊天 / 快照同步", async
   await host.getByTestId("chat-send").click();
   await expect(guest.getByTestId("chat-log")).toContainText("hi from host");
 
-  // 主机给双方补满牌库（各自建牌是正常流程，这里由主机代劳）→ 开局
+  // 各自补满自己的牌库（多人模式下不能替对方补牌）→ 开局
   await host.getByTestId("random-fill").click();
-  await host.getByRole("button", { name: "Fill CPU" }).click();
+  await guest.getByTestId("random-fill").click();
+  await expect.poll(async () => (await digest(host)).includes("p1[")).toBe(true);
   await host.getByTestId("start-game").click();
   await expect(guest.getByText(/turn #0 · countdown/)).toBeVisible();
   await expect(guest.getByText(/turn #1 · turnStart/)).toBeVisible({ timeout: 20_000 });
@@ -109,9 +112,10 @@ test("跨浏览器联机：Chromium 主机 + Firefox 客户端（本地 PeerServ
   await guest.getByTestId("chat-send").click();
   await expect(host.getByTestId("chat-log")).toContainText("hello from firefox", { timeout: 30_000 });
 
-  // 开局同步：Firefox 端跟随 Chromium 主机的状态
+  // 开局同步：Firefox 端跟随 Chromium 主机的状态（各自补自己的牌库）
   await host.getByTestId("random-fill").click();
-  await host.getByRole("button", { name: "Fill CPU" }).click();
+  await guest.getByTestId("random-fill").click();
+  await expect.poll(async () => (await digest(host)).includes("p1[")).toBe(true);
   await host.getByTestId("start-game").click();
   await expect(guest.getByText(/turn #0 · countdown/)).toBeVisible({ timeout: 30_000 });
   await expect(guest.getByText(/turn #1 · turnStart/)).toBeVisible({ timeout: 30_000 });

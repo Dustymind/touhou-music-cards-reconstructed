@@ -29,7 +29,8 @@ export interface PlayerState {
   confirmNext: boolean;
 }
 
-export type MatchMode = "solo" | "cpu" | "host" | "client" | "observer";
+/** 玩家可选的对局模式：单人（只看自己）/ 电脑（有对手棋盘 + 可调电脑卡组）/ 多人（联机）。 */
+export type MatchMode = "solo" | "cpu" | "multi";
 
 export type JudgeState = "selecting" | "countdown" | "turnStart" | "turnWinner" | "finished";
 

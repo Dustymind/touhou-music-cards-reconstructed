@@ -870,6 +870,41 @@ NAV_BUTTON_SX = { height: 30, p: 0.5 /* 4px */, minWidth: "4em", fontSize: "0.81
 
 ---
 
+## D35 三种对局模式：单人 / 电脑 / 多人（棋盘与联机栏按模式显隐，带动画）
+
+**需求**（用户）："单人""电脑"改成"单人""电脑""多人"三选并调整图标；仅在"多人""电脑"模式显示对方棋盘；
+仅在"电脑"模式显示调整电脑卡组的按键，"多人"模式下**不可调整对方棋盘**（包括拖动）；
+仅在"多人"模式显示联机栏；棋盘显隐与联机栏显隐要有动画。
+
+**做法**：
+
+1. `MatchMode` 从 `"solo" \| "cpu" \| "host" \| "client" \| "observer"` 收敛成
+   **`"solo" \| "cpu" \| "multi"`**（`host/client/observer` 从来没被游戏状态用过 —— 联机身份走 `useNet` 的 `role`）。
+2. 三个 ToggleButton：单人 `PersonRounded`、电脑 `SmartToyRounded`、多人 `GroupsRounded`
+   （后两个是上游 `GameTab` 对 CPU / PvP 用的同一套图标），文案 `GameModeMulti = Multiplayer / 多人`。
+3. 三个派生开关：
+   - `showOpponentBoard = mode !== "solo"` → 对方棋盘（标签 + 棋盘）包在 `Reveal` 里；
+   - `canEditOpponentDeck = mode === "cpu" && !isClient` → 电脑卡组的补满/打乱/清空三个按钮、
+     点对方牌拿回卡池、把牌拖进对方牌库，**全部**受它控制（多人模式下拖动也不生效）；
+     交牌阶段（`turnWinner`）的空位点击/拖放仍然保留 —— 那是规则动作，不是"调整对方棋盘"；
+   - `showLobby = mode === "multi"` → 联机栏包在 `Reveal` 里。
+4. `src/ui/game/Reveal.tsx`：`Collapse`（高度，300ms）+ `Fade`（透明度）组合，`unmountOnExit`
+   —— 隐藏时**真的从 DOM 移除**，所以"单人模式没有对方棋盘"可以直接断言元素不存在。
+
+**实测**（真浏览器）：单人有 3 个模式按钮、无 `deck-opponent` / `lobby-reveal` / `fill-cpu-deck`；
+电脑模式有棋盘 + 三个电脑卡组按钮、无联机栏；多人模式有棋盘 + 联机栏、无电脑卡组按钮，
+且点对方牌不会改动对方牌库。`opponent-board` / `lobby-reveal` 的 computed `transition-property`
+含 `height`（动画确实是高度过渡）。
+
+**连带改动**：联机 E2E 改成"先选多人 → 出现联机栏 → 开房/加入"，并且**各端自己补自己的牌库**
+（多人模式下主机不能再替对方补牌，客户端补牌走 `fillDeck` 意图）。另外英语里 `Multiplayer` 含有
+`Player`，所有 `getByRole("button", { name: "Player" })` 改成 `exact: true`（Firefox 严格模式会报歧义）。
+
+**回归锁**：`GamePanel` 新增"三种模式各显示什么"用例（含多人模式下点对方牌不改动牌库）；
+E2E 新增"模式切换：棋盘与联机栏按模式显隐，并带动画"。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |

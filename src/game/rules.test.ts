@@ -160,7 +160,7 @@ describe("抢拍判定", () => {
 describe("罚牌计算与夹紧", () => {
   const base = (): GameState => ({
     ...threeByTwo(),
-    mode: "host",
+    mode: "multi",
     traditional: true,
     melee: false,
     currentKey: "e",
@@ -235,7 +235,7 @@ describe("罚牌计算与夹紧", () => {
 
 describe("超时与交牌", () => {
   it("超时：静默移除当前角色的卡；罚牌为 0 时可以直接推进", () => {
-    const state: GameState = { ...threeByTwo(), mode: "host", currentKey: "e", state: "turnStart" };
+    const state: GameState = { ...threeByTwo(), mode: "multi", currentKey: "e", state: "turnStart" };
     const { state: next, advance } = rules.finishTurn(state);
     expect(advance).toBe(true);
     expect(next.players[1]!.deck[1]).toBeNull();
@@ -244,7 +244,7 @@ describe("超时与交牌", () => {
 
   it("超时且罚牌非 0：进入交牌阶段（不推进）", () => {
     let state: GameState = {
-      ...threeByTwo(), mode: "host", traditional: true, currentKey: "e", state: "turnStart",
+      ...threeByTwo(), mode: "multi", traditional: true, currentKey: "e", state: "turnStart",
       pickEvents: [{ timestamp: 5, player: 0, card: card("a"), side: 0, slot: 0 }],
     };
     const { state: next, advance } = rules.finishTurn(state);
@@ -255,7 +255,7 @@ describe("超时与交牌", () => {
 
   it("随机交牌把 |givesLeft| 张从交牌方移到接收方并清零", () => {
     const state: GameState = {
-      ...threeByTwo(), mode: "host", currentKey: "e", state: "turnWinner", givesLeft: 2,
+      ...threeByTwo(), mode: "multi", currentKey: "e", state: "turnWinner", givesLeft: 2,
     };
     const after = rules.giveCardsRandomly(state, () => 0);
     expect(after.givesLeft).toBe(0);
@@ -276,7 +276,7 @@ describe("终局", () => {
   });
 
   it("经典 1v1：先清空牌库者胜（对方清空则对方胜）", () => {
-    const base = { ...threeByTwo(), mode: "host" as const, traditional: true, givesLeft: 0 };
+    const base = { ...threeByTwo(), mode: "multi" as const, traditional: true, givesLeft: 0 };
     const p0Empty = rules.detectFinish({ ...base, players: [
       { ...base.players[0]!, deck: base.players[0]!.deck.map(() => null) }, base.players[1]!,
     ] });
@@ -289,7 +289,7 @@ describe("终局", () => {
   });
 
   it("休闲 1v1：双方都清空才结束，收牌多者胜", () => {
-    const base = { ...threeByTwo(), mode: "host" as const, traditional: false };
+    const base = { ...threeByTwo(), mode: "multi" as const, traditional: false };
     const oneEmpty = { ...base, players: [
       { ...base.players[0]!, deck: base.players[0]!.deck.map(() => null) }, base.players[1]!,
     ] };
@@ -304,7 +304,7 @@ describe("终局", () => {
   });
 
   it("罚牌没交完不算结束", () => {
-    const state = { ...threeByTwo(), mode: "host" as const, traditional: true, givesLeft: 1, players: [
+    const state = { ...threeByTwo(), mode: "multi" as const, traditional: true, givesLeft: 1, players: [
       { ...makePlayer("a"), deck: [null, null, null, null, null, null] },
       makePlayer("b"),
     ] };

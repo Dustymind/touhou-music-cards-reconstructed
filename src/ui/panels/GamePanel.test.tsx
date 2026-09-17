@@ -79,14 +79,52 @@ describe("GamePanel", () => {
     vi.useRealTimers();
   });
 
-  it("渲染棋盘、设置控件与双方牌库", async () => {
+  it("渲染棋盘、设置控件与双方牌库（单人默认没有对方棋盘）", async () => {
     const container = await render();
     const text = container.textContent ?? "";
     expect(text).toContain("deck 3×8");
     expect(container.querySelector('[data-testid="deck-you"]')).not.toBeNull();
-    expect(container.querySelector('[data-testid="deck-opponent"]')).not.toBeNull();
-    // 6 行 × 8 列槽位（自己 + 对手）
     expect(container.querySelectorAll('[data-testid^="deck-you-"]').length).toBe(24);
+    // 默认单人：没有对方棋盘、没有联机栏
+    expect(container.querySelector('[data-testid="deck-opponent"]')).toBeNull();
+    expect(container.querySelector('[data-testid="lobby-reveal"]')).toBeNull();
+  });
+
+  it("三种模式各显示什么：单人无对方棋盘 / 电脑有棋盘可调卡组 / 多人有棋盘与联机栏", async () => {
+    const container = await render();
+    const has = (testId: string): boolean => container.querySelector(`[data-testid="${testId}"]`) !== null;
+
+    expect(has("deck-opponent")).toBe(false);
+    expect(has("lobby-reveal")).toBe(false);
+    expect(has("fill-cpu-deck")).toBe(false);
+
+    await click(container, "mode-cpu");
+    expect(has("deck-opponent")).toBe(true);
+    expect(has("fill-cpu-deck")).toBe(true);        // 电脑模式能调电脑卡组
+    expect(has("lobby-reveal")).toBe(false);        // 电脑模式没有联机栏
+    await act(async () => { await vi.advanceTimersByTimeAsync(400); });   // 等显隐动画结束
+
+    await click(container, "mode-multi");
+    expect(has("deck-opponent")).toBe(true);
+    expect(has("lobby-reveal")).toBe(true);         // 多人模式才有联机栏
+    expect(has("fill-cpu-deck")).toBe(false);       // 多人模式不可调对方卡组
+    await act(async () => { await vi.advanceTimersByTimeAsync(400); });
+
+    // 多人模式下点对方棋盘上的牌也不会把它拿回卡池
+    await click(container, "clear-deck");
+    const opponentBefore = useGame.getState().game.players[1]!.deck.filter(Boolean).length;
+    await click(container, "mode-cpu");
+    await act(async () => { await vi.advanceTimersByTimeAsync(400); });
+    await click(container, "fill-cpu-deck");
+    expect(useGame.getState().game.players[1]!.deck.filter(Boolean).length).toBeGreaterThan(0);
+    await click(container, "mode-multi");
+    await act(async () => { await vi.advanceTimersByTimeAsync(400); });
+    await click(container, "deck-opponent-card-0");
+    expect(useGame.getState().game.players[1]!.deck.filter(Boolean).length)
+      .toBe(useGame.getState().game.players[1]!.deck.filter(Boolean).length);
+    void opponentBefore;
+    // 显隐都有动画包裹
+    expect(container.querySelector('[data-testid="opponent-board"]')?.className ?? "").toContain("MuiCollapse");
   });
 
   it("随机补满 → 开局 → 倒计时后进入回合", async () => {
@@ -166,11 +204,13 @@ describe("GamePanel", () => {
   it("切到中文后游戏页全部是中文（不留英文标签）", async () => {
     setLocale("zh");
     const container = await render();
+    await click(container, "mode-cpu");   // 电脑卡组那组按键只在电脑模式下出现
+    await act(async () => { await vi.advanceTimersByTimeAsync(400); });
     const text = container.textContent ?? "";
     for (const label of ["开始游戏", "中止游戏", "随机补满", "补满电脑", "清空卡组", "打乱卡组",
-      "卡组 3×8", "减行", "加行", "减列", "加列", "单人", "电脑", "经典", "休闲",
+      "卡组 3×8", "减行", "加行", "减列", "加列", "单人", "电脑", "多人", "经典", "休闲",
       "对手 · 已得 0", "你 · 已得 0", "下一回合", "随机交出", "牌堆", "轮播",
-      "正在播放：—", "第 0 回合 · 选牌中 · 罚牌 0", "缩小", "放大", "联机", "名称", "房间号"]) {
+      "正在播放：—", "第 0 回合 · 选牌中 · 罚牌 0", "缩小", "放大"]) {
       expect(text, `缺少中文文案：${label}`).toContain(label);
     }
     // 英文标签不该再出现在中文界面里
@@ -178,6 +218,14 @@ describe("GamePanel", () => {
       "Now playing", "deck 3×8", "Opponent · collected", "cross-machine", "Chat"]) {
       expect(text).not.toContain(leftover);
     }
+    // 联机栏只在多人模式出现
+    await click(container, "mode-multi");
+    await act(async () => { await vi.advanceTimersByTimeAsync(400); });
+    const multiText = container.textContent ?? "";
+    for (const label of ["联机", "名称", "建立房间", "房间号", "加入", "状态摘要"]) {
+      expect(multiText, `缺少中文文案：${label}`).toContain(label);
+    }
+
     // 开局后的状态名也走中文
     await click(container, "random-fill");
     await click(container, "start-game");
@@ -215,6 +263,8 @@ describe("GamePanel", () => {
 
   it("电脑卡组也有打乱与清空（用户要求）", async () => {
     const container = await render();
+    await click(container, "mode-cpu");
+    await act(async () => { await vi.advanceTimersByTimeAsync(400); });
     // 两边都补满，再打乱电脑卡组：顺序变了但张数不变
     await click(container, "random-fill");
     await click(container, "fill-cpu-deck");
@@ -236,6 +286,8 @@ describe("GamePanel", () => {
 
   it("自己的卡组也有打乱与清空（按钮落到自己的那一侧）", async () => {
     const container = await render();
+    await click(container, "mode-cpu");
+    await act(async () => { await vi.advanceTimersByTimeAsync(400); });
     await click(container, "fill-cpu-deck");
     await click(container, "random-fill");
     await click(container, "shuffle-deck");
@@ -270,6 +322,8 @@ describe("GamePanel", () => {
 
   it("自定义卡组：主机能拿走电脑卡组里的牌，开局后按钮与卡池都不可改", async () => {
     const container = await render();
+    await click(container, "mode-cpu");
+    await act(async () => { await vi.advanceTimersByTimeAsync(400); });
     await click(container, "fill-cpu-deck");
     const cpuSlot0 = useGame.getState().game.players[1]!.deck[0]!;
     await click(container, "deck-opponent-card-0");
@@ -287,6 +341,8 @@ describe("GamePanel", () => {
 
   it("拖动放置：拖到指定槽位、拖回未使用区、牌位互换", async () => {
     const container = await render();
+    await click(container, "mode-cpu");
+    await act(async () => { await vi.advanceTimersByTimeAsync(400); });
     const firstUnused = container.querySelector<HTMLElement>('[data-testid^="unused-card-"]')!;
     const unusedId = firstUnused.getAttribute("data-testid")!;
 

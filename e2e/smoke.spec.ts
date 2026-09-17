@@ -5,7 +5,7 @@ import { expect, test } from "@playwright/test";
 
 test("加载数据并渲染页签与播放页", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("button", { name: "Player" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Player", exact: true })).toBeVisible();
   await expect(page.getByTestId("current-card")).toBeVisible();
   // 数据指纹（来自 index.json 的 contentHash）
   await expect(page.getByText(/Data hash [0-9a-f]{12}/)).toBeVisible();
@@ -15,7 +15,7 @@ test("加载数据并渲染页签与播放页", async ({ page }) => {
 
 test("列表页列出全部角色并能搜索", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "List" }).click();
+  await page.getByRole("button", { name: "List", exact: true }).click();
   await expect(page.getByText("121 / 121")).toBeVisible();
   await page.getByPlaceholder("Search Character").fill("cirno");
   await expect(page.getByText("1 / 121")).toBeVisible();
@@ -23,7 +23,7 @@ test("列表页列出全部角色并能搜索", async ({ page }) => {
 
 test("设置页：秘封父项是批量控制，三态开关改变统计", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Config" }).click();
+  await page.getByRole("button", { name: "Config", exact: true }).click();
   const stats = page.getByTestId("preset-stats");
   // 首次进入必须是"全选 + 全库可用"，而不是 0 / 378
   await expect(stats).toContainText("378 / 378");
@@ -46,7 +46,7 @@ test("设置页：秘封父项是批量控制，三态开关改变统计", async
 
 test("仅单曲模式下拉只列预设启用的曲目", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Config" }).click();
+  await page.getByRole("button", { name: "Config", exact: true }).click();
   await page.getByTestId("tri-角色曲-off").click();
   await page.getByLabel("single-mode-enabled").check();
   const select = page.getByTestId("single-select-chirizuka-ubame").getByRole("combobox");
@@ -61,7 +61,7 @@ test("仅单曲模式下拉只列预设启用的曲目", async ({ page }) => {
 test("对战页：随机补满 → 开局 → 倒计时后进入回合 → 下一回合推进", async ({ page }) => {
   await captureAudio(page);
   await page.goto("/");
-  await page.getByRole("button", { name: "Match" }).click();
+  await page.getByRole("button", { name: "Match", exact: true }).click();
   await page.getByTestId("random-fill").click();
   await page.getByTestId("start-game").click();
   await expect(page.getByTestId("game-timer")).toBeVisible();
@@ -85,18 +85,26 @@ test("对战页：随机补满 → 开局 → 倒计时后进入回合 → 下�
 test("中文界面：游戏页（含联机大厅）全部是中文，不留英文标签", async ({ page }) => {
   await page.goto("/?locale=zh");
   await page.getByRole("button", { name: "游戏", exact: true }).click();
-  await expect(page.getByTestId("lobby")).toBeVisible();
+  await page.getByTestId("game-setup").waitFor();
 
-  const lobby = page.getByTestId("lobby");
-  for (const label of ["联机", "名称", "建立房间", "房间号", "加入", "状态摘要", "跨机器（PeerJS）"]) {
-    await expect(lobby.getByText(label, { exact: false }).first()).toBeVisible();
-  }
-  for (const label of ["单人", "电脑", "经典", "休闲", "卡组 3×8", "减行", "加行", "减列", "加列",
-    "随机补满", "补满电脑", "清空卡组", "打乱卡组", "开始游戏", "中止游戏",
+  // 电脑模式：含电脑卡组那组按键与对方棋盘
+  await page.getByTestId("mode-cpu").click();
+  for (const label of ["单人", "电脑", "多人", "经典", "休闲", "卡组 3×8", "减行", "加行", "减列", "加列",
+    "随机补满", "补满电脑", "清空卡组", "打乱卡组", "打乱电脑卡组", "清空电脑卡组", "开始游戏", "中止游戏",
     "正在播放：—", "第 0 回合 · 选牌中 · 罚牌 0", "缩小", "放大",
     "对手 · 已得 0", "你 · 已得 0", "下一回合", "随机交出", "牌堆", "轮播"]) {
     await expect(page.getByText(label, { exact: false }).first()).toBeVisible();
   }
+
+  // 多人模式：联机栏才出现
+  await page.getByTestId("mode-multi").click();
+  const lobby = page.getByTestId("lobby");
+  await expect(lobby).toBeVisible();
+  for (const label of ["联机", "名称", "建立房间", "房间号", "加入", "状态摘要", "跨机器（PeerJS）"]) {
+    await expect(lobby.getByText(label, { exact: false }).first()).toBeVisible();
+  }
+  await page.getByTestId("mode-solo").click();
+
   // 英文标签不该再出现
   for (const leftover of ["Random Fill", "Clear Deck", "Shuffle Deck", "Next Turn", "Now playing",
     "deck 3×8", "Opponent · collected", "cross-machine"]) {
@@ -111,7 +119,8 @@ test("中文界面：游戏页（含联机大厅）全部是中文，不留英�
 
 test("自定义卡组：未使用卡可以点进牌库，也能点回来；电脑卡组能打乱/清空", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Match" }).click();
+  await page.getByRole("button", { name: "Match", exact: true }).click();
+  await page.getByTestId("mode-cpu").click();          // 对方棋盘/电脑卡组按键只在电脑模式
   const unused = page.locator('[data-testid^="unused-card-"]');
 
   // 点第一张未使用的卡 → 进自己牌库
@@ -137,7 +146,8 @@ test("拖动放置卡牌：拖进指定槽位、拖回未使用区、牌位互�
   // 牌桌 + 未使用卡牌区一起要看得见，否则合成鼠标拖到屏幕外就没有 drop 事件
   await page.setViewportSize({ width: 1440, height: 1500 });
   await page.goto("/");
-  await page.getByRole("button", { name: "Match" }).click();
+  await page.getByRole("button", { name: "Match", exact: true }).click();
+  await page.getByTestId("mode-cpu").click();          // 对方棋盘只在电脑/多人模式出现
   const unused = page.locator('[data-testid^="unused-card-"]');
 
   // 默认卡片大小 = 容器宽度 × 0.08（上游默认值，之前固定 56px 偏小）
@@ -214,7 +224,7 @@ test("拖动放置卡牌：拖进指定槽位、拖回未使用区、牌位互�
 test("动效：牌桌卡牌滑位；播放页牌堆用滑块平移、hover 只变色、点击跳过", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1500 });
   await page.goto("/");
-  await page.getByRole("button", { name: "Match" }).click();
+  await page.getByRole("button", { name: "Match", exact: true }).click();
   await page.getByTestId("random-fill").click();
 
   // 卡牌层是绝对定位 + left/top 过渡：换格子时会滑过去（对齐上游 `transition: left/top`）
@@ -248,7 +258,7 @@ test("动效：牌桌卡牌滑位；播放页牌堆用滑块平移、hover 只�
   expect(cellShadow).toBe("rgba(0, 0, 0, 0)");
 
   // 播放页：牌堆也是"卡条 + 下方滑块"，卡片等距不重叠、hover 只变底色
-  await page.getByRole("button", { name: "Player" }).click();
+  await page.getByRole("button", { name: "Player", exact: true }).click();
   const fanStrip = page.getByTestId("upcoming-fan-strip");
   const fanSlider = page.getByTestId("upcoming-fan-slider");
   await expect(fanStrip).toBeVisible();
@@ -330,7 +340,7 @@ test("动效：牌桌卡牌滑位；播放页牌堆用滑块平移、hover 只�
 test("游戏卡槽：外框居中 + 滑块平移；拖动不碰卡片节点", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1500 });
   await page.goto("/");
-  await page.getByRole("button", { name: "Match" }).click();
+  await page.getByRole("button", { name: "Match", exact: true }).click();
   const strip = page.getByTestId("unused-cards-strip");
   const slider = page.getByTestId("card-selection-slider");
   await expect(strip).toBeVisible();
@@ -446,7 +456,7 @@ test("游戏卡槽：外框居中 + 滑块平移；拖动不碰卡片节点", as
 
 test("卡片大小按钮按 0.01 步进并夹在 0.04~0.40", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Match" }).click();
+  await page.getByRole("button", { name: "Match", exact: true }).click();
   const width = async (): Promise<number> => page.evaluate(() => {
     const card = document.querySelector('[data-testid="deck-you"] [data-testid^="deck-you-"]');
     return card ? Math.round(card.getBoundingClientRect().width) : 0;
@@ -472,15 +482,11 @@ test("卡片大小按钮按 0.01 步进并夹在 0.04~0.40", async ({ page }) =>
 
 test("游戏页按钮尺寸、内边距与图标间距统一", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Match" }).click();
+  await page.getByRole("button", { name: "Match", exact: true }).click();
   await page.getByTestId("deck-setup").waitFor();
 
-  const metrics = await page.evaluate(() => {
-    const ids = ["mode-solo", "mode-cpu", "rule-traditional", "rule-leisure", "start-game", "stop-game",
-      "row-minus", "row-plus", "col-minus", "col-plus", "card-smaller", "card-larger",
-      "random-fill", "shuffle-deck", "clear-deck", "fill-cpu-deck", "shuffle-cpu-deck", "clear-cpu-deck",
-      "next-turn", "give-cards", "filter-by-deck", "net-host", "net-join"];
-    return ids.map((id) => {
+  const readMetrics = (ids: string[]) => page.evaluate((wanted) => {
+    return wanted.map((id) => {
       const element = document.querySelector(`[data-testid="${id}"]`);
       if (!element) return { id, missing: true };
       const style = getComputedStyle(element);
@@ -506,7 +512,17 @@ test("游戏页按钮尺寸、内边距与图标间距统一", async ({ page }) 
         gap,
       };
     });
-  });
+  }, ids);
+
+  // 电脑卡组按键只在电脑模式、联机按钮只在多人模式：分两批量
+  await page.getByTestId("mode-cpu").click();
+  const gameMetrics = await readMetrics(["mode-solo", "mode-cpu", "mode-multi", "rule-traditional",
+    "rule-leisure", "start-game", "stop-game", "row-minus", "row-plus", "col-minus", "col-plus",
+    "card-smaller", "card-larger", "random-fill", "shuffle-deck", "clear-deck",
+    "fill-cpu-deck", "shuffle-cpu-deck", "clear-cpu-deck", "next-turn", "give-cards", "filter-by-deck"]);
+  await page.getByTestId("mode-multi").click();
+  const lobbyMetrics = await readMetrics(["net-host", "net-join"]);
+  const metrics = [...gameMetrics, ...lobbyMetrics];
 
   expect(metrics.filter((entry) => "missing" in entry)).toEqual([]);
   const heights = new Set(metrics.map((entry) => entry.height));
@@ -522,9 +538,43 @@ test("游戏页按钮尺寸、内边距与图标间距统一", async ({ page }) 
     .every((entry) => entry.gap === 6)).toBe(true);
 });
 
+test("模式切换：棋盘与联机栏按模式显隐，并带动画", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Match", exact: true }).click();
+  await page.getByTestId("game-setup").waitFor();
+
+  // 单人：没有对方棋盘、没有联机栏、没有电脑卡组按键
+  await expect(page.getByTestId("opponent-board")).toHaveCount(0);
+  await expect(page.getByTestId("lobby-reveal")).toHaveCount(0);
+  await expect(page.getByTestId("fill-cpu-deck")).toHaveCount(0);
+
+  // 电脑：出现对方棋盘与电脑卡组按键，仍然没有联机栏
+  await page.getByTestId("mode-cpu").click();
+  await expect(page.getByTestId("opponent-board")).toBeVisible();
+  await expect(page.getByTestId("deck-opponent")).toBeVisible();
+  await expect(page.getByTestId("fill-cpu-deck")).toBeVisible();
+  await expect(page.getByTestId("lobby-reveal")).toHaveCount(0);
+  // 显隐动画：外层是 MUI Collapse（高度过渡）
+  const collapse = await page.getByTestId("opponent-board").evaluate((element) => ({
+    className: element.className,
+    transition: getComputedStyle(element).transitionProperty,
+  }));
+  expect(collapse.className).toContain("MuiCollapse");
+  expect(collapse.transition).toContain("height");
+
+  // 多人：有联机栏、对方棋盘在、但电脑卡组按键消失（不可调整对方棋盘）
+  await page.getByTestId("mode-multi").click();
+  await expect(page.getByTestId("lobby-reveal")).toBeVisible();
+  await expect(page.getByTestId("deck-opponent")).toBeVisible();
+  await expect(page.getByTestId("fill-cpu-deck")).toHaveCount(0);
+  const lobbyTransition = await page.getByTestId("lobby-reveal").evaluate((element) =>
+    getComputedStyle(element).transitionProperty);
+  expect(lobbyTransition).toContain("height");
+});
+
 test("顶部菜单按钮尺寸、间距与分隔线统一", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Player" }).waitFor();
+  await page.getByRole("button", { name: "Player", exact: true }).waitFor();
 
   const nav = await page.evaluate(() => {
     const buttons = [...document.querySelectorAll("button")].filter((element) => {
@@ -573,8 +623,9 @@ test("顶部菜单按钮尺寸、间距与分隔线统一", async ({ page }) => 
 
 test("游戏页分组标题与按钮的间距、垂直对齐统一", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Match" }).click();
+  await page.getByRole("button", { name: "Match", exact: true }).click();
   await page.getByTestId("deck-setup").waitFor();
+  await page.getByTestId("mode-cpu").click();   // "对手"那组按键只在电脑模式
 
   const measured = await page.evaluate(() => {
     const findLabel = (text: string): Element | undefined =>
@@ -646,9 +697,9 @@ test("两个界面的选卡滑块样式与对齐方式一致（同一份实现�
   }, [testId, stripTestId]);
 
   await page.goto("/");
-  await page.getByRole("button", { name: "Match" }).click();
+  await page.getByRole("button", { name: "Match", exact: true }).click();
   const game = await readSlider("card-selection-slider", "unused-cards-strip");
-  await page.getByRole("button", { name: "Player" }).click();
+  await page.getByRole("button", { name: "Player", exact: true }).click();
   await expect(page.getByTestId("upcoming-fan-slider")).toBeVisible();
   const player = await readSlider("upcoming-fan-slider", "upcoming-fan-strip");
 

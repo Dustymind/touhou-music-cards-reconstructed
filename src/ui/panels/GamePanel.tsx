@@ -10,10 +10,11 @@ import ClassRounded from "@mui/icons-material/ClassRounded";
 import CasinoRounded from "@mui/icons-material/CasinoRounded";
 import ClearRounded from "@mui/icons-material/ClearRounded";
 import FilterAltRounded from "@mui/icons-material/FilterAltRounded";
-import PersonOffRounded from "@mui/icons-material/PersonOffRounded";
 import PlayArrowRounded from "@mui/icons-material/PlayArrowRounded";
 import RemoveRounded from "@mui/icons-material/RemoveRounded";
 import ShuffleRounded from "@mui/icons-material/ShuffleRounded";
+import GroupsRounded from "@mui/icons-material/GroupsRounded";
+import PersonRounded from "@mui/icons-material/PersonRounded";
 import SmartToyRounded from "@mui/icons-material/SmartToyRounded";
 import StarRounded from "@mui/icons-material/StarRounded";
 import SkipNextRounded from "@mui/icons-material/SkipNextRounded";
@@ -34,6 +35,7 @@ import type { CardState } from "../components/CharacterCard";
 import { fadeInSx, NoFontFamily } from "../../theme/theme";
 import { DECK_GAP, DeckGrid } from "../game/DeckGrid";
 import { UnusedCards } from "../game/UnusedCards";
+import { Reveal } from "../game/Reveal";
 import {
   gameButtonsSx, gameGroupSx, gameLabelSx, gameRowSx, gameToggleIconSx, gameToggleSx,
   GameButton, GAME_BUTTON_HEIGHT,
@@ -81,6 +83,13 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
   /** 罚牌符号是主机视角的，客户端要翻过来 */
   const iOweCards = myIndex === 0 ? game.givesLeft > 0 : game.givesLeft < 0;
   const iReceiveCards = myIndex === 0 ? game.givesLeft < 0 : game.givesLeft > 0;
+
+  /** 单人：没有对方棋盘；电脑/多人：有对方棋盘。 */
+  const showOpponentBoard = game.mode !== "solo";
+  /** 只有"电脑"模式下本机才能改对方的卡组（多人模式里对方棋盘不可调整）。 */
+  const canEditOpponentDeck = game.mode === "cpu" && !isClient;
+  /** 联机栏只在"多人"模式下出现。 */
+  const showLobby = game.mode === "multi";
 
   /** 联机客户端：动作改发意图；主机/单机：直接落本地状态。 */
   const act = useMemo(() => ({
@@ -323,7 +332,9 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
 
   return (
     <Stack spacing={2} sx={{ width: "100%", maxWidth: 1000, fontFamily: NoFontFamily }} ref={canvasRef}>
-      <LobbyPanel />
+      <Reveal show={showLobby} testId="lobby-reveal">
+        <LobbyPanel />
+      </Reveal>
       {/* 对局设置：模式 / 规则 / 开始中止（上游把"切模式"和"开始中止"也放在一起） */}
       <Paper variant="outlined" sx={{ p: 2 }} data-testid="game-setup">
         <Stack sx={gameRowSx}>
@@ -335,7 +346,7 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
               onChange={(_event, value) => value && act.setMode(value)}>
               <ToggleButton sx={gameToggleSx} value="solo" data-testid="mode-solo">
                 <Stack direction="row" sx={{ alignItems: "center", gap: "6px" }}>
-                  <PersonOffRounded sx={gameToggleIconSx} />
+                  <PersonRounded sx={gameToggleIconSx} />
                   <Box component="span">{t(Localization.GameModeSolo)}</Box>
                 </Stack>
               </ToggleButton>
@@ -343,6 +354,12 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
                 <Stack direction="row" sx={{ alignItems: "center", gap: "6px" }}>
                   <SmartToyRounded sx={gameToggleIconSx} />
                   <Box component="span">{t(Localization.GameModeCPU)}</Box>
+                </Stack>
+              </ToggleButton>
+              <ToggleButton sx={gameToggleSx} value="multi" data-testid="mode-multi">
+                <Stack direction="row" sx={{ alignItems: "center", gap: "6px" }}>
+                  <GroupsRounded sx={gameToggleIconSx} />
+                  <Box component="span">{t(Localization.GameModeMulti)}</Box>
                 </Stack>
               </ToggleButton>
             </ToggleButtonGroup>
@@ -511,8 +528,8 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
               </Stack>
             </Stack>
 
-            {/* 电脑/对手的卡组：只有主机能改别人的牌库 */}
-            {!isClient && (
+            {/* 电脑卡组：只有"电脑"模式下本机（非客户端）能调 */}
+            {canEditOpponentDeck && (
               <Stack sx={gameGroupSx}>
                 <Typography sx={gameLabelSx}>
                   {t(Localization.GameSideOpponent)}
@@ -573,38 +590,46 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
           </Alert>
         )}
 
-        <Typography variant="caption" color="text.secondary">
-          {t(Localization.GameOpponentCollected, { count: String(theirs.collected.length) })}
-        </Typography>
-        {/* 卡片放大后牌库可能比容器宽：让它横向滚动；比容器窄时居中（用户要求卡槽区域居中） */}
-        <Box sx={{ overflowX: "auto", maxWidth: "100%", display: "flex", justifyContent: "center" }}>
-        <DeckGrid
-          testId="deck-opponent"
-          deck={theirs.deck}
-          rows={game.deckRows}
-          columns={game.deckColumns}
-          cardSet={cardSet}
-          cardFiles={cardFiles}
-          width={cardWidth}
-          upsideDown
-          interactive={(building && !isClient) || game.state === "turnStart"
-            || (game.state === "turnWinner" && iReceiveCards)}
-          cardStateOf={cardStateOf}
-          cheatSlot={cheatSlotOf(oppIndex)}
-          glitch={glitch}
-          onCardClick={(slot) => {
-            if (game.state === "selecting") {
-              if (!isClient) act.removeCardFrom(oppIndex, slot);
-              return;
-            }
-            act.pick(oppIndex, slot);
-          }}
-          onEmptyClick={handleOpponentEmpty}
-          draggable={false}
-          onCardDragStart={handleOpponentCardDragStart}
-          onSlotDrop={(slot) => handleSlotDrop(oppIndex, slot)}
-        />
-        </Box>
+        {/* 对方棋盘：单人模式没有；出现/收起带高度 + 淡入动画 */}
+        <Reveal show={showOpponentBoard} testId="opponent-board">
+          <>
+            <Typography variant="caption" color="text.secondary">
+              {t(Localization.GameOpponentCollected, { count: String(theirs.collected.length) })}
+            </Typography>
+            {/* 卡片放大后牌库可能比容器宽：让它横向滚动；比容器窄时居中 */}
+            <Box sx={{ overflowX: "auto", maxWidth: "100%", display: "flex", justifyContent: "center" }}>
+              <DeckGrid
+                testId="deck-opponent"
+                deck={theirs.deck}
+                rows={game.deckRows}
+                columns={game.deckColumns}
+                cardSet={cardSet}
+                cardFiles={cardFiles}
+                width={cardWidth}
+                upsideDown
+                interactive={(building && canEditOpponentDeck) || game.state === "turnStart"
+                  || (game.state === "turnWinner" && iReceiveCards)}
+                cardStateOf={cardStateOf}
+                cheatSlot={cheatSlotOf(oppIndex)}
+                glitch={glitch}
+                onCardClick={(slot) => {
+                  if (game.state === "selecting") {
+                    // 多人模式下对方棋盘不可调整（只有电脑模式能拿牌）
+                    if (canEditOpponentDeck) act.removeCardFrom(oppIndex, slot);
+                    return;
+                  }
+                  act.pick(oppIndex, slot);
+                }}
+                onEmptyClick={handleOpponentEmpty}
+                draggable={false}
+                onCardDragStart={canEditOpponentDeck ? handleOpponentCardDragStart : undefined}
+                onSlotDrop={canEditOpponentDeck || game.state === "turnWinner"
+                  ? (slot) => handleSlotDrop(oppIndex, slot)
+                  : undefined}
+              />
+            </Box>
+          </>
+        </Reveal>
 
         <Divider sx={{ my: 1.5 }} />
 

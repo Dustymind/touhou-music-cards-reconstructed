@@ -75,6 +75,7 @@ export const Localization = {
   // ---- 游戏页（面板、棋盘、计时、结算）----
   GameModeSolo: u("Solo", "单人"),
   GameModeCPU: u("CPU", "电脑"),
+  GameModeMulti: u("Multiplayer", "多人"),
   GameModeTraditional: u("Classic", "经典"),
   GameModeLeisure: u("Leisure", "休闲"),
   GameDeckSize: u("deck {rows}×{columns}", "卡组 {rows}×{columns}"),
