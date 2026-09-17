@@ -43,6 +43,7 @@ import {
 } from "../game/GameButton";
 import { LobbyPanel } from "../game/LobbyPanel";
 import { useNet } from "../../net/useNet";
+import { useSession } from "../../store/session";
 import { glitchEnabled } from "../../runtime";
 import { isCheatReally } from "../../cheat";
 import { markCountdownStart, TimerDisplay } from "../game/TimerDisplay";
@@ -75,6 +76,8 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const cardWidth = Math.max(24, Math.round(containerWidth * cardWidthPercentage));
   const net = useNet();
+  /** 卡面图集（设置页"卡面图集"） */
+  const cardCollection = useSession((slice) => slice.cardCollection);
   const isClient = net.role === "client";
   /** 牌桌视角：客户端看自己的那一侧（主机/单机 = 0） */
   const myIndex: 0 | 1 = (isClient ? net.myIndex : 0) === 1 ? 1 : 0;
@@ -176,7 +179,8 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
     return map;
   }, [bundle.characters]);
 
-  const cardSet = bundle.cardSets[0]!;
+  // 卡面图集跟随设置页的选择（原来写死第一套 → 设置里换图集对游戏页无效）
+  const cardSet = bundle.cardSets.find((set) => set.id === cardCollection) ?? bundle.cardSets[0]!;
 
   // 卡池 = 角色 × 卡面；顺带把轮播顺序灌进对局状态
   useEffect(() => {

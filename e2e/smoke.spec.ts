@@ -480,6 +480,38 @@ test("卡片大小按钮按 0.01 步进并夹在 0.04~0.40", async ({ page }) =>
   expect(stored).toContain("cardWidthPercentage");
 });
 
+test("卡面图集设置对游戏页生效（选卡菜单 + 牌桌，用户反馈后）", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("tab", { name: "Match", exact: true }).click();
+  await page.getByTestId("game-setup").waitFor();
+  await page.getByTestId("mode-cpu").click();
+  await page.getByTestId("random-fill").click();
+  await page.waitForTimeout(600);
+
+  const sources = () => page.evaluate(() => {
+    const unused = document.querySelector('[data-testid^="unused-card-"] img');
+    const deck = document.querySelector('[data-testid^="deck-you-card-"] img');
+    return {
+      unused: unused?.getAttribute("src") ?? "",
+      deck: deck?.getAttribute("src") ?? "",
+    };
+  });
+
+  // 默认图集：dairi（Q 版）→ 目录 cards/
+  const before = await sources();
+  expect(before.unused).toContain("/cards/");
+  expect(before.deck).toContain("/cards/");
+
+  // 设置页换成 ZUN 原画 → 游戏页选卡菜单与牌桌都换成 cards-zun/
+  await page.getByRole("tab", { name: "Config", exact: true }).click();
+  await page.getByTestId("cardset-zun").click();
+  await page.getByRole("tab", { name: "Match", exact: true }).click();
+  await page.waitForTimeout(600);
+  const after = await sources();
+  expect(after.unused).toContain("/cards-zun/");
+  expect(after.deck).toContain("/cards-zun/");
+});
+
 test("音乐源回退顺序：显示用源名称，重排不打乱开关（用户反馈后）", async ({ page }) => {
   await page.goto("/?locale=zh");
   await page.getByRole("tab", { name: "设置", exact: true }).click();

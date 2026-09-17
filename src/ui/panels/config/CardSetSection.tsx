@@ -16,6 +16,7 @@ export function CardSetSection({ bundle }: { bundle: DataBundle }) {
         {bundle.cardSets.map((set) => (
           <Chip
             key={set.id}
+            data-testid={`cardset-${set.id}`}
             label={locale === "zh" ? set.label.zh : set.label.en}
             clickable
             color={cardCollection === set.id ? "primary" : "default"}
@@ -25,7 +26,7 @@ export function CardSetSection({ bundle }: { bundle: DataBundle }) {
         ))}
       </Stack>
       <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1, fontFamily: NoFontFamily }}>
-        {bundle.cardSets[0]?.origins[0]}
+        {(bundle.cardSets.find((set) => set.id === cardCollection) ?? bundle.cardSets[0])?.origins[0]}
       </Typography>
     </CardContent></Card>
   );

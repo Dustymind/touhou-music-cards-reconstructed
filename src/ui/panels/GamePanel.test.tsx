@@ -8,6 +8,7 @@ import { setLocale } from "../../i18n/localization";
 import { loadRealBundle } from "../../test-utils";
 import { useGame } from "../../game/useGame";
 import { TURN_COUNTDOWN_MS } from "../../game/useGameLoop";
+import { useSession } from "../../store/session";
 import { GamePanel } from "./GamePanel";
 
 let bundle: DataBundle;
@@ -88,6 +89,25 @@ describe("GamePanel", () => {
     // 默认单人：没有对方棋盘、没有联机栏
     expect(container.querySelector('[data-testid="deck-opponent"]')).toBeNull();
     expect(container.querySelector('[data-testid="lobby-reveal"]')).toBeNull();
+  });
+
+  it("卡面图集跟随设置页的选择（选卡菜单与牌桌都用同一套）", async () => {
+    const container = await render();
+    const srcOf = (selector: string): string =>
+      container.querySelector(selector)?.getAttribute("src") ?? "";
+
+    // 默认图集 dairi-sd：目录 cards/
+    const defaultSrc = srcOf('[data-testid^="unused-card-"] img');
+    expect(defaultSrc).toContain("/cards/");
+
+    // 设置页把图集换成 ZUN 原画 → 选卡菜单与牌桌都要换成 cards-zun/
+    await act(async () => { useSession.setState({ cardCollection: "zun" }); });
+    const zunUnused = container.querySelector('[data-testid^="unused-card-"] img')?.getAttribute("src") ?? "";
+    expect(zunUnused).toContain("/cards-zun/");
+
+    await click(container, "random-fill");
+    const zunDeck = container.querySelector('[data-testid^="deck-you-card-"] img')?.getAttribute("src") ?? "";
+    expect(zunDeck).toContain("/cards-zun/");
   });
 
   it("三种模式各显示什么：单人无对方棋盘 / 电脑有棋盘可调卡组 / 多人有棋盘与联机栏", async () => {

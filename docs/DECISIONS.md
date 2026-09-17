@@ -1109,6 +1109,31 @@ E2E 在"音乐源回退顺序"用例里断言**行的顺序与编号**（而不�
 
 ---
 
+## D43 游戏页的卡面图集跟随设置
+
+**需求**（用户）：游戏界面的选卡菜单不受设置中的卡面图集选项控制。
+
+**根因**：`GamePanel` 里写死了 `const cardSet = bundle.cardSets[0]!` ✗ —— 播放页是从会话里取
+（`bundle.cardSets.find((set) => set.id === props.cardCollection) ?? cardSets[0]`），游戏页漏了这一步，
+所以在设置页换图集（Q 版 / 全身 / 幻想人形演舞 / 人偶 / THBWiki / ZUN 原画）对游戏页完全无效。
+
+**改法**：游戏页也订阅 `useSession((slice) => slice.cardCollection)`，按它选 `cardSet`；
+`cardFiles`（角色 → 文件名）不用动，因为路径前缀来自 `cardSet.dir` ✓。
+顺带修了设置页"卡面图集"卡片下面那行说明：原来固定显示**第一套**的 origin，现在显示当前选中那套的。
+
+**实测**（真浏览器，换"ZUN 原画"前后）：
+
+```
+默认(dairi-sd)  选卡菜单 …/cards/魔理沙.png        牌桌 …/cards/驯子.png
+换成 ZUN 原画   选卡菜单 …/cards-zun/魔理沙.png    牌桌 …/cards-zun/驯子.png
+```
+
+**回归锁**：单测断言默认 `…/cards/`、切到 `zun` 后选卡菜单与牌桌都是 `…/cards-zun/`；
+E2E 新增"卡面图集设置对游戏页生效"（在设置页点 `cardset-zun` → 回游戏页断言两处 src）。
+另外给图集 chip 加了 `data-testid="cardset-<id>"`。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |
