@@ -1026,6 +1026,21 @@ Alice 彩蛋按钮从 success 改成 secondary（青绿）；卡面"抢对/抢�
 
 ---
 
+## D40 音乐源编号改成圆形
+
+**需求**（用户）：设置页面音乐源编号改成圆形。
+
+原来顺序编号是 `<Chip size="small" label={n} />`（MD2 16dp 圆角的胶囊，24dp 高 → 看着是圆角矩形）。
+改成 MD2 的**圆形头像**（`Avatar`，24×24、`borderRadius: 50%`）：
+
+- 启用的源：主色填充（MD2 深色下 `#BB86FC`）+ 深色数字（`primary.contrastText`）；
+- 停用的源（如"本地曲库"）：`action.disabledBackground` + `text.disabled`，一眼能看出没开。
+
+**实测**：四个编号都是 `24×24 / border-radius 50%`、数字顺序 1→2→3→4（按 fallback 顺序）。
+E2E 在"MD2 细节"用例里追加断言（圆形 + 等宽高 + 24dp + 顺序），并加了 `data-testid="source-order-<id>"`。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |

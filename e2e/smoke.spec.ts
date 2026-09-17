@@ -525,6 +525,24 @@ test("MD2 细节：下拉标签入框、搜索框居中、边框可见（用户�
   expect(game.labelInside).toBe(true);                     // "行/列"不再出框
   expect(game.frameBorder).toBe("rgba(255, 255, 255, 0.28)");
   expect(game.slotBorder).toBe("rgba(255, 255, 255, 0.28)");
+
+  // 设置页音乐源的顺序编号是圆形
+  await page.getByRole("tab", { name: "Config", exact: true }).click();
+  await page.getByTestId("source-order-netease163").waitFor();
+  const orderBadges = await page.evaluate(() =>
+    [...document.querySelectorAll('[data-testid^="source-order-"]')].map((element) => {
+      const style = getComputedStyle(element);
+      const rect = element.getBoundingClientRect();
+      return {
+        text: (element.textContent ?? "").trim(),
+        round: style.borderRadius === "50%",
+        square: Math.abs(rect.width - rect.height) < 0.5,
+        size: Math.round(rect.width),
+      };
+    }));
+  expect(orderBadges.length).toBeGreaterThanOrEqual(2);
+  expect(orderBadges.every((badge) => badge.round && badge.square && badge.size === 24)).toBe(true);
+  expect(orderBadges.map((badge) => badge.text)).toEqual(["1", "2", "3", "4"]);
 });
 
 test("游戏页按钮尺寸、内边距与图标间距统一", async ({ page }) => {

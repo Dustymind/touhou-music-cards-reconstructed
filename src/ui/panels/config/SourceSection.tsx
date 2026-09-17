@@ -1,6 +1,7 @@
 /** 音乐源：开关 + fallback 顺序（拖不动就用按钮）+ 状态。 */
 import {
-  Box, Card, CardContent, CardHeader, Chip, FormControlLabel, IconButton, Stack, Switch, Typography,
+  Avatar, Box, Card, CardContent, CardHeader, Chip, FormControlLabel, IconButton, Stack, Switch,
+  Typography,
 } from "@mui/material";
 import { ArrowDownward, ArrowUpward } from "@mui/icons-material";
 
@@ -31,7 +32,20 @@ export function SourceSection({ bundle, tables }: { bundle: DataBundle; tables: 
           return (
             <Box key={source.id} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, p: 1 }}>
               <Stack direction="row" alignItems="center" spacing={1}>
-                <Chip size="small" label={order.indexOf(source.id) + 1} />
+                {/* 顺序编号：MD2 圆形头像（停用的源用灰色） */}
+                <Avatar
+                  data-testid={`source-order-${source.id}`}
+                  sx={{
+                    width: 24,
+                    height: 24,
+                    fontSize: "0.75rem",
+                    fontWeight: 500,
+                    bgcolor: enabled ? "primary.main" : "action.disabledBackground",
+                    color: enabled ? "primary.contrastText" : "text.disabled",
+                  }}
+                >
+                  {order.indexOf(source.id) + 1}
+                </Avatar>
                 <Typography variant="body2" sx={{ flex: 1 }}>
                   {locale === "zh" ? source.label.zh : source.label.en}
                 </Typography>
