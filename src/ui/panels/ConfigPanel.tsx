@@ -1,8 +1,9 @@
 /** 设置页：数据概览 + 卡面图集 + 音乐源 + 音乐选择预设 + 仅单曲模式。 */
 import {
-  Card, CardContent, CardHeader, Chip, Divider, Stack, Typography,
+  Chip, Divider, Stack, Typography,
 } from "@mui/material";
 
+import { SectionCard } from "./config/SectionCard";
 import type { DataBundle } from "../../data/types";
 import { Localization, t, type Locale } from "../../i18n/localization";
 import { useSession } from "../../store/session";
@@ -22,7 +23,7 @@ export function ConfigPanel({ bundle, tables }: { bundle: DataBundle; tables: Ta
 
   return (
     <Stack spacing={2} sx={{ width: "100%", fontFamily: NoFontFamily }}>
-      <Card><CardHeader title={t(Localization.ShellDataSummary)} titleTypographyProps={{ variant: "h6" }} /><CardContent>
+      <SectionCard title={t(Localization.ShellDataSummary)}>
         <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", gap: 1 }}>
           <Chip label={`${bundle.index.counts.characters} ${t(Localization.ShellCharacters)}`} />
           <Chip label={`${bundle.index.counts.albums} ${t(Localization.ShellAlbums)}`} />
@@ -45,7 +46,7 @@ export function ConfigPanel({ bundle, tables }: { bundle: DataBundle; tables: Ta
             />
           ))}
         </Stack>
-      </CardContent></Card>
+      </SectionCard>
 
       <CardSetSection bundle={bundle} />
       <SourceSection bundle={bundle} tables={tables} />

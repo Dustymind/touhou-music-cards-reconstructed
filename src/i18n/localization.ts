@@ -173,9 +173,14 @@ export function getLocale(): Locale {
   return locale;
 }
 
+/** 取多语言字段里当前语言的值（数据里的 label / description 也用这个，避免到处写三元）。 */
+export function localized(value: Localized, target: Locale = locale): string {
+  return target === "zh" ? value.zh : value.en;
+}
+
 /** 取文案并替换 `{name}` 占位符；彩蛋开启时按上游规则抖动文字。 */
 export function t(key: Localized, args?: Record<string, string>): string {
-  let text = locale === "zh" ? key.zh : key.en;
+  let text = localized(key);
   if (args) {
     for (const [name, value] of Object.entries(args)) {
       text = text.replace(`{${name}}`, value);

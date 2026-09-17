@@ -1,10 +1,11 @@
 /** 音乐选择预设：秘封曲多层勾选 + 三个三态开关 + 「先 CD 再官作」的专辑复选。 */
 import {
-  Button, Card, CardContent, CardHeader, Checkbox, Chip, Divider, FormControlLabel, Stack, ToggleButton, ToggleButtonGroup, Typography,
+  Button, Checkbox, Chip, Divider, FormControlLabel, Stack, ToggleButton, ToggleButtonGroup, Typography,
 } from "@mui/material";
 
 import type { AlbumRecord, DataBundle } from "../../../data/types";
 import { Localization, t } from "../../../i18n/localization";
+import { SectionCard } from "./SectionCard";
 import { CATEGORY_KEYS, type Tri } from "../../../music/selection";
 import { groupAlbums, presetStats } from "../../../music/presetView";
 import { hifuuParentState, usePreset } from "../../../store/preset";
@@ -58,15 +59,13 @@ export function PresetSection({ bundle }: { bundle: DataBundle }) {
   };
 
   return (
-    <Card data-testid="preset-section">
-      <CardHeader
-        title={t(Localization.ConfigTabMusicSelectionPresets)}
-        titleTypographyProps={{ variant: "h6" }}
-        action={<Button size="small" onClick={() => preset.reset(bundle.albums)}>
-          {t(Localization.ConfigTabPresetReset)}
-        </Button>}
-      />
-      <CardContent>
+    <SectionCard
+      testId="preset-section"
+      title={t(Localization.ConfigTabMusicSelectionPresets)}
+      action={<Button size="small" onClick={() => preset.reset(bundle.albums)}>
+        {t(Localization.ConfigTabPresetReset)}
+      </Button>}
+    >
       <Typography variant="caption" color="text.secondary" data-testid="preset-stats">
         {t(Localization.ConfigTabPresetStats, {
           enabled: String(stats.enabledTracks),
@@ -176,6 +175,6 @@ export function PresetSection({ bundle }: { bundle: DataBundle }) {
       <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
         {allAlbums.length} albums · {t(Localization.ShellDataHash)} {bundle.index.contentHash.slice(0, 8)}
       </Typography>
-    </CardContent></Card>
+    </SectionCard>
   );
 }

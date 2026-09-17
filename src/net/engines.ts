@@ -7,7 +7,7 @@ import type { GameState } from "../game/types";
 import {
   PROTOCOL_VERSION, type ClientIntent, type HostMessage, type PeerInfo, dataHashMismatch,
 } from "./protocol";
-import type { Role, Transport } from "./transport";
+import type { Transport } from "./transport";
 
 export interface EngineDeps {
   /** 主机：读取/覆盖本地权威状态；客户端：只覆盖 */
@@ -187,8 +187,4 @@ export function createClientEngine(transport: Transport, deps: EngineDeps): Clie
 
 export function helloIntent(name: string, isObserver: boolean, dataHash: string): ClientIntent {
   return { kind: "hello", name, isObserver, dataHash, protocol: PROTOCOL_VERSION };
-}
-
-export function roleToIndex(role: Role): number {
-  return role === "host" ? 0 : 1;
 }

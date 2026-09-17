@@ -1,12 +1,14 @@
 /** 音乐源：开关 + fallback 顺序（拖不动就用按钮）+ 状态。 */
 import {
-  Avatar, Box, Card, CardContent, CardHeader, Chip, FormControlLabel, IconButton, Stack, Switch,
-  Typography,
+  Avatar, Box, Chip, FormControlLabel, IconButton, Stack, Switch, Typography,
 } from "@mui/material";
 import { ArrowDownward, ArrowUpward } from "@mui/icons-material";
 
+import { useMemo } from "react";
+
+import { SectionCard } from "./SectionCard";
 import type { DataBundle } from "../../../data/types";
-import { Localization, t } from "../../../i18n/localization";
+import { Localization, localized, t } from "../../../i18n/localization";
 import { effectiveOrder, useSession } from "../../../store/session";
 import type { TableMap } from "../../../music/sources";
 
@@ -14,20 +16,25 @@ export function SourceSection({ bundle, tables }: { bundle: DataBundle; tables: 
   const { locale, sourceOverrides, toggleSource, moveSource } = useSession();
   const ids = bundle.sources.map((source) => source.id);
   const order = effectiveOrder(sourceOverrides, ids);
+  /** 按 id 查源（原来在 labelOf/isEnabled/渲染里各做一次线性查找）。 */
+  const byId = useMemo(
+    () => new Map(bundle.sources.map((source) => [source.id, source])),
+    [bundle.sources],
+  );
   /** 注册表里的默认开关（"本地曲库"默认关闭）——重排时必须沿用，不能被当成"开着"。 */
   const defaultEnabled = Object.fromEntries(bundle.sources.map((source) => [source.id, source.enabled]));
   const labelOf = (id: string): string => {
-    const source = bundle.sources.find((entry) => entry.id === id);
-    if (!source) return id;
-    return locale === "zh" ? source.label.zh : source.label.en;
+    const source = byId.get(id);
+    return source ? localized(source.label, locale) : id;
   };
-  const isEnabled = (id: string): boolean => {
-    const source = bundle.sources.find((entry) => entry.id === id);
-    return sourceOverrides[id]?.enabled ?? source?.enabled ?? true;
-  };
+  const isEnabled = (id: string): boolean => sourceOverrides[id]?.enabled ?? byId.get(id)?.enabled ?? true;
+  /** 行按回退顺序排列（上移/下移移动的是"源"本身，编号只是位置）。 */
+  const rows = order
+    .map((id) => byId.get(id))
+    .filter((source): source is NonNullable<typeof source> => source !== undefined);
 
   return (
-    <Card><CardHeader title={t(Localization.ConfigTabMusicSource)} titleTypographyProps={{ variant: "h6" }} /><CardContent>
+    <SectionCard title={t(Localization.ConfigTabMusicSource)}>
       {/* 回退顺序显示：编号 + 实际名称（原来直接把内部 id 拼成字符串，既不可读也不随语言变） */}
       <Stack
         direction="row"
@@ -64,11 +71,7 @@ export function SourceSection({ bundle, tables }: { bundle: DataBundle; tables: 
         ))}
       </Stack>
       <Stack spacing={1} sx={{ mt: 1 }}>
-        {/* 行按**回退顺序**排列：上移/下移移动的是"源"本身，编号只是它当前的位置 */}
-        {order
-          .map((sourceId) => bundle.sources.find((entry) => entry.id === sourceId))
-          .filter((source): source is (typeof bundle.sources)[number] => source !== undefined)
-          .map((source) => {
+        {rows.map((source) => {
           const override = sourceOverrides[source.id];
           const enabled = override?.enabled ?? source.enabled;
           const table = tables[source.id];
@@ -93,9 +96,7 @@ export function SourceSection({ bundle, tables }: { bundle: DataBundle; tables: 
                 >
                   {order.indexOf(source.id) + 1}
                 </Avatar>
-                <Typography variant="body2" sx={{ flex: 1 }}>
-                  {locale === "zh" ? source.label.zh : source.label.en}
-                </Typography>
+                <Typography variant="body2" sx={{ flex: 1 }}>{labelOf(source.id)}</Typography>
                 <Chip
                   size="small"
                   variant="outlined"
@@ -133,12 +134,12 @@ export function SourceSection({ bundle, tables }: { bundle: DataBundle; tables: 
                 </IconButton>
               </Stack>
               <Typography variant="caption" color="text.secondary">
-                {locale === "zh" ? source.description.zh : source.description.en}
+                {localized(source.description, locale)}
               </Typography>
             </Box>
           );
         })}
       </Stack>
-    </CardContent></Card>
+    </SectionCard>
   );
 }

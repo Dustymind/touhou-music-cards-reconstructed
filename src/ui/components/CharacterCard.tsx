@@ -3,11 +3,11 @@ import { Box, Paper, type SxProps } from "@mui/material";
 import { useEffect, useState } from "react";
 
 import type { CardSetRecord } from "../../data/types";
-import { CardAspectRatio, CardColors, NoFontFamily } from "../../theme/theme";
+import { CardAspectRatio, CardColors, MD2, NoFontFamily } from "../../theme/theme";
 import { glitchTilt, isCheat, randomColor } from "../../cheat";
 
-/** 卡面圆角：卡牌本体与选卡显示区边界共用（MD2 形状规格 4dp）。 */
-export const CARD_BORDER_RADIUS = "4px";
+/** 卡面圆角：卡牌本体与选卡显示区边界共用（取 MD2 形状规格，避免两处各写一遍）。 */
+export const CARD_BORDER_RADIUS = `${MD2.shape}px`;
 
 export type CardState = "normal" | "hover" | "disabled" | "disabledHover" | "selected" | "correct" | "incorrect" | "placeholder";
 

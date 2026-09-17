@@ -1,12 +1,13 @@
 /** 仅单曲模式：总开关 + 逐角色选曲（只列预设启用的曲目）+ 禁用角色。 */
 import {
-  Box, Card, CardContent, CardHeader, Chip, FormControl, FormControlLabel, MenuItem, Select, Stack, Switch, TextField, Typography,
+  Box, Chip, FormControl, FormControlLabel, MenuItem, Select, Stack, Switch, TextField, Typography,
 } from "@mui/material";
 import { useMemo, useState } from "react";
 
 import type { DataBundle, MusicEntry } from "../../../data/types";
 import { displayTitle, trackId } from "../../../data/types";
 import { Localization, t } from "../../../i18n/localization";
+import { SectionCard } from "./SectionCard";
 import { usePreset } from "../../../store/preset";
 import { useSingleTrack } from "../../../store/single";
 import { singleModeRows } from "../../../music/presetView";
@@ -26,11 +27,10 @@ export function SingleTrackSection({ bundle }: { bundle: DataBundle }) {
   );
 
   return (
-    <Card data-testid="single-section">
-      <CardHeader
-        title={t(Localization.ConfigTabMusicSelectionSingle)}
-        titleTypographyProps={{ variant: "h6" }}
-        action={<FormControlLabel
+    <SectionCard
+      testId="single-section"
+      title={t(Localization.ConfigTabMusicSelectionSingle)}
+      action={<FormControlLabel
           control={
             <Switch
               size="small"
@@ -41,8 +41,7 @@ export function SingleTrackSection({ bundle }: { bundle: DataBundle }) {
           }
           label={<Typography variant="body2">{t(Localization.ConfigTabSingleMode)}</Typography>}
         />}
-      />
-      <CardContent>
+    >
       <Stack direction="row" alignItems="center" spacing={1}>
         <Box sx={{ flex: 1 }} />
         <FormControlLabel
@@ -121,6 +120,6 @@ export function SingleTrackSection({ bundle }: { bundle: DataBundle }) {
           );
         })}
       </Stack>
-    </CardContent></Card>
+    </SectionCard>
   );
 }

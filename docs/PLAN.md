@@ -660,6 +660,8 @@ interface Transport {
 - [x] **M7 对战核心**：纯规则 reducer（回合推进/判定/罚牌夹紧/牌库转移/经典·休闲终局）+ CPU 对手（反应分布与失误率）+ 本地计时循环 + 对战页棋盘。
 - [x] **M8 联机**：传输层抽象（进程内总线 / 同浏览器 BroadcastChannel / PeerJS）+ **主机权威 + 每次动作广播完整快照 + 自增 seq + 数据哈希与协议握手** + 大厅（分享码/参与者/聊天/断线重连 requestSync）。
 - [x] **M9 打磨**：彩蛋（答案提示框、`?g` 卡片倾斜、`?r2`/`?local` 图集源、`?cheatcode=`）、文案与文档补全 → 验收报告 [`reports/M9-acceptance.md`](../reports/M9-acceptance.md)。
+- [x] **M39 代码清理**（用户要求）：删死导出、合并 8 类重复（常量/样式/JSX/工具/查找）。
+  见 `docs/DECISIONS.md` §D45。
 - [x] **M38 电脑参数输入框去掉多余空位**（用户反馈）：三行 caption 改成 `TextField` 的 `label`。
   见 `docs/DECISIONS.md` §D44。
 - [x] **M37 游戏页跟随卡面图集**（用户反馈）：游戏页按会话的 `cardCollection` 选图集（原来写死第一套）。

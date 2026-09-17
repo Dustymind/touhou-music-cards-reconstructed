@@ -50,10 +50,6 @@ export type HostMessage =
 
 export type Message = ClientIntent | HostMessage;
 
-export function isHostMessage(message: Message): message is HostMessage {
-  return ["welcome", "snapshot", "peers", "reject", "goodbye"].includes(message.kind);
-}
-
 /** 状态摘要：用于两端一致性自检（角色 / 牌库 / 收集 / 回合）。 */
 export function stateDigest(state: GameState): string {
   const parts: string[] = [

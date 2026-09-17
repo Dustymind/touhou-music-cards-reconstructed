@@ -1,6 +1,5 @@
 /** CPU 对手：反应时间分布 + 失误率（对齐上游 `cpuOpponentCountdown`）。 */
 import type { CardInfo, GameState } from "./types";
-import { filledSlots } from "./types";
 
 export interface CpuSettings {
   /** 平均反应时间（秒） */
@@ -52,9 +51,4 @@ export function planCpuPick(
   // rng 可能返回 1（自定义 rng / 边界值）→ 索引夹紧，避免 undefined
   const index = Math.min(wrong.length - 1, Math.floor(rng() * wrong.length));
   return { delayMs: delaySeconds * 1000, card: wrong[index]!, willMistake: true };
-}
-
-/** CPU 是否还有牌可出（用于界面提示）。 */
-export function cpuHasCards(state: GameState, cpuPlayer: number): boolean {
-  return filledSlots(state.players[cpuPlayer]?.deck ?? []) > 0;
 }

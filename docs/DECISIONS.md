@@ -1152,6 +1152,48 @@ MD2 的 16dp。
 
 ---
 
+## D45 代码清理：合并重复、删除冗余
+
+**需求**（用户）：清理、合并重复、冗余代码，完成后说明清了哪些。
+
+### 删除的死代码（导出后从未被引用）
+
+| 位置 | 内容 |
+|---|---|
+| `src/game/cpu.ts` | `cpuHasCards()`（连带着 `filledSlots` 的导入） |
+| `src/net/protocol.ts` | `isHostMessage()` |
+| `src/net/engines.ts` | `roleToIndex()`（连同 `Role` 类型导入） |
+| `src/ui/game/GameButton.tsx` | `gameToggleSx`（与 `gameButtonSx` **逐字段完全相同**）与三个尺寸别名 |
+
+### 合并的重复
+
+1. **同一套尺寸写了两遍**：`GAME_ICON_SIZE/GAP`、`GAME_BUTTON_HEIGHT` 与 `theme.ts` 里的
+   `MD2.button.iconSize/iconGap/medium` 是同一批数字 → 现在只有 `MD2` 一份，`GameButton.tsx`
+   与 `GamePanel.tsx` 都引用它；`CARD_BORDER_RADIUS = "4px"` 也改成从 `MD2.shape` 派生。
+2. **`gameButtonSx` / `gameToggleSx`**：两份 100% 相同的样式对象 → 只留一份。
+3. **`GameButton.tsx` 的图标槽**：`startIcon` / `endIcon` 两段规则八行重复 → 合并成共用的属性块 + 两行方向差异。
+4. **`GamePanel` 的五段单选 JSX**（模式三项 + 规则两项，每段 11 行几乎一样）→ 抽成
+   `GameControls.tsx` 的 `GameGroupLabel` / `GameRadioOption` + 两张选项表（`MODE_OPTIONS` /
+   `RULE_OPTIONS`），一处定义渲染方式。
+5. **`GamePanel` 的两段下拉 JSX**（行列各 14 行）→ 抽成 `NumberSelect`。
+6. **设置页六个分区的卡片外壳**（`<Card><CardHeader titleTypographyProps={{variant:"h6"}}/><CardContent>`）
+   → 抽成 `SectionCard`（标题层级与内边距只有一处定义）。
+7. **`locale === "zh" ? x.zh : x.en`** 在数据字段上重复三处 → `i18n/localization.ts` 新增
+   `localized(value, locale)`，`t()` 内部也改用它。
+8. **`SourceSection` 里对 `bundle.sources` 的线性查找**（`labelOf` / `isEnabled` / 渲染各查一次）
+   → 一次建 `Map`，行顺序也只算一次（`rows`）。
+
+### 结果
+
+`12 files changed, 139 insertions(+), 227 deletions(-)`（新增两个小组件文件共 95 行在内）——
+净减约 90 行，且重复的"数字/样式/结构"都收敛到单一定义。
+
+**验证**：清理前后 `pnpm typecheck` 干净、`pnpm test` 189 通过、`pnpm e2e` 45 通过 / 1 跳过（双引擎）。
+过程中被 E2E 抓到一次回归：抽单选组时我把分组标题放进了 `RadioGroup` 内部，标题与单选之间变成 0px
+（应为 8px）——已改回"标题 + 控件"的 8dp 分组容器。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |

@@ -1,7 +1,6 @@
 /** 对战页：模式/规则设置 + 双方牌库 + 收集数 + 计时器 + 回合操作。 */
 import {
-  Alert, Box, Card, CardContent, CardHeader, Chip, Divider, FormControl, FormControlLabel, InputLabel,
-  MenuItem, Radio, RadioGroup, Select, Stack, TextField, Typography,
+  Alert, Box, Card, CardContent, CardHeader, Chip, Divider, RadioGroup, Stack, TextField, Typography,
 } from "@mui/material";
 import { useEffect, useMemo, useRef, useState } from "react";
 import AddRounded from "@mui/icons-material/AddRounded";
@@ -36,10 +35,11 @@ import { fadeInSx, NoFontFamily } from "../../theme/theme";
 import { DECK_GAP, DeckGrid } from "../game/DeckGrid";
 import { UnusedCards } from "../game/UnusedCards";
 import { Reveal } from "../game/Reveal";
+import { GameGroupLabel, GameRadioOption, NumberSelect } from "../game/GameControls";
 import { DECK_LIMITS } from "../../game/gameSetting";
+import { MD2 } from "../../theme/theme";
 import {
-  gameButtonsSx, gameGroupSx, gameLabelSx, gameRadioLabelSx, gameRowSx, gameToggleIconSx,
-  GameButton, GAME_BUTTON_HEIGHT, GAME_ICON_GAP,
+  gameButtonsSx, gameGroupSx, gameLabelSx, gameRowSx, GameButton,
 } from "../game/GameButton";
 import { LobbyPanel } from "../game/LobbyPanel";
 import { useNet } from "../../net/useNet";
@@ -56,6 +56,18 @@ export const STATE_LABEL: Record<JudgeState, keyof typeof Localization> = {
   turnWinner: "GameStateTurnWinner",
   finished: "GameStateFinished",
 };
+
+/** 模式与规则的选项表（渲染成 MD2 单选组，不再每项写一段 JSX）。 */
+const MODE_OPTIONS = [
+  { value: "solo", icon: PersonRounded, label: Localization.GameModeSolo },
+  { value: "cpu", icon: SmartToyRounded, label: Localization.GameModeCPU },
+  { value: "multi", icon: GroupsRounded, label: Localization.GameModeMulti },
+] as const;
+
+const RULE_OPTIONS = [
+  { value: "traditional", icon: ClassRounded, label: Localization.GameModeTraditional },
+  { value: "leisure", icon: StarRounded, label: Localization.GameModeLeisure },
+] as const;
 
 export function GamePanel({ bundle }: { bundle: DataBundle }) {
   const game = useGame((slice) => slice.game);
@@ -76,6 +88,9 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const cardWidth = Math.max(24, Math.round(containerWidth * cardWidthPercentage));
   const net = useNet();
+  /** 单选组里的图标：与按钮同一套图标尺寸 */
+  const gameIconSx = useMemo(() => ({ fontSize: MD2.button.iconSize }), []);
+
   /** 卡面图集（设置页"卡面图集"） */
   const cardCollection = useSession((slice) => slice.cardCollection);
   const isClient = net.role === "client";
@@ -346,83 +361,42 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
         <CardContent>
         <Stack sx={gameRowSx}>
           <Stack sx={gameGroupSx}>
-            <Typography sx={gameLabelSx}>
-              {t(Localization.GameGroupMode)}
-            </Typography>
-            {/* MD2 单选组：圆形单选 + 图标 + 文本 */}
+            <GameGroupLabel>{t(Localization.GameGroupMode)}</GameGroupLabel>
             <RadioGroup
               row
               value={game.mode}
               onChange={(_event, value) => act.setMode(value as typeof game.mode)}
-              sx={{ gap: 0 }}
             >
-              <FormControlLabel
-                value="solo"
-                control={<Radio data-testid="mode-solo" size="small" />}
-                label={
-                  <Stack direction="row" sx={{ alignItems: "center", gap: `${GAME_ICON_GAP}px` }}>
-                    <PersonRounded sx={gameToggleIconSx} />
-                    <Box component="span">{t(Localization.GameModeSolo)}</Box>
-                  </Stack>
-                }
-                sx={gameRadioLabelSx}
+            {MODE_OPTIONS.map((option) => (
+              <GameRadioOption
+                key={option.value}
+                value={option.value}
+                label={t(option.label)}
+                icon={option.icon}
+                testId={`mode-${option.value}`}
+                iconSx={gameIconSx}
               />
-              <FormControlLabel
-                value="cpu"
-                control={<Radio data-testid="mode-cpu" size="small" />}
-                label={
-                  <Stack direction="row" sx={{ alignItems: "center", gap: `${GAME_ICON_GAP}px` }}>
-                    <SmartToyRounded sx={gameToggleIconSx} />
-                    <Box component="span">{t(Localization.GameModeCPU)}</Box>
-                  </Stack>
-                }
-                sx={gameRadioLabelSx}
-              />
-              <FormControlLabel
-                value="multi"
-                control={<Radio data-testid="mode-multi" size="small" />}
-                label={
-                  <Stack direction="row" sx={{ alignItems: "center", gap: `${GAME_ICON_GAP}px` }}>
-                    <GroupsRounded sx={gameToggleIconSx} />
-                    <Box component="span">{t(Localization.GameModeMulti)}</Box>
-                  </Stack>
-                }
-                sx={gameRadioLabelSx}
-              />
+            ))}
             </RadioGroup>
           </Stack>
 
           <Stack sx={gameGroupSx}>
-            <Typography sx={gameLabelSx}>
-              {t(Localization.GameGroupRule)}
-            </Typography>
+            <GameGroupLabel>{t(Localization.GameGroupRule)}</GameGroupLabel>
             <RadioGroup
               row
               value={game.traditional ? "traditional" : "leisure"}
               onChange={(_event, value) => act.setTraditional(value === "traditional")}
             >
-              <FormControlLabel
-                value="traditional"
-                control={<Radio data-testid="rule-traditional" size="small" />}
-                label={
-                  <Stack direction="row" sx={{ alignItems: "center", gap: `${GAME_ICON_GAP}px` }}>
-                    <ClassRounded sx={gameToggleIconSx} />
-                    <Box component="span">{t(Localization.GameModeTraditional)}</Box>
-                  </Stack>
-                }
-                sx={gameRadioLabelSx}
+            {RULE_OPTIONS.map((option) => (
+              <GameRadioOption
+                key={option.value}
+                value={option.value}
+                label={t(option.label)}
+                icon={option.icon}
+                testId={`rule-${option.value}`}
+                iconSx={gameIconSx}
               />
-              <FormControlLabel
-                value="leisure"
-                control={<Radio data-testid="rule-leisure" size="small" />}
-                label={
-                  <Stack direction="row" sx={{ alignItems: "center", gap: `${GAME_ICON_GAP}px` }}>
-                    <StarRounded sx={gameToggleIconSx} />
-                    <Box component="span">{t(Localization.GameModeLeisure)}</Box>
-                  </Stack>
-                }
-                sx={gameRadioLabelSx}
-              />
+            ))}
             </RadioGroup>
           </Stack>
 
@@ -497,45 +471,29 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
               <Chip
                 size="small"
                 data-testid="deck-size"
-                sx={{ height: GAME_BUTTON_HEIGHT }}
+                sx={{ height: MD2.button.medium }}
                 label={t(Localization.GameDeckSize, {
                   rows: String(game.deckRows), columns: String(game.deckColumns),
                 })}
               />
             </Stack>
-            {/* MD2 下拉选择：牌库行列（1–5 行 / 1–15 列，来自 DECK_LIMITS） */}
-            <FormControl size="small" variant="filled" sx={{ minWidth: 96 }}>
-              <InputLabel id="deck-rows-label">{t(Localization.GameRowsLabel)}</InputLabel>
-              <Select
-                labelId="deck-rows-label"
-                label={t(Localization.GameRowsLabel)}
-                value={game.deckRows}
-                data-testid="deck-rows"
-                onChange={(event) => act.resize(Number(event.target.value), game.deckColumns)}
-              >
-                {Array.from({ length: DECK_LIMITS.maxRows - DECK_LIMITS.minRows + 1 }, (_unused, index) =>
-                  DECK_LIMITS.minRows + index).map((rows) => (
-                  <MenuItem key={rows} value={rows} data-testid={`deck-rows-${rows}`}>{rows}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <FormControl size="small" variant="filled" sx={{ minWidth: 96 }}>
-              <InputLabel id="deck-columns-label">{t(Localization.GameColumnsLabel)}</InputLabel>
-              <Select
-                labelId="deck-columns-label"
-                label={t(Localization.GameColumnsLabel)}
-                value={game.deckColumns}
-                data-testid="deck-columns"
-                onChange={(event) => act.resize(game.deckRows, Number(event.target.value))}
-              >
-                {Array.from({ length: DECK_LIMITS.maxColumns - DECK_LIMITS.minColumns + 1 }, (_unused, index) =>
-                  DECK_LIMITS.minColumns + index).map((columns) => (
-                  <MenuItem key={columns} value={columns} data-testid={`deck-columns-${columns}`}>
-                    {columns}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            {/* MD2 下拉选择：牌库行列（范围来自 DECK_LIMITS） */}
+            <NumberSelect
+              testId="deck-rows"
+              label={t(Localization.GameRowsLabel)}
+              value={game.deckRows}
+              min={DECK_LIMITS.minRows}
+              max={DECK_LIMITS.maxRows}
+              onChange={(rows) => act.resize(rows, game.deckColumns)}
+            />
+            <NumberSelect
+              testId="deck-columns"
+              label={t(Localization.GameColumnsLabel)}
+              value={game.deckColumns}
+              min={DECK_LIMITS.minColumns}
+              max={DECK_LIMITS.maxColumns}
+              onChange={(columns) => act.resize(game.deckRows, columns)}
+            />
             <Box sx={{ flex: 1 }} />
             <Stack sx={gameGroupSx}>
             <Typography sx={gameLabelSx}>
@@ -748,9 +706,9 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
           </Stack>
           </Stack>
           <Box sx={{ flex: 1 }} />
-          <Chip size="small" variant="outlined" sx={{ height: GAME_BUTTON_HEIGHT }}
+          <Chip size="small" variant="outlined" sx={{ height: MD2.button.medium }}
             label={t(Localization.GamePoolCount, { count: String(pool.length) })} />
-          <Chip size="small" variant="outlined" sx={{ height: GAME_BUTTON_HEIGHT }}
+          <Chip size="small" variant="outlined" sx={{ height: MD2.button.medium }}
             label={t(Localization.GameRotationCount, { count: String(rotation) })} />
         </Stack>
       </CardContent></Card>
