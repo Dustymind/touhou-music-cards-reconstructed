@@ -480,6 +480,38 @@ test("卡片大小按钮按 0.01 步进并夹在 0.04~0.40", async ({ page }) =>
   expect(stored).toContain("cardWidthPercentage");
 });
 
+test("音乐源回退顺序：显示用源名称，重排不打乱开关（用户反馈后）", async ({ page }) => {
+  await page.goto("/?locale=zh");
+  await page.getByRole("tab", { name: "设置", exact: true }).click();
+  const display = page.getByTestId("source-fallback-order");
+  await expect(display).toBeVisible();
+
+  // 显示的是源名称 + 顺序编号，而不是内部 id
+  await expect(display).toContainText("网易云音乐");
+  await expect(display).toContainText("→");
+  for (const internalId of ["netease163", "cloudflare_r2", "thbwiki"]) {
+    await expect(display).not.toContainText(internalId);
+  }
+
+  // 「本地曲库」默认关闭：上移别的源不能把它打开
+  const localSwitch = page.locator('[aria-label="local-enabled"]');
+  await expect(localSwitch).not.toBeChecked();
+  await page.getByLabel("thbwiki-up").click();
+  await page.getByLabel("thbwiki-up").click();
+  await expect(display).toContainText("1THBWiki");
+  await expect(localSwitch).not.toBeChecked();
+
+  // 第一个源不能再上移，最后一个源不能再下移
+  await expect(page.getByLabel("thbwiki-up")).toBeDisabled();
+  await expect(page.getByLabel("local-down")).toBeDisabled();
+
+  // 关掉 THBWiki 不会改变它在回退顺序里的位置
+  const orderBefore = (await display.textContent()) ?? "";
+  await page.locator('[aria-label="thbwiki-enabled"]').click({ force: true });
+  await expect(display).toHaveText(orderBefore);
+  await expect(page.getByTestId("source-status-thbwiki")).toHaveText("off");
+});
+
 test("MD2 细节：下拉标签入框、搜索框居中、边框可见（用户反馈后）", async ({ page }) => {
   await page.goto("/");
 

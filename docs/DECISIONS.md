@@ -1041,6 +1041,47 @@ E2E 在"MD2 细节"用例里追加断言（圆形 + 等宽高 + 24dp + 顺序）
 
 ---
 
+## D41 音乐源回退顺序：两个 bug + 显示重写
+
+**需求**（用户）："音乐源回退顺序调整时有问题；音乐源回退顺序显示重写。"
+
+### 查到三个问题
+
+1. **开关某个源会把排好的顺序冲掉** —— `toggleSource(id, enabled, fallbackOrder)` 拿的是**注册表里的 order**
+   （`source.order`）写回覆盖表 ✗，一旦用户排过序，再开关一下就会把自己的位置重置回注册顺序，
+   还会和别的源撞号。修法：`toggleSource(id, enabled, allIds)` 按**当前实际顺序**
+   （`effectiveOrder(...)`）算位置，只改 `enabled`。
+2. **重排会悄悄打开"默认关闭"的源** —— `moveSource` 对没有覆盖过的源写 `enabled: ?? true` ✗，
+   而"本地曲库"注册时就是关的 → 一按上移就被打开。修法：`moveSource(..., defaultEnabled)`
+   传入注册表的默认开关表，未覆盖的源沿用注册表默认值。
+3. **开关没有无障碍名字** —— `inputProps={{ "aria-label": ... }}` 在 MUI v7 的 `Switch` 上不再落到 input
+   （`Checkbox`/`TextField` 上还有效，所以之前没发现）→ 4 个源开关的 aria-label 都是 `null`。
+   改用 `slotProps={{ input: { "aria-label": ... } }}` 修好（E2E 才能按名字点到它们）。
+
+### 显示重写
+
+原来是 `{顺序文案} · {order.join(" → ")}`，直接把内部 id 拼成字符串
+（`netease163 → cloudflare_r2 → thbwiki → local`）✗，既不可读也不随语言变、也看不出哪些源是关的。
+重写成一行"编号圆点 + 源名称 + 箭头"：
+
+```
+回退顺序  ① 网易云音乐 → ② THBWiki → ③ Cloudflare R2 → ④ 本地曲库
+```
+
+编号圆点按开关状态上色（启用=主色、停用=灰，名称也变灰）；顺带把两端的箭头按钮禁用
+（第一个不能再上移、最后一个不能再下移），并加了 `data-testid="source-fallback-order"`。
+**踩坑**：一开始叫 `source-order-display`/`source-order-summary`，都会被"每行编号"的
+`[data-testid^="source-order-"]` 前缀匹配到（和之前 `unused-card-strip` 那次同一类问题），
+改成不带该前缀的名字才干净。
+
+### 回归锁
+
+- 单测（`session.test.ts`）：开关不打乱顺序、位置不重复；重排不会打开默认关闭的源；开关不改 `order`。
+- E2E（新增"音乐源回退顺序"用例）：显示的是名称而不是内部 id、上移两次后 THBWiki 在第一位、
+  "本地曲库"仍是关的、两端箭头禁用、关掉 THBWiki 后顺序文本不变且状态变 `off`。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |

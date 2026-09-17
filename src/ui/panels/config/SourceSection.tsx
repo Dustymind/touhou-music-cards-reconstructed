@@ -14,12 +14,55 @@ export function SourceSection({ bundle, tables }: { bundle: DataBundle; tables: 
   const { locale, sourceOverrides, toggleSource, moveSource } = useSession();
   const ids = bundle.sources.map((source) => source.id);
   const order = effectiveOrder(sourceOverrides, ids);
+  /** 注册表里的默认开关（"本地曲库"默认关闭）——重排时必须沿用，不能被当成"开着"。 */
+  const defaultEnabled = Object.fromEntries(bundle.sources.map((source) => [source.id, source.enabled]));
+  const labelOf = (id: string): string => {
+    const source = bundle.sources.find((entry) => entry.id === id);
+    if (!source) return id;
+    return locale === "zh" ? source.label.zh : source.label.en;
+  };
+  const isEnabled = (id: string): boolean => {
+    const source = bundle.sources.find((entry) => entry.id === id);
+    return sourceOverrides[id]?.enabled ?? source?.enabled ?? true;
+  };
 
   return (
     <Card><CardHeader title={t(Localization.ConfigTabMusicSource)} titleTypographyProps={{ variant: "h6" }} /><CardContent>
-      <Typography variant="caption" color="text.secondary">
-        {t(Localization.ConfigTabSourceOrder)} · {order.join(" → ")}
-      </Typography>
+      {/* 回退顺序显示：编号 + 实际名称（原来直接把内部 id 拼成字符串，既不可读也不随语言变） */}
+      <Stack
+        direction="row"
+        spacing={1}
+        sx={{ alignItems: "center", flexWrap: "wrap", rowGap: 1, mt: 1 }}
+        data-testid="source-fallback-order"
+      >
+        <Typography variant="caption" color="text.secondary">
+          {t(Localization.ConfigTabSourceOrder)}
+        </Typography>
+        {order.map((id, index) => (
+          <Stack key={id} direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
+            <Avatar
+              sx={{
+                width: 20,
+                height: 20,
+                fontSize: "0.6875rem",
+                bgcolor: isEnabled(id) ? "primary.main" : "action.disabledBackground",
+                color: isEnabled(id) ? "primary.contrastText" : "text.disabled",
+              }}
+            >
+              {index + 1}
+            </Avatar>
+            <Typography
+              variant="caption"
+              sx={{ color: isEnabled(id) ? "text.primary" : "text.disabled" }}
+            >
+              {labelOf(id)}
+            </Typography>
+            {index < order.length - 1 && (
+              <Typography variant="caption" color="text.secondary" sx={{ ml: 0.5 }}>→</Typography>
+            )}
+          </Stack>
+        ))}
+      </Stack>
       <Stack spacing={1} sx={{ mt: 1 }}>
         {bundle.sources.map((source) => {
           const override = sourceOverrides[source.id];
@@ -61,16 +104,27 @@ export function SourceSection({ bundle, tables }: { bundle: DataBundle; tables: 
                     <Switch
                       size="small"
                       checked={enabled}
-                      onChange={(event) => toggleSource(source.id, event.target.checked, source.order)}
-                      inputProps={{ "aria-label": `${source.id}-enabled` }}
+                      onChange={(event) => toggleSource(source.id, event.target.checked, ids)}
+                      // MUI v7 用 slotProps.input（旧的 inputProps 已经不再落到 input 上）
+                      slotProps={{ input: { "aria-label": `${source.id}-enabled` } }}
                     />
                   }
                   label={t(enabled ? Localization.ConfigTabSourceEnabled : Localization.ConfigTabSourceDisabled)}
                 />
-                <IconButton size="small" onClick={() => moveSource(source.id, -1, ids)} aria-label={`${source.id}-up`}>
+                <IconButton
+                  size="small"
+                  onClick={() => moveSource(source.id, -1, ids, defaultEnabled)}
+                  disabled={order.indexOf(source.id) === 0}
+                  aria-label={`${source.id}-up`}
+                >
                   <ArrowUpward fontSize="small" />
                 </IconButton>
-                <IconButton size="small" onClick={() => moveSource(source.id, 1, ids)} aria-label={`${source.id}-down`}>
+                <IconButton
+                  size="small"
+                  onClick={() => moveSource(source.id, 1, ids, defaultEnabled)}
+                  disabled={order.indexOf(source.id) === order.length - 1}
+                  aria-label={`${source.id}-down`}
+                >
                   <ArrowDownward fontSize="small" />
                 </IconButton>
               </Stack>

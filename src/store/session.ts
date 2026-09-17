@@ -24,8 +24,10 @@ interface SessionState {
   setLocale: (locale: Locale) => void;
   setTab: (tab: TabId) => void;
   setCardCollection: (collection: string) => void;
-  toggleSource: (id: string, enabled: boolean, fallbackOrder: number) => void;
-  moveSource: (id: string, direction: -1 | 1, allIds: string[]) => void;
+  /** 开关某个源：只改 enabled，**不动**它在回退顺序里的位置。 */
+  toggleSource: (id: string, enabled: boolean, allIds: string[]) => void;
+  /** 上移/下移：交换相邻两个源的位置，其它源（含"默认关闭"的）保持原状。 */
+  moveSource: (id: string, direction: -1 | 1, allIds: string[], defaultEnabled: Record<string, boolean>) => void;
 }
 
 const LOCALES = ["en", "zh"] as const;
@@ -89,25 +91,31 @@ export const useSession = create<SessionState>((set, get) => ({
     set({ cardCollection });
     sessionStore.save({ ...pickSession(get()), cardCollection });
   },
-  toggleSource(id, enabled, fallbackOrder) {
-    const next = { ...get().sourceOverrides, [id]: { enabled, order: fallbackOrder } };
+  toggleSource(id, enabled, allIds) {
+    const overrides = get().sourceOverrides;
+    // 位置按"当前实际顺序"取，不要用注册表里的 order —— 否则开关一下就把用户排好的顺序冲掉
+    const position = effectiveOrder(overrides, allIds).indexOf(id);
+    const next = {
+      ...overrides,
+      [id]: { enabled, order: position >= 0 ? position + 1 : (overrides[id]?.order ?? 1) },
+    };
     set({ sourceOverrides: next });
     sourceStore.save(next);
   },
-  moveSource(id, direction, allIds) {
-    const current = effectiveOrder(get().sourceOverrides, allIds);
+  moveSource(id, direction, allIds, defaultEnabled) {
+    const overrides = get().sourceOverrides;
+    const current = effectiveOrder(overrides, allIds);
     const index = current.indexOf(id);
     const target = index + direction;
     if (index < 0 || target < 0 || target >= current.length) return;
     const swapped = [...current];
-    const a = swapped[index]!;
-    const b = swapped[target]!;
-    swapped[index] = b;
-    swapped[target] = a;
+    [swapped[index], swapped[target]] = [swapped[target]!, swapped[index]!];
     const next: Record<string, SourceOverride> = {};
     for (const [position, sourceId] of swapped.entries()) {
       next[sourceId] = {
-        enabled: get().sourceOverrides[sourceId]?.enabled ?? true,
+        // 没有覆盖过的源必须沿用**注册表里的默认开关**（"本地曲库"默认是关的，
+        // 之前这里写死 true，一上移就被悄悄打开了）
+        enabled: overrides[sourceId]?.enabled ?? defaultEnabled[sourceId] ?? true,
         order: position + 1,
       };
     }
