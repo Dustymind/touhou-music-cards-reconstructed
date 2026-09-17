@@ -8,14 +8,12 @@ import AddRounded from "@mui/icons-material/AddRounded";
 import CardGiftcardRounded from "@mui/icons-material/CardGiftcardRounded";
 import CasinoRounded from "@mui/icons-material/CasinoRounded";
 import ClearRounded from "@mui/icons-material/ClearRounded";
-import EastRounded from "@mui/icons-material/EastRounded";
 import FilterAltRounded from "@mui/icons-material/FilterAltRounded";
 import PlayArrowRounded from "@mui/icons-material/PlayArrowRounded";
 import RemoveRounded from "@mui/icons-material/RemoveRounded";
 import ShuffleRounded from "@mui/icons-material/ShuffleRounded";
 import SkipNextRounded from "@mui/icons-material/SkipNextRounded";
 import StopRounded from "@mui/icons-material/StopRounded";
-import WestRounded from "@mui/icons-material/WestRounded";
 
 import type { DataBundle } from "../../data/types";
 import { Localization, t } from "../../i18n/localization";
@@ -438,7 +436,7 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
             <ButtonGroup size="small" variant="outlined">
               <Button
                 data-testid="card-smaller"
-                startIcon={<WestRounded />}
+                startIcon={<RemoveRounded />}
                 disabled={cardWidthPercentage <= CARD_WIDTH_PERCENTAGE.min}
                 onClick={() => setCardWidthPercentage((value) =>
                   clampCardWidthPercentage(value - CARD_WIDTH_PERCENTAGE.step))}
@@ -447,7 +445,7 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
               </Button>
               <Button
                 data-testid="card-larger"
-                startIcon={<EastRounded />}
+                startIcon={<AddRounded />}
                 disabled={cardWidthPercentage >= CARD_WIDTH_PERCENTAGE.max}
                 onClick={() => setCardWidthPercentage((value) =>
                   clampCardWidthPercentage(value + CARD_WIDTH_PERCENTAGE.step))}
