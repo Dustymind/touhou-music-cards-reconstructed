@@ -22,20 +22,17 @@ import { ConfigPanel } from "../panels/ConfigPanel";
 import { GamePanel } from "../panels/GamePanel";
 import { ListPanel } from "../panels/ListPanel";
 
-/** 顶部菜单按钮：尺寸/内边距/最小宽度统一，且**选中与未选中同宽同内边距**（否则切换标签时文字会跳）。 */
+/** 顶部菜单按钮：照上游 `page.tsx` 的 `tabButton` —— `padding: 0.5`（4px）、`minWidth: 4em`、
+ *  选中与未选中用同一套内边距（否则切换标签时文字会横向跳）。 */
 const NAV_BUTTON_SX = {
   height: 30,
   minHeight: 30,
-  px: 1.5,
-  py: 0,
-  minWidth: "5em",
+  p: 0.5,
+  minWidth: "4em",
   fontSize: "0.8125rem",
   fontFamily: NoFontFamily,
   textTransform: "none",
 } as const;
-
-/** 顶部菜单分隔线：固定高度、垂直居中，不随行高拉伸。 */
-const NAV_DIVIDER_SX = { height: 18, alignSelf: "center" } as const;
 
 const ALICE_LABELS = [
   "Alice is the best!",
@@ -154,10 +151,11 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
   return (
     <Box sx={{ display: "flex", justifyContent: "center", p: 2, fontFamily: NoFontFamily }}>
       <Stack spacing={2} sx={{ width: "100%", maxWidth: 1000, alignItems: "center" }}>
-        <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap", rowGap: 1 }}>
+        {/* 间距照上游：`Stack spacing={0.5}` + `flexItem` 分隔线（分隔线跟按钮同高） */}
+        <Stack direction="row" spacing={0.5} sx={{ alignItems: "center", flexWrap: "wrap", rowGap: 1 }}>
           {TAB_ORDER.map((id, index) => (
             <Fragment key={id}>
-              {index > 0 && <Divider orientation="vertical" sx={NAV_DIVIDER_SX} />}
+              {index > 0 && <Divider orientation="vertical" flexItem />}
               <Button
                 size="small"
                 variant={tab === id ? "contained" : "text"}
@@ -169,7 +167,7 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
               </Button>
             </Fragment>
           ))}
-          <Divider orientation="vertical" sx={NAV_DIVIDER_SX} />
+          <Divider orientation="vertical" flexItem />
           <Button
             size="small"
             color="success"

@@ -852,6 +852,19 @@ NAV_DIVIDER_SX = { height: 18, alignSelf: "center" }   // 固定高度、垂直�
 **改后实测**：五个按钮 `高度 30 / 内边距 12|12（选中与未选中一致）/ 最小宽度 65px / 垂直中心同为 31`，
 相邻按钮间距**一律 17px**（8 + 分隔线 1 + 8），分隔线高度**一律 18px** 且与按钮同一水平线。
 
+**补记（用户要求"边距过宽，参考原版"）**：翻回上游 `page.tsx` 的 `tabButton` —— 它是
+`size="small"` + `sx={{ padding: 0.5, minWidth: "4em" }}`，分隔线用 `flexItem`（与按钮同高），
+行间距 `Stack spacing={0.5}`。于是照抄：
+
+```ts
+NAV_BUTTON_SX = { height: 30, p: 0.5 /* 4px */, minWidth: "4em", fontSize: "0.8125rem" }
+<Stack direction="row" spacing={0.5}>  +  <Divider orientation="vertical" flexItem />
+```
+
+**改后实测**：按钮 `内边距 4|4 / 最小宽度 52px / 宽 52px（Alice 那个按内容 83px）`，
+相邻间距**一律 9px**（4 + 分隔线 1 + 4），分隔线 **30px 高**（与按钮同高）且居中 —— 比上一版的 12px 内边距
+紧致很多，和上游一致。
+
 **回归锁**：E2E「顶部菜单按钮尺寸、间距与分隔线统一」断言按钮高度、内边距、最小宽度、垂直中心
 各自只有一个取值，间距恒为 17，分隔线高度恒为 18 且居中。
 

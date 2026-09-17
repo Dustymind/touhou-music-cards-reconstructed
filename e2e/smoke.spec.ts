@@ -562,11 +562,12 @@ test("顶部菜单按钮尺寸、间距与分隔线统一", async ({ page }) => 
 
   expect(nav.buttons).toHaveLength(5);
   expect([...new Set(nav.buttons.map((entry) => entry.height))]).toEqual([30]);
-  expect([...new Set(nav.buttons.map((entry) => entry.padding))]).toEqual(["12px|12px"]);
-  expect([...new Set(nav.buttons.map((entry) => entry.minWidth))]).toEqual(["65px"]);
+  // 内边距与最小宽度照上游 `tabButton`：`padding: 0.5`（4px）、`minWidth: 4em`
+  expect([...new Set(nav.buttons.map((entry) => entry.padding))]).toEqual(["4px|4px"]);
+  expect([...new Set(nav.buttons.map((entry) => entry.minWidth))]).toEqual(["52px"]);
   expect([...new Set(nav.buttons.map((entry) => entry.centerY))]).toHaveLength(1);   // 同一水平线
-  expect(nav.gaps).toEqual([17]);                                                    // 8 + 分隔线 1 + 8
-  expect([...new Set(nav.dividers.map((entry) => entry.height))]).toEqual([18]);
+  expect(nav.gaps).toEqual([9]);                                                     // 4 + 分隔线 1 + 4
+  expect([...new Set(nav.dividers.map((entry) => entry.height))]).toEqual([30]);      // flexItem：与按钮同高
   expect([...new Set(nav.dividers.map((entry) => entry.centerY))]).toEqual(nav.buttons.slice(0, 1).map((entry) => entry.centerY));
 });
 
