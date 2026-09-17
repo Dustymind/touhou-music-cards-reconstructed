@@ -27,6 +27,7 @@ function inputs(overrides: Partial<PlayerInputs> = {}): PlayerInputs {
     albums,
     tables: fakeTables([[["紅魔郷", "おてんば恋娘"], ["紅魔郷", "恋色マスタースパーク"], ["紅魔郷", "オリエンタルダークフライト"]]]),
     sourceOrder: ["fake"],
+    mode: "originals",
     preset: defaultPreset(albums),
     pinned: {},
     currentKey: "cirno",

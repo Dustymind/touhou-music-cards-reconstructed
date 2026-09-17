@@ -41,12 +41,19 @@ export type ClientIntent =
 
 /** 主机 → 客户端。 */
 export type HostMessage =
-  | { kind: "welcome"; yourIndex: number; peers: PeerInfo[]; state: GameState; seq: number; melee: boolean }
-  | { kind: "snapshot"; state: GameState; seq: number }
+  | {
+    kind: "welcome"; yourIndex: number; peers: PeerInfo[]; state: GameState; seq: number;
+    melee: boolean; musicMode?: MusicModeWire;
+  }
+  | { kind: "snapshot"; state: GameState; seq: number; musicMode?: MusicModeWire }
   | { kind: "peers"; peers: PeerInfo[] }
   | { kind: "chat"; from: number; text: string; system?: boolean }
   | { kind: "reject"; reason: "protocol" | "data" | "full"; detail: string }
   | { kind: "goodbye"; reason: string };
+
+/** 音乐模式（原曲 / 音MAD）的协议表示：与 `src/music/mode.ts` 的 `MusicMode` 同形，
+ *  但协议层不 import UI 模块，避免耦合。 */
+export type MusicModeWire = "originals" | "otomads";
 
 export type Message = ClientIntent | HostMessage;
 

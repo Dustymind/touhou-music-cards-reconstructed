@@ -15,6 +15,7 @@ import { useQueue } from "../../store/queue";
 import { useSources } from "../../music/useSources";
 import { usePlayer } from "../../audio/usePlayer";
 import { allowedTracks, mergeWithDefaults } from "../../music/selection";
+import { effectiveSourceOverrides } from "../../music/mode";
 import { effectivePin } from "../../music/presetView";
 import { useSingleTrack } from "../../store/single";
 import { useGame } from "../../game/useGame";
@@ -39,7 +40,7 @@ export function aliceLabel(smallScreen: boolean): string {
 }
 
 export function AppShell({ bundle }: { bundle: DataBundle }) {
-  const { tab, setTab, locale, cardCollection, sourceOverrides } = useSession();
+  const { tab, setTab, locale, cardCollection, sourceOverrides, musicMode } = useSession();
   const preset = usePreset();
   const queue = useQueue();
   const single = useSingleTrack();
@@ -70,18 +71,19 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
     if (!single.enabled) return {};
     const pins: Record<string, MusicEntry> = {};
     for (const character of bundle.characters) {
-      const entry = effectivePin(activePreset, character, single.pins);
+      const entry = effectivePin(activePreset, character, single.pins, bundle.albums, musicMode);
       if (entry) pins[character.key] = entry;
     }
     return pins;
-  }, [single.enabled, single.pins, activePreset, bundle.characters]);
+  }, [single.enabled, single.pins, activePreset, bundle.characters, bundle.albums, musicMode]);
 
   const usableKeys = useMemo(
     () => bundle.characters
-      .filter((character) => allowedTracks(activePreset, character).entries.length > 0
+      .filter((character) =>
+        allowedTracks(activePreset, character, undefined, bundle.albums, musicMode).entries.length > 0
         && !single.disabledCharacters[character.key])
       .map((character) => character.key),
-    [activePreset, bundle.characters, single.disabledCharacters],
+    [activePreset, bundle.characters, bundle.albums, musicMode, single.disabledCharacters],
   );
 
   // 队列跟着"可用角色集合"走：新增角色追加到末尾，消失的剔除，保留用户顺序
@@ -91,7 +93,12 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [usableKeySignature]);
 
-  const sources = useSources(bundle.sources, sourceOverrides);
+  // 音MAD 模式的曲目只存在于本地曲库 → 临时打开本地源（不改写用户设置）
+  const activeSourceOverrides = useMemo(
+    () => effectiveSourceOverrides(bundle.sources, sourceOverrides, musicMode),
+    [bundle.sources, sourceOverrides, musicMode],
+  );
+  const sources = useSources(bundle.sources, activeSourceOverrides);
 
   const player = usePlayer({
     characters: bundle.characters,
@@ -100,6 +107,7 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
     sourceOrder: sources.order,
     preset: activePreset,
     pinned,
+    mode: musicMode,
     // 对局听回合角色，平时听轮播队列
     currentKey: gameActive ? game.currentKey : queue.currentKey,
     // 对局里用 (回合号, 角色) 派生的种子：两端必然选到同一首
@@ -190,10 +198,13 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
             onShuffle={() => { player.pause(); queue.regenerate(usableKeys, true); }}
             onSort={() => { player.pause(); queue.regenerate(usableKeys, false); }}
             onToggleTemporary={(key) => queue.toggleTemporary(key)}
-          />
-        )}
+            musicMode={musicMode}
+            />
+          )}
           {tab === "list" && <ListPanel bundle={bundle} />}
-          {tab === "config" && <ConfigPanel bundle={bundle} tables={sources.tables} />}
+          {tab === "config" && (
+            <ConfigPanel bundle={bundle} tables={sources.tables} musicMode={musicMode} />
+          )}
           {tab === "game" && <GamePanel bundle={bundle} />}
         </Stack>
       </Container>

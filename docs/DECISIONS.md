@@ -1390,6 +1390,59 @@ E2E 断言行数 / 每行 3 张图 / 6 个 radio / 当前项 checked / id 顺序
 
 ---
 
+## D52 音MAD（otomads）模式：把改版仓库的 otomads 模式搬过来
+
+**需求**（用户）：用最早插桩的"自定义模式"接口，把上级目录 v2 工作区改版仓库里的 otomads 模式搬过来；
+设置页添加入口；遵循原版行为；遵循 MD2。
+
+**原版（改版仓库 `touhou-otomad-cards-workspace-v2`）的提交脉络**：
+
+| 提交 | 内容 |
+|---|---|
+| `b0e850d` | originals / otomads 模式 + 本地专辑服务器（`getMusicUrl` 远端优先、三态判定、`createPlayingOrder` 按模式过滤、读档归一化） |
+| `3d0c472` / `6b4880c` / `112ce1f` | 音MAD 曲目标题与 23 首曲目数据（12 角色） |
+| `f9305f5` | 开局重建队列时要带当前模式（否则 otomads 下队列被过滤成空） |
+| `f598204` / `d7f4ad4` | 角色曲池逐回合轮换 + 把音乐模式同步给对手 |
+
+**本项目"预留接口"的现状**（用户指的插桩）：`data/packs/`（预埋、暂空）、专辑的 `pack` 字段、
+`tools/src/tmc/local_source.py`（本地曲库助手，manifest 里带 `pack` 与 `[pack]` 配置，默认 id 就是
+`otomads`）、`public/data/sources.json` 里默认关闭的 `local` 源 ✓ 这次就是把它们填满。
+
+### 数据侧
+
+* 新增 `data/packs/otomads.toml`：`[pack]` + `[[album]]`（`pack = "otomads"`）+ 24 条 `[[track]]`
+  （角色 key 对齐本项目；曲目名沿用改版仓库的写法，如「川先僧 - 普通肥猫魔法使」）。
+* `tools/src/tmc/packs.py`：曲包加载（`load_packs`）与并入角色表（`apply_tracks`）。
+* `build.py`：曲包专辑并进 `albums.json`、曲包曲目并进 `characters.json`、新增 `packs.json`
+  （运行时曲包注册表），index 增计 `packs` / `packTracks`。
+* `validate.py`：曲包专辑并进注册表；曲包曲目的"必须出现在三个镜像表里"检查**跳过**（它们只存在于本机），
+  但补齐曲包自身的检查（id 唯一、kind 合法、专辑归属一致、角色存在、附加信息合法、无重复）。
+* 结果：`402 条目 / 392 去重曲目 / 40 专辑 / 1 曲包（24 曲）`，`tmc.build --check` 无漂移，校验通过。
+
+### 应用侧（口径比 v2 更确定）
+
+v2 用"曲目键在不在本地表里"推断模式（启发式）；本项目按**专辑的 `pack` 字段**判定：
+
+* `src/music/mode.ts`：`MusicMode`、`packOfAlbum`、`modeOfEntry`、`isEntryAllowedInMode`、
+  `hasTracksInMode`、`filterByMode`、`firstAllowedInMode`、`effectiveSourceOverrides`。
+* 会话：`useSession.musicMode`（持久化，老存档缺字段回退原曲，不丢整份偏好）。
+* 过滤：`allowedTracks` / `presetStats` / `singleModeRows` / `effectivePin` / `player`（含对局）
+  以及播放页的可用角色集合都带上模式 → **音MAD 模式下对局只会抽到音MAD 曲目**（对应 v2 的 `f9305f5`）。
+* 行为对齐 v2：模式只影响"接下来能选哪些曲目"，**不打断正在播放的这一首**；手选若是另一模式的曲目，
+  按当前模式回退到第一首（不在会话中途改写存档）；音MAD 模式**临时**打开本地曲库（不改写用户的开关）。
+* 联机：快照 / welcome 携带 `musicMode`，客户端采用主机的模式（缺字段保持本地不动）——对应 v2 的 `d7f4ad4`。
+* 设置页入口（MD2）：**音乐源**分区顶部加"音乐模式"单选组（原曲 / 音MAD），说明文案与 v2 一字不差，
+  选中音MAD 时多一行"曲目只存在于本机、自动使用本地曲库"的提示。
+
+**实测**（真浏览器）：默认原曲、统计 `378 / 378`、不请求本地曲库；切到音MAD → 统计 `24 / 24`、
+出现本地提示、自动请求 `http://127.0.0.1:8011/manifest.json`（本机未起助手时优雅失败）、
+刷新后仍是音MAD；切回原曲统计回到 `378 / 378`。本机助手未运行时只有音MAD 曲目无声，其余不受影响。
+
+**测试**：单测 +8（`src/music/mode.test.ts` 7 条 + 会话持久化 1 条，含"曲包数据真的进了角色表"），
+E2E +1（模式切换 / 统计 / 本地请求 / 落盘 / 切回）。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |

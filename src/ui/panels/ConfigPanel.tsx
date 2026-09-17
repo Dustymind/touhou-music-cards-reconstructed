@@ -9,6 +9,7 @@ import { Localization, t, type Locale } from "../../i18n/localization";
 import { useSession } from "../../store/session";
 import { usePreset } from "../../store/preset";
 import type { TableMap } from "../../music/sources";
+import type { MusicMode } from "../../music/mode";
 import { presetStats } from "../../music/presetView";
 import { NoFontFamily } from "../../theme/theme";
 import { CardSetSection } from "./config/CardSetSection";
@@ -16,10 +17,14 @@ import { PresetSection } from "./config/PresetSection";
 import { SingleTrackSection } from "./config/SingleTrackSection";
 import { SourceSection } from "./config/SourceSection";
 
-export function ConfigPanel({ bundle, tables }: { bundle: DataBundle; tables: TableMap }) {
+export function ConfigPanel({ bundle, tables, musicMode }: {
+  bundle: DataBundle;
+  tables: TableMap;
+  musicMode: MusicMode;
+}) {
   const { locale, setLocale } = useSession();
   const preset = usePreset();
-  const stats = presetStats(preset, bundle.characters);
+  const stats = presetStats(preset, bundle.characters, bundle.albums, musicMode);
 
   return (
     <Stack sx={{ width: "100%", fontFamily: NoFontFamily, display: "flex", flexDirection: "column", gap: 2 }}>
@@ -50,8 +55,8 @@ export function ConfigPanel({ bundle, tables }: { bundle: DataBundle; tables: Ta
 
       <CardSetSection bundle={bundle} />
       <SourceSection bundle={bundle} tables={tables} />
-      <PresetSection bundle={bundle} />
-      <SingleTrackSection bundle={bundle} />
+      <PresetSection bundle={bundle} musicMode={musicMode} />
+      <SingleTrackSection bundle={bundle} musicMode={musicMode} />
     </Stack>
   );
 }

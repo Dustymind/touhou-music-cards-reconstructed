@@ -16,6 +16,7 @@ import shutil
 import sys
 import tomllib
 
+from . import packs as pack_mod
 from . import repo
 
 SCHEMA_VERSION = 1
@@ -39,15 +40,23 @@ def build_characters() -> tuple[dict, list[dict]]:
     return {"schema": SCHEMA_VERSION, "characters": chars}, chars
 
 
-def build_albums() -> dict:
+def build_albums(pack_albums: list[dict] | None = None) -> dict:
+    """专辑注册表 + 曲包自带的专辑（后者 pack 字段指向曲包 id）。"""
     with open(repo.DATA / "albums.toml", "rb") as fh:
         data = tomllib.load(fh)
     albums = []
     for entry in data["album"]:
         albums.append({k: entry[k] for k in ("key", "name", "kind", "pack", "order") if k in entry}
                       | ({"work": entry["work"]} if "work" in entry else {}))
+    for entry in pack_albums or []:
+        albums.append({k: entry[k] for k in ("key", "name", "kind", "pack", "order") if k in entry})
     albums.sort(key=lambda a: a["order"])
     return {"schema": SCHEMA_VERSION, "albums": albums}
+
+
+def build_packs(packs: list[dict]) -> dict:
+    """曲包注册表 → 运行时 JSON（前端据此把"哪些专辑属于哪个包"显示出来）。"""
+    return {"schema": SCHEMA_VERSION, "packs": packs}
 
 
 def build_sources() -> dict:
@@ -99,10 +108,16 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--check", action="store_true", help="只检查漂移，不写文件")
     args = ap.parse_args(argv)
 
+    packs, pack_albums, pack_tracks = pack_mod.load_packs()
     characters, chars = build_characters()
-    albums = build_albums()
+    # 曲包曲目并进角色表（album 的 pack 字段决定它属于哪个模式）
+    characters = {"schema": characters["schema"],
+                  "characters": pack_mod.apply_tracks(characters["characters"], pack_tracks)}
+    chars = characters["characters"]
+    albums = build_albums(pack_albums)
     sources = build_sources()
     card_sets = build_card_sets()
+    packs_json = build_packs(packs)
     digest = content_hash(characters, albums)
     index = {
         "schema": SCHEMA_VERSION,
@@ -114,6 +129,8 @@ def main(argv: list[str] | None = None) -> int:
             "distinctTracks": len({(a, t) for c in chars for a, t, _e in c["music"]}),
             "sources": len(sources["sources"]),
             "cardSets": len(card_sets["cardSets"]),
+            "packs": len(packs_json["packs"]),
+            "packTracks": len(pack_tracks),
         },
     }
     outputs = {
@@ -122,6 +139,7 @@ def main(argv: list[str] | None = None) -> int:
         repo.PUBLIC_DATA / "index.json": _dumps(index),
         repo.PUBLIC_DATA / "sources.json": _dumps(sources),
         repo.PUBLIC_DATA / "cardsets.json": _dumps(card_sets),
+        repo.PUBLIC_DATA / "packs.json": _dumps(packs_json),
     }
     for source_id in ("netease163", "cloudflare_r2", "thbwiki"):
         outputs[repo.PUBLIC_DATA / "sources" / f"{source_id}.json"] = (

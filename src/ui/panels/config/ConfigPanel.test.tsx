@@ -25,7 +25,7 @@ async function renderPanel(): Promise<{ container: HTMLElement; root: Root }> {
   document.body.appendChild(container);
   const root = createRoot(container);
   await act(async () => {
-    root.render(<ConfigPanel bundle={bundle} tables={{}} />);
+    root.render(<ConfigPanel bundle={bundle} tables={{}} musicMode="originals" />);
   });
   return { container, root };
 }

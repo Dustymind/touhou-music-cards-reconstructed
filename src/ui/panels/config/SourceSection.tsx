@@ -1,6 +1,6 @@
 /** 音乐源：开关 + fallback 顺序（拖不动就用按钮）+ 状态。 */
 import {
-  Avatar, Box, Chip, FormControlLabel, IconButton, Stack, Switch, Typography,
+  Avatar, Box, Chip, FormControlLabel, IconButton, Radio, RadioGroup, Stack, Switch, Typography,
 } from "@mui/material";
 import { ArrowDownward, ArrowUpward } from "@mui/icons-material";
 
@@ -10,10 +10,11 @@ import { SectionPanel } from "./SectionCard";
 import type { DataBundle } from "../../../data/types";
 import { Localization, localized, t } from "../../../i18n/localization";
 import { effectiveOrder, useSession } from "../../../store/session";
+import { MUSIC_MODES } from "../../../music/mode";
 import type { TableMap } from "../../../music/sources";
 
 export function SourceSection({ bundle, tables }: { bundle: DataBundle; tables: TableMap }) {
-  const { locale, sourceOverrides, toggleSource, moveSource } = useSession();
+  const { locale, sourceOverrides, toggleSource, moveSource, musicMode, setMusicMode } = useSession();
   const ids = bundle.sources.map((source) => source.id);
   const order = effectiveOrder(sourceOverrides, ids);
   /** 按 id 查源（原来在 labelOf/isEnabled/渲染里各做一次线性查找）。 */
@@ -35,6 +36,34 @@ export function SourceSection({ bundle, tables }: { bundle: DataBundle; tables: 
 
   return (
     <SectionPanel id="source" title={t(Localization.ConfigTabMusicSource)}>
+      {/* 音乐模式（原曲 / 音MAD）：互斥单选。只过滤"接下来能选哪些曲目"，不打断正在播放的曲目 */}
+      <Stack spacing={1} sx={{ mb: 2 }} data-testid="music-mode">
+        <Typography variant="subtitle2">{t(Localization.MusicMode)}</Typography>
+        <RadioGroup
+          row
+          value={musicMode}
+          onChange={(_event, value) => setMusicMode(value as typeof musicMode)}
+          aria-label={t(Localization.MusicMode)}
+        >
+          {MUSIC_MODES.map((mode) => (
+            <FormControlLabel
+              key={mode}
+              value={mode}
+              control={<Radio size="small" data-testid={`music-mode-${mode}`} />}
+              label={t(mode === "originals" ? Localization.MusicModeOriginals : Localization.MusicModeOtomads)}
+            />
+          ))}
+        </RadioGroup>
+        <Typography variant="caption" color="text.secondary">
+          {t(Localization.MusicModeHint)}
+        </Typography>
+        {musicMode === "otomads" && (
+          <Typography variant="caption" color="text.secondary" data-testid="music-mode-local-hint">
+            {t(Localization.MusicModeLocalHint)}
+          </Typography>
+        )}
+      </Stack>
+
       {/* 回退顺序显示：编号 + 实际名称（原来直接把内部 id 拼成字符串，既不可读也不随语言变） */}
       <Stack
         direction="row"

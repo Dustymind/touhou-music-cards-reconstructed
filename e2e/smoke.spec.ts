@@ -647,6 +647,48 @@ test("卡面图集设置对游戏页生效（选卡菜单 + 牌桌，用户反�
   expect(after.deck).toContain("/cards-zun/");
 });
 
+test("音乐模式：原曲 / 音MAD 切换（原版 otomads 模式）", async ({ page }) => {
+  const localRequests: string[] = [];
+  page.on("request", (request) => {
+    if (request.url().includes("8011")) localRequests.push(request.url());
+  });
+
+  await page.goto("/");
+  await page.getByRole("tab", { name: "Config", exact: true }).click();
+  await expandSection(page, "source");
+  await page.getByTestId("music-mode").waitFor();
+
+  // 默认原曲：只有镜像曲目（378 条），不请求本地曲库
+  await expect(page.getByTestId("music-mode-originals")).toBeVisible();
+  await expandSection(page, "preset");
+  await expect(page.getByTestId("preset-stats")).toContainText("378 / 378");
+  expect(localRequests).toHaveLength(0);
+
+  // 切到音MAD：只剩曲包曲目（24 条），并自动去取本地曲库的 manifest
+  await page.getByTestId("music-mode-otomads").click();
+  await expect(page.getByTestId("preset-stats")).toContainText("24 / 24");
+  await expect(page.getByTestId("music-mode-local-hint")).toBeVisible();
+  await expect.poll(() => localRequests.length).toBeGreaterThan(0);
+  expect(localRequests[0]).toContain("/manifest.json");
+
+  // 模式落盘：刷新后仍在音MAD
+  await page.reload();
+  await page.getByRole("tab", { name: "Config", exact: true }).click();
+  await expandSection(page, "source");
+  const mode = await page.evaluate(() => {
+    const checked = [...document.querySelectorAll('input[type="radio"]')]
+      .find((input) => input.checked &&
+        (input.closest("label")?.textContent ?? "").includes("Otomads"));
+    return checked !== undefined;
+  });
+  expect(mode).toBe(true);
+
+  // 切回原曲：统计回到 378
+  await page.getByTestId("music-mode-originals").click();
+  await expandSection(page, "preset");
+  await expect(page.getByTestId("preset-stats")).toContainText("378 / 378");
+});
+
 test("音乐源回退顺序：显示用源名称，重排不打乱开关（用户反馈后）", async ({ page }) => {
   await page.goto("/?locale=zh");
   await page.getByRole("tab", { name: "设置", exact: true }).click();

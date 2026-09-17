@@ -8,6 +8,7 @@ import { Localization, t } from "../../../i18n/localization";
 import { SectionPanel } from "./SectionCard";
 import { CATEGORY_KEYS, type Tri } from "../../../music/selection";
 import { groupAlbums, presetStats } from "../../../music/presetView";
+import type { MusicMode } from "../../../music/mode";
 import { hifuuParentState, usePreset } from "../../../store/preset";
 import { NoFontFamily } from "../../../theme/theme";
 
@@ -47,10 +48,10 @@ function AlbumRows({
   );
 }
 
-export function PresetSection({ bundle }: { bundle: DataBundle }) {
+export function PresetSection({ bundle, musicMode }: { bundle: DataBundle; musicMode: MusicMode }) {
   const preset = usePreset();
   const groups = groupAlbums(bundle.albums);
-  const stats = presetStats(preset, bundle.characters);
+  const stats = presetStats(preset, bundle.characters, bundle.albums, musicMode);
   const hifuuState = hifuuParentState(preset, bundle.albums);
   const allAlbums = [...groups.cd, ...groups.game];
 

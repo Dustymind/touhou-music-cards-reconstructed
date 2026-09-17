@@ -31,6 +31,15 @@ export const Localization = {
   ConfigTabSearchCharacter: u("Search Character", "搜索角色"),
   ConfigTabSourceEnabled: u("Enabled", "已启用"),
   ConfigTabSourceDisabled: u("Disabled", "未启用"),
+  MusicMode: u("Music Mode", "音乐模式"),
+  MusicModeOriginals: u("Originals", "原曲"),
+  MusicModeOtomads: u("Otomads", "音MAD"),
+  MusicModeHint: u(
+    "Originals uses the mirrors below; Otomads uses the local album source only. It only filters what you can pick next - the track playing right now is not interrupted.",
+    "「原曲」只用下面选中的镜像；「音MAD」只用本地专辑源。它只过滤你接下来能选哪些曲目，不会打断正在播放的这一首。"),
+  MusicModeLocalHint: u(
+    "Otomads tracks live on this machine only, served by the local library helper; the local source below is used automatically in this mode.",
+    "音MAD 曲目只存在于本机（由本地曲库助手提供）；这个模式下会自动使用下面的「本地曲库」。"),
   ConfigTabSourceOrder: u("Fallback order", "回退顺序"),
   ConfigTabSourceMoveUp: u("Move up", "上移"),
   ConfigTabSourceMoveDown: u("Move down", "下移"),

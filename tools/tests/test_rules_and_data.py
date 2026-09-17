@@ -67,9 +67,13 @@ def test_data_invariants_hold():
     problems, stats = validate.run()
     assert problems.errors == [], problems.errors
     assert stats["characters"] == 121
-    assert stats["albums"] == 39
-    assert stats["entries"] == 378       # 357 条上游条目 + 21 条人工补配
-    assert stats["distinct_tracks"] == 368
+    # 39 个原曲专辑 + 1 张曲包专辑（音MAD / otomads，见 D52）
+    assert stats["albums"] == 40
+    # 378 = 357 条上游条目 + 21 条人工补配；再加 24 条音MAD 曲包曲目
+    assert stats["entries"] == 402
+    assert stats["distinct_tracks"] == 392
+    assert stats["packs"]["packs"] == 1
+    assert stats["packs"]["tracks"] == 24
     assert stats["pending"] == 0
     assert stats["overrides"] == 5
     assert len(stats["shared"]) == 10

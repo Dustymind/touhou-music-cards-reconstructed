@@ -16,6 +16,7 @@ import re
 import tomllib
 from pathlib import Path
 
+from . import packs as packs_mod
 from . import repo
 
 EXTRAS = ("角色曲", "道中曲", "更多道中曲", "秘封曲")
@@ -394,13 +395,59 @@ def check_pending(chars: list[dict], p: Problems):
     return len(rows)
 
 
+def check_packs(packs: list[dict], albums: list[dict], tracks: list[dict],
+                chars: list[dict], p: "Problems") -> dict:
+    """曲包自身的完整性：id/专辑/角色/重复/附加信息。"""
+    ids = [pack["id"] for pack in packs]
+    for pack_id in sorted({i for i in ids if ids.count(i) > 1}):
+        p.error(f"曲包 id 重复：{pack_id}")
+    album_names = {album["name"] for album in albums}
+    album_packs = {album["pack"] for album in albums}
+    for pack in packs:
+        if pack["kind"] not in packs_mod.PACK_KINDS:
+            p.error(f"曲包 kind 非法：{pack['id']} → {pack['kind']}")
+    char_keys = {char["key"] for char in chars}
+    seen: set[tuple[str, str]] = set()
+    for track in tracks:
+        pack_id = track["pack"]
+        if pack_id not in ids:
+            p.error(f"曲包曲目引用了未注册的曲包：{track['character']} / {track['title']}")
+        if track["album"] not in album_names:
+            p.error(f"曲包专辑未注册：{track['album']}（{track['character']} / {track['title']}）")
+        elif track["album"] not in {a["name"] for a in albums if a["pack"] == pack_id}:
+            p.error(f"曲包专辑的 pack 字段与曲包不符：{track['album']} → {pack_id}")
+        if track["character"] not in char_keys:
+            p.error(f"曲包曲目的角色不存在：{track['character']}")
+        if track["extra"] not in EXTRAS:
+            p.error(f"曲包曲目附加信息非法：{track['extra']}")
+        key = (track["character"], track["album"], track["title"])
+        if key in seen:
+            p.error(f"曲包曲目重复：{track['character']} / {track['album']} / {track['title']}")
+        seen.add(key)
+    for album in albums:
+        if album["pack"] in album_packs and album["pack"] not in ids and album["pack"] != "originals":
+            p.error(f"专辑引用了未注册的曲包：{album['name']} → {album['pack']}")
+    return {"packs": len(packs), "albums": len(albums), "tracks": len(tracks)}
+
+
 def run() -> tuple["Problems", dict]:
     """跑全部不变量校验，返回 (问题集合, 统计)。供 CLI 与测试复用。"""
     p = Problems()
+    pack_list, pack_albums, pack_tracks = packs_mod.load_packs()
     albums = load_albums(p)
+    for entry in pack_albums:
+        if entry["name"] in albums:
+            p.error(f"曲包专辑与 albums.toml 重名：{entry['name']}")
+        albums[entry["name"]] = entry
     chars = load_characters(p)
+    pack_album_names = {entry["name"] for entry in pack_albums}
+    pack_stats = check_packs(pack_list, pack_albums, pack_tracks, chars, p)
+    chars = packs_mod.apply_tracks(chars, pack_tracks)
     char_stats = check_characters(chars, albums, p)
-    source_stats = check_sources(char_stats["referenced"], p)
+    # 曲包曲目不在镜像表里（只存在于本机），覆盖检查只看非曲包曲目
+    mirror_referenced = {(a, t) for a, t in char_stats["referenced"]
+                         if a not in pack_album_names}
+    source_stats = check_sources(mirror_referenced, p)
     source_registry = check_source_registry(p)
     card_sets = check_card_sets(p)
     pending = check_pending(chars, p)
@@ -417,7 +464,7 @@ def run() -> tuple["Problems", dict]:
         "albums": len(albums), "characters": len(chars), "pending": pending,
         "digest": digest, "sources": source_stats, "stage_rows": stage_rows,
         "overrides": overrides, "source_registry": source_registry,
-        "card_sets": card_sets, "track_additions": additions,
+        "card_sets": card_sets, "track_additions": additions, "packs": pack_stats,
         "titles": title_stats, **alias_stats,
         **{k: v for k, v in char_stats.items() if k != "referenced"},
     }

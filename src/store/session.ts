@@ -6,6 +6,7 @@
 import { create } from "zustand";
 
 import { defineStore, isRecord, pickBoolean, pickNumber, pickString } from "../persist";
+import { DEFAULT_MUSIC_MODE, MUSIC_MODES, type MusicMode } from "../music/mode";
 import { getLocale, setLocale, type Locale } from "../i18n/localization";
 
 export const TAB_ORDER = ["player", "list", "config", "game"] as const;
@@ -20,10 +21,13 @@ interface SessionState {
   locale: Locale;
   tab: TabId;
   cardCollection: string;
+  musicMode: MusicMode;
   sourceOverrides: Record<string, SourceOverride>;
   setLocale: (locale: Locale) => void;
   setTab: (tab: TabId) => void;
   setCardCollection: (collection: string) => void;
+  /** 音乐模式（原曲 / 音MAD）：只影响"接下来能选哪些曲目"，不打断正在播放的曲目。 */
+  setMusicMode: (mode: MusicMode) => void;
   /** 开关某个源：只改 enabled，**不动**它在回退顺序里的位置。 */
   toggleSource: (id: string, enabled: boolean, allIds: string[]) => void;
   /** 上移/下移：交换相邻两个源的位置，其它源（含"默认关闭"的）保持原状。 */
@@ -32,19 +36,29 @@ interface SessionState {
 
 const LOCALES = ["en", "zh"] as const;
 
-const sessionStore = defineStore<{ locale: Locale; tab: TabId; cardCollection: string }>({
+const sessionStore = defineStore<SessionPrefs>({
   name: "session",
   version: 1,
-  fallback: { locale: "en", tab: "player", cardCollection: "dairi-sd" },
+  fallback: { locale: "en", tab: "player", cardCollection: "dairi-sd", musicMode: DEFAULT_MUSIC_MODE },
   validate(raw) {
     if (!isRecord(raw)) return null;
     const locale = pickString(raw.locale, LOCALES) as Locale | null;
     const tab = pickString(raw.tab, TAB_ORDER) as TabId | null;
     const cardCollection = pickString(raw.cardCollection);
+    // 老存档没有 musicMode → 用默认值（原曲），不因为缺字段就丢弃整份偏好
+    const musicMode = (pickString(raw.musicMode, MUSIC_MODES) as MusicMode | null) ?? DEFAULT_MUSIC_MODE;
     if (!locale || !tab || !cardCollection) return null;
-    return { locale, tab, cardCollection };
+    return { locale, tab, cardCollection, musicMode };
   },
 });
+
+/** 会话偏好（持久化到 localStorage）。 */
+interface SessionPrefs {
+  locale: Locale;
+  tab: TabId;
+  cardCollection: string;
+  musicMode: MusicMode;
+}
 
 const sourceStore = defineStore<Record<string, SourceOverride>>({
   name: "sources",
@@ -76,6 +90,7 @@ export const useSession = create<SessionState>((set, get) => ({
   locale: initial.locale,
   tab: initial.tab,
   cardCollection: initial.cardCollection,
+  musicMode: initial.musicMode,
   sourceOverrides: sourceStore.load(),
 
   setLocale(locale) {
@@ -90,6 +105,10 @@ export const useSession = create<SessionState>((set, get) => ({
   setCardCollection(cardCollection) {
     set({ cardCollection });
     sessionStore.save({ ...pickSession(get()), cardCollection });
+  },
+  setMusicMode(musicMode) {
+    set({ musicMode });
+    sessionStore.save({ ...pickSession(get()), musicMode });
   },
   toggleSource(id, enabled, allIds) {
     const overrides = get().sourceOverrides;
@@ -124,8 +143,13 @@ export const useSession = create<SessionState>((set, get) => ({
   },
 }));
 
-function pickSession(state: Pick<SessionState, "locale" | "tab" | "cardCollection">) {
-  return { locale: state.locale, tab: state.tab, cardCollection: state.cardCollection };
+function pickSession(state: Pick<SessionState, "locale" | "tab" | "cardCollection" | "musicMode">) {
+  return {
+    locale: state.locale,
+    tab: state.tab,
+    cardCollection: state.cardCollection,
+    musicMode: state.musicMode,
+  };
 }
 
 /** 按覆盖表算出实际的 fallback 顺序（未覆盖的按注册表顺序排在后面）。 */

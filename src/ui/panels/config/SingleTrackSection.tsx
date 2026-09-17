@@ -11,19 +11,21 @@ import { SectionPanel } from "./SectionCard";
 import { usePreset } from "../../../store/preset";
 import { useSingleTrack } from "../../../store/single";
 import { singleModeRows } from "../../../music/presetView";
+import type { MusicMode } from "../../../music/mode";
 
 function entryLabel(entry: MusicEntry): string {
   return `${displayTitle(entry[1])} (${entry[0]})`;
 }
 
-export function SingleTrackSection({ bundle }: { bundle: DataBundle }) {
+export function SingleTrackSection({ bundle, musicMode }: { bundle: DataBundle; musicMode: MusicMode }) {
   const preset = usePreset();
   const single = useSingleTrack();
   const [query, setQuery] = useState("");
 
   const rows = useMemo(
-    () => singleModeRows(preset, bundle.characters, single.pins, single.disabledCharacters, query),
-    [preset, bundle.characters, single.pins, single.disabledCharacters, query],
+    () => singleModeRows(preset, bundle.characters, single.pins, single.disabledCharacters, query,
+      bundle.albums, musicMode),
+    [preset, bundle.characters, single.pins, single.disabledCharacters, query, bundle.albums, musicMode],
   );
 
   return (

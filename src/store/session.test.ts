@@ -61,3 +61,16 @@ describe("音乐源顺序与开关（用户反馈后的回归）", () => {
     expect(useSession.getState().sourceOverrides.thbwiki!.order).toBe(before);
   });
 });
+
+describe("音乐模式持久化", () => {
+  beforeEach(() => localStorage.clear());
+
+  it("默认原曲；切换后落盘，重新读档能拿回来", () => {
+    expect(useSession.getState().musicMode).toBe("originals");
+    useSession.getState().setMusicMode("otomads");
+    expect(useSession.getState().musicMode).toBe("otomads");
+    // 落盘键名由 persist.ts 统一生成
+    const raw = Object.keys(localStorage).map((key) => localStorage.getItem(key) ?? "").join("|");
+    expect(raw).toContain("otomads");
+  });
+});

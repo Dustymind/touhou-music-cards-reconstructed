@@ -4,6 +4,7 @@
  * 这里是纯函数：M6 的配置页只负责把界面状态喂进来。
  */
 import type { AlbumRecord, CharacterRecord, Extra, MusicEntry } from "../data/types";
+import { filterByMode, isEntryAllowedInMode, type MusicMode } from "./mode";
 
 export type Tri = "unset" | "on" | "off";
 
@@ -61,26 +62,51 @@ export interface AllowedTracks {
   pinned: MusicEntry | null;
 }
 
-/** 某角色在当前预设下可用的曲目；`pinned` 传入单曲模式的选择。 */
+/** 某角色在当前预设下可用的曲目；`pinned` 传入单曲模式的选择。
+ *
+ * `albums` + `mode` 用于**音乐模式**过滤（原曲 / 音MAD）：模式只决定"接下来能选哪些"，
+ * 不打断正在播放的曲目（所以过滤只发生在这里、不反向改写状态）。 */
 export function allowedTracks(
   preset: PresetState,
   character: CharacterRecord,
   pinned?: MusicEntry | null,
+  albums?: readonly AlbumRecord[],
+  mode?: MusicMode,
 ): AllowedTracks {
-  if (pinned) return { entries: [pinned], pinned };
+  if (pinned) {
+    // 手选的那首若不属于当前模式，仍然按"当前模式不可用"处理（与 v2 的读数一致：
+    // 归一化只在读档时做，播放中的这一首不打断）
+    return { entries: [pinned], pinned };
+  }
   const entries = character.music.filter(([album, , extra]) => isTrackEnabled(preset, album, extra));
-  return { entries, pinned: null };
+  const filtered = albums && mode ? filterByMode(albums, entries, mode) : entries;
+  return { entries: filtered, pinned: null };
+}
+
+/** 该曲目在当前预设 + 当前模式下是否可用（游戏内选曲、播放都用它）。 */
+export function isTrackUsable(
+  preset: PresetState,
+  albums: readonly AlbumRecord[],
+  entry: MusicEntry,
+  mode: MusicMode,
+): boolean {
+  const [, , extra] = entry;
+  return isTrackEnabled(preset, entry[0], extra) && isEntryAllowedInMode(albums, entry, mode);
 }
 
 /** 统计：全库可用曲目数（配置页显示预设效果）。 */
 export function countEnabled(
   preset: PresetState,
   characters: readonly CharacterRecord[],
+  albums?: readonly AlbumRecord[],
+  mode?: MusicMode,
 ): { enabled: number; total: number } {
   let enabled = 0;
   let total = 0;
   for (const character of characters) {
     for (const [album, , extra] of character.music) {
+      // 统计只数当前模式下的曲目：切到音MAD 时"全库可用"的分母也跟着变
+      if (albums && mode && !isEntryAllowedInMode(albums, [album, "", extra], mode)) continue;
       total += 1;
       if (isTrackEnabled(preset, album, extra)) enabled += 1;
     }

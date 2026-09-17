@@ -1,0 +1,14 @@
+{
+ "schema": 1,
+ "packs": [
+  {
+   "id": "otomads",
+   "label": {
+    "en": "Otomads",
+    "zh": "音MAD"
+   },
+   "kind": "local",
+   "order": 100
+  }
+ ]
+}

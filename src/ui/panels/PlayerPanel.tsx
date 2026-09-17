@@ -15,6 +15,7 @@ import { displayTitle } from "../../data/types";
 import { Localization, t } from "../../i18n/localization";
 import type { PlayerApi } from "../../audio/usePlayer";
 import type { TableMap } from "../../music/sources";
+import type { MusicMode } from "../../music/mode";
 import { fadeInSx, NoFontFamily } from "../../theme/theme";
 import { CharacterCard } from "../components/CharacterCard";
 import { glitchEnabled, preferLocalCards } from "../../runtime";
@@ -40,6 +41,8 @@ export interface PlayerPanelProps {
   onSort: () => void;
   onToggleTemporary: (key: string) => void;
   cardCollection: string;
+  /** 音乐模式（原曲 / 音MAD）：只影响"接下来能选哪些曲目" */
+  musicMode: MusicMode;
 }
 
 /** 当前卡面的宽度（上游按容器百分比，这里给像素值）。 */

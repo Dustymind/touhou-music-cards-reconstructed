@@ -12,6 +12,7 @@ import type { AlbumRecord, CharacterRecord, MusicEntry } from "../data/types";
 import { displayTitle, trackId } from "../data/types";
 import { newSeed, pickWithSeed, randomStartPosition } from "../music/rng";
 import { allowedTracks, type PresetState } from "../music/selection";
+import type { MusicMode } from "../music/mode";
 import { resolveTrack, type TableMap } from "../music/sources";
 
 export type PlaybackState = "stopped" | "countingDown" | "playing" | "timeoutPause";
@@ -37,6 +38,8 @@ export interface PlayerInputs {
   tables: TableMap;
   sourceOrder: readonly string[];
   preset: PresetState;
+  /** 音乐模式（原曲 / 音MAD）：只抽当前模式下可用的曲目 */
+  mode: MusicMode;
   /** 单曲模式：角色 key → 固定的曲目 */
   pinned: Record<string, MusicEntry | undefined>;
   currentKey: string | null;
@@ -100,12 +103,13 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
   const entry = useMemo<MusicEntry | null>(() => {
     if (!character) return null;
     const pinned = inputs.pinned[character.key] ?? null;
-    const { entries } = allowedTracks(inputs.preset, character, pinned);
+    // 音乐模式过滤：音MAD 模式下对局只会抽到音MAD 曲目（v2 的 f9305f5 同一件事）
+    const { entries } = allowedTracks(inputs.preset, character, pinned, inputs.albums, inputs.mode);
     if (entries.length === 0) return null;
     if (entries.length === 1) return entries[0]!;
     const seedKey = inputs.seed + character.order * 7919;
     return pickWithSeed(entries, seedKey);
-  }, [character, inputs.pinned, inputs.preset, inputs.seed]);
+  }, [character, inputs.pinned, inputs.preset, inputs.albums, inputs.mode, inputs.seed]);
 
   // ---- 创建 <audio> 与铃（都不挂进 DOM 也能播） ----
   useEffect(() => {

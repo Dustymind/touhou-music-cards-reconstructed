@@ -7,6 +7,7 @@
 import { create } from "zustand";
 
 import { useGame } from "../game/useGame";
+import { useSession } from "../store/session";
 import type { MatchMode } from "../game/types";
 import { createClientEngine, createHostEngine, helloIntent, type HostEngine } from "./engines";
 import { PeerTransport } from "./peer";
@@ -137,6 +138,9 @@ export const useNet = create<NetApi>((set, get) => {
         getState: () => useGame.getState().game,
         applyState: (state) => useGame.setState({ game: state }),
         applyIntent: (intent, from) => applyIntentLocally(intent, from),
+        // 音乐模式随快照下发：两端必须同模式，否则"当前模式下可用"的判定会分叉
+        getMusicMode: () => useSession.getState().musicMode,
+        applyMusicMode: (mode) => useSession.getState().setMusicMode(mode),
         dataHash: dataHash(),
         selfName: name,
         onChat: (from, text, system) => pushChat({ from: from === 0 ? name : `P${from}`, text, system }),
@@ -170,6 +174,8 @@ export const useNet = create<NetApi>((set, get) => {
           useGame.setState({ game: state });
           set({ digest: stateDigest(state) });
         },
+        getMusicMode: () => useSession.getState().musicMode,
+        applyMusicMode: (mode) => useSession.getState().setMusicMode(mode),
         dataHash: dataHash(),
         selfName: name,
         onChat: (from, text, system) => pushChat({ from: `P${from}`, text, system }),
