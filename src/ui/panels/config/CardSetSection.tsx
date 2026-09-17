@@ -37,6 +37,8 @@ export function CardSetSection({ bundle }: { bundle: DataBundle }) {
         sx={{
           gap: 0,
           "& .MuiFormControlLabel-root": { alignItems: "flex-start", ml: 0, mr: 0, width: "100%" },
+          // 标签内容要撑满整行，说明才会稳定占左侧、示例卡才能贴右
+          "& .MuiFormControlLabel-label": { flex: 1, minWidth: 0 },
         }}
       >
         <Stack divider={<Divider flexItem />} spacing={2}>
@@ -56,7 +58,9 @@ export function CardSetSection({ bundle }: { bundle: DataBundle }) {
                   <Stack
                     direction={{ xs: "column", sm: "row" }}
                     spacing={2}
-                    sx={{ alignItems: "flex-start" }}
+                    // 撑满行宽 → 说明占满左侧剩余空间（位置不变、该换行就换行），
+                    // 三张示例卡固定贴右（不参与伸缩）
+                    sx={{ alignItems: "flex-start", width: "100%" }}
                   >
                     <Typography
                       variant="body2"
@@ -66,7 +70,11 @@ export function CardSetSection({ bundle }: { bundle: DataBundle }) {
                     >
                       {cardSetDescription(set.id, set.origins[0] ?? "")}
                     </Typography>
-                    <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+                    <Stack
+                      direction="row"
+                      spacing={1}
+                      sx={{ alignItems: "flex-start", flexShrink: 0 }}
+                    >
                       {examples.map((example) => (
                         <Box key={example.key} sx={{ width: EXAMPLE_WIDTH }}>
                           <CharacterCard cardSet={set} file={example.file} state="normal" />

@@ -620,6 +620,25 @@ test("卡面图集设置对游戏页生效（选卡菜单 + 牌桌，用户反�
   expect(menu.currentChecked).toBe(true);
   expect(menu.otherChecked).toBe(false);
 
+  // 示例卡强制右对齐（每行最后一图的右边缘 = 整行右边缘），文字位置保持不变
+  const alignment = await page.evaluate(() => {
+    const ids = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"];
+    return ids.map((id) => {
+      const row = document.querySelector(`[data-testid="cardset-row-${id}"]`)!;
+      const description = document.querySelector(`[data-testid="cardset-description-${id}"]`)!;
+      const images = [...row.querySelectorAll("img")];
+      const last = images[images.length - 1]!.getBoundingClientRect();
+      return {
+        rowRight: Math.round(row.getBoundingClientRect().right),
+        imagesRight: Math.round(last.right),
+        textLeft: Math.round(description.getBoundingClientRect().left),
+      };
+    });
+  });
+  expect([...new Set(alignment.map((entry) => entry.imagesRight))]).toHaveLength(1);   // 图片右对齐
+  expect(alignment.every((entry) => entry.rowRight - entry.imagesRight <= 1)).toBe(true);
+  expect([...new Set(alignment.map((entry) => entry.textLeft))]).toHaveLength(1);      // 文字位置不变
+
   await page.getByTestId("cardset-radio-zun").click();
   await page.getByRole("tab", { name: "Match", exact: true }).click();
   await page.waitForTimeout(600);
