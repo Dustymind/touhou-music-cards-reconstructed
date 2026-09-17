@@ -1330,6 +1330,43 @@ MUI 的 **`Stack spacing` 是用子元素 `margin` 实现的**（`.MuiStack-root
 
 ---
 
+## D50 卡面图集菜单的 MD2 合规检查与调整
+
+**需求**（用户）：检查卡面图集设置菜单是否符合 MD2，不符合则调整。
+
+### 检查结论：信息结构可以，选择控件不合规
+
+| 项 | 检查结果 |
+|---|---|
+| 每套图集的 id / 原版说明 / 三张示例卡 | ✓ 保留（D46 照上游结构） |
+| 1px 分隔线、位于 MD2 扩展面板内 | ✓ D49 已合规 |
+| **"多选一"用「使用 / 正在使用」按钮** | ✗ **不符合**：MD2 里按钮用于触发动作，"多选一"应当用 **radio**；按钮的禁用态也不适合表达当前选中 |
+| 单选按钮与首行文字的对齐 | ✗ 原来 `FormControlLabel` 默认 `alignItems: center`，单选会落在整块内容（id+说明+示例卡）的垂直中间 |
+| 示例卡在行内的对齐 | ✗ 原来与说明"垂直居中"，说明换行行数不同 → 每行示例卡高低不齐 |
+| 文字层级 | ✗ id 用 `subtitle2`（14sp），说明也是 14sp，主次不分 |
+| 选中项的可读性 | ✗ 只有按钮文案变化，扫一眼看不出选了哪套 |
+
+### 调整
+
+1. **控件换成 `RadioGroup` + `FormControlLabel`**（MD2 的选择控件）：6 套图集 6 个单选按钮，
+   当前图集选中；组有 `aria-label`（无障碍）；不再有"使用/正在使用"按钮。
+2. **对齐**：`alignItems: flex-start` 让单选与**首行文字**顶对齐（实测单选 top 235 / 标题 top 233）；
+   说明与示例卡那一行也改 `flex-start`，三张示例卡 top 一致。
+3. **层级按 MD2 两行列表**：id 用 `body1`（16sp，主文本）、说明用 `body2` + `text.secondary`
+   （14sp，中强调 70%）、说明里的链接用主色。
+4. `data-testid` 拆分避免前缀互撞：`cardset-row-<id>`（整行）、`cardset-radio-<id>`（单选）、
+   `cardset-title-<id>`、`cardset-description-<id>`——上一版 `cardset-<id>` 会被 `cardset-row-*` 的前缀匹配到。
+
+**实测**：6 个 radio、单选与标题顶对齐、id 16sp、说明 `rgba(255,255,255,0.7)`、三张示例卡 top 一致、
+分隔线全宽 1200px；点另一套能切换并同步到游戏页。
+
+**回归锁**：单测改断言"6 个 radio、当前项 checked、点 label 能切换、每行 3 张图"；
+E2E 断言行数 / 每行 3 张图 / 6 个 radio / 当前项 checked / id 顺序，并按 `cardset-radio-zun` 点击。
+**跨浏览器坑**：`row.querySelector(".MuiTypography-body1")` 在 Firefox 会先命中 `FormControlLabel`
+自己的 label `<span>`（它也带 `MuiTypography-body1`）→ 改成按独立 testid 取文本。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |

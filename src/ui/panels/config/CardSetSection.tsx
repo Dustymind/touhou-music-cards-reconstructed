@@ -1,10 +1,10 @@
-/** 卡面图集：按原版 `ConfigTab` 的样式列出每套图集（名称 + 使用按钮 + 说明 + 三张示例卡）。
+/** 卡面图集菜单（MD2 选择控件）。
  *
- * 上游结构：一行是「图集名（左）+ 选择按钮（右）」，下面一行是「说明（左半）+ 三张示例卡（右半）」，
- * 图集之间用分隔线。这里保持同样的信息结构，外观走 MD2（卡片、`Divider`、`Button` 的
- * contained/outlined 语义）；中文模式的按钮文案用原版（「使用」/「正在使用」）。
+ * 信息结构照上游 `ConfigTab`：每套图集的内部 id、说明文字、三张示例卡，图集之间用 1px 分隔线。
+ * 但**选择控件按 MD2 换成单选组**——MD2 里"多选一"用 radio（按钮只用于触发动作），
+ * 原来每行一个「使用 / 正在使用」按钮既不符合 MD2，也不如单选一眼看清当前选中项。
  */
-import { Box, Button, Divider, Stack, Typography } from "@mui/material";
+import { Box, Divider, FormControlLabel, Radio, RadioGroup, Stack, Typography } from "@mui/material";
 
 import type { DataBundle } from "../../../data/types";
 import { Localization, t } from "../../../i18n/localization";
@@ -28,42 +28,59 @@ export function CardSetSection({ bundle }: { bundle: DataBundle }) {
 
   return (
     <SectionPanel id="cardset" title={t(Localization.ConfigTabCardCollection)}>
-      <Stack divider={<Divider flexItem />} spacing={2}>
-        {bundle.cardSets.map((set) => {
-          const selected = cardCollection === set.id;
-          return (
-            <Stack key={set.id} spacing={1} data-testid={`cardset-row-${set.id}`}>
-              <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
-                <Typography variant="body1" sx={{ flex: 1 }}>{set.id}</Typography>
-                <Button
-                  data-testid={`cardset-${set.id}`}
-                  variant={selected ? "contained" : "outlined"}
-                  disabled={selected}
-                  onClick={() => setCardCollection(set.id)}
-                >
-                  {t(selected ? Localization.ConfigTabSelected : Localization.ConfigTabSelect)}
-                </Button>
-              </Stack>
-              <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ flex: 1, "& a": { color: "primary.main" } }}
-                >
-                  {cardSetDescription(set.id, set.origins[0] ?? "")}
-                </Typography>
-                <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-                  {examples.map((example) => (
-                    <Box key={example.key} sx={{ width: EXAMPLE_WIDTH }}>
-                      <CharacterCard cardSet={set} file={example.file} state="normal" />
-                    </Box>
-                  ))}
+      {/* MD2：一组互斥选项用单选组；组本身有名字（无障碍） */}
+      <RadioGroup
+        value={cardCollection}
+        onChange={(_event, value) => setCardCollection(value)}
+        aria-label={t(Localization.ConfigTabCardCollection)}
+        // MD2：单选按钮与第一行文字顶对齐（不是整块内容垂直居中），整行占满宽度
+        sx={{
+          gap: 0,
+          "& .MuiFormControlLabel-root": { alignItems: "flex-start", ml: 0, mr: 0, width: "100%" },
+        }}
+      >
+        <Stack divider={<Divider flexItem />} spacing={2}>
+          {bundle.cardSets.map((set) => (
+            <FormControlLabel
+              key={set.id}
+              value={set.id}
+              data-testid={`cardset-row-${set.id}`}
+              control={<Radio data-testid={`cardset-radio-${set.id}`} size="small" sx={{ mt: 0.25 }} />}
+              // MD2：标题（subtitle2）+ 说明（body2，中强调）+ 示例卡，整体与单选按钮对齐
+              label={
+                <Stack spacing={0.5} sx={{ flex: 1, py: 0.5 }}>
+                  {/* MD2 两行列表：主文本 body1、次文本 body2（中强调） */}
+                  <Typography variant="body1" data-testid={`cardset-title-${set.id}`}>
+                    {set.id}
+                  </Typography>
+                  <Stack
+                    direction={{ xs: "column", sm: "row" }}
+                    spacing={2}
+                    sx={{ alignItems: "flex-start" }}
+                  >
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      data-testid={`cardset-description-${set.id}`}
+                      sx={{ flex: 1, "& a": { color: "primary.main" } }}
+                    >
+                      {cardSetDescription(set.id, set.origins[0] ?? "")}
+                    </Typography>
+                    <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+                      {examples.map((example) => (
+                        <Box key={example.key} sx={{ width: EXAMPLE_WIDTH }}>
+                          <CharacterCard cardSet={set} file={example.file} state="normal" />
+                        </Box>
+                      ))}
+                    </Stack>
+                  </Stack>
                 </Stack>
-              </Stack>
-            </Stack>
-          );
-        })}
-      </Stack>
+              }
+              sx={{ width: "100%", mx: 0 }}
+            />
+          ))}
+        </Stack>
+      </RadioGroup>
     </SectionPanel>
   );
 }

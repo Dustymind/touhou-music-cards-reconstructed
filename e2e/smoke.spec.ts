@@ -594,34 +594,33 @@ test("卡面图集设置对游戏页生效（选卡菜单 + 牌桌，用户反�
   // 设置页换成 ZUN 原画 → 游戏页选卡菜单与牌桌都换成 cards-zun/
   await page.getByRole("tab", { name: "Config", exact: true }).click();
   await expandSection(page, "cardset");
-  await page.getByTestId("cardset-zun").waitFor();
+  await page.getByTestId("cardset-radio-zun").waitFor();
 
   // 原版的图集菜单：每套一行（名称 + 使用按钮 + 原版说明 + 三张示例卡）
   const menu = await page.evaluate(() => {
     const rows = [...document.querySelectorAll('[data-testid^="cardset-row-"]')];
-    const buttonOf = (id: string) =>
-      document.querySelector<HTMLButtonElement>(`[data-testid="cardset-${id}"]`)!;
+    const radioOf = (id: string) => document.querySelector<HTMLInputElement>(
+      `[data-testid="cardset-radio-${id}"] input`);
     return {
       rows: rows.length,
       examples: rows.map((row) => row.querySelectorAll("img").length),
-      description: rows[0]?.querySelector(".MuiTypography-body2")?.textContent ?? "",
-      currentText: buttonOf("dairi-sd")?.textContent?.trim(),
-      currentDisabled: buttonOf("dairi-sd")?.disabled,
-      currentContained: buttonOf("dairi-sd")?.className.includes("contained"),
-      otherText: buttonOf("zun")?.textContent?.trim(),
-      otherDisabled: buttonOf("zun")?.disabled,
+      description: document.querySelector('[data-testid="cardset-description-dairi-sd"]')?.textContent ?? "",
+      radioCount: document.querySelectorAll('[data-testid^="cardset-radio-"] input[type="radio"]').length,
+      currentChecked: radioOf("dairi-sd")?.checked,
+      otherChecked: radioOf("zun")?.checked,
+      ids: ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"].map((id) =>
+        document.querySelector(`[data-testid="cardset-title-${id}"]`)?.textContent?.trim() ?? ""),
     };
   });
   expect(menu.rows).toBe(6);
   expect(menu.examples).toEqual([3, 3, 3, 3, 3, 3]);
+  expect(menu.radioCount).toBe(6);                       // MD2：多选一用单选组
+  expect(menu.ids).toEqual(["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]);
   expect(menu.description).toContain("Free super-deformed tachies from dairi Twitter");
-  expect(menu.currentText).toBe("Selected");
-  expect(menu.currentDisabled).toBe(true);
-  expect(menu.currentContained).toBe(true);
-  expect(menu.otherText).toBe("Select");
-  expect(menu.otherDisabled).toBe(false);
+  expect(menu.currentChecked).toBe(true);
+  expect(menu.otherChecked).toBe(false);
 
-  await page.getByTestId("cardset-zun").click();
+  await page.getByTestId("cardset-radio-zun").click();
   await page.getByRole("tab", { name: "Match", exact: true }).click();
   await page.waitForTimeout(600);
   const after = await sources();
