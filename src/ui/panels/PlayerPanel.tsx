@@ -51,7 +51,7 @@ export function PlayerPanel(props: PlayerPanelProps) {
   const character = bundle.characters.find((item) => item.key === currentKey) ?? null;
 
   return (
-    <Stack spacing={2} sx={{ width: "100%", maxWidth: 900, fontFamily: NoFontFamily }}>
+    <Stack spacing={2} sx={{ width: "100%", fontFamily: NoFontFamily }}>
       <Paper variant="outlined" sx={{ p: 2 }}>
         <Stack direction="row" spacing={2} alignItems="flex-start">
           <Box sx={{ flexShrink: 0 }}>

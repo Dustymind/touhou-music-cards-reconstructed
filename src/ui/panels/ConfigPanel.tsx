@@ -19,7 +19,7 @@ export function ConfigPanel({ bundle, tables }: { bundle: DataBundle; tables: Ta
   const stats = presetStats(preset, bundle.characters);
 
   return (
-    <Stack spacing={2} sx={{ width: "100%", maxWidth: 860, fontFamily: NoFontFamily }}>
+    <Stack spacing={2} sx={{ width: "100%", fontFamily: NoFontFamily }}>
       <Paper variant="outlined" sx={{ p: 2 }}>
         <Typography variant="subtitle1" gutterBottom>
           {t(Localization.ShellDataSummary)}

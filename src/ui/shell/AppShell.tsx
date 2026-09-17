@@ -150,7 +150,8 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
 
   return (
     <Box sx={{ display: "flex", justifyContent: "center", p: 2, fontFamily: NoFontFamily }}>
-      <Stack spacing={2} sx={{ width: "100%", maxWidth: 1000, alignItems: "center" }}>
+      {/* 宽度自适应（照上游：整页 `width: 100%` + 左右各 16px 页边距，不设最大宽度） */}
+      <Stack spacing={2} sx={{ width: "100%", alignItems: "center" }}>
         {/* 间距照上游：`Stack spacing={0.5}` + `flexItem` 分隔线（分隔线跟按钮同高） */}
         <Stack direction="row" spacing={0.5} sx={{ alignItems: "center", flexWrap: "wrap", rowGap: 1 }}>
           {TAB_ORDER.map((id, index) => (

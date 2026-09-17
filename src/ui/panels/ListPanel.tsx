@@ -38,7 +38,7 @@ export function ListPanel({ bundle }: { bundle: DataBundle }) {
   };
 
   return (
-    <Stack spacing={1} sx={{ width: "100%", maxWidth: 900, fontFamily: NoFontFamily }}>
+    <Stack spacing={1} sx={{ width: "100%", fontFamily: NoFontFamily }}>
       <Stack direction="row" spacing={1} alignItems="center">
         <Box
           component="input"

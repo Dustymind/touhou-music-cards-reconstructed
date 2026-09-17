@@ -331,7 +331,7 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
   };
 
   return (
-    <Stack spacing={2} sx={{ width: "100%", maxWidth: 1000, fontFamily: NoFontFamily }} ref={canvasRef}>
+    <Stack spacing={2} sx={{ width: "100%", fontFamily: NoFontFamily }} ref={canvasRef}>
       <Reveal show={showLobby} testId="lobby-reveal">
         <LobbyPanel />
       </Reveal>

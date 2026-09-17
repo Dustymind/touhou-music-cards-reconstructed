@@ -538,6 +538,41 @@ test("游戏页按钮尺寸、内边距与图标间距统一", async ({ page }) 
     .every((entry) => entry.gap === 6)).toBe(true);
 });
 
+test("界面宽度自适应：随视口变宽，页边距保持 16px", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Match", exact: true }).click();
+  await page.getByTestId("mode-cpu").click();
+  await page.getByTestId("random-fill").click();
+
+  const read = async (width: number) => {
+    await page.setViewportSize({ width, height: 1100 });
+    await page.waitForTimeout(400);
+    return page.evaluate(() => {
+      const panel = document.querySelector('[data-testid="game-setup"]')!;
+      const deck = document.querySelector('[data-testid="deck-you"]')!;
+      const rect = panel.getBoundingClientRect();
+      return {
+        marginLeft: Math.round(rect.left),
+        marginRight: Math.round(document.body.clientWidth - rect.right),
+        panelWidth: Math.round(rect.width),
+        deckWidth: Math.round(deck.getBoundingClientRect().width),
+      };
+    });
+  };
+
+  const wide = await read(1920);
+  const narrow = await read(1100);
+
+  // 页边距固定 16px，宽度跟着视口变（没有被固定最大宽度卡住）
+  expect(wide.marginLeft).toBe(16);
+  expect(wide.marginRight).toBe(16);
+  expect(narrow.marginLeft).toBe(16);
+  expect(narrow.marginRight).toBe(16);
+  expect(wide.panelWidth).toBeGreaterThan(narrow.panelWidth + 700);
+  // 棋盘按容器宽度的百分比缩放（上游行为：卡片宽度 = 容器宽 × 8%）
+  expect(wide.deckWidth).toBeGreaterThan(narrow.deckWidth * 1.5);
+});
+
 test("模式切换：棋盘与联机栏按模式显隐，并带动画", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Match", exact: true }).click();
