@@ -77,8 +77,11 @@ export function SingleTrackSection({ bundle }: { bundle: DataBundle }) {
               >
                 {character.name}
               </Typography>
+              {/* 这一栏没有浮动标签，用 outlined：filled 会为标签留出上方空间，
+                  导致文本下移、看着不居中（用户反馈） */}
               <FormControl
                 size="small"
+                variant="outlined"
                 sx={{ flex: 1 }}
                 disabled={allowed.length === 0}
                 data-testid={`single-select-${character.key}`}
@@ -86,6 +89,9 @@ export function SingleTrackSection({ bundle }: { bundle: DataBundle }) {
                 <Select
                   value={value}
                   displayEmpty
+                  // 主题把 MuiSelect 的默认 variant 设成了 filled（defaultProps 会压过 FormControl 的
+                  // context），所以这里要显式给 outlined，否则又会拿到 filled 的上方标签留白
+                  variant="outlined"
                   inputProps={{ "aria-label": `single-${character.key}` }}
                   onChange={(event) => {
                     const chosen = allowed.find((entry) => trackId(entry[0], entry[1]) === event.target.value);

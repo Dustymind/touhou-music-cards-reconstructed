@@ -52,6 +52,26 @@ test("仅单曲模式下拉只列预设启用的曲目", async ({ page }) => {
   await expandSection(page, "single");
   await page.getByTestId("tri-角色曲-off").click();
   await page.getByLabel("single-mode").check();
+
+  // 选曲栏的文本必须垂直居中：上下内边距相等、文字中心与控件中心重合（用户反馈）
+  const centering = await page.getByTestId("single-select-chirizuka-ubame").evaluate((form) => {
+    const select = form.querySelector(".MuiSelect-select") as HTMLElement;
+    const style = getComputedStyle(select);
+    const rect = select.getBoundingClientRect();
+    const range = document.createRange();
+    range.selectNodeContents(select);
+    const text = range.getBoundingClientRect();
+    return {
+      paddingTop: style.paddingTop,
+      paddingBottom: style.paddingBottom,
+      offset: Math.round((text.top + text.height / 2) - (rect.top + rect.height / 2)),
+      height: Math.round(rect.height),
+    };
+  });
+  expect(centering.paddingTop).toBe(centering.paddingBottom);
+  expect(centering.offset).toBe(0);
+  expect(centering.height).toBe(40);
+
   const select = page.getByTestId("single-select-chirizuka-ubame").getByRole("combobox");
   await select.click();
   const options = page.getByRole("option");

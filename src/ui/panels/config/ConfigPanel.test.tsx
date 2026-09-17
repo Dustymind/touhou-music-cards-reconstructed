@@ -158,6 +158,11 @@ describe("ConfigPanel", () => {
     await toggle(input(container, "single-mode"));
     expect(useSingleTrack.getState().enabled).toBe(true);
 
+    // 选曲栏用 outlined（没有浮动标签就不该留上方标签位，否则文本不居中）
+    const form = container.querySelector('[data-testid="single-select-chirizuka-ubame"]')!;
+    expect(form.querySelector(".MuiOutlinedInput-root")).not.toBeNull();
+    expect(form.querySelector(".MuiFilledInput-root")).toBeNull();
+
     // 关掉「角色曲」后，下拉里不应再出现角色曲
     await click(container.querySelector('[data-testid="tri-角色曲-off"]')!);
     const combobox = container
