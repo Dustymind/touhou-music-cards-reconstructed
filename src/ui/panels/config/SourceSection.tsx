@@ -64,7 +64,11 @@ export function SourceSection({ bundle, tables }: { bundle: DataBundle; tables: 
         ))}
       </Stack>
       <Stack spacing={1} sx={{ mt: 1 }}>
-        {bundle.sources.map((source) => {
+        {/* 行按**回退顺序**排列：上移/下移移动的是"源"本身，编号只是它当前的位置 */}
+        {order
+          .map((sourceId) => bundle.sources.find((entry) => entry.id === sourceId))
+          .filter((source): source is (typeof bundle.sources)[number] => source !== undefined)
+          .map((source) => {
           const override = sourceOverrides[source.id];
           const enabled = override?.enabled ?? source.enabled;
           const table = tables[source.id];

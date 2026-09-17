@@ -493,12 +493,32 @@ test("音乐源回退顺序：显示用源名称，重排不打乱开关（用�
     await expect(display).not.toContainText(internalId);
   }
 
+  // 行的顺序 = 回退顺序；编号只是位置（上移移动的是"源"本身）
+  const rowNames = () => page.evaluate(() =>
+    [...document.querySelectorAll('[data-testid^="source-order-"]')].map((badge) => ({
+      number: (badge.textContent ?? "").trim(),
+      name: badge.closest(".MuiBox-root")?.querySelector(".MuiTypography-body2")?.textContent?.trim(),
+    })));
+  expect(await rowNames()).toEqual([
+    { number: "1", name: "网易云音乐" },
+    { number: "2", name: "Cloudflare R2" },
+    { number: "3", name: "THBWiki" },
+    { number: "4", name: "本地曲库" },
+  ]);
+
   // 「本地曲库」默认关闭：上移别的源不能把它打开
   const localSwitch = page.locator('[aria-label="local-enabled"]');
   await expect(localSwitch).not.toBeChecked();
   await page.getByLabel("thbwiki-up").click();
   await page.getByLabel("thbwiki-up").click();
   await expect(display).toContainText("1THBWiki");
+  // THBWiki 这一行真的挪到了第一位，编号仍是 1..4
+  expect(await rowNames()).toEqual([
+    { number: "1", name: "THBWiki" },
+    { number: "2", name: "网易云音乐" },
+    { number: "3", name: "Cloudflare R2" },
+    { number: "4", name: "本地曲库" },
+  ]);
   await expect(localSwitch).not.toBeChecked();
 
   // 第一个源不能再上移，最后一个源不能再下移
