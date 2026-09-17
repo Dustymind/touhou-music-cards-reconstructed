@@ -1465,6 +1465,39 @@ MD2 设计规范表、外部依赖、约定、已知限制、文档索引。READ
 
 ---
 
+## D54 建立远端并首次推送
+
+**需求**（用户）：主分支设为 `main`，远端设为 <https://github.com/Dustymind/touhou-music-cards-reconstructed>，
+用 git CLI 推上去，注意 `.gitignore`。
+
+**推送前审计**（关键：push 会带上**全部历史**，不只是工作树）：
+
+| 检查 | 结果 |
+|---|---|
+| 分支 | 本来就叫 `main`（无需改名） |
+| 工作树 | 干净（`git status --porcelain` 为空） |
+| 跟踪文件 | **284 个 / 1.9 MB**，无单文件 > 200 KB |
+| 历史最大 blob | `data/sources/cloudflare_r2.json` 149 KB（数据源表，必要） |
+| 本地 git 对象 | 10.56 MiB（1472 个对象，未打包） |
+| 被 `.gitignore` 挡住的大目录 | `.ref/` 358 MB、`.playwright-browsers/` 964 MB、`.music/` 82 MB、`node_modules/` 297 MB ✓ 远端 `git ls-tree -r` 里一个都没有 |
+| 凭据 | `gh auth status` → 账号 `Dustymind`（`repo` scope），credential helper = `gh auth git-credential` |
+
+**执行**：
+
+```bash
+git remote add origin https://github.com/Dustymind/touhou-music-cards-reconstructed.git
+git branch -M main
+git push -u origin main        # [new branch] main -> main，并设置上游跟踪
+```
+
+**结果**：远端 `main` = 本地 `HEAD` = `cfbc279`，远端默认分支已是 `main`，远端 284 个文件、
+顶层只有源码/数据/文档/配置（无 `.ref`、无浏览器、无音频）。仓库为 **private**。
+
+**顺带更新**：README 的约定从"不 push"改成"远端 = origin（main），push 前先确认工作树干净 +
+`data:check` 无漂移"。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |

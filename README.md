@@ -12,7 +12,7 @@
 | 选曲 | 逐角色下标 | 「专辑勾选 + 秘封碟 + 三个三态开关」派生（另有仅单曲模式） |
 | 界面 | 自绘 canvas 风 | Material Design 2（MUI 主题：类型比例 / 形状 / 组件规格） |
 
-**当前状态**：里程碑 **M0–M46 全部完成**，决策记录累计 **D1–D52**（含每轮需求变更的理由与验收数字）。
+**当前状态**：里程碑 **M0–M47 全部完成**，决策记录累计 **D1–D52**（含每轮需求变更的理由与验收数字）。
 数据指纹 `7ea10d138e82`：**121 角色 / 40 专辑 / 402 曲目条目 / 392 去重曲目 / 4 音源 / 6 卡面图集 / 1 曲包（音MAD 24 曲）**。
 
 - 方案与里程碑：[`docs/PLAN.md`](docs/PLAN.md)
@@ -282,7 +282,9 @@ reports/         验收与体检报告、核对表
 ## 约定
 
 - 提交信息：`<type>: <英文小写短句>`，`type ∈ feat|fix|data|docs|test|chore|refactor`；
-  一个逻辑改动一个提交；需折行时 ≤ 75 列；**不 push**。
+  一个逻辑改动一个提交；需折行时 ≤ 75 列。
+- 远端：`origin` = <https://github.com/Dustymind/touhou-music-cards-reconstructed>（分支 `main`），
+  `git push` 前先确认 `git status` 干净、`pnpm data:check` 无漂移。
 - 生成物（`public/data/**`）随源码提交，`pnpm data:build` 后 `git diff` 必须为空。
 - 每轮需求变更都记进 `docs/DECISIONS.md`（结论 + 理由 + 实测数字 + 回归锁），里程碑记进 `docs/PLAN.md`。
 - 界面文案 en / zh 全覆盖；数据诊断类信息（校验、迁移、断线原因）暂保留中文（见 D16）。
@@ -307,7 +309,7 @@ reports/         验收与体检报告、核对表
 
 | 文档 | 内容 |
 |---|---|
-| [`docs/PLAN.md`](docs/PLAN.md) | 需求 → 方案 → 里程碑（M0–M46）与每步验收条件 |
+| [`docs/PLAN.md`](docs/PLAN.md) | 需求 → 方案 → 里程碑（M0–M47）与每步验收条件 |
 | [`docs/DECISIONS.md`](docs/DECISIONS.md) | D1–D52：选型、被否方案、每轮变更的理由与实测 |
 | [`docs/rules-classification-v1.md`](docs/rules-classification-v1.md) | `附加信息` 四类判定规则（角色曲／道中曲／更多道中曲／秘封曲） |
 | [`reports/M9-acceptance.md`](reports/M9-acceptance.md) | 验收报告（含各功能实测数字） |
