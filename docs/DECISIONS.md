@@ -1194,6 +1194,39 @@ MD2 的 16dp。
 
 ---
 
+## D46 按原版实现"卡面图集"菜单
+
+**需求**（用户）：把原版的卡面图集菜单实现出来，遵循 MD2 风格，中文模式保留原版文案。
+
+**原版结构**（`ConfigTab.tsx` 的 `ConfigDrawer title={ConfigTabCardCollection}`）：每套图集一段，
+用 `Divider` 分隔；段内是两行 Grid ——
+
+1. 左 8 列：图集**内部 id**（`dairi-sd` / `dairi` / `enbu` / `enbu-dolls` / `thbwiki-sd` / `zun`），
+   右 4 列：一个按钮，当前图集为 `contained` + disabled + 文案「正在使用」，否则 `outlined` + 「使用」；
+2. 左 6 列：图集**说明**（`Consts.tsx` 里硬编码的英文，含 @dairi155 / 幻想人形演舞 / THBWiki 链接），
+   右 6 列：**三张示例卡**（真实卡面，按所选图集渲染）。
+
+原来这边只是一排 Chip，既没有说明也没有示例卡。现在按原版信息结构重写：
+
+- `src/ui/panels/config/CardSetSection.tsx`：每套一行（id + 使用/正在使用按钮 + 说明 + 三张示例卡），
+  `Divider` 分隔；示例卡复用现成的 `CharacterCard`（取前三名角色的第一张卡面，目录由图集决定）。
+- `src/ui/panels/config/cardSetDescriptions.tsx`：原版六段说明**逐字**保留（上游是硬编码、不随语言变的，
+  所以中文模式下同样是原版文案）；未知 id 回退到该图集的第一个 origin。
+- 中文文案沿用原版 `Localization.ts`：`ConfigTabCardCollection = 卡面图集`、
+  `ConfigTabSelect = 使用`、`ConfigTabSelected = 正在使用`（这几条在 D15 时就照抄上游了，本次核对一致）。
+- 外观走 MD2：`SectionCard`（卡片 + `CardHeader` h6）、`Divider`、按钮的 contained/outlined 语义、
+  主题里的 36dp 高度与大写。
+
+**实测**（真浏览器，zh / en 各一遍）：6 行、每行 3 张示例卡；当前图集按钮 `contained + disabled`、
+文案 `正在使用` / `Selected`，其它图集 `outlined`、文案 `使用` / `Select`；说明文案与原版一致；
+点「使用」后游戏页选卡菜单与牌桌同步换目录（`cards/…` → `cards-zun/…`）。
+
+**回归锁**：单测断言 6 行、每行 3 张图、当前项 disabled + contained + `Selected`、其它项可点；
+E2E 在"卡面图集设置对游戏页生效"里加了整套菜单结构断言（行数 / 示例卡数 / 说明 / 按钮态）。
+保留了 `data-testid="cardset-<id>"`（在按钮上）与新增 `cardset-row-<id>`。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |

@@ -53,6 +53,29 @@ describe("ConfigPanel", () => {
     usePreset.getState().sync(bundle.albums);
   });
 
+  it("卡面图集菜单：每套一行（名称 + 使用按钮 + 原版说明 + 三张示例卡）", async () => {
+    const { container } = await renderPanel();
+    const rows = [...container.querySelectorAll('[data-testid^="cardset-row-"]')];
+    expect(rows.length).toBe(6);
+
+    // 当前图集：按钮是 contained 且禁用，文案用原版的 Selected/正在使用
+    const current = container.querySelector('[data-testid="cardset-dairi-sd"]') as HTMLButtonElement;
+    expect(current.disabled).toBe(true);
+    expect(current.textContent).toContain("Selected");
+    expect(current.className).toContain("contained");
+
+    // 其它图集：可点（outlined）
+    const other = container.querySelector('[data-testid="cardset-zun"]') as HTMLButtonElement;
+    expect(other.disabled).toBe(false);
+    expect(other.textContent).toContain("Select");
+
+    // 原版说明文案 + 三张示例卡
+    expect(rows[0]!.textContent).toContain("Free super-deformed tachies from dairi Twitter");
+    for (const row of rows) {
+      expect(row.querySelectorAll("img").length).toBe(3);
+    }
+  });
+
   it("渲染统计、秘封组、三态开关与 CD / 官作分组", async () => {
     const { container } = await renderPanel();
     const text = container.textContent ?? "";
