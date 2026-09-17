@@ -208,7 +208,7 @@ describe("GamePanel", () => {
     await act(async () => { await vi.advanceTimersByTimeAsync(400); });
     const text = container.textContent ?? "";
     for (const label of ["开始游戏", "中止游戏", "随机补满", "补满电脑", "清空卡组", "打乱卡组",
-      "卡组 3×8", "减行", "加行", "减列", "加列", "单人", "电脑", "多人", "经典", "休闲",
+      "卡组 3×8", "行", "列", "单人", "电脑", "多人", "经典", "休闲",
       "对手 · 已得 0", "你 · 已得 0", "下一回合", "随机交出", "牌堆", "轮播",
       "正在播放：—", "第 0 回合 · 选牌中 · 罚牌 0", "缩小", "放大"]) {
       expect(text, `缺少中文文案：${label}`).toContain(label);

@@ -1,6 +1,6 @@
 /** 设置页：数据概览 + 卡面图集 + 音乐源 + 音乐选择预设 + 仅单曲模式。 */
 import {
-  Card, CardContent, Chip, Divider, Stack, Typography,
+  Card, CardContent, CardHeader, Chip, Divider, Stack, Typography,
 } from "@mui/material";
 
 import type { DataBundle } from "../../data/types";
@@ -22,10 +22,7 @@ export function ConfigPanel({ bundle, tables }: { bundle: DataBundle; tables: Ta
 
   return (
     <Stack spacing={2} sx={{ width: "100%", fontFamily: NoFontFamily }}>
-      <Card><CardContent>
-        <Typography variant="subtitle1" gutterBottom>
-          {t(Localization.ShellDataSummary)}
-        </Typography>
+      <Card><CardHeader title={t(Localization.ShellDataSummary)} titleTypographyProps={{ variant: "h6" }} /><CardContent>
         <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", gap: 1 }}>
           <Chip label={`${bundle.index.counts.characters} ${t(Localization.ShellCharacters)}`} />
           <Chip label={`${bundle.index.counts.albums} ${t(Localization.ShellAlbums)}`} />

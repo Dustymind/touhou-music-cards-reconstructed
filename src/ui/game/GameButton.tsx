@@ -31,6 +31,15 @@ export const gameLabelSx = {
   whiteSpace: "nowrap",
 } as const;
 
+/** MD2 单选行（图标 + 文本）的标签：与按钮同高、垂直居中，右侧留 8dp。 */
+export const gameRadioLabelSx = {
+  height: GAME_BUTTON_HEIGHT,
+  // MUI 的 FormControlLabel 默认 margin-left: -11px（把涟漪对齐到文字），会让单选组压到标题上
+  ml: 0,
+  mr: 1,
+  "& .MuiFormControlLabel-label": { fontSize: "0.875rem", letterSpacing: "1.25px" },
+} as const;
+
 /** 一组"标题 + 按钮"的横向容器：标题与按钮之间的间距固定。 */
 export const gameGroupSx = {
   display: "inline-flex",

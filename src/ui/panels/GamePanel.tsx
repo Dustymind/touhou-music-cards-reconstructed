@@ -1,7 +1,7 @@
 /** 对战页：模式/规则设置 + 双方牌库 + 收集数 + 计时器 + 回合操作。 */
 import {
-  Alert, Box, ButtonGroup, Card, CardContent, Chip, Divider, Stack, TextField, ToggleButton,
-  ToggleButtonGroup, Typography,
+  Alert, Box, Card, CardContent, CardHeader, Chip, Divider, FormControl, FormControlLabel, InputLabel,
+  MenuItem, Radio, RadioGroup, Select, Stack, TextField, Typography,
 } from "@mui/material";
 import { useEffect, useMemo, useRef, useState } from "react";
 import AddRounded from "@mui/icons-material/AddRounded";
@@ -36,8 +36,9 @@ import { fadeInSx, NoFontFamily } from "../../theme/theme";
 import { DECK_GAP, DeckGrid } from "../game/DeckGrid";
 import { UnusedCards } from "../game/UnusedCards";
 import { Reveal } from "../game/Reveal";
+import { DECK_LIMITS } from "../../game/gameSetting";
 import {
-  gameButtonsSx, gameGroupSx, gameLabelSx, gameRowSx, gameToggleIconSx, gameToggleSx,
+  gameButtonsSx, gameGroupSx, gameLabelSx, gameRadioLabelSx, gameRowSx, gameToggleIconSx,
   GameButton, GAME_BUTTON_HEIGHT, GAME_ICON_GAP,
 } from "../game/GameButton";
 import { LobbyPanel } from "../game/LobbyPanel";
@@ -336,58 +337,89 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
         <LobbyPanel />
       </Reveal>
       {/* 对局设置：模式 / 规则 / 开始中止（上游把"切模式"和"开始中止"也放在一起） */}
-      <Card data-testid="game-setup"><CardContent>
+      <Card data-testid="game-setup">
+        <CardHeader title={t(Localization.ShellAppTitle)} titleTypographyProps={{ variant: "h6" }} />
+        <CardContent>
         <Stack sx={gameRowSx}>
           <Stack sx={gameGroupSx}>
             <Typography sx={gameLabelSx}>
               {t(Localization.GameGroupMode)}
             </Typography>
-            <ToggleButtonGroup size="small" exclusive value={game.mode}
-              onChange={(_event, value) => value && act.setMode(value)}>
-              <ToggleButton sx={gameToggleSx} value="solo" data-testid="mode-solo">
-                <Stack direction="row" sx={{ alignItems: "center", gap: `${GAME_ICON_GAP}px` }}>
-                  <PersonRounded sx={gameToggleIconSx} />
-                  <Box component="span">{t(Localization.GameModeSolo)}</Box>
-                </Stack>
-              </ToggleButton>
-              <ToggleButton sx={gameToggleSx} value="cpu" data-testid="mode-cpu">
-                <Stack direction="row" sx={{ alignItems: "center", gap: `${GAME_ICON_GAP}px` }}>
-                  <SmartToyRounded sx={gameToggleIconSx} />
-                  <Box component="span">{t(Localization.GameModeCPU)}</Box>
-                </Stack>
-              </ToggleButton>
-              <ToggleButton sx={gameToggleSx} value="multi" data-testid="mode-multi">
-                <Stack direction="row" sx={{ alignItems: "center", gap: `${GAME_ICON_GAP}px` }}>
-                  <GroupsRounded sx={gameToggleIconSx} />
-                  <Box component="span">{t(Localization.GameModeMulti)}</Box>
-                </Stack>
-              </ToggleButton>
-            </ToggleButtonGroup>
+            {/* MD2 单选组：圆形单选 + 图标 + 文本 */}
+            <RadioGroup
+              row
+              value={game.mode}
+              onChange={(_event, value) => act.setMode(value as typeof game.mode)}
+              sx={{ gap: 0 }}
+            >
+              <FormControlLabel
+                value="solo"
+                control={<Radio data-testid="mode-solo" size="small" />}
+                label={
+                  <Stack direction="row" sx={{ alignItems: "center", gap: `${GAME_ICON_GAP}px` }}>
+                    <PersonRounded sx={gameToggleIconSx} />
+                    <Box component="span">{t(Localization.GameModeSolo)}</Box>
+                  </Stack>
+                }
+                sx={gameRadioLabelSx}
+              />
+              <FormControlLabel
+                value="cpu"
+                control={<Radio data-testid="mode-cpu" size="small" />}
+                label={
+                  <Stack direction="row" sx={{ alignItems: "center", gap: `${GAME_ICON_GAP}px` }}>
+                    <SmartToyRounded sx={gameToggleIconSx} />
+                    <Box component="span">{t(Localization.GameModeCPU)}</Box>
+                  </Stack>
+                }
+                sx={gameRadioLabelSx}
+              />
+              <FormControlLabel
+                value="multi"
+                control={<Radio data-testid="mode-multi" size="small" />}
+                label={
+                  <Stack direction="row" sx={{ alignItems: "center", gap: `${GAME_ICON_GAP}px` }}>
+                    <GroupsRounded sx={gameToggleIconSx} />
+                    <Box component="span">{t(Localization.GameModeMulti)}</Box>
+                  </Stack>
+                }
+                sx={gameRadioLabelSx}
+              />
+            </RadioGroup>
           </Stack>
 
           <Stack sx={gameGroupSx}>
             <Typography sx={gameLabelSx}>
               {t(Localization.GameGroupRule)}
             </Typography>
-            <ToggleButtonGroup
-              size="small"
-              exclusive
+            <RadioGroup
+              row
               value={game.traditional ? "traditional" : "leisure"}
-              onChange={(_event, value) => value && act.setTraditional(value === "traditional")}
+              onChange={(_event, value) => act.setTraditional(value === "traditional")}
             >
-              <ToggleButton sx={gameToggleSx} value="traditional" data-testid="rule-traditional">
-                <Stack direction="row" sx={{ alignItems: "center", gap: `${GAME_ICON_GAP}px` }}>
-                  <ClassRounded sx={gameToggleIconSx} />
-                  <Box component="span">{t(Localization.GameModeTraditional)}</Box>
-                </Stack>
-              </ToggleButton>
-              <ToggleButton sx={gameToggleSx} value="leisure" data-testid="rule-leisure">
-                <Stack direction="row" sx={{ alignItems: "center", gap: `${GAME_ICON_GAP}px` }}>
-                  <StarRounded sx={gameToggleIconSx} />
-                  <Box component="span">{t(Localization.GameModeLeisure)}</Box>
-                </Stack>
-              </ToggleButton>
-            </ToggleButtonGroup>
+              <FormControlLabel
+                value="traditional"
+                control={<Radio data-testid="rule-traditional" size="small" />}
+                label={
+                  <Stack direction="row" sx={{ alignItems: "center", gap: `${GAME_ICON_GAP}px` }}>
+                    <ClassRounded sx={gameToggleIconSx} />
+                    <Box component="span">{t(Localization.GameModeTraditional)}</Box>
+                  </Stack>
+                }
+                sx={gameRadioLabelSx}
+              />
+              <FormControlLabel
+                value="leisure"
+                control={<Radio data-testid="rule-leisure" size="small" />}
+                label={
+                  <Stack direction="row" sx={{ alignItems: "center", gap: `${GAME_ICON_GAP}px` }}>
+                    <StarRounded sx={gameToggleIconSx} />
+                    <Box component="span">{t(Localization.GameModeLeisure)}</Box>
+                  </Stack>
+                }
+                sx={gameRadioLabelSx}
+              />
+            </RadioGroup>
           </Stack>
 
           <Box sx={{ flex: 1 }} />
@@ -395,7 +427,7 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
           <GameButton
             size="small"
             variant="contained"
-            color="success"
+            color="primary"
             startIcon={<PlayArrowRounded />}
             onClick={act.start}
             disabled={game.state !== "selecting" || filledSlots(game.players[0]!.deck) === 0}
@@ -435,11 +467,12 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
       </CardContent></Card>
 
       {/* 卡组设置：尺寸 / 卡牌大小 / 双方卡组操作（按上游"按钮成组、每侧一组"的风格重排） */}
-      <Card data-testid="deck-setup"><CardContent>
+      <Card data-testid="deck-setup">
+        <CardHeader title={t(Localization.GameGroupDeck)} titleTypographyProps={{ variant: "h6" }} />
+        <CardContent>
         <Stack spacing={1}>
           <Stack sx={gameRowSx}>
             <Stack sx={gameGroupSx}>
-              <Typography sx={gameLabelSx}>{t(Localization.GameGroupDeck)}</Typography>
               <Chip
                 size="small"
                 data-testid="deck-size"
@@ -449,42 +482,45 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
                 })}
               />
             </Stack>
-            <Stack sx={gameGroupSx}>
-            <Typography sx={gameLabelSx}>
-              {t(Localization.GameRowsLabel)}
-            </Typography>
-            <ButtonGroup size="small" variant="outlined">
-              <GameButton data-testid="row-minus" startIcon={<RemoveRounded />}
-                onClick={() => act.resize(game.deckRows - 1, game.deckColumns)}>
-                {t(Localization.GameRowDecrease)}
-              </GameButton>
-              <GameButton data-testid="row-plus" startIcon={<AddRounded />}
-                onClick={() => act.resize(game.deckRows + 1, game.deckColumns)}>
-                {t(Localization.GameRowIncrease)}
-              </GameButton>
-            </ButtonGroup>
-            </Stack>
-            <Stack sx={gameGroupSx}>
-            <Typography sx={gameLabelSx}>
-              {t(Localization.GameColumnsLabel)}
-            </Typography>
-            <ButtonGroup size="small" variant="outlined">
-              <GameButton data-testid="col-minus" startIcon={<RemoveRounded />}
-                onClick={() => act.resize(game.deckRows, game.deckColumns - 1)}>
-                {t(Localization.GameColumnDecrease)}
-              </GameButton>
-              <GameButton data-testid="col-plus" startIcon={<AddRounded />}
-                onClick={() => act.resize(game.deckRows, game.deckColumns + 1)}>
-                {t(Localization.GameColumnIncrease)}
-              </GameButton>
-            </ButtonGroup>
-            </Stack>
+            {/* MD2 下拉选择：牌库行列（1–5 行 / 1–15 列，来自 DECK_LIMITS） */}
+            <FormControl size="small" sx={{ minWidth: 96 }}>
+              <InputLabel id="deck-rows-label">{t(Localization.GameRowsLabel)}</InputLabel>
+              <Select
+                labelId="deck-rows-label"
+                label={t(Localization.GameRowsLabel)}
+                value={game.deckRows}
+                data-testid="deck-rows"
+                onChange={(event) => act.resize(Number(event.target.value), game.deckColumns)}
+              >
+                {Array.from({ length: DECK_LIMITS.maxRows - DECK_LIMITS.minRows + 1 }, (_unused, index) =>
+                  DECK_LIMITS.minRows + index).map((rows) => (
+                  <MenuItem key={rows} value={rows} data-testid={`deck-rows-${rows}`}>{rows}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl size="small" sx={{ minWidth: 96 }}>
+              <InputLabel id="deck-columns-label">{t(Localization.GameColumnsLabel)}</InputLabel>
+              <Select
+                labelId="deck-columns-label"
+                label={t(Localization.GameColumnsLabel)}
+                value={game.deckColumns}
+                data-testid="deck-columns"
+                onChange={(event) => act.resize(game.deckRows, Number(event.target.value))}
+              >
+                {Array.from({ length: DECK_LIMITS.maxColumns - DECK_LIMITS.minColumns + 1 }, (_unused, index) =>
+                  DECK_LIMITS.minColumns + index).map((columns) => (
+                  <MenuItem key={columns} value={columns} data-testid={`deck-columns-${columns}`}>
+                    {columns}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
             <Box sx={{ flex: 1 }} />
             <Stack sx={gameGroupSx}>
             <Typography sx={gameLabelSx}>
               {t(Localization.GameCardSizeLabel)}
             </Typography>
-            <ButtonGroup size="small" variant="outlined">
+            <Stack sx={gameButtonsSx}>
               <GameButton
                 data-testid="card-smaller"
                 startIcon={<RemoveRounded />}
@@ -503,7 +539,7 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
               >
                 {t(Localization.GameCardLarger)}
               </GameButton>
-            </ButtonGroup>
+            </Stack>
             </Stack>
           </Stack>
 

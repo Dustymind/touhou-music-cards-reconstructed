@@ -972,6 +972,42 @@ hover `4`、active `8` 也与 MD2 一致）。所以这次不是"换框架"，�
 
 ---
 
+## D38 MD2 细节深化：基准紫、单选组、下拉框、CardHeader、媒体控制
+
+**用户裁定**（在 D37 之后）：色板用**深色 + MD2 基准紫**；继续深挖 MD2 细节。
+
+**1. 色板换成 MD2 基准配色**（`MD2_PALETTE`，浅/深两套都写进去）：
+
+| 角色 | MD2 浅色 | MD2 深色（当前） |
+|---|---|---|
+| primary | `#6200EE` | **`#BB86FC`** |
+| primary variant | `#3700B3` | `#3700B3` |
+| secondary | `#03DAC6` | **`#03DAC6`** |
+| background / surface | `#FFFFFF` | **`#121212`** |
+| error | `#B00020` | **`#CF6679`** |
+
+深色主题取 MD2 深色基准（浅色的 `#6200EE` 在深色底上对比度不足，MD2 自己的深色主题就是用 200 号紫）；
+文字/次要文字/分隔线按 MD2 的 onSurface 100% / 70% / 12%。主流程按钮用 primary、中止用 error、
+Alice 彩蛋按钮从 success 改成 secondary（青绿）；卡面"抢对/抢错"改成 MD2 语义的浅绿/浅红。
+同时删掉了为上游式页签准备的 `theme.custom`（mainTabBackground / listBackground1/2）与 `ListRowColors`。
+
+**2. 对局模式/规则 → MD2 单选组**：`ToggleButtonGroup` → `RadioGroup` + `FormControlLabel`（图标+文本保留）。
+踩到 MUI 的坑：`FormControlLabel` 默认 `margin-left: -11px`（把涟漪对齐到文字），会让单选组压到"模式/规则"
+标题上（实测间隙 **-3px**）→ 统一设 `ml: 0` ✓ 现在是 8dp。
+
+**3. 牌库行列 → MD2 下拉框**：`−/+` 按钮换成两个 filled `Select`（行 1–5 / 列 1–15，范围取 `DECK_LIMITS`）。
+
+**4. 设置页各区标题 → `CardHeader`**：数据 / 卡面图集 / 音乐源 / 音乐选择预设 / 仅单曲模式，
+标题统一 `h6`，动作（重置按钮、仅单曲开关）放 `action` 槽位。
+
+**5. 播放控制条 → MD2 媒体控制**：上一首/播放暂停/下一首都用 48dp 图标按钮（`MD2.iconButton`），
+音量改成 MD2 惯用的**图标按钮切换滑杆**（点音量图标才出现音量滑杆）。
+
+**实测**：page 背景 `#121212`、卡片圆角 4px、单选组间隙 8dp、两个 Select 同高、
+音量滑杆默认隐藏点击后出现；`theme.test.ts` 断言 MD2 浅/深基准色与规格常量（形状 4 / 栅格 8 / 按钮 32-36-44 / 页签 48）。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |

@@ -1,8 +1,13 @@
-/** 播放控制条：播放/暂停、上一下一首、进度、音量（对齐上游 PlayerControl）。 */
+/** 播放控制条（Material Design 2 媒体控制）：上一首 / 播放暂停 / 下一首 + 进度滑杆 +
+ *  音量图标按钮（点开才显示音量滑杆，MD2 的媒体控制惯例）。 */
 import { Box, IconButton, Slider, Stack, Typography } from "@mui/material";
-import { Pause, PlayArrow, SkipNext, SkipPrevious } from "@mui/icons-material";
+import { Pause, PlayArrow, SkipNext, SkipPrevious, VolumeOff, VolumeUp } from "@mui/icons-material";
+import { useState } from "react";
 
-import { MonoFontFamily } from "../../theme/theme";
+import { MD2, MonoFontFamily } from "../../theme/theme";
+
+/** MD2 图标按钮：48dp 触控区 + 24dp 图标。 */
+const ICON_BUTTON_SX = { width: MD2.iconButton.size, height: MD2.iconButton.size } as const;
 
 function formatTime(seconds: number): string {
   if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
@@ -26,14 +31,16 @@ export interface PlayerControlProps {
 
 export function PlayerControl(props: PlayerControlProps) {
   const { playing, currentTime, duration, volume, disabled } = props;
+  const [volumeOpen, setVolumeOpen] = useState(false);
+
   return (
     <Stack spacing={1} sx={{ width: "100%" }} data-testid="player-control">
       <Stack direction="row" spacing={1} alignItems="center">
-        <IconButton size="small" onClick={props.onPrevious} disabled={disabled} aria-label="previous">
+        <IconButton sx={ICON_BUTTON_SX} onClick={props.onPrevious} disabled={disabled} aria-label="previous">
           <SkipPrevious />
         </IconButton>
         <IconButton
-          size="small"
+          sx={ICON_BUTTON_SX}
           onClick={playing ? props.onPause : props.onPlay}
           disabled={disabled}
           aria-label={playing ? "pause" : "play"}
@@ -41,7 +48,7 @@ export function PlayerControl(props: PlayerControlProps) {
         >
           {playing ? <Pause /> : <PlayArrow />}
         </IconButton>
-        <IconButton size="small" onClick={props.onNext} disabled={disabled} aria-label="next">
+        <IconButton sx={ICON_BUTTON_SX} onClick={props.onNext} disabled={disabled} aria-label="next">
           <SkipNext />
         </IconButton>
         <Typography variant="caption" sx={{ fontFamily: MonoFontFamily, minWidth: "5.5em" }}>
@@ -59,17 +66,28 @@ export function PlayerControl(props: PlayerControlProps) {
             aria-label="seek"
           />
         </Box>
-        <Box sx={{ width: 120 }}>
-          <Slider
-            size="small"
-            min={0}
-            max={1}
-            step={0.1}
-            value={volume}
-            onChange={(_event, value) => props.onVolume(Array.isArray(value) ? value[0]! : value)}
-            aria-label="volume"
-          />
-        </Box>
+        {/* MD2：音量用图标按钮切换滑杆 */}
+        <IconButton
+          sx={ICON_BUTTON_SX}
+          onClick={() => setVolumeOpen((open) => !open)}
+          aria-label="volume-toggle"
+          data-testid="volume-toggle"
+        >
+          {volume === 0 ? <VolumeOff /> : <VolumeUp />}
+        </IconButton>
+        {volumeOpen && (
+          <Box sx={{ width: 120 }}>
+            <Slider
+              size="small"
+              min={0}
+              max={1}
+              step={0.1}
+              value={volume}
+              onChange={(_event, value) => props.onVolume(Array.isArray(value) ? value[0]! : value)}
+              aria-label="volume"
+            />
+          </Box>
+        )}
       </Stack>
     </Stack>
   );

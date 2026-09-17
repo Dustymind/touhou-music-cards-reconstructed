@@ -89,7 +89,7 @@ test("中文界面：游戏页（含联机大厅）全部是中文，不留英�
 
   // 电脑模式：含电脑卡组那组按键与对方棋盘
   await page.getByTestId("mode-cpu").click();
-  for (const label of ["单人", "电脑", "多人", "经典", "休闲", "卡组 3×8", "减行", "加行", "减列", "加列",
+  for (const label of ["单人", "电脑", "多人", "经典", "休闲", "卡组 3×8", "行", "列",
     "随机补满", "补满电脑", "清空卡组", "打乱卡组", "打乱电脑卡组", "清空电脑卡组", "开始游戏", "中止游戏",
     "正在播放：—", "第 0 回合 · 选牌中 · 罚牌 0", "缩小", "放大",
     "对手 · 已得 0", "你 · 已得 0", "下一回合", "随机交出", "牌堆", "轮播"]) {
@@ -516,10 +516,9 @@ test("游戏页按钮尺寸、内边距与图标间距统一", async ({ page }) 
 
   // 电脑卡组按键只在电脑模式、联机按钮只在多人模式：分两批量
   await page.getByTestId("mode-cpu").click();
-  const gameMetrics = await readMetrics(["mode-solo", "mode-cpu", "mode-multi", "rule-traditional",
-    "rule-leisure", "start-game", "stop-game", "row-minus", "row-plus", "col-minus", "col-plus",
-    "card-smaller", "card-larger", "random-fill", "shuffle-deck", "clear-deck",
-    "fill-cpu-deck", "shuffle-cpu-deck", "clear-cpu-deck", "next-turn", "give-cards", "filter-by-deck"]);
+  const gameMetrics = await readMetrics(["start-game", "stop-game", "card-smaller", "card-larger",
+    "random-fill", "shuffle-deck", "clear-deck", "fill-cpu-deck", "shuffle-cpu-deck", "clear-cpu-deck",
+    "next-turn", "give-cards", "filter-by-deck"]);
   await page.getByTestId("mode-multi").click();
   const lobbyMetrics = await readMetrics(["net-host", "net-join"]);
   const metrics = [...gameMetrics, ...lobbyMetrics];
@@ -534,8 +533,30 @@ test("游戏页按钮尺寸、内边距与图标间距统一", async ({ page }) 
   expect([...fonts]).toEqual(["14px"]);            // MD2 button 14sp
   // 模式/规则那排现在也有图标，图标间距同样并入断言
   expect([...gaps]).toEqual([8]);                  // MD2 8dp 栅格
-  expect(metrics.filter((entry) => entry.id.startsWith("mode-") || entry.id.startsWith("rule-"))
-    .every((entry) => entry.gap === 8)).toBe(true);
+  // 模式/规则现在是 MD2 单选组：图标与文字间距同样 8dp
+  const radioMetrics = await page.evaluate(() => {
+    const read = (id: string) => {
+      const label = document.querySelector(`[data-testid="${id}"]`)!.closest("label")!;
+      const svg = [...label.querySelectorAll("svg")].pop()!;   // 最后一个才是模式图标
+
+      const texts: Node[] = [];
+      const walker = document.createTreeWalker(label, NodeFilter.SHOW_TEXT);
+      let node: Node | null;
+      while ((node = walker.nextNode())) if (node.textContent?.trim()) texts.push(node);
+      const range = document.createRange();
+      range.selectNodeContents(texts[texts.length - 1]!);
+      return Math.round(range.getBoundingClientRect().left - svg.getBoundingClientRect().right);
+    };
+    return ["mode-solo", "mode-cpu", "mode-multi", "rule-traditional", "rule-leisure"].map(read);
+  });
+  expect([...new Set(radioMetrics)]).toEqual([8]);
+
+  // 牌库行列改成 MD2 下拉框（dense 高度 40）
+  const selectHeights = await page.evaluate(() =>
+    ["deck-rows", "deck-columns"].map((id) =>
+      Math.round(document.querySelector(`[data-testid="${id}"]`)!.getBoundingClientRect().height)));
+  expect(selectHeights).toHaveLength(2);
+  expect(selectHeights[0]).toBe(selectHeights[1]);
 });
 
 test("界面宽度自适应：MD2 响应式页边距（桌面 24 / 移动 16）", async ({ page }) => {
@@ -652,10 +673,9 @@ test("游戏页分组标题与按钮的间距、垂直对齐统一", async ({ pa
 
   const measured = await page.evaluate(() => {
     const findLabel = (text: string): Element | undefined =>
-      [...document.querySelectorAll("p, span")]
+      [...document.querySelectorAll("p, span, label")]
         .find((el) => el.children.length === 0 && el.textContent?.trim() === text);
     const pairs: [string, string][] = [["Mode", "mode-solo"], ["Rules", "rule-traditional"],
-      ["Deck", "deck-size"], ["Rows", "row-minus"], ["Columns", "col-minus"],
       ["Card size", "card-smaller"], ["You", "random-fill"], ["Opponent", "fill-cpu-deck"],
       ["Turn", "next-turn"]];
     const labelGaps: number[] = [];
@@ -670,7 +690,8 @@ test("游戏页分组标题与按钮的间距、垂直对齐统一", async ({ pa
       const b = button.getBoundingClientRect();
       labelGaps.push(Math.round(b.left - l.right));
       centerOffsets.push(Math.round((b.top + b.height / 2) - (l.top + l.height / 2)));
-      buttonHeights.push(Math.round(b.height));
+      // 只有按钮参与"高度统一"断言（模式/规则现在是单选组，高度由 Radio 决定）
+      if (button.tagName === "BUTTON") buttonHeights.push(Math.round(b.height));
     }
     const gapBetween = (a: string, b: string): number => {
       const x = document.querySelector(`[data-testid="${a}"]`)!.getBoundingClientRect();

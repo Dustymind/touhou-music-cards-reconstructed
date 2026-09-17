@@ -168,7 +168,7 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
           <Typography variant="overline" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
             {t(Localization.ShellDataHash)} {bundle.index.contentHash.slice(0, 12)} · {locale}
           </Typography>
-          <Button color="success" onClick={jumpToAlice} disabled={gameActive}>
+          <Button color="secondary" onClick={jumpToAlice} disabled={gameActive}>
             {aliceLabel(false)}
           </Button>
         </Toolbar>

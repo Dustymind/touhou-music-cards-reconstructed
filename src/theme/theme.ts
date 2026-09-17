@@ -14,42 +14,52 @@ export const NoFontFamily =
 /** 计时器/数字用等宽（Inconsolata 随仓库分发）。 */
 export const MonoFontFamily = '"TMC Inconsolata", ui-monospace, SFMono-Regular, Menlo, monospace';
 
-/** 上游色板原值（`Theme.ts` 的 `themeColors`）。 */
+/** Material Design 2 基准配色（参考 https://m2.material.io/design/color/the-color-system.html）。
+ *  深色主题用 MD2 深色基准：primary `#BB86FC`、secondary `#03DAC6`、surface/背景 `#121212`、error `#CF6679`
+ *  （浅色基准的 `#6200EE` / `#3700B3` 在深色下对比度不足，MD2 深色主题本身就用 200 号紫）。 */
+export const MD2_PALETTE = {
+  light: {
+    primary: "#6200EE",
+    primaryVariant: "#3700B3",
+    secondary: "#03DAC6",
+    secondaryVariant: "#018786",
+    background: "#FFFFFF",
+    surface: "#FFFFFF",
+    error: "#B00020",
+  },
+  dark: {
+    primary: "#BB86FC",
+    primaryVariant: "#3700B3",
+    secondary: "#03DAC6",
+    background: "#121212",
+    surface: "#121212",
+    error: "#CF6679",
+  },
+} as const;
+
+const ACTIVE = MD2_PALETTE.dark;
+
+/** 深色主题下的表面/文字/分隔线（MD2 规定 onSurface 100%、次要文字 70%、分隔线 12%）。 */
 export const Palette = {
-  primary: "#5090ffff",
-  secondary: "#9c83ffff",
-  surface: "#262626ff",
-  background: "#141414ff",
-  text: "#ffffffff",
-  muted: "#babcc1ff",
-  divider: "#7b7979ff",
-  success: "#ffff83ff",
-  info: "#00cb36ff",
+  primary: ACTIVE.primary,
+  secondary: ACTIVE.secondary,
+  background: ACTIVE.background,
+  surface: ACTIVE.surface,
+  error: ACTIVE.error,
+  text: "#FFFFFFFF",
+  muted: "rgba(255, 255, 255, 0.7)",
+  divider: "rgba(255, 255, 255, 0.12)",
 } as const;
 
-/** 上游 `theme.custom`（非 MUI 标准槽位：主容器与列表行底色）。 */
-export const CustomThemeColors = {
-  mainTabBackground: "#242222ff",
-  listBackground1: "#161616ff",
-  listBackground2: "#302E2E",
-  alice: "#ffff83ff",
-} as const;
-
-/** 卡片状态底色（上游 `CharacterCard.tsx` 的原值）。 */
+/** 卡片状态底色（上游 `CharacterCard.tsx` 的原值）。 *//** 卡片状态底色（上游 `CharacterCard.tsx` 的原值）。 */
 export const CardColors = {
   Normal: "#ffffff",
   Hover: "#b3f9ffff",
   Disabled: "#d3d3d3ff",
   DisabledHover: "#97ccd6ff",
   Selected: "#71d7ffff",
-  Correct: "#bef3beff",
-  Incorrect: "#ffcccbff",
-} as const;
-
-/** 列表行被临时停用 / 当前播放时的底色（上游 `ListTab.tsx`）。 */
-export const ListRowColors = {
-  disabled: "#737373ff",
-  current: "#c14848ff",
+  Correct: "#b7f5c9ff",     // 抢对：偏 MD2 成功绿
+  Incorrect: "#ffcdd2ff",   // 抢错：MD2 error 的浅色调
 } as const;
 
 /** 玩家名/聊天的颜色（上游 `CustomColors`）。 */
@@ -78,6 +88,8 @@ export const MD2 = {
   card: { padding: 16 },
   chip: { height: 32, radius: 16 },
   tab: { height: 48, padding: 16 },
+  /** MD2 图标按钮：48dp 触控区 + 24dp 图标。 */
+  iconButton: { size: 48, icon: 24 },
   listItem: { minHeight: 56 },
   field: { height: 56 },
   /** 响应式页边距（移动 16 / 桌面 24）。 */
@@ -106,28 +118,8 @@ export const MD2_TYPE_SCALE = {
 /** 卡面宽高比（上游 `Configs.ts` 的 `CardAspectRatio`）。 */
 export const CardAspectRatio = 703 / 1000;
 
-declare module "@mui/material/styles" {
-  interface Theme {
-    custom: {
-      mainTabBackground: string;
-      listBackground1: string;
-      listBackground2: string;
-      alice: string;
-    };
-  }
-  interface ThemeOptions {
-    custom?: {
-      mainTabBackground?: string;
-      listBackground1?: string;
-      listBackground2?: string;
-      alice?: string;
-    };
-  }
-}
-
 export function buildTheme(): Theme {
   return createTheme({
-    custom: { ...CustomThemeColors },
     // 上游是**深色**主题：页面底 #141414、纸面 #262626、正文白、次要文字 #babcc1
     palette: {
       mode: "dark",
@@ -136,8 +128,9 @@ export function buildTheme(): Theme {
       background: { default: Palette.background, paper: Palette.surface },
       text: { primary: Palette.text, secondary: Palette.muted },
       divider: Palette.divider,
-      success: { main: Palette.success },
-      info: { main: Palette.info },
+      error: { main: Palette.error },
+      success: { main: "#03DAC6" },   // MD2 深色下用 secondary 青绿表示"成功/次要动作"
+      info: { main: "#BB86FC" },
     },
     // MD2 形状与类型比例（字号/字重/行高/字距；按钮与 overline 大写）
     shape: { borderRadius: MD2.shape },
