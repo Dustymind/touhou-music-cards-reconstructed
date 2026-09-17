@@ -13,6 +13,50 @@ export const GAME_ICON_GAP = 6;
 /** 按钮高度（px）。 */
 export const GAME_BUTTON_HEIGHT = 30;
 
+/** 分组标题与它后面那组按钮之间的间距（px）——全页统一，别一会儿 4 一会儿 16。 */
+export const GAME_LABEL_GAP = 8;
+/** 同一组里按钮之间的间距（px）。 */
+export const GAME_BUTTON_GAP = 6;
+/** 组与组之间的间距（px）。 */
+export const GAME_GROUP_GAP = 24;
+
+/** 分组标题：与按钮同高、垂直居中，字号与按钮一致。 */
+export const gameLabelSx = {
+  height: GAME_BUTTON_HEIGHT,
+  display: "inline-flex",
+  alignItems: "center",
+  lineHeight: 1.2,
+  fontSize: "0.8125rem",
+  color: "text.secondary",
+  whiteSpace: "nowrap",
+} as const;
+
+/** 一组"标题 + 按钮"的横向容器：标题与按钮之间的间距固定。 */
+export const gameGroupSx = {
+  display: "inline-flex",
+  flexDirection: "row",
+  alignItems: "center",
+  gap: `${GAME_LABEL_GAP}px`,
+} as const;
+
+/** 一组里若干按钮的容器：同组按钮之间固定间距。 */
+export const gameButtonsSx = {
+  display: "inline-flex",
+  flexDirection: "row",
+  alignItems: "center",
+  gap: `${GAME_BUTTON_GAP}px`,
+} as const;
+
+/** 一行里若干组的容器：组间间距固定，窄屏换行。 */
+export const gameRowSx = {
+  display: "flex",
+  flexDirection: "row",
+  alignItems: "center",
+  flexWrap: "wrap",
+  columnGap: `${GAME_GROUP_GAP}px`,
+  rowGap: "8px",
+} as const;
+
 /** 图标框 + 间距：MUI 默认只给 `margin-right`，图标本身宽度不一，这里统一成固定方框。 */
 const iconSlot = {
   "& .MuiButton-startIcon": {

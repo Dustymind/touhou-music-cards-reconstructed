@@ -522,6 +522,58 @@ test("游戏页按钮尺寸、内边距与图标间距统一", async ({ page }) 
     .every((entry) => entry.gap === 6)).toBe(true);
 });
 
+test("游戏页分组标题与按钮的间距、垂直对齐统一", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Match" }).click();
+  await page.getByTestId("deck-setup").waitFor();
+
+  const measured = await page.evaluate(() => {
+    const findLabel = (text: string): Element | undefined =>
+      [...document.querySelectorAll("p, span")]
+        .find((el) => el.children.length === 0 && el.textContent?.trim() === text);
+    const pairs: [string, string][] = [["Mode", "mode-solo"], ["Rules", "rule-traditional"],
+      ["Deck", "deck-size"], ["Rows", "row-minus"], ["Columns", "col-minus"],
+      ["Card size", "card-smaller"], ["You", "random-fill"], ["Opponent", "fill-cpu-deck"],
+      ["Turn", "next-turn"]];
+    const labelGaps: number[] = [];
+    const centerOffsets: number[] = [];
+    const buttonHeights: number[] = [];
+    const buttonGaps: number[] = [];
+    for (const [text, id] of pairs) {
+      const label = findLabel(text);
+      const button = document.querySelector(`[data-testid="${id}"]`);
+      if (!label || !button) throw new Error(`缺少 ${text} / ${id}`);
+      const l = label.getBoundingClientRect();
+      const b = button.getBoundingClientRect();
+      labelGaps.push(Math.round(b.left - l.right));
+      centerOffsets.push(Math.round((b.top + b.height / 2) - (l.top + l.height / 2)));
+      buttonHeights.push(Math.round(b.height));
+    }
+    const gapBetween = (a: string, b: string): number => {
+      const x = document.querySelector(`[data-testid="${a}"]`)!.getBoundingClientRect();
+      const y = document.querySelector(`[data-testid="${b}"]`)!.getBoundingClientRect();
+      return Math.round(y.left - x.right);
+    };
+    for (const [a, b] of [["random-fill", "shuffle-deck"], ["shuffle-deck", "clear-deck"],
+      ["fill-cpu-deck", "shuffle-cpu-deck"], ["next-turn", "give-cards"], ["start-game", "stop-game"]]) {
+      buttonGaps.push(gapBetween(a, b));
+    }
+    return {
+      labelGaps: [...new Set(labelGaps)],
+      centerOffsets: [...new Set(centerOffsets)],
+      buttonHeights: [...new Set(buttonHeights)],
+      buttonGaps: [...new Set(buttonGaps)],
+      chipHeight: Math.round(document.querySelector('[data-testid="deck-size"]')!.getBoundingClientRect().height),
+    };
+  });
+
+  expect(measured.labelGaps).toEqual([8]);      // 标题与它后面那组按钮：统一 8px
+  expect(measured.centerOffsets).toEqual([0]);  // 标题与按钮垂直居中对齐
+  expect(measured.buttonHeights).toEqual([30]); // 高度统一
+  expect(measured.buttonGaps).toEqual([6]);     // 同组按钮之间：统一 6px
+  expect(measured.chipHeight).toBe(30);         // chip 与按钮同高
+});
+
 test("两个界面的选卡滑块样式与对齐方式一致（同一份实现，不许漂移）", async ({ page }) => {
   const readSlider = (testId: string, stripTestId: string) => page.evaluate(([id, stripId]) => {
     const root = document.querySelector(`[data-testid="${id}"]`)!;

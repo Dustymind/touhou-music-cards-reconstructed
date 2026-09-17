@@ -786,6 +786,48 @@ GAME_BUTTON_HEIGHT = 30  // 按钮高度
 
 ---
 
+## D33 分组标题与按钮的间距、垂直对齐统一
+
+**需求**（用户）："模式""规则"与按键太近；"随机补满"等 6 个按键与"你""对手"间距过大；
+所有按键与文字高度未对齐 —— 调到适中并统一。
+
+**改前实测**（标题右边缘 → 它后面第一个按钮左边缘）：
+
+| 位置 | 间距 | 问题 |
+|---|---|---|
+| 模式 / 规则 | **4px** | 太近 |
+| 你 / 对手 | 4px，但标题带 `minWidth: 3.5em/5em` | 标签框比文字宽得多，"你"后面看着有 ~34px 空隙 |
+| 行 / 列 / 卡牌大小 | **16px** | 与别处不一致 |
+| 回合 | 8px | —— |
+
+**做法**：在 `GameButton.tsx` 里定三个常量与三个布局样式，页面各处只引用它们：
+
+```ts
+GAME_LABEL_GAP  = 8    // 分组标题 → 它后面那组控件
+GAME_BUTTON_GAP = 6    // 同组按钮之间
+GAME_GROUP_GAP  = 24   // 组与组之间
+gameLabelSx   = { height: 30, display: inline-flex, alignItems: center, fontSize: 13px, color: text.secondary }
+gameGroupSx   = { display: inline-flex, flexDirection: row, alignItems: center, gap: 8px }
+gameButtonsSx = { display: inline-flex, flexDirection: row, alignItems: center, gap: 6px }
+gameRowSx     = { display: flex, flexDirection: row, alignItems: center, flexWrap: wrap, columnGap: 24, rowGap: 8 }
+```
+
+每个"标题 + 控件"都包成 `gameGroupSx`（所以标题与控件的间距恒为 8px），同组按钮再包一层
+`gameButtonsSx`（恒为 6px），标题本身与按钮**同高 30px + 垂直居中**；`卡组 3×8` / `牌堆` / `轮播`
+三个 chip 也设成 `height: 30`，不再比按钮矮一截；另外把"你/对手"标题上的 `minWidth` 去掉
+（那才是看着间距过大的元凶）。
+
+**改后实测**：九个标题的"标题→按钮"间距**全是 8px**、垂直中心差**全是 0**、按钮高度**全是 30**、
+同组按钮间距**全是 6px**、`deck-size` chip 高度 30。
+
+**一个坑**：`Stack` 默认 `flex-direction: column`，直接套 `gameRowSx`（只写 `display: flex`）会把标题和
+按钮竖着叠起来（实测垂直中心差 38px）—— 常量里显式写了 `flexDirection: "row"`。
+
+**回归锁**：E2E「游戏页分组标题与按钮的间距、垂直对齐统一」断言这四组数字各自**只有一个取值**
+（`[8]` / `[0]` / `[30]` / `[6]`）+ chip 高度 30。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |

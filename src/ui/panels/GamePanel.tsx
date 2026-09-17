@@ -34,7 +34,10 @@ import type { CardState } from "../components/CharacterCard";
 import { fadeInSx, NoFontFamily } from "../../theme/theme";
 import { DECK_GAP, DeckGrid } from "../game/DeckGrid";
 import { UnusedCards } from "../game/UnusedCards";
-import { gameToggleIconSx, gameToggleSx, GameButton } from "../game/GameButton";
+import {
+  gameButtonsSx, gameGroupSx, gameLabelSx, gameRowSx, gameToggleIconSx, gameToggleSx,
+  GameButton, GAME_BUTTON_HEIGHT,
+} from "../game/GameButton";
 import { LobbyPanel } from "../game/LobbyPanel";
 import { useNet } from "../../net/useNet";
 import { glitchEnabled } from "../../runtime";
@@ -323,9 +326,9 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
       <LobbyPanel />
       {/* 对局设置：模式 / 规则 / 开始中止（上游把"切模式"和"开始中止"也放在一起） */}
       <Paper variant="outlined" sx={{ p: 2 }} data-testid="game-setup">
-        <Stack direction="row" spacing={2} sx={{ flexWrap: "wrap", alignItems: "center", gap: 1 }}>
-          <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
-            <Typography variant="caption" color="text.secondary">
+        <Stack sx={gameRowSx}>
+          <Stack sx={gameGroupSx}>
+            <Typography sx={gameLabelSx}>
               {t(Localization.GameGroupMode)}
             </Typography>
             <ToggleButtonGroup size="small" exclusive value={game.mode}
@@ -345,8 +348,8 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
             </ToggleButtonGroup>
           </Stack>
 
-          <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
-            <Typography variant="caption" color="text.secondary">
+          <Stack sx={gameGroupSx}>
+            <Typography sx={gameLabelSx}>
               {t(Localization.GameGroupRule)}
             </Typography>
             <ToggleButtonGroup
@@ -371,6 +374,7 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
           </Stack>
 
           <Box sx={{ flex: 1 }} />
+          <Stack sx={gameButtonsSx}>
           <GameButton
             size="small"
             variant="contained"
@@ -392,6 +396,7 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
           >
             {t(Localization.GameStop)}
           </GameButton>
+          </Stack>
         </Stack>
 
         {game.mode === "cpu" && (
@@ -415,16 +420,20 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
       {/* 卡组设置：尺寸 / 卡牌大小 / 双方卡组操作（按上游"按钮成组、每侧一组"的风格重排） */}
       <Paper variant="outlined" sx={{ p: 2 }} data-testid="deck-setup">
         <Stack spacing={1}>
-          <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", alignItems: "center", gap: 1 }}>
-            <Typography variant="subtitle2">{t(Localization.GameGroupDeck)}</Typography>
-            <Chip
-              size="small"
-              data-testid="deck-size"
-              label={t(Localization.GameDeckSize, {
-                rows: String(game.deckRows), columns: String(game.deckColumns),
-              })}
-            />
-            <Typography variant="caption" color="text.secondary">
+          <Stack sx={gameRowSx}>
+            <Stack sx={gameGroupSx}>
+              <Typography sx={gameLabelSx}>{t(Localization.GameGroupDeck)}</Typography>
+              <Chip
+                size="small"
+                data-testid="deck-size"
+                sx={{ height: GAME_BUTTON_HEIGHT }}
+                label={t(Localization.GameDeckSize, {
+                  rows: String(game.deckRows), columns: String(game.deckColumns),
+                })}
+              />
+            </Stack>
+            <Stack sx={gameGroupSx}>
+            <Typography sx={gameLabelSx}>
               {t(Localization.GameRowsLabel)}
             </Typography>
             <ButtonGroup size="small" variant="outlined">
@@ -437,7 +446,9 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
                 {t(Localization.GameRowIncrease)}
               </GameButton>
             </ButtonGroup>
-            <Typography variant="caption" color="text.secondary">
+            </Stack>
+            <Stack sx={gameGroupSx}>
+            <Typography sx={gameLabelSx}>
               {t(Localization.GameColumnsLabel)}
             </Typography>
             <ButtonGroup size="small" variant="outlined">
@@ -450,8 +461,10 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
                 {t(Localization.GameColumnIncrease)}
               </GameButton>
             </ButtonGroup>
+            </Stack>
             <Box sx={{ flex: 1 }} />
-            <Typography variant="caption" color="text.secondary">
+            <Stack sx={gameGroupSx}>
+            <Typography sx={gameLabelSx}>
               {t(Localization.GameCardSizeLabel)}
             </Typography>
             <ButtonGroup size="small" variant="outlined">
@@ -474,13 +487,15 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
                 {t(Localization.GameCardLarger)}
               </GameButton>
             </ButtonGroup>
+            </Stack>
           </Stack>
 
-          <Stack direction="row" spacing={2} sx={{ flexWrap: "wrap", gap: 1 }}>
-            <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
-              <Typography variant="caption" color="text.secondary" sx={{ minWidth: "3.5em" }}>
+          <Stack sx={gameRowSx}>
+            <Stack sx={gameGroupSx}>
+              <Typography sx={gameLabelSx}>
                 {t(Localization.GameSideYou)}
               </Typography>
+              <Stack sx={gameButtonsSx}>
               <GameButton size="small" startIcon={<CasinoRounded />} disabled={!building}
                 onClick={() => act.fill(myIndex)} data-testid="random-fill">
                 {t(Localization.GameRandomFill)}
@@ -493,14 +508,16 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
                 onClick={() => act.clear(myIndex)} data-testid="clear-deck">
                 {t(Localization.GameClearDeck)}
               </GameButton>
+              </Stack>
             </Stack>
 
             {/* 电脑/对手的卡组：只有主机能改别人的牌库 */}
             {!isClient && (
-              <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
-                <Typography variant="caption" color="text.secondary" sx={{ minWidth: "5em" }}>
+              <Stack sx={gameGroupSx}>
+                <Typography sx={gameLabelSx}>
                   {t(Localization.GameSideOpponent)}
                 </Typography>
+                <Stack sx={gameButtonsSx}>
                 <GameButton size="small" startIcon={<CasinoRounded />} disabled={!building}
                   onClick={() => act.fill(oppIndex)} data-testid="fill-cpu-deck">
                   {t(Localization.GameFillCPU)}
@@ -513,6 +530,7 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
                   onClick={() => act.clear(oppIndex)} data-testid="clear-cpu-deck">
                   {t(Localization.GameClearCPUDeck)}
                 </GameButton>
+                </Stack>
               </Stack>
             )}
           </Stack>
@@ -627,10 +645,12 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
           onDropCard={building ? handleDropOnUnused : undefined}
         />
 
-        <Stack direction="row" spacing={1} sx={{ mt: 1.5, alignItems: "center", flexWrap: "wrap" }}>
-          <Typography variant="caption" color="text.secondary">
+        <Stack sx={{ ...gameRowSx, mt: 1.5 }}>
+          <Stack sx={gameGroupSx}>
+          <Typography sx={gameLabelSx}>
             {t(Localization.GameGroupTurn)}
           </Typography>
+          <Stack sx={gameButtonsSx}>
           <GameButton size="small" variant="contained" startIcon={<SkipNextRounded />} onClick={act.next}
             disabled={game.state !== "turnStart" && game.state !== "turnWinner"} data-testid="next-turn">
             {t(Localization.GameNextTurn)}
@@ -643,10 +663,12 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
             data-testid="filter-by-deck">
             {t(Localization.GameFilterByDeck)}
           </GameButton>
+          </Stack>
+          </Stack>
           <Box sx={{ flex: 1 }} />
-          <Chip size="small" variant="outlined"
+          <Chip size="small" variant="outlined" sx={{ height: GAME_BUTTON_HEIGHT }}
             label={t(Localization.GamePoolCount, { count: String(pool.length) })} />
-          <Chip size="small" variant="outlined"
+          <Chip size="small" variant="outlined" sx={{ height: GAME_BUTTON_HEIGHT }}
             label={t(Localization.GameRotationCount, { count: String(rotation) })} />
         </Stack>
       </Paper>
