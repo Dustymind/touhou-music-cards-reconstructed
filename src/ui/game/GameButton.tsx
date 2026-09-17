@@ -59,6 +59,9 @@ export const gameToggleSx = {
   ...iconSlot,
 } as const;
 
+/** ToggleButton 里的图标：与按钮同一套图标尺寸。 */
+export const gameToggleIconSx = { fontSize: GAME_ICON_SIZE } as const;
+
 export interface GameButtonProps extends ButtonProps {
   /** 覆盖统一样式时用（会合并在统一样式之后） */
   sx?: ButtonProps["sx"];

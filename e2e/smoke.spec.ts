@@ -516,7 +516,10 @@ test("游戏页按钮尺寸、内边距与图标间距统一", async ({ page }) 
   expect([...heights]).toEqual([30]);
   expect([...paddings]).toEqual(["10px|10px"]);
   expect([...fonts]).toEqual(["13px"]);
+  // 模式/规则那排现在也有图标，图标间距同样并入断言
   expect([...gaps]).toEqual([6]);
+  expect(metrics.filter((entry) => entry.id.startsWith("mode-") || entry.id.startsWith("rule-"))
+    .every((entry) => entry.gap === 6)).toBe(true);
 });
 
 test("两个界面的选卡滑块样式与对齐方式一致（同一份实现，不许漂移）", async ({ page }) => {

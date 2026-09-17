@@ -6,12 +6,16 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import AddRounded from "@mui/icons-material/AddRounded";
 import CardGiftcardRounded from "@mui/icons-material/CardGiftcardRounded";
+import ClassRounded from "@mui/icons-material/ClassRounded";
 import CasinoRounded from "@mui/icons-material/CasinoRounded";
 import ClearRounded from "@mui/icons-material/ClearRounded";
 import FilterAltRounded from "@mui/icons-material/FilterAltRounded";
+import PersonOffRounded from "@mui/icons-material/PersonOffRounded";
 import PlayArrowRounded from "@mui/icons-material/PlayArrowRounded";
 import RemoveRounded from "@mui/icons-material/RemoveRounded";
 import ShuffleRounded from "@mui/icons-material/ShuffleRounded";
+import SmartToyRounded from "@mui/icons-material/SmartToyRounded";
+import StarRounded from "@mui/icons-material/StarRounded";
 import SkipNextRounded from "@mui/icons-material/SkipNextRounded";
 import StopRounded from "@mui/icons-material/StopRounded";
 
@@ -30,7 +34,7 @@ import type { CardState } from "../components/CharacterCard";
 import { fadeInSx, NoFontFamily } from "../../theme/theme";
 import { DECK_GAP, DeckGrid } from "../game/DeckGrid";
 import { UnusedCards } from "../game/UnusedCards";
-import { gameToggleSx, GameButton } from "../game/GameButton";
+import { gameToggleIconSx, gameToggleSx, GameButton } from "../game/GameButton";
 import { LobbyPanel } from "../game/LobbyPanel";
 import { useNet } from "../../net/useNet";
 import { glitchEnabled } from "../../runtime";
@@ -326,8 +330,18 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
             </Typography>
             <ToggleButtonGroup size="small" exclusive value={game.mode}
               onChange={(_event, value) => value && act.setMode(value)}>
-              <ToggleButton sx={gameToggleSx} value="solo" data-testid="mode-solo">{t(Localization.GameModeSolo)}</ToggleButton>
-              <ToggleButton sx={gameToggleSx} value="cpu" data-testid="mode-cpu">{t(Localization.GameModeCPU)}</ToggleButton>
+              <ToggleButton sx={gameToggleSx} value="solo" data-testid="mode-solo">
+                <Stack direction="row" sx={{ alignItems: "center", gap: "6px" }}>
+                  <PersonOffRounded sx={gameToggleIconSx} />
+                  <Box component="span">{t(Localization.GameModeSolo)}</Box>
+                </Stack>
+              </ToggleButton>
+              <ToggleButton sx={gameToggleSx} value="cpu" data-testid="mode-cpu">
+                <Stack direction="row" sx={{ alignItems: "center", gap: "6px" }}>
+                  <SmartToyRounded sx={gameToggleIconSx} />
+                  <Box component="span">{t(Localization.GameModeCPU)}</Box>
+                </Stack>
+              </ToggleButton>
             </ToggleButtonGroup>
           </Stack>
 
@@ -342,10 +356,16 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
               onChange={(_event, value) => value && act.setTraditional(value === "traditional")}
             >
               <ToggleButton sx={gameToggleSx} value="traditional" data-testid="rule-traditional">
-                {t(Localization.GameModeTraditional)}
+                <Stack direction="row" sx={{ alignItems: "center", gap: "6px" }}>
+                  <ClassRounded sx={gameToggleIconSx} />
+                  <Box component="span">{t(Localization.GameModeTraditional)}</Box>
+                </Stack>
               </ToggleButton>
               <ToggleButton sx={gameToggleSx} value="leisure" data-testid="rule-leisure">
-                {t(Localization.GameModeLeisure)}
+                <Stack direction="row" sx={{ alignItems: "center", gap: "6px" }}>
+                  <StarRounded sx={gameToggleIconSx} />
+                  <Box component="span">{t(Localization.GameModeLeisure)}</Box>
+                </Stack>
               </ToggleButton>
             </ToggleButtonGroup>
           </Stack>
