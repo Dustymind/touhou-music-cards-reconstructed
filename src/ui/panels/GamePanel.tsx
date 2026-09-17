@@ -453,19 +453,36 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
         </Stack>
 
         {game.mode === "cpu" && (
-          <Stack direction="row" spacing={1} sx={{ mt: 1, alignItems: "center", flexWrap: "wrap" }}>
-            <Typography variant="caption">{t(Localization.GameOpponentSettingMean)}</Typography>
-            <TextField size="small" type="number" value={cpu.meanSeconds} sx={{ width: "6em" }}
+          /* 三个参数用带 label 的 filled 输入框：filled 变体会为浮动标签留出上方空间，
+             标签直接用 caption 写在旁边就会留出多余空位（用户反馈） */
+          <Stack direction="row" spacing={2} sx={{ mt: 1, alignItems: "center", flexWrap: "wrap" }}>
+            <TextField
+              size="small"
+              type="number"
+              label={t(Localization.GameOpponentSettingMean)}
+              value={cpu.meanSeconds}
+              sx={{ width: "10em" }}
               onChange={(event) => setCpu({ meanSeconds: Number(event.target.value) || 0 })}
-              slotProps={{ htmlInput: { "aria-label": "cpu-mean" } }} />
-            <Typography variant="caption">{t(Localization.GameOpponentSettingStdDev)}</Typography>
-            <TextField size="small" type="number" value={cpu.stdDevSeconds} sx={{ width: "6em" }}
+              slotProps={{ htmlInput: { "aria-label": "cpu-mean" } }}
+            />
+            <TextField
+              size="small"
+              type="number"
+              label={t(Localization.GameOpponentSettingStdDev)}
+              value={cpu.stdDevSeconds}
+              sx={{ width: "10em" }}
               onChange={(event) => setCpu({ stdDevSeconds: Number(event.target.value) || 0 })}
-              slotProps={{ htmlInput: { "aria-label": "cpu-sigma" } }} />
-            <Typography variant="caption">{t(Localization.GameOpponentSettingMistake)}</Typography>
-            <TextField size="small" type="number" value={cpu.mistakeRate} sx={{ width: "6em" }}
+              slotProps={{ htmlInput: { "aria-label": "cpu-sigma" } }}
+            />
+            <TextField
+              size="small"
+              type="number"
+              label={t(Localization.GameOpponentSettingMistake)}
+              value={cpu.mistakeRate}
+              sx={{ width: "10em" }}
               onChange={(event) => setCpu({ mistakeRate: Number(event.target.value) || 0 })}
-              slotProps={{ htmlInput: { "aria-label": "cpu-mistake" } }} />
+              slotProps={{ htmlInput: { "aria-label": "cpu-mistake" } }}
+            />
           </Stack>
         )}
       </CardContent></Card>

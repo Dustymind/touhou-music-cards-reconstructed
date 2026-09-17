@@ -607,6 +607,25 @@ test("MD2 细节：下拉标签入框、搜索框居中、边框可见（用户�
   });
   expect(game.filled).toBe(true);
   expect(game.labelInside).toBe(true);                     // "行/列"不再出框
+
+  // 电脑参数三个输入框：标签在框内（filled 的标签位不被空着）
+  const cpuFields = await page.evaluate(() =>
+    ["cpu-mean", "cpu-sigma", "cpu-mistake"].map((label) => {
+      const input = document.querySelector(`[aria-label="${label}"]`)!;
+      const form = input.closest(".MuiFormControl-root")!;
+      const root = input.closest(".MuiInputBase-root")!;
+      const formRect = form.getBoundingClientRect();
+      const labelRect = form.querySelector("label")!.getBoundingClientRect();
+      return {
+        labelInside: labelRect.top >= formRect.top - 1 && labelRect.bottom <= formRect.bottom + 1,
+        height: Math.round(root.getBoundingClientRect().height),
+        caption: form.querySelector("label")?.textContent ?? "",
+      };
+    }));
+  expect(cpuFields.every((field) => field.labelInside)).toBe(true);
+  expect([...new Set(cpuFields.map((field) => field.height))]).toEqual([48]);
+  // 标签就是原来写在框外的那三个 caption
+  expect(cpuFields.every((field) => field.caption.length > 0)).toBe(true);
   expect(game.frameBorder).toBe("rgba(255, 255, 255, 0.28)");
   expect(game.slotBorder).toBe("rgba(255, 255, 255, 0.28)");
 
