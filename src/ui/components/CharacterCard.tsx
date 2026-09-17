@@ -6,8 +6,8 @@ import type { CardSetRecord } from "../../data/types";
 import { CardAspectRatio, CardColors, NoFontFamily } from "../../theme/theme";
 import { glitchTilt, isCheat, randomColor } from "../../cheat";
 
-/** 卡面圆角：卡牌本体与选卡显示区边界共用（滚动时被裁掉的那半张也不显直角）。 */
-export const CARD_BORDER_RADIUS = "6px";
+/** 卡面圆角：卡牌本体与选卡显示区边界共用（MD2 形状规格 4dp）。 */
+export const CARD_BORDER_RADIUS = "4px";
 
 export type CardState = "normal" | "hover" | "disabled" | "disabledHover" | "selected" | "correct" | "incorrect" | "placeholder";
 

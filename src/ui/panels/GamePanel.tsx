@@ -1,6 +1,6 @@
 /** 对战页：模式/规则设置 + 双方牌库 + 收集数 + 计时器 + 回合操作。 */
 import {
-  Alert, Box, ButtonGroup, Chip, Divider, Paper, Stack, TextField, ToggleButton,
+  Alert, Box, ButtonGroup, Card, CardContent, Chip, Divider, Stack, TextField, ToggleButton,
   ToggleButtonGroup, Typography,
 } from "@mui/material";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -38,7 +38,7 @@ import { UnusedCards } from "../game/UnusedCards";
 import { Reveal } from "../game/Reveal";
 import {
   gameButtonsSx, gameGroupSx, gameLabelSx, gameRowSx, gameToggleIconSx, gameToggleSx,
-  GameButton, GAME_BUTTON_HEIGHT,
+  GameButton, GAME_BUTTON_HEIGHT, GAME_ICON_GAP,
 } from "../game/GameButton";
 import { LobbyPanel } from "../game/LobbyPanel";
 import { useNet } from "../../net/useNet";
@@ -336,7 +336,7 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
         <LobbyPanel />
       </Reveal>
       {/* 对局设置：模式 / 规则 / 开始中止（上游把"切模式"和"开始中止"也放在一起） */}
-      <Paper variant="outlined" sx={{ p: 2 }} data-testid="game-setup">
+      <Card data-testid="game-setup"><CardContent>
         <Stack sx={gameRowSx}>
           <Stack sx={gameGroupSx}>
             <Typography sx={gameLabelSx}>
@@ -345,19 +345,19 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
             <ToggleButtonGroup size="small" exclusive value={game.mode}
               onChange={(_event, value) => value && act.setMode(value)}>
               <ToggleButton sx={gameToggleSx} value="solo" data-testid="mode-solo">
-                <Stack direction="row" sx={{ alignItems: "center", gap: "6px" }}>
+                <Stack direction="row" sx={{ alignItems: "center", gap: `${GAME_ICON_GAP}px` }}>
                   <PersonRounded sx={gameToggleIconSx} />
                   <Box component="span">{t(Localization.GameModeSolo)}</Box>
                 </Stack>
               </ToggleButton>
               <ToggleButton sx={gameToggleSx} value="cpu" data-testid="mode-cpu">
-                <Stack direction="row" sx={{ alignItems: "center", gap: "6px" }}>
+                <Stack direction="row" sx={{ alignItems: "center", gap: `${GAME_ICON_GAP}px` }}>
                   <SmartToyRounded sx={gameToggleIconSx} />
                   <Box component="span">{t(Localization.GameModeCPU)}</Box>
                 </Stack>
               </ToggleButton>
               <ToggleButton sx={gameToggleSx} value="multi" data-testid="mode-multi">
-                <Stack direction="row" sx={{ alignItems: "center", gap: "6px" }}>
+                <Stack direction="row" sx={{ alignItems: "center", gap: `${GAME_ICON_GAP}px` }}>
                   <GroupsRounded sx={gameToggleIconSx} />
                   <Box component="span">{t(Localization.GameModeMulti)}</Box>
                 </Stack>
@@ -376,13 +376,13 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
               onChange={(_event, value) => value && act.setTraditional(value === "traditional")}
             >
               <ToggleButton sx={gameToggleSx} value="traditional" data-testid="rule-traditional">
-                <Stack direction="row" sx={{ alignItems: "center", gap: "6px" }}>
+                <Stack direction="row" sx={{ alignItems: "center", gap: `${GAME_ICON_GAP}px` }}>
                   <ClassRounded sx={gameToggleIconSx} />
                   <Box component="span">{t(Localization.GameModeTraditional)}</Box>
                 </Stack>
               </ToggleButton>
               <ToggleButton sx={gameToggleSx} value="leisure" data-testid="rule-leisure">
-                <Stack direction="row" sx={{ alignItems: "center", gap: "6px" }}>
+                <Stack direction="row" sx={{ alignItems: "center", gap: `${GAME_ICON_GAP}px` }}>
                   <StarRounded sx={gameToggleIconSx} />
                   <Box component="span">{t(Localization.GameModeLeisure)}</Box>
                 </Stack>
@@ -432,10 +432,10 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
               slotProps={{ htmlInput: { "aria-label": "cpu-mistake" } }} />
           </Stack>
         )}
-      </Paper>
+      </CardContent></Card>
 
       {/* 卡组设置：尺寸 / 卡牌大小 / 双方卡组操作（按上游"按钮成组、每侧一组"的风格重排） */}
-      <Paper variant="outlined" sx={{ p: 2 }} data-testid="deck-setup">
+      <Card data-testid="deck-setup"><CardContent>
         <Stack spacing={1}>
           <Stack sx={gameRowSx}>
             <Stack sx={gameGroupSx}>
@@ -552,9 +552,9 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
             )}
           </Stack>
         </Stack>
-      </Paper>
+      </CardContent></Card>
 
-      <Paper variant="outlined" sx={{ p: 2 }}>
+      <Card><CardContent>
         <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 1 }}>
           <TimerDisplay state={game.state} turnStartTimestamp={game.turnStartTimestamp} />
           <Stack spacing={0.25}>
@@ -696,7 +696,7 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
           <Chip size="small" variant="outlined" sx={{ height: GAME_BUTTON_HEIGHT }}
             label={t(Localization.GameRotationCount, { count: String(rotation) })} />
         </Stack>
-      </Paper>
+      </CardContent></Card>
     </Stack>
   );
 }

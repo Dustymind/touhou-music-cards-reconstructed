@@ -6,7 +6,7 @@
  * - 当前角色的多张卡面**叠放**（上游 `CharacterCardStacked`）；
  * - 切歌时整块卡面滑入（上游是整条 `translateX` 轮播，这里用同长的 0.3s 滑入动画，见 DECISIONS D21）。
  */
-import { Alert, Box, Button, Chip, Divider, Paper, Stack, Switch, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, Card, CardContent, Chip, Divider, Stack, Switch, TextField, Typography } from "@mui/material";
 import { keyframes } from "@emotion/react";
 import { UpcomingFan } from "../player/UpcomingFan";
 
@@ -52,7 +52,7 @@ export function PlayerPanel(props: PlayerPanelProps) {
 
   return (
     <Stack spacing={2} sx={{ width: "100%", fontFamily: NoFontFamily }}>
-      <Paper variant="outlined" sx={{ p: 2 }}>
+      <Card><CardContent>
         <Stack direction="row" spacing={2} alignItems="flex-start">
           <Box sx={{ flexShrink: 0 }}>
             {character
@@ -109,9 +109,9 @@ export function PlayerPanel(props: PlayerPanelProps) {
             />
           </Stack>
         </Stack>
-      </Paper>
+      </CardContent></Card>
 
-      <Paper variant="outlined" sx={{ p: 2 }}>
+      <Card><CardContent>
         <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
           <Typography variant="subtitle2">{t(Localization.PlayerTabUpcoming)}</Typography>
           <Box sx={{ flex: 1 }} />
@@ -127,9 +127,9 @@ export function PlayerPanel(props: PlayerPanelProps) {
           temporaryDisabled={temporaryDisabled}
           onToggle={props.onToggleTemporary}
         />
-      </Paper>
+      </CardContent></Card>
 
-      <Paper variant="outlined" sx={{ p: 2 }}>
+      <Card><CardContent>
         <Stack direction="row" spacing={2} sx={{ flexWrap: "wrap", alignItems: "center" }}>
           <Stack direction="row" spacing={0.5} alignItems="center">
             <Switch
@@ -166,7 +166,7 @@ export function PlayerPanel(props: PlayerPanelProps) {
             })}
           </Typography>
         </Stack>
-      </Paper>
+      </CardContent></Card>
     </Stack>
   );
 }

@@ -8,7 +8,7 @@ const PEER_QUERY = "?peerhost=127.0.0.1&peerport=9100&peerpath=/&peersecure=0";
 
 async function openGame(page: Page, url: string): Promise<void> {
   await page.goto(url);
-  await page.getByRole("button", { name: "Match", exact: true }).click();
+  await page.getByRole("tab", { name: "Match", exact: true }).click();
   // 联机栏只在"多人"模式下出现（用户要求）
   await page.getByTestId("mode-multi").click();
   await expect(page.getByTestId("lobby")).toBeVisible();

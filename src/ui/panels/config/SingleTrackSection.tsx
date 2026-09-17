@@ -1,6 +1,6 @@
 /** 仅单曲模式：总开关 + 逐角色选曲（只列预设启用的曲目）+ 禁用角色。 */
 import {
-  Box, Chip, FormControl, FormControlLabel, MenuItem, Paper, Select, Stack, Switch, TextField, Typography,
+  Box, Card, CardContent, Chip, FormControl, FormControlLabel, MenuItem, Select, Stack, Switch, TextField, Typography,
 } from "@mui/material";
 import { useMemo, useState } from "react";
 
@@ -26,7 +26,7 @@ export function SingleTrackSection({ bundle }: { bundle: DataBundle }) {
   );
 
   return (
-    <Paper variant="outlined" sx={{ p: 2 }} data-testid="single-section">
+    <Card data-testid="single-section"><CardContent>
       <Stack direction="row" alignItems="center" spacing={1}>
         <Typography variant="subtitle1">{t(Localization.ConfigTabMusicSelectionSingle)}</Typography>
         <Box sx={{ flex: 1 }} />
@@ -106,6 +106,6 @@ export function SingleTrackSection({ bundle }: { bundle: DataBundle }) {
           );
         })}
       </Stack>
-    </Paper>
+    </CardContent></Card>
   );
 }

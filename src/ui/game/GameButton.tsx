@@ -6,17 +6,17 @@
  */
 import Button, { type ButtonProps } from "@mui/material/Button";
 
-/** 图标框大小（px）：所有按钮的图标都放进同样大的方框里，视觉间距才一致。 */
+/** 图标框大小（px）：MD2 按钮图标 18dp。 */
 export const GAME_ICON_SIZE = 18;
-/** 图标与文字之间的间距（px）。 */
-export const GAME_ICON_GAP = 6;
-/** 按钮高度（px）。 */
-export const GAME_BUTTON_HEIGHT = 30;
+/** 图标与文字之间的间距（px）：MD2 是 8dp 栅格。 */
+export const GAME_ICON_GAP = 8;
+/** 按钮高度（px）：MD2 中号按钮 36dp。 */
+export const GAME_BUTTON_HEIGHT = 36;
 
 /** 分组标题与它后面那组按钮之间的间距（px）——全页统一，别一会儿 4 一会儿 16。 */
-export const GAME_LABEL_GAP = 8;
+export const GAME_LABEL_GAP = 8;   // MD2 8dp 栅格
 /** 同一组里按钮之间的间距（px）。 */
-export const GAME_BUTTON_GAP = 6;
+export const GAME_BUTTON_GAP = 8;  // MD2 8dp 栅格
 /** 组与组之间的间距（px）。 */
 export const GAME_GROUP_GAP = 24;
 
@@ -25,8 +25,8 @@ export const gameLabelSx = {
   height: GAME_BUTTON_HEIGHT,
   display: "inline-flex",
   alignItems: "center",
-  lineHeight: 1.2,
-  fontSize: "0.8125rem",
+  lineHeight: 1.75,
+  fontSize: "0.875rem",
   color: "text.secondary",
   whiteSpace: "nowrap",
 } as const;
@@ -85,10 +85,12 @@ const iconSlot = {
 export const gameButtonSx = {
   height: GAME_BUTTON_HEIGHT,
   minHeight: GAME_BUTTON_HEIGHT,
-  px: 1.25,
+  px: 2,                 // MD2：左右各 16dp
   py: 0,
-  fontSize: "0.8125rem",
-  lineHeight: 1.2,
+  fontSize: "0.875rem",  // MD2 button 14sp
+  letterSpacing: "1.25px",
+  textTransform: "uppercase",
+  lineHeight: 1.75,
   ...iconSlot,
 } as const;
 
@@ -96,10 +98,12 @@ export const gameButtonSx = {
 export const gameToggleSx = {
   height: GAME_BUTTON_HEIGHT,
   minHeight: GAME_BUTTON_HEIGHT,
-  px: 1.25,
+  px: 2,
   py: 0,
-  fontSize: "0.8125rem",
-  lineHeight: 1.2,
+  fontSize: "0.875rem",
+  letterSpacing: "1.25px",
+  textTransform: "uppercase",
+  lineHeight: 1.75,
   ...iconSlot,
 } as const;
 

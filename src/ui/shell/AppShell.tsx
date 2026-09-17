@@ -1,7 +1,9 @@
 /** 应用外壳：页签栏（含 Alice 彩蛋按钮）+ 当前页。 */
-import { Box, Button, Divider, Stack, Typography } from "@mui/material";
+import {
+  AppBar, Box, Button, Container, Stack, Tab, Tabs, Toolbar, Typography,
+} from "@mui/material";
 
-import { Fragment, useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 import { Localization, t } from "../../i18n/localization";
 import { stableHash } from "../../cheat";
@@ -21,18 +23,6 @@ import { PlayerPanel } from "../panels/PlayerPanel";
 import { ConfigPanel } from "../panels/ConfigPanel";
 import { GamePanel } from "../panels/GamePanel";
 import { ListPanel } from "../panels/ListPanel";
-
-/** 顶部菜单按钮：照上游 `page.tsx` 的 `tabButton` —— `padding: 0.5`（4px）、`minWidth: 4em`、
- *  选中与未选中用同一套内边距（否则切换标签时文字会横向跳）。 */
-const NAV_BUTTON_SX = {
-  height: 30,
-  minHeight: 30,
-  p: 0.5,
-  minWidth: "4em",
-  fontSize: "0.8125rem",
-  fontFamily: NoFontFamily,
-  textTransform: "none",
-} as const;
 
 const ALICE_LABELS = [
   "Alice is the best!",
@@ -149,44 +139,46 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
   };
 
   return (
-    <Box sx={{ display: "flex", justifyContent: "center", p: 2, fontFamily: NoFontFamily }}>
-      {/* 宽度自适应（照上游：整页 `width: 100%` + 左右各 16px 页边距，不设最大宽度） */}
-      <Stack spacing={2} sx={{ width: "100%", alignItems: "center" }}>
-        {/* 间距照上游：`Stack spacing={0.5}` + `flexItem` 分隔线（分隔线跟按钮同高） */}
-        <Stack direction="row" spacing={0.5} sx={{ alignItems: "center", flexWrap: "wrap", rowGap: 1 }}>
-          {TAB_ORDER.map((id, index) => (
-            <Fragment key={id}>
-              {index > 0 && <Divider orientation="vertical" flexItem />}
-              <Button
-                size="small"
-                variant={tab === id ? "contained" : "text"}
-                onClick={() => setTab(id)}
-                disabled={gameActive && id !== "game"}
-                sx={NAV_BUTTON_SX}
-              >
-                {names[id]}
-              </Button>
-            </Fragment>
-          ))}
-          <Divider orientation="vertical" flexItem />
-          <Button
-            size="small"
-            color="success"
-            variant="text"
-            onClick={jumpToAlice}
-            disabled={gameActive}
-            sx={NAV_BUTTON_SX}
+    <Box sx={{ minHeight: "100vh", backgroundColor: "background.default", fontFamily: NoFontFamily }}>
+      {/* MD2 顶部应用栏：标题 + 页签 + 彩蛋按钮 */}
+      <AppBar position="static">
+        <Toolbar sx={{ gap: 2, alignItems: "center" }}>
+          <Typography variant="h6" sx={{ whiteSpace: "nowrap" }}>
+            {t(Localization.ShellAppTitle)}
+          </Typography>
+          <Tabs
+            value={tab}
+            onChange={(_event, value: TabId) => setTab(value)}
+            textColor="inherit"
+            indicatorColor="primary"
+            variant="scrollable"
+            scrollButtons="auto"
+            sx={{ flex: 1, minHeight: 48 }}
           >
+            {TAB_ORDER.map((id) => (
+              <Tab
+                key={id}
+                value={id}
+                label={names[id]}
+                disabled={gameActive && id !== "game"}
+                data-testid={`tab-${id}`}
+              />
+            ))}
+          </Tabs>
+          <Typography variant="overline" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
+            {t(Localization.ShellDataHash)} {bundle.index.contentHash.slice(0, 12)} · {locale}
+          </Typography>
+          <Button color="success" onClick={jumpToAlice} disabled={gameActive}>
             {aliceLabel(false)}
           </Button>
-        </Stack>
+        </Toolbar>
+      </AppBar>
 
-        <Typography variant="caption" color="text.secondary">
-          {t(Localization.ShellDataHash)} {bundle.index.contentHash.slice(0, 12)} · {locale}
-        </Typography>
-
-        {tab === "player" && (
-          <PlayerPanel
+      {/* MD2 响应式页边距：移动 16dp / 桌面 24dp */}
+      <Container maxWidth={false} sx={{ px: { xs: 2, md: 3 }, py: 3 }}>
+        <Stack spacing={3} sx={{ width: "100%" }}>
+          {tab === "player" && (
+            <PlayerPanel
             bundle={bundle}
             player={player}
             tables={sources.tables}
@@ -200,10 +192,11 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
             onToggleTemporary={(key) => queue.toggleTemporary(key)}
           />
         )}
-        {tab === "list" && <ListPanel bundle={bundle} />}
-        {tab === "config" && <ConfigPanel bundle={bundle} tables={sources.tables} />}
-        {tab === "game" && <GamePanel bundle={bundle} />}
-      </Stack>
+          {tab === "list" && <ListPanel bundle={bundle} />}
+          {tab === "config" && <ConfigPanel bundle={bundle} tables={sources.tables} />}
+          {tab === "game" && <GamePanel bundle={bundle} />}
+        </Stack>
+      </Container>
     </Box>
   );
 }

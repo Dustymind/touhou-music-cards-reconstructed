@@ -1,5 +1,7 @@
 /** 音乐源：开关 + fallback 顺序（拖不动就用按钮）+ 状态。 */
-import { Box, Chip, FormControlLabel, IconButton, Paper, Stack, Switch, Typography } from "@mui/material";
+import {
+  Box, Card, CardContent, Chip, FormControlLabel, IconButton, Stack, Switch, Typography,
+} from "@mui/material";
 import { ArrowDownward, ArrowUpward } from "@mui/icons-material";
 
 import type { DataBundle } from "../../../data/types";
@@ -13,7 +15,7 @@ export function SourceSection({ bundle, tables }: { bundle: DataBundle; tables: 
   const order = effectiveOrder(sourceOverrides, ids);
 
   return (
-    <Paper variant="outlined" sx={{ p: 2 }}>
+    <Card><CardContent>
       <Typography variant="subtitle1" gutterBottom>
         {t(Localization.ConfigTabMusicSource)}
       </Typography>
@@ -68,6 +70,6 @@ export function SourceSection({ bundle, tables }: { bundle: DataBundle; tables: 
           );
         })}
       </Stack>
-    </Paper>
+    </CardContent></Card>
   );
 }

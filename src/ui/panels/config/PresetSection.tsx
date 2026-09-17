@@ -1,7 +1,6 @@
 /** 音乐选择预设：秘封曲多层勾选 + 三个三态开关 + 「先 CD 再官作」的专辑复选。 */
 import {
-  Box, Button, Checkbox, Chip, Divider, FormControlLabel, Paper, Stack, ToggleButton,
-  ToggleButtonGroup, Typography,
+  Box, Button, Card, CardContent, Checkbox, Chip, Divider, FormControlLabel, Stack, ToggleButton, ToggleButtonGroup, Typography,
 } from "@mui/material";
 
 import type { AlbumRecord, DataBundle } from "../../../data/types";
@@ -59,7 +58,7 @@ export function PresetSection({ bundle }: { bundle: DataBundle }) {
   };
 
   return (
-    <Paper variant="outlined" sx={{ p: 2 }} data-testid="preset-section">
+    <Card data-testid="preset-section"><CardContent>
       <Stack direction="row" alignItems="center" spacing={1}>
         <Typography variant="subtitle1">{t(Localization.ConfigTabMusicSelectionPresets)}</Typography>
         <Box sx={{ flex: 1 }} />
@@ -176,6 +175,6 @@ export function PresetSection({ bundle }: { bundle: DataBundle }) {
       <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
         {allAlbums.length} albums · {t(Localization.ShellDataHash)} {bundle.index.contentHash.slice(0, 8)}
       </Typography>
-    </Paper>
+    </CardContent></Card>
   );
 }

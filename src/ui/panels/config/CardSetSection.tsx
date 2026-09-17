@@ -1,5 +1,7 @@
 /** 卡面图集：6 套收藏，切换后落盘（修上游"刷新就回到默认"的问题）。 */
-import { Chip, Paper, Stack, Typography } from "@mui/material";
+import {
+  Card, CardContent, Chip, Stack, Typography,
+} from "@mui/material";
 
 import type { DataBundle } from "../../../data/types";
 import { Localization, t } from "../../../i18n/localization";
@@ -9,7 +11,7 @@ import { NoFontFamily } from "../../../theme/theme";
 export function CardSetSection({ bundle }: { bundle: DataBundle }) {
   const { cardCollection, setCardCollection, locale } = useSession();
   return (
-    <Paper variant="outlined" sx={{ p: 2 }}>
+    <Card><CardContent>
       <Typography variant="subtitle1" gutterBottom>
         {t(Localization.ConfigTabCardCollection)}
       </Typography>
@@ -28,6 +30,6 @@ export function CardSetSection({ bundle }: { bundle: DataBundle }) {
       <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1, fontFamily: NoFontFamily }}>
         {bundle.cardSets[0]?.origins[0]}
       </Typography>
-    </Paper>
+    </CardContent></Card>
   );
 }

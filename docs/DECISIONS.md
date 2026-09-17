@@ -932,6 +932,46 @@ E2E 新增"模式切换：棋盘与联机栏按模式显隐，并带动画"。
 
 ---
 
+## D37 Material Design 2 重写（风格 + 布局）
+
+**需求**（用户）：把**全部界面**的风格与布局重写成 Material Design 2，参考 <https://m2.material.io/>。
+
+**可行性结论**：MUI 本身就是 **MD2 的实现**（`node_modules/@mui/material/styles/createTypography.js` 里
+直接 `@see https://m2.material.io/design/typography/the-type-system.html`，类型比例、`shadows[0..24]` 的
+umbra/penumbra/ambient、深色主题的 elevation overlay 都是 MD2 规格；按钮 contained 默认 `shadows[2]`、
+hover `4`、active `8` 也与 MD2 一致）。所以这次不是"换框架"，而是**把项目里偏离 MD2 的地方改回去 +
+把布局换成 MD2 的骨架**。
+
+**改前与 MD2 的差距**（都是本项目历次"参考上游/按需调整"留下的）：按钮 30px 高、6px 图标间距、
+`textTransform: none`、圆角 6px（卡面）、导航是自定义按钮行 + 竖分隔线、面板是 `Paper variant="outlined"`、
+列表页是自绘的隔行底色行、输入框 `size="small"` outlined。
+
+**这次落地**：
+
+| 维度 | MD2 规格 | 落地 |
+|---|---|---|
+| 形状 | 4dp 圆角 | `shape.borderRadius = 4`；卡面圆角 6px → **4px** |
+| 类型比例 | h1…overline（含 button 14/500/1.25px 大写、overline 10/1.5px 大写） | `MD2_TYPE_SCALE` 显式写入（本项目的字体不是 Roboto，MUI 不会自动加字距） |
+| 按钮 | small 32 / medium 36 / large 44、minWidth 64、contained elevation 2→4→8 | 主题里按尺寸设高度；游戏页按钮统一 **36px 高 / 16px 内边距 / 8px 图标间距**、大写 |
+| 卡片 | 圆角 4、elevation 1、内边距 16 | 四个页面 + 五个设置分区全部 `Paper variant="outlined"` → **`Card` + `CardContent`** |
+| Chips | 高 32、圆角 16 | 主题统一（牌堆/轮播 chip 跟按钮同高 36 的例外见下） |
+| 页签 | 高 48、大写、2dp 指示条 | 外壳换成 **`AppBar` + `Toolbar`(64dp) + `Tabs`**（原来是一排自定义按钮 + 竖分隔线） |
+| 列表 | 单行 56dp、头像 + 主/次文本 + 尾部动作 | 列表页换成 **`List`/`ListItem`/`ListItemButton`/`ListItemAvatar`/`ListItemText`**（当前项 `selected`，不再用自绘隔行底色） |
+| 文本输入 | filled 变体 | 主题 `MuiTextField/MuiSelect` 默认 **filled** |
+| 布局栅格 | 响应式页边距 16/24 | `Container maxWidth={false}` + `px: { xs: 2, md: 3 }`、`py: 3`、区块间距 24 |
+
+**保留的两处**：① 深色色板仍是上游那套（D15 是用户明确要求的；MD2 深色主题本身成立）；
+② 选卡区那条"滑轨 + 滑块"是用户点名要的类滚动条控件，未改成 MD2 Slider。
+
+**实测**（真浏览器）：AppBar 64、Tab 48 + `text-transform: uppercase` + `letter-spacing: 1.25px` +
+指示条 2px、Card 圆角 4px + elevation 阴影、Chip 高 32/圆角 16、容器内边距桌面 24 / 移动 16；
+游戏页按钮 36/16/8。
+
+**测试改动**：导航从 button 改成 role=tab（约 20 处选择器）；游戏页按钮度量 30/10/6 → 36/16/8；
+顶部菜单用例重写成"MD2 应用栏 + Tabs"（高度/大写/字距/指示条）；宽度用例改成 MD2 响应式页边距（16/24）。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |

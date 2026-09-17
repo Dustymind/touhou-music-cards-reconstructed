@@ -5,7 +5,7 @@ import { expect, test } from "@playwright/test";
 
 test("加载数据并渲染页签与播放页", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("button", { name: "Player", exact: true })).toBeVisible();
+  await expect(page.getByRole("tab", { name: "Player", exact: true })).toBeVisible();
   await expect(page.getByTestId("current-card")).toBeVisible();
   // 数据指纹（来自 index.json 的 contentHash）
   await expect(page.getByText(/Data hash [0-9a-f]{12}/)).toBeVisible();
@@ -15,7 +15,7 @@ test("加载数据并渲染页签与播放页", async ({ page }) => {
 
 test("列表页列出全部角色并能搜索", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "List", exact: true }).click();
+  await page.getByRole("tab", { name: "List", exact: true }).click();
   await expect(page.getByText("121 / 121")).toBeVisible();
   await page.getByPlaceholder("Search Character").fill("cirno");
   await expect(page.getByText("1 / 121")).toBeVisible();
@@ -23,7 +23,7 @@ test("列表页列出全部角色并能搜索", async ({ page }) => {
 
 test("设置页：秘封父项是批量控制，三态开关改变统计", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Config", exact: true }).click();
+  await page.getByRole("tab", { name: "Config", exact: true }).click();
   const stats = page.getByTestId("preset-stats");
   // 首次进入必须是"全选 + 全库可用"，而不是 0 / 378
   await expect(stats).toContainText("378 / 378");
@@ -46,7 +46,7 @@ test("设置页：秘封父项是批量控制，三态开关改变统计", async
 
 test("仅单曲模式下拉只列预设启用的曲目", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Config", exact: true }).click();
+  await page.getByRole("tab", { name: "Config", exact: true }).click();
   await page.getByTestId("tri-角色曲-off").click();
   await page.getByLabel("single-mode-enabled").check();
   const select = page.getByTestId("single-select-chirizuka-ubame").getByRole("combobox");
@@ -61,7 +61,7 @@ test("仅单曲模式下拉只列预设启用的曲目", async ({ page }) => {
 test("对战页：随机补满 → 开局 → 倒计时后进入回合 → 下一回合推进", async ({ page }) => {
   await captureAudio(page);
   await page.goto("/");
-  await page.getByRole("button", { name: "Match", exact: true }).click();
+  await page.getByRole("tab", { name: "Match", exact: true }).click();
   await page.getByTestId("random-fill").click();
   await page.getByTestId("start-game").click();
   await expect(page.getByTestId("game-timer")).toBeVisible();
@@ -84,7 +84,7 @@ test("对战页：随机补满 → 开局 → 倒计时后进入回合 → 下�
 
 test("中文界面：游戏页（含联机大厅）全部是中文，不留英文标签", async ({ page }) => {
   await page.goto("/?locale=zh");
-  await page.getByRole("button", { name: "游戏", exact: true }).click();
+  await page.getByRole("tab", { name: "游戏", exact: true }).click();
   await page.getByTestId("game-setup").waitFor();
 
   // 电脑模式：含电脑卡组那组按键与对方棋盘
@@ -119,7 +119,7 @@ test("中文界面：游戏页（含联机大厅）全部是中文，不留英�
 
 test("自定义卡组：未使用卡可以点进牌库，也能点回来；电脑卡组能打乱/清空", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Match", exact: true }).click();
+  await page.getByRole("tab", { name: "Match", exact: true }).click();
   await page.getByTestId("mode-cpu").click();          // 对方棋盘/电脑卡组按键只在电脑模式
   const unused = page.locator('[data-testid^="unused-card-"]');
 
@@ -146,7 +146,7 @@ test("拖动放置卡牌：拖进指定槽位、拖回未使用区、牌位互�
   // 牌桌 + 未使用卡牌区一起要看得见，否则合成鼠标拖到屏幕外就没有 drop 事件
   await page.setViewportSize({ width: 1440, height: 1500 });
   await page.goto("/");
-  await page.getByRole("button", { name: "Match", exact: true }).click();
+  await page.getByRole("tab", { name: "Match", exact: true }).click();
   await page.getByTestId("mode-cpu").click();          // 对方棋盘只在电脑/多人模式出现
   const unused = page.locator('[data-testid^="unused-card-"]');
 
@@ -224,7 +224,7 @@ test("拖动放置卡牌：拖进指定槽位、拖回未使用区、牌位互�
 test("动效：牌桌卡牌滑位；播放页牌堆用滑块平移、hover 只变色、点击跳过", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1500 });
   await page.goto("/");
-  await page.getByRole("button", { name: "Match", exact: true }).click();
+  await page.getByRole("tab", { name: "Match", exact: true }).click();
   await page.getByTestId("random-fill").click();
 
   // 卡牌层是绝对定位 + left/top 过渡：换格子时会滑过去（对齐上游 `transition: left/top`）
@@ -258,7 +258,7 @@ test("动效：牌桌卡牌滑位；播放页牌堆用滑块平移、hover 只�
   expect(cellShadow).toBe("rgba(0, 0, 0, 0)");
 
   // 播放页：牌堆也是"卡条 + 下方滑块"，卡片等距不重叠、hover 只变底色
-  await page.getByRole("button", { name: "Player", exact: true }).click();
+  await page.getByRole("tab", { name: "Player", exact: true }).click();
   const fanStrip = page.getByTestId("upcoming-fan-strip");
   const fanSlider = page.getByTestId("upcoming-fan-slider");
   await expect(fanStrip).toBeVisible();
@@ -340,7 +340,7 @@ test("动效：牌桌卡牌滑位；播放页牌堆用滑块平移、hover 只�
 test("游戏卡槽：外框居中 + 滑块平移；拖动不碰卡片节点", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1500 });
   await page.goto("/");
-  await page.getByRole("button", { name: "Match", exact: true }).click();
+  await page.getByRole("tab", { name: "Match", exact: true }).click();
   const strip = page.getByTestId("unused-cards-strip");
   const slider = page.getByTestId("card-selection-slider");
   await expect(strip).toBeVisible();
@@ -456,7 +456,7 @@ test("游戏卡槽：外框居中 + 滑块平移；拖动不碰卡片节点", as
 
 test("卡片大小按钮按 0.01 步进并夹在 0.04~0.40", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Match", exact: true }).click();
+  await page.getByRole("tab", { name: "Match", exact: true }).click();
   const width = async (): Promise<number> => page.evaluate(() => {
     const card = document.querySelector('[data-testid="deck-you"] [data-testid^="deck-you-"]');
     return card ? Math.round(card.getBoundingClientRect().width) : 0;
@@ -482,7 +482,7 @@ test("卡片大小按钮按 0.01 步进并夹在 0.04~0.40", async ({ page }) =>
 
 test("游戏页按钮尺寸、内边距与图标间距统一", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Match", exact: true }).click();
+  await page.getByRole("tab", { name: "Match", exact: true }).click();
   await page.getByTestId("deck-setup").waitFor();
 
   const readMetrics = (ids: string[]) => page.evaluate((wanted) => {
@@ -529,18 +529,18 @@ test("游戏页按钮尺寸、内边距与图标间距统一", async ({ page }) 
   const paddings = new Set(metrics.map((entry) => entry.padding));
   const fonts = new Set(metrics.map((entry) => entry.fontSize));
   const gaps = new Set(metrics.map((entry) => entry.gap).filter((value): value is number => value !== null));
-  expect([...heights]).toEqual([30]);
-  expect([...paddings]).toEqual(["10px|10px"]);
-  expect([...fonts]).toEqual(["13px"]);
+  expect([...heights]).toEqual([36]);              // MD2 中号按钮 36dp
+  expect([...paddings]).toEqual(["16px|16px"]);    // MD2 左右各 16dp
+  expect([...fonts]).toEqual(["14px"]);            // MD2 button 14sp
   // 模式/规则那排现在也有图标，图标间距同样并入断言
-  expect([...gaps]).toEqual([6]);
+  expect([...gaps]).toEqual([8]);                  // MD2 8dp 栅格
   expect(metrics.filter((entry) => entry.id.startsWith("mode-") || entry.id.startsWith("rule-"))
-    .every((entry) => entry.gap === 6)).toBe(true);
+    .every((entry) => entry.gap === 8)).toBe(true);
 });
 
-test("界面宽度自适应：随视口变宽，页边距保持 16px", async ({ page }) => {
+test("界面宽度自适应：MD2 响应式页边距（桌面 24 / 移动 16）", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Match", exact: true }).click();
+  await page.getByRole("tab", { name: "Match", exact: true }).click();
   await page.getByTestId("mode-cpu").click();
   await page.getByTestId("random-fill").click();
 
@@ -562,12 +562,15 @@ test("界面宽度自适应：随视口变宽，页边距保持 16px", async ({ 
 
   const wide = await read(1920);
   const narrow = await read(1100);
+  const mobile = await read(640);
 
-  // 页边距固定 16px，宽度跟着视口变（没有被固定最大宽度卡住）
-  expect(wide.marginLeft).toBe(16);
-  expect(wide.marginRight).toBe(16);
-  expect(narrow.marginLeft).toBe(16);
-  expect(narrow.marginRight).toBe(16);
+  // MD2 响应式页边距：桌面（≥900）24px、移动端 16px；宽度跟着视口变（没有被最大宽度卡住）
+  expect(wide.marginLeft).toBe(24);
+  expect(wide.marginRight).toBe(24);
+  expect(narrow.marginLeft).toBe(24);
+  expect(narrow.marginRight).toBe(24);
+  expect(mobile.marginLeft).toBe(16);
+  expect(mobile.marginRight).toBe(16);
   expect(wide.panelWidth).toBeGreaterThan(narrow.panelWidth + 700);
   // 棋盘按容器宽度的百分比缩放（上游行为：卡片宽度 = 容器宽 × 8%）
   expect(wide.deckWidth).toBeGreaterThan(narrow.deckWidth * 1.5);
@@ -575,7 +578,7 @@ test("界面宽度自适应：随视口变宽，页边距保持 16px", async ({ 
 
 test("模式切换：棋盘与联机栏按模式显隐，并带动画", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Match", exact: true }).click();
+  await page.getByRole("tab", { name: "Match", exact: true }).click();
   await page.getByTestId("game-setup").waitFor();
 
   // 单人：没有对方棋盘、没有联机栏、没有电脑卡组按键
@@ -607,58 +610,43 @@ test("模式切换：棋盘与联机栏按模式显隐，并带动画", async ({
   expect(lobbyTransition).toContain("height");
 });
 
-test("顶部菜单按钮尺寸、间距与分隔线统一", async ({ page }) => {
+test("顶部是 MD2 应用栏 + Tabs：高度、大写、字距与指示条", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Player", exact: true }).waitFor();
+  await page.getByRole("tab", { name: "Player", exact: true }).waitFor();
 
-  const nav = await page.evaluate(() => {
-    const buttons = [...document.querySelectorAll("button")].filter((element) => {
-      const text = (element.textContent ?? "").trim();
-      return ["Player", "List", "Config", "Match"].includes(text) || text.startsWith("Alice");
-    }).map((element) => {
-      const style = getComputedStyle(element);
-      const rect = element.getBoundingClientRect();
-      return {
-        height: Math.round(rect.height),
-        padding: `${style.paddingLeft}|${style.paddingRight}`,
-        minWidth: style.minWidth,
-        centerY: Math.round(rect.top + rect.height / 2),
-        left: rect.left, right: rect.right,
-      };
-    });
-    const gaps: number[] = [];
-    for (let i = 1; i < buttons.length; i += 1) {
-      gaps.push(Math.round(buttons[i]!.left - buttons[i - 1]!.right));
-    }
-    const dividers = [...document.querySelectorAll(".MuiDivider-root")]
-      .filter((element) => {
-        const style = getComputedStyle(element);
-        return style.borderRightWidth !== "0px" && element.getBoundingClientRect().top < 60;
-      })
-      .map((element) => {
-        const rect = element.getBoundingClientRect();
-        return {
-          height: Math.round(rect.height),
-          centerY: Math.round(rect.top + rect.height / 2),
-        };
-      });
-    return { buttons, gaps: [...new Set(gaps)], dividers };
+  const bar = await page.evaluate(() => {
+    const appBar = document.querySelector("header.MuiAppBar-root")!;
+    const toolbar = appBar.querySelector(".MuiToolbar-root")!;
+    const tabs = [...appBar.querySelectorAll('[role="tab"]')];
+    const indicator = appBar.querySelector(".MuiTabs-indicator") as HTMLElement | null;
+    const style = getComputedStyle(tabs[0]!);
+    return {
+      appBarHeight: Math.round(appBar.getBoundingClientRect().height),
+      toolbarHeight: Math.round(toolbar.getBoundingClientRect().height),
+      tabs: tabs.map((tab) => ({
+        text: (tab.textContent ?? "").trim(),
+        height: Math.round(tab.getBoundingClientRect().height),
+      })),
+      textTransform: style.textTransform,
+      letterSpacing: style.letterSpacing,
+      fontSize: style.fontSize,
+      indicatorHeight: indicator ? Math.round(indicator.getBoundingClientRect().height) : 0,
+    };
   });
 
-  expect(nav.buttons).toHaveLength(5);
-  expect([...new Set(nav.buttons.map((entry) => entry.height))]).toEqual([30]);
-  // 内边距与最小宽度照上游 `tabButton`：`padding: 0.5`（4px）、`minWidth: 4em`
-  expect([...new Set(nav.buttons.map((entry) => entry.padding))]).toEqual(["4px|4px"]);
-  expect([...new Set(nav.buttons.map((entry) => entry.minWidth))]).toEqual(["52px"]);
-  expect([...new Set(nav.buttons.map((entry) => entry.centerY))]).toHaveLength(1);   // 同一水平线
-  expect(nav.gaps).toEqual([9]);                                                     // 4 + 分隔线 1 + 4
-  expect([...new Set(nav.dividers.map((entry) => entry.height))]).toEqual([30]);      // flexItem：与按钮同高
-  expect([...new Set(nav.dividers.map((entry) => entry.centerY))]).toEqual(nav.buttons.slice(0, 1).map((entry) => entry.centerY));
+  expect(bar.appBarHeight).toBe(64);                       // MD2 桌面工具栏 64dp
+  expect(bar.toolbarHeight).toBe(64);
+  expect([...new Set(bar.tabs.map((tab) => tab.height))]).toEqual([48]);   // MD2 页签 48dp
+  expect(bar.tabs.map((tab) => tab.text).slice(0, 4)).toEqual(["Player", "List", "Config", "Match"]);
+  expect(bar.textTransform).toBe("uppercase");             // MD2 按钮/页签大写
+  expect(bar.letterSpacing).toBe("1.25px");                // MD2 类型比例：14sp/500/1.25px
+  expect(bar.fontSize).toBe("14px");
+  expect(bar.indicatorHeight).toBe(2);                     // MD2 指示条 2dp
 });
 
 test("游戏页分组标题与按钮的间距、垂直对齐统一", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Match", exact: true }).click();
+  await page.getByRole("tab", { name: "Match", exact: true }).click();
   await page.getByTestId("deck-setup").waitFor();
   await page.getByTestId("mode-cpu").click();   // "对手"那组按键只在电脑模式
 
@@ -704,9 +692,9 @@ test("游戏页分组标题与按钮的间距、垂直对齐统一", async ({ pa
 
   expect(measured.labelGaps).toEqual([8]);      // 标题与它后面那组按钮：统一 8px
   expect(measured.centerOffsets).toEqual([0]);  // 标题与按钮垂直居中对齐
-  expect(measured.buttonHeights).toEqual([30]); // 高度统一
-  expect(measured.buttonGaps).toEqual([6]);     // 同组按钮之间：统一 6px
-  expect(measured.chipHeight).toBe(30);         // chip 与按钮同高
+  expect(measured.buttonHeights).toEqual([36]); // 高度统一（MD2 36dp）
+  expect(measured.buttonGaps).toEqual([8]);     // 同组按钮之间：MD2 8dp
+  expect(measured.chipHeight).toBe(36);         // chip 与按钮同高
 });
 
 test("两个界面的选卡滑块样式与对齐方式一致（同一份实现，不许漂移）", async ({ page }) => {
@@ -732,9 +720,9 @@ test("两个界面的选卡滑块样式与对齐方式一致（同一份实现�
   }, [testId, stripTestId]);
 
   await page.goto("/");
-  await page.getByRole("button", { name: "Match", exact: true }).click();
+  await page.getByRole("tab", { name: "Match", exact: true }).click();
   const game = await readSlider("card-selection-slider", "unused-cards-strip");
-  await page.getByRole("button", { name: "Player", exact: true }).click();
+  await page.getByRole("tab", { name: "Player", exact: true }).click();
   await expect(page.getByTestId("upcoming-fan-slider")).toBeVisible();
   const player = await readSlider("upcoming-fan-slider", "upcoming-fan-strip");
 
