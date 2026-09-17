@@ -15,9 +15,29 @@ pnpm build                                            # 1) 应用产物
 cd tools && uv run python -m tmc.local_source          # 2) 曲库助手（8011）
 pnpm e2e:peer                                          # 3) 信令（9100，可选）
 caddy run --config deploy/Caddyfile                    # 4) 一个端口对外（默认 :8080）
+
+# 没装 Caddy 时的等价代理（默认也是 0.0.0.0:8080；PORT/HOST 可改）
+node deploy/single-port-proxy.mjs
+PORT=9000 node deploy/single-port-proxy.mjs
+HOST=127.0.0.1 node deploy/single-port-proxy.mjs       # 只给本机用
+APP=static node deploy/single-port-proxy.mjs           # 直接服务 dist/，不依赖 dev server
 ```
 
 打开 `http://<主机>:8080/`，设置页 → 音乐源 → 音乐模式切到**音MAD** 即可。
+
+### 监听地址（踩过的坑）
+
+**只绑 `127.0.0.1` 的端口，从外部浏览器是访问不到的**——容器/沙箱里尤其明显：应用 dev（5173）、
+曲库助手（8011）默认都只绑回环，所以"把 8090 透出去"不成立。正确做法是**只把代理绑到 `0.0.0.0`**，
+应用与助手继续留在回环后面（少暴露两个端口）：
+
+```bash
+node deploy/single-port-proxy.mjs        # 默认 0.0.0.0:8080
+```
+
+然后用本机的可路由地址访问，例如 `http://10.21.218.160:8080/?locale=zh`（`hostname -I` 看本机地址）。
+**端口冲突或环境不让你用 8080** 时直接换：`PORT=9000 node deploy/single-port-proxy.mjs`。
+（Caddy 那边同理：`PORT=9000 caddy run --config deploy/Caddyfile`。）
 
 ## 为什么本地源默认是相对路径
 

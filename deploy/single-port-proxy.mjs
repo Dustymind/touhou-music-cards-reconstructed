@@ -1,7 +1,9 @@
 /** 单端口反向代理（Node 版，用于本机验证 `deploy/Caddyfile` 的分流规则）。
  *
- *   node deploy/single-port-proxy.mjs            # 默认 :8090
- *   PORT=9000 node deploy/single-port-proxy.mjs
+ *   node deploy/single-port-proxy.mjs                       # 默认 0.0.0.0:8080（与 Caddyfile 一致）
+ *   PORT=9000 node deploy/single-port-proxy.mjs             # 换端口
+ *   HOST=127.0.0.1 node deploy/single-port-proxy.mjs        # 只监听回环
+ *   APP=static PORT=8080 node deploy/single-port-proxy.mjs  # 直接服务 dist/（不依赖 dev server）
  *
  * 分流：/manifest.json + /media/* → 8011；/peerjs* → 9100；其余 → APP（默认 dev 5173；
  * `APP=static` 时改服务 `dist/` 静态产物）。
@@ -12,7 +14,9 @@ import http from "node:http";
 import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
 
-const PORT = Number(process.env.PORT ?? 8090);
+// 默认 0.0.0.0：容器/沙箱里只绑回环的话，从外部浏览器访问不到（实测踩过）
+const HOST = process.env.HOST ?? "0.0.0.0";
+const PORT = Number(process.env.PORT ?? 8080);
 // APP=static 时改为直接服务 dist/（等价于 Caddyfile 的 file_server）
 const APP = (process.env.APP ?? "http://127.0.0.1:5173").trim();
 const SERVE_STATIC = APP === "static" || APP === "";
@@ -61,6 +65,9 @@ http.createServer((req, res) => {
   if (pathname === "/peerjs" || pathname.startsWith("/peerjs/")) return proxy(req, res, PEER);
   if (SERVE_STATIC) return void serveStatic(req, res);
   return proxy(req, res, APP);
-}).listen(PORT, "127.0.0.1", () => {
-  console.log(`[single-port] http://127.0.0.1:${PORT}  (app=${SERVE_STATIC ? DIST : APP}, local=${LOCAL}, peer=${PEER})`);
+}).listen(PORT, HOST, () => {
+  const shown = HOST === "0.0.0.0" ? "0.0.0.0（本机所有网卡）" : HOST;
+  console.log(`[single-port] 监听 ${shown}:${PORT}  (app=${SERVE_STATIC ? DIST : APP}, local=${LOCAL}, peer=${PEER})`);
+  console.log(`              浏览器打开 http://<本机地址>:${PORT}/?locale=zh`);
+  console.log(`              只在本机用就开 http://127.0.0.1:${PORT}/?locale=zh`);
 });

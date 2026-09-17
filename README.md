@@ -161,8 +161,12 @@ pnpm e2e:peer                                   # 信令（9100，可选）
 caddy run --config deploy/Caddyfile             # 一个端口对外（默认 :8080）
 
 # 没装 Caddy 时等价的本机验证（Node 版代理，逻辑与 Caddyfile 一致）
-node deploy/single-port-proxy.mjs               # http://127.0.0.1:8090
+node deploy/single-port-proxy.mjs               # 0.0.0.0:8080；PORT=/HOST= 可改
 ```
+
+> **注意监听地址**：应用 dev（5173）与曲库助手（8011）默认只绑 `127.0.0.1`，从外部浏览器访问不到；
+> 单端口部署时**只把代理绑到 `0.0.0.0`**（默认如此），用 `http://<本机地址>:8080/?locale=zh` 打开。
+> 端口冲突就 `PORT=9000 node deploy/single-port-proxy.mjs`。
 
 细节与"本机分开跑（5173 + 8011）怎么办"见 [`deploy/README.md`](deploy/README.md)：
 数据里 `local` 源的 `table_url` 默认是**相对路径** `/manifest.json`（同源 ✓ 不需要 CORS ✓）；
