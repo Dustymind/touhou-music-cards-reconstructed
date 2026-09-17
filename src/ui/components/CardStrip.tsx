@@ -16,6 +16,7 @@ import { memo, useCallback, useEffect, useRef, useState } from "react";
 import type { CardSetRecord } from "../../data/types";
 import { DRAG_MIME } from "../../game/drag";
 import { CardAspectRatio } from "../../theme/theme";
+import { MD2_BORDER } from "../../theme/theme";
 import { CARD_BORDER_RADIUS, CharacterCard, type CardState } from "./CharacterCard";
 
 export interface StripCard {
@@ -180,7 +181,7 @@ export function CardStrip(props: CardStripProps) {
         data-testid={`${testId}-frame`}
         sx={{
           border: "1px solid",
-          borderColor: "divider",
+          borderColor: MD2_BORDER,
           borderRadius: 1,
           // 上下留 4px；左右留 12px：MUI 滑块拇指半径 10px，否则推到两端会顶出边框
           py: 0.5,

@@ -1,8 +1,9 @@
 /** 列表页：按 `order` 列出全部角色（MD2 `List` 规格：头像 + 主/次文本 + 尾部信息）。 */
 import {
-  Avatar, Card, CardContent, Chip, List, ListItem, ListItemAvatar, ListItemButton, ListItemText, Stack,
-  TextField, Typography,
+  Avatar, Card, CardContent, Chip, InputAdornment, List, ListItem, ListItemAvatar, ListItemButton,
+  ListItemText, Stack, TextField, Typography,
 } from "@mui/material";
+import SearchRounded from "@mui/icons-material/SearchRounded";
 import { useMemo, useState } from "react";
 
 import type { DataBundle } from "../../data/types";
@@ -39,8 +40,19 @@ export function ListPanel({ bundle }: { bundle: DataBundle }) {
           onChange={(event) => setQuery(event.target.value)}
           placeholder={t(Localization.ConfigTabSearchCharacter)}
           size="small"
+          // outlined：没有浮动标签占位，占位文字才会垂直居中（filled 会为标签留出上方空间）
+          variant="outlined"
           sx={{ flex: 1, maxWidth: 480 }}
-          slotProps={{ htmlInput: { "aria-label": "list-search" } }}
+          slotProps={{
+            htmlInput: { "aria-label": "list-search" },
+            input: {
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchRounded fontSize="small" />
+                </InputAdornment>
+              ),
+            },
+          }}
         />
         <Typography variant="caption" color="text.secondary">
           {rows.length} / {bundle.characters.length}

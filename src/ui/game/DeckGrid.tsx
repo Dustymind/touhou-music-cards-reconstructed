@@ -14,7 +14,7 @@ import { useEffect, useRef, useState } from "react";
 import type { CardSetRecord } from "../../data/types";
 import { DRAG_MIME } from "../../game/drag";
 import type { CardInfo, Slot } from "../../game/types";
-import { CardAspectRatio } from "../../theme/theme";
+import { CardAspectRatio, MD2_BORDER } from "../../theme/theme";
 import { CharacterCard, type CardState } from "../components/CharacterCard";
 import { CheatRect } from "./CheatRect";
 
@@ -139,7 +139,7 @@ export function DeckGrid(props: DeckGridProps) {
               onDrop={dropOn(slot)}
               sx={{
                 border: occupied ? "none" : "1px dashed",
-                borderColor: "divider",
+                borderColor: MD2_BORDER,
                 borderRadius: "4px",
                 // 拖拽时的落点提示（只在真的拖着东西时出现，不是 hover 动效）
                 outline: dropSlot === slot ? "2px dashed" : "none",

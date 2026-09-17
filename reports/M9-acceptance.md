@@ -213,6 +213,12 @@ MUI 自身即 MD2 实现（其源码直接引用 m2.material.io），所以这�
 浅色基准 `#6200EE`/`#3700B3` 也已写入常量）；对局模式/规则改用 MD2 单选组，牌库行列改用 filled Select，
 设置页分区标题统一 `CardHeader`，播放控制条改成 48dp 图标按钮 + 图标切换音量滑杆。
 
+## 4.21 MD2 细节修正（D39，用户反馈后）
+
+① 卡组下拉的"行/列"标签出框（`variant` 该给 `FormControl` 而不是 `Select`）→ 标签回到框内；
+② 列表页搜索框占位文字偏下（filled 却没有 `label`，仍为标签留了空间）→ 改 outlined + 搜索图标；
+③ 选卡区外框与卡槽虚线框过浅（`divider` 12%）→ 统一 `MD2_BORDER`（28% 白）。
+
 ## 5. 已知限制
 
 - **跨机器（不同物理机）联机未实测**：本机已用 chromium↔firefox + 本地 PeerJS 信令 + 真 WebRTC 打通；

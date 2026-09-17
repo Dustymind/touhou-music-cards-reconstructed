@@ -1008,6 +1008,24 @@ Alice 彩蛋按钮从 success 改成 secondary（青绿）；卡面"抢对/抢�
 
 ---
 
+## D39 MD2 细节修正：下拉标签、搜索框居中、边框加深
+
+**用户反馈**三个问题，逐个查到根因：
+
+1. **卡组"行""列"二字出框** —— `variant` 写在了 `Select` 上（主题默认 filled），而 `FormControl` 仍是默认的
+   `outlined`，于是 `InputLabel` 用描边样式（浮在框外）、输入框用 filled 样式 ✗。
+   修法：`variant="filled"` 挪到 **`FormControl`** 上（MUI 的变体要由 FormControl 统一下发）。
+   实测：标签 top 320 / 框 top 316 → 现在**在框内**。
+2. **列表页"搜索角色"未居中** —— 用了 filled 变体但**没有 `label`**，filled 输入框仍为浮动标签预留了上方空间，
+   占位文字因此整体偏下 ✗。修法：改成 `variant="outlined"`（无标签占位）+ 前置 `SearchRounded` 图标
+   （MD2 搜索框惯例）。实测：框高 40、上下内边距各 8.5px、占位文字垂直居中。
+3. **选卡区外框与卡槽虚线框过浅** —— 用的是 `divider`（MD2 深色下 12% 白），在 `#121212` 上几乎看不见 ✗。
+   修法：新增 `MD2_BORDER = rgba(255, 255, 255, 0.28)`，选卡区外框（`CardStrip` 的 frame）
+   与卡槽虚线框（`DeckGrid` 的空位）都改用它。实测两者 computed `border-color` 均为
+   `rgba(255, 255, 255, 0.28)`。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |

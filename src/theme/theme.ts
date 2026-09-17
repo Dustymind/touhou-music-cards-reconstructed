@@ -39,6 +39,10 @@ export const MD2_PALETTE = {
 
 const ACTIVE = MD2_PALETTE.dark;
 
+/** 深色表面上"看得见的边框"：MD2 的分隔线是 12% 白，在 #121212 上偏淡，
+ *  选卡区外框与卡槽虚线框用 28%（仍属低对比，但不至于看不见）。 */
+export const MD2_BORDER = "rgba(255, 255, 255, 0.28)";
+
 /** 深色主题下的表面/文字/分隔线（MD2 规定 onSurface 100%、次要文字 70%、分隔线 12%）。 */
 export const Palette = {
   primary: ACTIVE.primary,

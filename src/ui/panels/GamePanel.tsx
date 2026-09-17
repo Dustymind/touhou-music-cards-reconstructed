@@ -483,7 +483,7 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
               />
             </Stack>
             {/* MD2 下拉选择：牌库行列（1–5 行 / 1–15 列，来自 DECK_LIMITS） */}
-            <FormControl size="small" sx={{ minWidth: 96 }}>
+            <FormControl size="small" variant="filled" sx={{ minWidth: 96 }}>
               <InputLabel id="deck-rows-label">{t(Localization.GameRowsLabel)}</InputLabel>
               <Select
                 labelId="deck-rows-label"
@@ -498,7 +498,7 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
                 ))}
               </Select>
             </FormControl>
-            <FormControl size="small" sx={{ minWidth: 96 }}>
+            <FormControl size="small" variant="filled" sx={{ minWidth: 96 }}>
               <InputLabel id="deck-columns-label">{t(Localization.GameColumnsLabel)}</InputLabel>
               <Select
                 labelId="deck-columns-label"

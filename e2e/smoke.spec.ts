@@ -480,6 +480,53 @@ test("卡片大小按钮按 0.01 步进并夹在 0.04~0.40", async ({ page }) =>
   expect(stored).toContain("cardWidthPercentage");
 });
 
+test("MD2 细节：下拉标签入框、搜索框居中、边框可见（用户反馈后）", async ({ page }) => {
+  await page.goto("/");
+
+  // 列表页搜索框：outlined（没有浮动标签占位）→ 占位文字垂直居中
+  await page.getByRole("tab", { name: "List", exact: true }).click();
+  await page.locator('input[type="text"]').first().waitFor();
+  const search = await page.evaluate(() => {
+    const input = document.querySelector('input[type="text"]')!;
+    const root = input.closest(".MuiInputBase-root")!;
+    const style = getComputedStyle(input);
+    return {
+      outlined: root.className.includes("MuiOutlinedInput-root"),
+      paddingTop: Math.round(Number.parseFloat(style.paddingTop) * 10) / 10,
+      paddingBottom: Math.round(Number.parseFloat(style.paddingBottom) * 10) / 10,
+      height: Math.round(root.getBoundingClientRect().height),
+      icon: root.querySelector("svg") !== null,
+    };
+  });
+  expect(search.outlined).toBe(true);
+  expect(search.paddingTop).toBe(search.paddingBottom);   // 上下对称 = 居中
+  expect(search.height).toBe(40);                          // MD2 dense 输入框
+  expect(search.icon).toBe(true);                          // MD2 搜索框带前置图标
+
+  // 游戏页：下拉标签必须在框内；选卡区外框与卡槽虚线框要有可见边框
+  await page.getByRole("tab", { name: "Match", exact: true }).click();
+  await page.getByTestId("game-setup").waitFor();
+  await page.getByTestId("mode-cpu").click();
+  const game = await page.evaluate(() => {
+    const select = document.querySelector('[data-testid="deck-rows"]')!;
+    const form = select.closest(".MuiFormControl-root")!;
+    const label = form.querySelector(".MuiInputLabel-root")!.getBoundingClientRect();
+    const box = select.getBoundingClientRect();
+    const strip = document.querySelector('[data-testid="unused-cards-strip"]')!;
+    const slot = document.querySelector('[data-testid^="deck-you-empty-"]')!;
+    return {
+      filled: select.closest(".MuiFilledInput-root") !== null,
+      labelInside: label.top >= box.top - 1 && label.bottom <= box.bottom + 1,
+      frameBorder: getComputedStyle(strip.parentElement!).borderColor,
+      slotBorder: getComputedStyle(slot).borderColor,
+    };
+  });
+  expect(game.filled).toBe(true);
+  expect(game.labelInside).toBe(true);                     // "行/列"不再出框
+  expect(game.frameBorder).toBe("rgba(255, 255, 255, 0.28)");
+  expect(game.slotBorder).toBe("rgba(255, 255, 255, 0.28)");
+});
+
 test("游戏页按钮尺寸、内边距与图标间距统一", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("tab", { name: "Match", exact: true }).click();
