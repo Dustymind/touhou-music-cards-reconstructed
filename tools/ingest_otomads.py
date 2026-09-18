@@ -48,6 +48,27 @@ ROWS: list[tuple[str, str, str, str]] = [
     ("BV1et411u7FH", "【东方馅挂炒饭】Extend Ash　～ 蓬莱人", "鬼剑士草贝戋神", "kamishirasawa-keine"),
     ("BV14k4y1z7RH", "【東方永夜抄】飘上月球，不死之喵", "川先僧", "fujiwara-no-mokou"),
     ("BV1RK4y1r7wN", "【东方】飘上月球，不死乒乓", "打酱油的小火柴", "fujiwara-no-mokou"),
+
+    # ── 2026-09 第三批（13 条，反引号格式）──
+    ("BV1hs411e78v", "【东方馅挂炒饭】宇佐大人的白旗", "青空彼方", "inaba-tewi"),
+    ("BV1BT4y1Q7bL", "Masuo大人的白旗", "森林", "inaba-tewi"),
+    ("BV1tKVizwEpC", "【东方电气棍】大旋風神哈利路少女", "云生结海lou", "shameimaru-aya"),
+    ("BV1Ye411G7gR", "風神魔酢汚", "Rinsaku", "shameimaru-aya"),
+    ("BV1BLex6oExB", "【东方食雪汉】**少女", "フランソウ", "shameimaru-aya"),
+    ("BV1uM4m1U7hA", "【东方电气棍】今昔幻想乡", "比占庭", "kazami-yuuka"),
+    ("BV1wW4y1r7vB", "今昔gay想郷　～ Masuo Land", "みぇち", "kazami-yuuka"),
+    ("BV1u34y1z757", "电棍：源流懐♿", "DJGun", "onozuka-komachi"),
+    ("BV11SwheoENn", "【东方】厨♂房归航", "龙青瑶RyuuSeiyou", "onozuka-komachi"),
+    ("BV1h2421T7PF", "【东方馅挂炒饭】彼岸♂归航", "Deepmau5", "onozuka-komachi"),
+    ("BV18b411q7qZ", "【元首】彼岸归元~Magical Führer Tour 2019", "轩缘无痕", "onozuka-komachi"),
+    ("BV1fRcJzgE5Q", "【原曲不使用】第六十年的东方审判", "麦恩_exe", "shiki-eiki-yamazanadu"),
+    ("BV1ymjTzHEiG", "【东方电气棍】第六十年的职业选手 ～ Pro Player of Sixty Years", "云生结海lou", "shiki-eiki-yamazanadu"),
+
+    # ── 2026-09 第三批追加（1 条）──
+    ("BV1sX4y1H7Uf", "剧毒Masuo ～ Forsaken Masuo", "餃子と垂れ", "medicine-melancholy"),
+
+    # ── 2026-09 第三批追加（1 条）──
+    ("BV17E411J7e1", "【东方充电男】第六十年的疯子裁判", "鬼剑士草贝戋神", "shiki-eiki-yamazanadu"),
 ]
 
 def target(row: tuple[str, str, str, str]) -> pathlib.Path | None:

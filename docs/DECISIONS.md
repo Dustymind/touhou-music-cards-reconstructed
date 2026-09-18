@@ -2834,6 +2834,36 @@ python3 tools/ingest_otomads.py                 # ② yt-dlp 最高音质下载�
 
 ---
 
+## D99 第三批音MAD（13 条，反引号格式）+ 解析器补名字
+
+**需求**（用户）：接收 13 条新音MAD（新格式 `` `链接` `标题` `作者` `角色` ``，yt-dlp 最高音质）。
+
+**流程**（这次按 D98 新工具走，两步到底 ✓）：
+
+```bash
+python3 tools/parse_ingest_rows.py rows.txt   # 解析 13 条、异常 0 ✓
+python3 tools/ingest_otomads.py               # 下载 13/13 ✓（最高音质，文件名 = 作者 - 标题.mp3）
+# 追加 TOML → build / validate / 逐条解析
+```
+
+**解析器补了 5 个中文别名** ✓：因幡天为 → `inaba-tewi` ✓、射命丸文 → `shameimaru-aya` ✓、
+风见幽香 → `kazami-yuuka` ✓、小野塚小町 → `onozuka-komachi` ✓、
+四季映姬·夜摩仙那度 → `shiki-eiki-yamazanadu` ✓（注意是 `yamazanadu` 不是 `yamaxanadu` ✗ —— 我第一遍写错，
+靠核对 `characters.json` 才发现 ✓）。
+
+**结果**：
+
+```
+音MAD 60 → 75 条 ✓ | 覆盖角色 30 → 35 ✓ | manifest 75 ✓ | 本地源徽章 75 ✓
+应用内逐条解析 73/73 命中 ✓ | data:check 无漂移 ✓ | tmc.validate 通过 ✓
+pnpm test 209 passed ✓ | uv run pytest 33 passed ✓（数据快照同步更新为 453 / 443 / 75 ✓）
+```
+
+**标题里带特殊符号的**（`**少女` ✓、`♿` ✓、`♂` ✓、`：` ✓）全部原样落下 ✓ ——
+文件名里的 `/` 仍然是唯一会被替换成全角 `／` 的字符 ✓。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |

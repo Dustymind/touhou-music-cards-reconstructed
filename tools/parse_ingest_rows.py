@@ -33,6 +33,9 @@ ALIAS = {
     "因幡帝": "inaba-tewi", "铃仙·U·因幡": "reisen-udongein-inaba", "铃仙": "reisen-udongein-inaba",
     "八意永琳": "yagokoro-eirin", "蓬莱山辉夜": "houraisan-kaguya", "藤原妹红": "fujiwara-no-mokou",
     "八坂神奈子": "yasaka-kanako",
+    "梅蒂欣·梅兰可莉": "medicine-melancholy", "梅蒂欣": "medicine-melancholy",
+    "因幡天为": "inaba-tewi", "射命丸文": "shameimaru-aya", "风见幽香": "kazami-yuuka",
+    "小野塚小町": "onozuka-komachi", "四季映姬·夜摩仙那度": "shiki-eiki-yamazanadu",
 }
 
 
