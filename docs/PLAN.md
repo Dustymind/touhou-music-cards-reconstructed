@@ -660,6 +660,8 @@ interface Transport {
 - [x] **M7 对战核心**：纯规则 reducer（回合推进/判定/罚牌夹紧/牌库转移/经典·休闲终局）+ CPU 对手（反应分布与失误率）+ 本地计时循环 + 对战页棋盘。
 - [x] **M8 联机**：传输层抽象（进程内总线 / 同浏览器 BroadcastChannel / PeerJS）+ **主机权威 + 每次动作广播完整快照 + 自增 seq + 数据哈希与协议握手** + 大厅（分享码/参与者/聊天/断线重连 requestSync）。
 - [x] **M9 打磨**：彩蛋（答案提示框、`?g` 卡片倾斜、`?r2`/`?local` 图集源、`?cheatcode=`）、文案与文档补全 → 验收报告 [`reports/M9-acceptance.md`](../reports/M9-acceptance.md)。
+- [x] **M78 MD2 合规体检**（用户要求）：逐页量计算样式，24 项中 16 项逐字命中，无规范冲突；
+  补 dense 按钮最小宽度 48dp；两处待办（个别 chip 36dp、单选触控 38dp）。见 `docs/DECISIONS.md` §D84。
 - [x] **M77 健壮性体检 + 冗余清理**（用户要求）：删 1 个死函数、去掉 62 处多余 export；
   机械检查（未使用符号/调试残留/as any/空 catch/未保护 JSON.parse）全部为空。见 `docs/DECISIONS.md` §D83。
 - [x] **M76 两条滑杆等长对齐 + 两端时间码对齐音量键**（用户要求）：用"两侧占位相等"一个式子统一，

@@ -88,7 +88,8 @@ export const MD2 = {
   shape: 4,
   /** 8dp 栅格：组件间距都用它的倍数。 */
   grid: 8,
-  button: { small: 32, medium: 36, large: 44, minWidth: 64, iconSize: 18, iconGap: 8 },
+  // MD2 按钮：small(dense) 32 / 常规 36 / large 44；最小宽度常规 64、dense 48
+  button: { small: 32, medium: 36, large: 44, minWidth: 64, smallMinWidth: 48, iconSize: 18, iconGap: 8 },
   card: { padding: 16 },
   chip: { height: 32, radius: 16 },
   tab: { height: 48, padding: 16 },
@@ -154,7 +155,7 @@ export function buildTheme(): Theme {
         styleOverrides: {
           root: { minWidth: MD2.button.minWidth, borderRadius: MD2.shape },
           // MD2 按钮高度：small 32 / medium 36 / large 44
-          sizeSmall: { height: MD2.button.small, padding: "0 12px" },
+          sizeSmall: { height: MD2.button.small, minWidth: MD2.button.smallMinWidth, padding: "0 12px" },
           sizeMedium: { height: MD2.button.medium, padding: "0 16px" },
           sizeLarge: { height: MD2.button.large, padding: "0 22px" },
           // MD2：contained 默认 elevation 2（MUI 已按 2/4/8/0 处理，这里显式关掉"禁用阴影"以外的行为）
@@ -162,7 +163,7 @@ export function buildTheme(): Theme {
       },
       MuiToggleButton: {
         styleOverrides: {
-          sizeSmall: { height: MD2.button.small, padding: "0 12px" },
+          sizeSmall: { height: MD2.button.small, minWidth: MD2.button.smallMinWidth, padding: "0 12px" },
           sizeMedium: { height: MD2.button.medium, padding: "0 16px" },
         },
       },
