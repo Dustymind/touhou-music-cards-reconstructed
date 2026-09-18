@@ -79,6 +79,7 @@
 ```bash
 fnm use && pnpm install            # 前端依赖（store 在仓库内）
 pnpm dev                           # http://127.0.0.1:5173 （中文：?locale=zh）
+pnpm dev -- --host 0.0.0.0         # 手机/外部浏览器一起测：http://<本机地址>:5173/?locale=zh
 
 pnpm typecheck                     # tsc --noEmit
 pnpm test                          # vitest（199 个）
