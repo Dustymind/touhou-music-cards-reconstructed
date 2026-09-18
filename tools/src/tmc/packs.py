@@ -88,16 +88,23 @@ def load_packs() -> tuple[list[dict], list[dict], list[dict]]:
 
 
 def apply_tracks(chars: list[dict], tracks: list[dict]) -> list[dict]:
-    """把曲包曲目并进角色表（返回新的角色列表；曲目追加在原有条目之后）。"""
-    by_key = {char["key"]: char for char in chars}
+    """把曲包曲目并进角色表（返回新的角色列表；曲目追加在原有条目之后）。
+
+    角色 key 不存在时**直接报错**（曲包文件里写错一个 key，条目会被静默丢掉 ✗ ——
+    2026-09 那批音MAD 就因为 `reisen-udongein` 少写了 `-inaba` 一次性丢了 3 条 ✓）。
+    """
     merged = [dict(char, music=[list(entry) for entry in char["music"]]) for char in chars]
     by_key = {char["key"]: char for char in merged}
+    unknown: list[str] = []
     for track in tracks:
         char = by_key.get(track["character"])
         if char is None:
-            continue      # 校验阶段已经报错，这里只是不炸
+            unknown.append(f'{track["character"]}（{track["title"][:24]}）')
+            continue
         entry = [track["album"], track["title"], track["extra"]]
         if track.get("author"):
             entry.append(track["author"])   # 可选第 4 位：作者（有就显示作者，没有则看专辑的 showAlbumName）
         char["music"].append(entry)
+    if unknown:
+        raise SystemExit("曲包里出现了角色表里没有的 key：\n  " + "\n  ".join(unknown))
     return merged
