@@ -10,6 +10,8 @@ import type { CardSetRecord } from "../../data/types";
 import type { CardInfo } from "../../game/types";
 import { t, Localization } from "../../i18n/localization";
 import { CardStrip, type StripCard } from "../components/CardStrip";
+import { CharacterCard } from "../components/CharacterCard";
+import { DECK_GAP } from "./DeckGrid";
 
 export interface UnusedCardsProps {
   cards: readonly CardInfo[];
@@ -30,11 +32,22 @@ export interface UnusedCardsProps {
   testId?: string;
 }
 
-export function UnusedCards(props: UnusedCardsProps) {
+export interface UnusedCardsProps2 extends UnusedCardsProps {
+  /** `strip` = 单行 + 滑块（宽屏内联）；`grid` = 多行（窄屏面板，与牌桌卡槽同尺寸同列数） */
+  layout?: "strip" | "grid";
+  /** `grid` 布局的列数（与牌桌卡槽对齐） */
+  columns?: number;
+}
+
+export function UnusedCards(props: UnusedCardsProps2) {
   const {
     cards, cardSet, cardFiles, width, visibleWidth, onPick, interactive, onCardDragStart, onDropCard,
+    layout = "strip",
+    columns,
   } = props;
   const [over, setOver] = useState(false);
+  /** 网格布局下的 hover（只变底色，不做位移——与播放页、卡槽一致） */
+  const [hoveredKey, setHoveredKey] = useState<string | null>(null);
 
   const strip: StripCard[] = cards.map((card) => ({
     id: `${card.characterKey}-${card.cardIndex}`,
@@ -71,30 +84,67 @@ export function UnusedCards(props: UnusedCardsProps) {
           {t(Localization.GameDeckBuildHint)}
         </Typography>
       )}
-      <CardStrip
-        cards={strip}
-        cardSet={cardSet}
-        width={width}
-        visibleWidth={visibleWidth}
-        interactive={interactive}
-        sliderLabel={t(Localization.GameCardSelectionSlider)}
-        testId="unused-cards"
-        stripTestId="unused-cards-strip"
-        sliderTestId="card-selection-slider"
-        cardTestIdPrefix="unused-card"
-        draggable={interactive && Boolean(onCardDragStart)}
-        dropActive={over}
-        onCardClick={(card) => {
-          const found = cards.find((entry) =>
-            entry.characterKey === card.characterKey && entry.cardIndex === card.cardIndex);
-          if (found) onPick(found);
-        }}
-        onCardDragStart={(card) => {
-          const found = cards.find((entry) =>
-            entry.characterKey === card.characterKey && entry.cardIndex === card.cardIndex);
-          if (found) onCardDragStart?.(found);
-        }}
-      />
+      {layout === "strip" ? (
+        <CardStrip
+          cards={strip}
+          cardSet={cardSet}
+          width={width}
+          visibleWidth={visibleWidth}
+          interactive={interactive}
+          sliderLabel={t(Localization.GameCardSelectionSlider)}
+          testId="unused-cards"
+          stripTestId="unused-cards-strip"
+          sliderTestId="card-selection-slider"
+          cardTestIdPrefix="unused-card"
+          draggable={interactive && Boolean(onCardDragStart)}
+          dropActive={over}
+          onCardClick={(card) => {
+            const found = cards.find((entry) =>
+              entry.characterKey === card.characterKey && entry.cardIndex === card.cardIndex);
+            if (found) onPick(found);
+          }}
+          onCardDragStart={(card) => {
+            const found = cards.find((entry) =>
+              entry.characterKey === card.characterKey && entry.cardIndex === card.cardIndex);
+            if (found) onCardDragStart?.(found);
+          }}
+        />
+      ) : (
+        /* 多行网格：卡面尺寸、间距**与列数**都跟牌桌卡槽一致（同 width、同 DECK_GAP、同 columns） */
+        <Box
+          data-testid="unused-cards-grid"
+          sx={{
+            display: "grid",
+            gridTemplateColumns: columns ? `repeat(${columns}, ${width}px)` : `repeat(auto-fill, ${width}px)`,
+            gap: `${DECK_GAP}px`,
+            justifyContent: "center",
+            py: 0.5,
+          }}
+        >
+          {cards.map((card) => {
+            const key = `${card.characterKey}-${card.cardIndex}`;
+            return (
+              <Box
+                key={key}
+                data-testid={`unused-card-${key}`}
+                draggable={interactive && Boolean(onCardDragStart)}
+                onDragStart={() => onCardDragStart?.(card)}
+                onClick={() => onPick(card)}
+                onMouseEnter={() => setHoveredKey(key)}
+                onMouseLeave={() => setHoveredKey((value) => (value === key ? null : value))}
+                sx={{ width, cursor: interactive ? "pointer" : "default" }}
+              >
+                <CharacterCard
+                  cardSet={cardSet}
+                  file={cardFiles[card.characterKey]?.[card.cardIndex] ?? ""}
+                  state={hoveredKey === key ? "hover" : "normal"}
+                />
+              </Box>
+            );
+          })}
+        </Box>
+      )}
+
     </Box>
   );
 }

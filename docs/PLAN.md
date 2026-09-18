@@ -660,6 +660,16 @@ interface Transport {
 - [x] **M7 对战核心**：纯规则 reducer（回合推进/判定/罚牌夹紧/牌库转移/经典·休闲终局）+ CPU 对手（反应分布与失误率）+ 本地计时循环 + 对战页棋盘。
 - [x] **M8 联机**：传输层抽象（进程内总线 / 同浏览器 BroadcastChannel / PeerJS）+ **主机权威 + 每次动作广播完整快照 + 自增 seq + 数据哈希与协议握手** + 大厅（分享码/参与者/聊天/断线重连 requestSync）。
 - [x] **M9 打磨**：彩蛋（答案提示框、`?g` 卡片倾斜、`?r2`/`?local` 图集源、`?cheatcode=`）、文案与文档补全 → 验收报告 [`reports/M9-acceptance.md`](../reports/M9-acceptance.md)。
+- [x] **M55 面板与卡牌大小联动 + 合并 main**（用户要求）：档位按行数 × 卡面高度换算；分支合并回 main。
+  见 `docs/DECISIONS.md` §D61。
+- [x] **M54 选卡面板把手可拖拽**（用户反馈）：把手拖动改高度并三档吸附，拖到底收起。
+  见 `docs/DECISIONS.md` §D60。
+- [x] **M53 移动端选卡面板与顶栏修正**（用户反馈）：面板自带收起、列数与卡槽对齐、深色 elevation 叠加、
+  PC 顶栏把页签移回标题之后。见 `docs/DECISIONS.md` §D59。
+- [x] **M52 移动端多行选卡面板**（用户反馈）：窄屏选卡改多行网格（与卡槽同尺寸）+ 非模态底部面板
+  （无遮罩、30vh、拖拽把手）。见 `docs/DECISIONS.md` §D58。
+- [x] **M51 移动端适配**（用户要求）：分支 `feat/mobile-adaptation`，Pixel 7 审计 + 应用栏折行 +
+  播放控制两行 + 按钮不折行，新增 `mobile` project（5 条）。见 `docs/DECISIONS.md` §D57。
 - [x] **M50 https 透传与混合内容**（用户反馈）：代理不再谎报协议、`peersecure` 缺省跟页面协议走。
   见 `docs/DECISIONS.md` §D56。
 - [x] **M49 单端口部署（方案 B）**（用户裁定）：助手认代理头、本地源地址运行时覆盖、数据默认同源、

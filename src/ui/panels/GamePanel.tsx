@@ -33,7 +33,7 @@ import {
 import type { CardState } from "../components/CharacterCard";
 import { fadeInSx, NoFontFamily } from "../../theme/theme";
 import { DECK_GAP, DeckGrid } from "../game/DeckGrid";
-import { UnusedCards } from "../game/UnusedCards";
+import { UnusedCardsTray } from "../game/UnusedCardsTray";
 import { Reveal } from "../game/Reveal";
 import { GameGroupLabel, GameRadioOption, NumberSelect } from "../game/GameControls";
 import { DECK_LIMITS } from "../../game/gameSetting";
@@ -672,7 +672,8 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
         />
         </Box>
 
-        <UnusedCards
+        <UnusedCardsTray
+          columns={game.deckColumns}
           cards={unused}
           cardSet={cardSet}
           cardFiles={cardFiles}

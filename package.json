@@ -16,7 +16,8 @@
     "e2e": "PLAYWRIGHT_BROWSERS_PATH=\"$PWD/.playwright-browsers\" playwright test",
     "e2e:chromium": "PLAYWRIGHT_BROWSERS_PATH=\"$PWD/.playwright-browsers\" playwright test --project=chromium",
     "e2e:firefox": "PLAYWRIGHT_BROWSERS_PATH=\"$PWD/.playwright-browsers\" playwright test --project=firefox",
-    "e2e:peer": "node e2e/peer-server.mjs"
+    "e2e:peer": "node e2e/peer-server.mjs",
+    "e2e:mobile": "PLAYWRIGHT_BROWSERS_PATH=\"$PWD/.playwright-browsers\" playwright test --project=mobile"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

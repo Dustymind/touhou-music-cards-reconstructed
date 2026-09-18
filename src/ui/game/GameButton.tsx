@@ -41,6 +41,8 @@ export const gameButtonsSx = {
   display: "inline-flex",
   flexDirection: "row",
   alignItems: "center",
+  // 窄屏放不下时**整组换行**，而不是把按钮里的文字挤成两行
+  flexWrap: "wrap",
   gap: `${GAME_BUTTON_GAP}px`,
 } as const;
 
@@ -51,7 +53,7 @@ export const gameRowSx = {
   alignItems: "center",
   flexWrap: "wrap",
   columnGap: `${GAME_GROUP_GAP}px`,
-  rowGap: `${MD2.grid}px`,
+  rowGap: { xs: 1.5, md: `${MD2.grid}px` },   // 窄屏换行时行距放宽，别挤在一起
 } as const;
 
 /** 图标框 + 间距：MUI 默认只给 `margin-right`，图标本身宽度不一，这里统一成固定方框。 */
@@ -78,6 +80,7 @@ export const gameButtonSx = {
   letterSpacing: "1.25px",
   textTransform: "uppercase",
   lineHeight: 1.75,
+  whiteSpace: "nowrap",
   ...iconSlot,
 } as const;
 

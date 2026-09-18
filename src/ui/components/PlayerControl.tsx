@@ -35,7 +35,8 @@ export function PlayerControl(props: PlayerControlProps) {
 
   return (
     <Stack spacing={1} sx={{ width: "100%" }} data-testid="player-control">
-      <Stack direction="row" spacing={1} alignItems="center">
+      {/* 窄屏：进度条单独一行（否则 flex 会被挤成 0 宽、进度条直接看不见 —— 实测） */}
+      <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: "wrap", rowGap: 1 }}>
         <IconButton sx={ICON_BUTTON_SX} onClick={props.onPrevious} disabled={disabled} aria-label="previous">
           <SkipPrevious />
         </IconButton>
@@ -54,8 +55,16 @@ export function PlayerControl(props: PlayerControlProps) {
         <Typography variant="caption" sx={{ fontFamily: MonoFontFamily, minWidth: "5.5em" }}>
           {formatTime(currentTime)} / {formatTime(duration)}
         </Typography>
-        <Box sx={{ flex: 1, px: 1 }}>
+        <Box
+          sx={{
+            px: { xs: 0, sm: 1 },
+            order: { xs: 9, sm: 0 },
+            // 窄屏：整行独占（flex-shrink 会把 minWidth 压掉，所以给 flex-basis）
+            flex: { xs: "1 0 100%", sm: "1 1 auto" },
+          }}
+        >
           <Slider
+            data-testid="seek-slider"
             size="small"
             min={0}
             max={Math.max(duration, 1)}

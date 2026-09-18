@@ -1,6 +1,6 @@
 /** 应用外壳：页签栏（含 Alice 彩蛋按钮）+ 当前页。 */
 import {
-  AppBar, Box, Button, Container, Stack, Tab, Tabs, Toolbar, Typography,
+  AppBar, Box, Button, Container, Stack, Tab, Tabs, Toolbar, Typography, useMediaQuery,
 } from "@mui/material";
 
 import { useEffect, useMemo, useRef } from "react";
@@ -40,6 +40,8 @@ export function aliceLabel(smallScreen: boolean): string {
 }
 
 export function AppShell({ bundle }: { bundle: DataBundle }) {
+  /** 窄屏：页签折到第二行、彩蛋文案用短版（上游也是小屏显示 "Alice!"） */
+  const isSmallScreen = useMediaQuery("(max-width: 599.95px)");
   const { tab, setTab, locale, cardCollection, sourceOverrides, musicMode, localMusicUrl } = useSession();
   const preset = usePreset();
   const queue = useQueue();
@@ -149,11 +151,24 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
   return (
     <Box sx={{ minHeight: "100vh", backgroundColor: "background.default", fontFamily: NoFontFamily }}>
       {/* MD2 顶部应用栏：标题 + 页签 + 彩蛋按钮 */}
+      {/* MD2 应用栏：宽屏一行（标题 + 页签 + 指纹 + 彩蛋），窄屏自动折成两行（标题 + 页签），
+          否则 400px 宽的手机上页签会被标题/指纹压住点不到（实测过） */}
       <AppBar position="static">
-        <Toolbar sx={{ gap: 2, alignItems: "center" }}>
+        <Toolbar
+          sx={{
+            rowGap: 0,
+            columnGap: { xs: 1, md: 2 },
+            alignItems: "center",
+            // 窄屏才允许折行；宽屏保持单行（原来 flexWrap 常开会把各项挤出基线，见 D59）
+            flexWrap: { xs: "wrap", md: "nowrap" },
+            px: { xs: 1.5, md: 2 },
+          }}
+        >
           <Typography variant="h6" sx={{ whiteSpace: "nowrap" }}>
             {t(Localization.ShellAppTitle)}
           </Typography>
+          {/* DOM 顺序 = 宽屏顺序：标题 → 页签 → 指纹 → 彩蛋。
+              窄屏靠 order 把页签挪到第二行（原来页签写在最后，宽屏会被挤到最右边 = "顶栏错位"） */}
           <Tabs
             value={tab}
             onChange={(_event, value: TabId) => setTab(value)}
@@ -161,7 +176,13 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
             indicatorColor="primary"
             variant="scrollable"
             scrollButtons="auto"
-            sx={{ flex: 1, minHeight: 48 }}
+            allowScrollButtonsMobile
+            sx={{
+              order: { xs: 3, md: 0 },
+              width: { xs: "100%", md: "auto" },
+              flex: { md: 1 },
+              minHeight: 48,
+            }}
           >
             {TAB_ORDER.map((id) => (
               <Tab
@@ -173,11 +194,18 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
               />
             ))}
           </Tabs>
-          <Typography variant="overline" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
+          {/* 窄屏：占位把彩蛋推到右边（宽屏由页签的 flex 撑开，不需要这个盒子） */}
+          <Box sx={{ flex: 1, display: { xs: "block", md: "none" } }} />
+          {/* 指纹是给联机自检看的，窄屏不占位（设置页"数据"分区里仍能看到） */}
+          <Typography
+            variant="overline"
+            color="text.secondary"
+            sx={{ whiteSpace: "nowrap", display: { xs: "none", md: "block" } }}
+          >
             {t(Localization.ShellDataHash)} {bundle.index.contentHash.slice(0, 12)} · {locale}
           </Typography>
-          <Button color="secondary" onClick={jumpToAlice} disabled={gameActive}>
-            {aliceLabel(false)}
+          <Button color="secondary" onClick={jumpToAlice} disabled={gameActive} sx={{ minWidth: 0 }}>
+            {aliceLabel(isSmallScreen)}
           </Button>
         </Toolbar>
       </AppBar>

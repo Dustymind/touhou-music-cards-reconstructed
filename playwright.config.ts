@@ -13,8 +13,10 @@ export default defineConfig({
   reporter: [["list"]],
   use: { baseURL: BASE_URL, trace: "retain-on-failure" },
   projects: [
-    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
-    { name: "firefox", use: { ...devices["Desktop Firefox"] } },
+    { name: "chromium", use: { ...devices["Desktop Chrome"] }, testIgnore: /mobile\.spec\.ts/ },
+    { name: "firefox", use: { ...devices["Desktop Firefox"] }, testIgnore: /mobile\.spec\.ts/ },
+    // 移动端：Android 手机（触摸 + 窄屏 + 高 DPR），只跑 e2e/mobile.spec.ts
+    { name: "mobile", use: { ...devices["Pixel 7"] }, testMatch: /mobile\.spec\.ts/ },
   ],
   webServer: [
     {
