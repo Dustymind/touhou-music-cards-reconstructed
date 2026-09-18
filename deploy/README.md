@@ -39,6 +39,13 @@ node deploy/single-port-proxy.mjs        # 默认 0.0.0.0:8080
 **端口冲突或环境不让你用 8080** 时直接换：`PORT=9000 node deploy/single-port-proxy.mjs`。
 （Caddy 那边同理：`PORT=9000 caddy run --config deploy/Caddyfile`。）
 
+## 热更新（HMR）与 WebSocket
+
+经代理打开的页面，HMR 的 WebSocket 会连到**页面自己的 origin**（即代理端口）。`single-port-proxy.mjs`
+已经把 `upgrade` 请求按同一套分流规则转发（`/peerjs*` → 9100，其余 → 应用），所以经 8080 打开的页面
+同样能热更新；Caddy 的 `reverse_proxy` 本身就会透传升级。实测：直连 5173 与经 8080 的页面都会建立
+`ws://<页面 origin>/?token=…` 连接。
+
 ## 为什么本地源默认是相对路径
 
 `data/sources/sources.toml` 里 `local` 源的 `table_url = "/manifest.json"` —— **同源**，所以：
@@ -55,6 +62,20 @@ node deploy/single-port-proxy.mjs        # 默认 0.0.0.0:8080
 
 两种写法都接受：完整 manifest 地址、基地址（自动补 `/manifest.json`）、省略协议的 `host:port`（自动补 `http://`）。
 
+## https 与"连接不完全安全"
+
+浏览器报**"连接不完全安全"就是混合内容**：https 页面上混进了 `http://` 子请求。这个项目里只会来自两处：
+
+| 来源 | 说明 |
+|---|---|
+| **本地曲库的音频地址** | manifest 里的音频地址由助手按**请求头**现拼。所以最外层那层 https 隧道/反代**必须转发 `X-Forwarded-Proto: https`**（Cloudflare Tunnel、ngrok、Caddy 都会自动带；Caddyfile 里也显式写了 `header_up X-Forwarded-Proto {scheme}`）。`deploy/single-port-proxy.mjs` 会把上游传来的值**原样传下去**；上层完全不转发时用 `PROTO=https node deploy/single-port-proxy.mjs` 或助手的 `--public-base https://<域名>/` 显式指定。 |
+| **联机信令** | `?peersecure=` 省略时**跟着页面协议走**（https 页面用 `wss://`），不会再被当混合内容拦掉；要强制可用 `peersecure=0/1`。 |
+
+数据侧已经确认**没有任何 `http://` 资源**（三份镜像表、卡面 origins 全是 https），所以不用改数据。
+
+**自查方法**：浏览器 DevTools → Console 会直接点名被拦的 `http://…` 请求；或 Network 面板按协议筛。
+另外 https 页面上**不要**在设置页把「本地曲库地址」填成 `http://127.0.0.1:8011` —— 同源部署时留空即可。
+
 ## 联机注意
 
 信令只是"牵线"，真正的音视频/数据走 **WebRTC P2P（UDP）**，不在这一个端口里；
@@ -64,4 +85,4 @@ node deploy/single-port-proxy.mjs        # 默认 0.0.0.0:8080
 ?peerhost=<域名>&peerport=<端口>&peerpath=/peerjs&peersecure=1
 ```
 
-`peersecure=1` 对应 https 站点（走 `wss://`）；http 站点用 `peersecure=0`。
+`peersecure` 可以省略 —— **省略时跟页面协议走**（https → `wss://`，http → `ws://`）；要显式指定才写 `peersecure=1` / `peersecure=0`。

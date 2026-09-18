@@ -5,6 +5,7 @@ import * as rules from "../game/rules";
 import { emptyState, type GameState } from "../game/types";
 import { createClientEngine, createHostEngine, helloIntent } from "./engines";
 import { stateDigest, type ClientIntent, type PeerInfo } from "./protocol";
+import { peerServerOptions } from "./useNet";
 import { BusHub } from "./transport";
 
 /** 一台"机器"：持有自己的 GameState，可选地跑主机/客户端引擎。 */
@@ -150,5 +151,23 @@ describe("联机引擎", () => {
     // 再收到乱序的旧快照（seq 1）→ 必须忽略
     hub.deliver(1, 0, { kind: "snapshot", state: hostEndpoint.state, seq: 1 });
     expect(clientEndpoint.state.deckRows).toBe(3);
+  });
+});
+
+describe("自建信令的连接参数（https 页面别用 ws://）", () => {
+  it("peersecure 省略时跟页面协议走", () => {
+    expect(peerServerOptions("?peerhost=cards.example.com&peerport=443&peerpath=/peerjs", "https:").secure)
+      .toBe(true);
+    expect(peerServerOptions("?peerhost=127.0.0.1&peerport=9100&peerpath=/", "http:").secure).toBe(false);
+  });
+
+  it("显式 peersecure 优先", () => {
+    expect(peerServerOptions("?peerhost=x&peersecure=0", "https:").secure).toBe(false);
+    expect(peerServerOptions("?peerhost=x&peersecure=1", "http:").secure).toBe(true);
+  });
+
+  it("host/port/path 照旧解析", () => {
+    expect(peerServerOptions("?peerhost=h&peerport=9000&peerpath=/peerjs", "http:"))
+      .toEqual({ host: "h", port: 9000, path: "/peerjs", secure: false });
   });
 });

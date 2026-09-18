@@ -43,15 +43,23 @@ export interface NetApi {
 /** 测试与"同页多实例"用：可替换传输工厂。 */
 export type TransportMode = "local" | "peer";
 
-/** `?peerhost=127.0.0.1&peerport=9100&peerpath=/&peersecure=0` 指向自建信令服务器。 */
-export function peerServerOptions(search = typeof window === "undefined" ? "" : window.location.search) {
+/** `?peerhost=127.0.0.1&peerport=9100&peerpath=/&peersecure=0` 指向自建信令服务器。
+ *
+ * `peersecure` 省略时**跟着页面协议走**：https 页面用 `wss://`，否则浏览器会按混合内容拦掉
+ * （那正是"连接不完全安全"的来源之一）。显式写 `peersecure=0/1` 仍然优先。
+ */
+export function peerServerOptions(
+  search = typeof window === "undefined" ? "" : window.location.search,
+  pageProtocol = typeof window === "undefined" ? "http:" : window.location.protocol,
+) {
   const params = new URLSearchParams(search);
   const port = params.get("peerport");
+  const explicit = params.get("peersecure");
   return {
     host: params.get("peerhost") ?? undefined,
     port: port ? Number(port) : undefined,
     path: params.get("peerpath") ?? undefined,
-    secure: params.get("peersecure") === undefined ? undefined : params.get("peersecure") !== "0",
+    secure: explicit === null ? pageProtocol === "https:" : explicit !== "0",
   };
 }
 

@@ -1547,6 +1547,42 @@ E2E 新增"本地曲库地址：默认同源，`?localmusic=` 可指向本机助
 
 ---
 
+## D56 https 透传下的“连接不完全安全”
+
+**需求**（用户）：透传正常，但用 https 透传时浏览器报“连接不完全安全”。
+
+**排查**（先把范围压到最小）：
+
+| 可能来源 | 结论 |
+|---|---|
+| 数据里的镜像/卡面 URL | **0 个 `http://`**（三份镜像表 + 卡面 origins 全是 https）→ 不是数据问题 |
+| 应用自身资源 | 生产构建 `base: "./"`、数据走相对路径 → 全是同源 https |
+| **本地曲库的音频地址** | 找到了：`deploy/single-port-proxy.mjs` 转发时**写死** `x-forwarded-proto: "http"`，把最外层 https 隧道传来的 `https` 覆盖掉了 → 助手拼出 `http://…/media/…` → 混合内容 |
+| 联机信令 | 也有一处：`peersecure` 省略时 `secure` 为 `false`（PeerJS 默认）→ https 页面上用 `ws://`，同样被拦 |
+
+**改法**：
+
+1. 代理**不再谎报协议**：`X-Forwarded-Proto` / `X-Forwarded-Host` 一律**原样传下去**（拿不到才按连接自身判断），
+   可用 `PROTO=https` 兜底；`X-Forwarded-Host` 优先于 `Host`，保证音频地址与**页面的对外 origin** 一致。
+2. `?peersecure=` 省略时**跟页面协议走**（https → `wss://`）；显式写 `peersecure=0/1` 仍然优先。
+3. `deploy/README.md` 增加“https 与连接不完全安全”小节：来源表 + 自查方法（DevTools Console 会点名被拦的
+   `http://…`）+ 提醒 https 页面上不要把“本地曲库地址”填成 `http://127.0.0.1:8011`。
+
+**实测**（模拟最外层 https 隧道）：
+
+```
+带 X-Forwarded-Proto: https + X-Forwarded-Host: cards.example.com
+   → https://cards.example.com/media/otomads/…        不再混合内容
+只带 X-Forwarded-Proto: https
+   → https://10.21.218.160:8080/media/otomads/…       与页面同源
+什么都不带（本机）
+   → http://127.0.0.1:8080/media/otomads/…            本机形态不变
+```
+
+**回归锁**：单测 3 条（`peerServerOptions`：省略时跟协议走 / 显式优先 / host·port·path 照旧解析）。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |

@@ -172,6 +172,9 @@ node deploy/single-port-proxy.mjs               # 0.0.0.0:8080；PORT=/HOST= 可
 数据里 `local` 源的 `table_url` 默认是**相对路径** `/manifest.json`（同源 ✓ 不需要 CORS ✓）；
 分开跑时用 `?localmusic=127.0.0.1:8011` 或设置页的「本地曲库地址」覆盖。
 **联机的音视频仍是 WebRTC P2P（UDP）**，不在这一个端口里，跨 NAT 另需 STUN/TURN。
+https 部署时若浏览器报"连接不完全安全"，是**最外层代理没转发 `X-Forwarded-Proto: https`**
+（本地助手的音频地址按它现拼）；Caddy 自动带、`deploy/single-port-proxy.mjs` 原样传下去，
+必要时用 `PROTO=https` 或助手 `--public-base` 显式指定，详见 [`deploy/README.md`](deploy/README.md)。
 
 ## 测试
 
