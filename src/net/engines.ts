@@ -10,7 +10,7 @@ import {
 } from "./protocol";
 import type { Transport } from "./transport";
 
-export interface EngineDeps {
+interface EngineDeps {
   /** 主机：读取/覆盖本地权威状态；客户端：只覆盖 */
   getState: () => GameState;
   applyState: (state: GameState) => void;
@@ -33,7 +33,7 @@ export interface HostEngine {
   peers: () => PeerInfo[];
 }
 
-export interface ClientEngine {
+interface ClientEngine {
   dispose: () => void;
   requestSync: () => void;
   myIndex: () => number | null;

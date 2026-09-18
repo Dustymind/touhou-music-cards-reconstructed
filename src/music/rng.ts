@@ -1,5 +1,5 @@
 /** 可复现的伪随机：单机时用于"多首选一首"与随机起播；联机时由主机下发种子。 */
-export type Seed = number;
+type Seed = number;
 
 /** mulberry32：小、快、跨端一致（同一 seed 必得同一序列）。 */
 export function createRng(seed: Seed): () => number {

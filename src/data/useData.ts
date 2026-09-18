@@ -4,9 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import { DataLoadError, loadDataBundle } from "./load";
 import type { DataBundle } from "./types";
 
-export type DataStatus = "loading" | "ready" | "error";
+type DataStatus = "loading" | "ready" | "error";
 
-export interface DataState {
+interface DataState {
   status: DataStatus;
   bundle: DataBundle | null;
   error: string | null;

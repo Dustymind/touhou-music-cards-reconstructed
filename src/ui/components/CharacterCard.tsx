@@ -25,13 +25,13 @@ const COLOR_BY_STATE: Record<CardState, string> = {
 const GRAYSCALE: CardState[] = ["disabled", "disabledHover"];
 
 /** 图集目录 + 文件名 → 绝对 URL（按 origin 列表拼）。 */
-export function cardUrl(cardSet: CardSetRecord, file: string, origin: string): string {
+function cardUrl(cardSet: CardSetRecord, file: string, origin: string): string {
   const prefix = origin.endsWith("/") ? origin : `${origin}/`;
   const dir = cardSet.dir.endsWith("/") ? cardSet.dir : `${cardSet.dir}/`;
   return prefix + dir + encodeURIComponent(file);
 }
 
-export interface CharacterCardProps {
+interface CharacterCardProps {
   cardSet: CardSetRecord;
   file: string;
   width?: string;

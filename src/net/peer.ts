@@ -13,7 +13,7 @@ function peerIdFor(role: Role, roomId: string): string {
   return `${PREFIX}${roomId}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-export interface PeerServerOptions {
+interface PeerServerOptions {
   host?: string;
   port?: number;
   path?: string;

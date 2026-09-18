@@ -2,7 +2,7 @@
 import { isCheat, glitchString } from "../cheat";
 
 export type Locale = "en" | "zh";
-export type Localized = { en: string; zh: string };
+type Localized = { en: string; zh: string };
 
 const u = (en: string, zh: string): Localized => ({ en, zh });
 

@@ -14,15 +14,15 @@ import { PeerTransport } from "./peer";
 import { stateDigest, type ClientIntent, type PeerInfo } from "./protocol";
 import { BroadcastChannelTransport, BusHub, supportsBroadcastChannel, type Role, type Transport } from "./transport";
 
-export type NetStatus = "offline" | "hosting" | "connected" | "error";
+type NetStatus = "offline" | "hosting" | "connected" | "error";
 
-export interface ChatLine {
+interface ChatLine {
   from: string;
   text: string;
   system: boolean;
 }
 
-export interface NetApi {
+interface NetApi {
   status: NetStatus;
   role: Role | null;
   myIndex: number;
@@ -41,7 +41,7 @@ export interface NetApi {
 }
 
 /** 测试与"同页多实例"用：可替换传输工厂。 */
-export type TransportMode = "local" | "peer";
+type TransportMode = "local" | "peer";
 
 /** `?peerhost=127.0.0.1&peerport=9100&peerpath=/&peersecure=0` 指向自建信令服务器。
  *
@@ -72,7 +72,7 @@ export function peerModeFromSearch(
   return params.has("peerhost") || params.has("peerport") || params.get("peer") === "1";
 }
 
-export let transportFactory: (role: Role, roomId: string, mode: TransportMode) => Transport =
+let transportFactory: (role: Role, roomId: string, mode: TransportMode) => Transport =
   defaultTransportFactory;
 export function __setTransportFactory(factory: typeof transportFactory): void {
   transportFactory = factory;

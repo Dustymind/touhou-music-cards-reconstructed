@@ -76,7 +76,7 @@ function formatTime(seconds: number): string {
   return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, "0")}`;
 }
 
-export interface PlayerControlProps {
+interface PlayerControlProps {
   playing: boolean;
   currentTime: number;
   duration: number;

@@ -11,7 +11,7 @@ import {
 
 import { MD2 } from "../../../theme/theme";
 
-export interface SectionPanelProps {
+interface SectionPanelProps {
   /** 折叠面板标题（也是 `data-testid` 的前缀） */
   title: string;
   /** 面板 id：用于 `section-<id>` / `section-<id>-summary` 测试选择器 */

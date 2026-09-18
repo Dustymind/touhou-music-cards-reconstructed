@@ -10,7 +10,7 @@ import {
   emptySlots, filledSlots, makePlayer, sameCard, slotCount,
 } from "./types";
 
-export type Rng = () => number;
+type Rng = () => number;
 
 const clone = (state: GameState): GameState => ({
   ...state,
@@ -285,7 +285,7 @@ export function sortPickEvents(events: readonly PickEvent[]): PickEvent[] {
   return out;
 }
 
-export interface PickResult {
+interface PickResult {
   state: GameState;
   accepted: boolean;
 }

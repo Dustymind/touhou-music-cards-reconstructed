@@ -10,7 +10,7 @@ import { emptyState, slotCount } from "./types";
 import * as rules from "./rules";
 import { DEFAULT_CPU_SETTINGS, planCpuPick, type CpuPlan, type CpuSettings } from "./cpu";
 
-export interface GameSlice {
+interface GameSlice {
   game: GameState;
   /** 可入牌库的卡池（角色 × 卡面） */
   pool: CardInfo[];

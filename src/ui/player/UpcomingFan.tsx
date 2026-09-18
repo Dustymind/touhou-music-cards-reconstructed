@@ -10,7 +10,7 @@ import type { CardSetRecord, DataBundle } from "../../data/types";
 import { CardAspectRatio } from "../../theme/theme";
 import { CardStrip, type StripCard } from "../components/CardStrip";
 
-export interface UpcomingFanProps {
+interface UpcomingFanProps {
   bundle: DataBundle;
   cardSet: CardSetRecord;
   order: readonly string[];

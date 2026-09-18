@@ -16,7 +16,7 @@ export function GameGroupLabel({ children }: { children: React.ReactNode }) {
   return <Typography sx={gameLabelSx}>{children}</Typography>;
 }
 
-export interface GameRadioOptionProps {
+interface GameRadioOptionProps {
   value: string;
   label: string;
   testId: string;
@@ -41,7 +41,7 @@ export function GameRadioOption({ value, label, testId, icon: Icon, iconSx }: Ga
   );
 }
 
-export interface NumberSelectProps {
+interface NumberSelectProps {
   testId: string;
   label: string;
   value: number;

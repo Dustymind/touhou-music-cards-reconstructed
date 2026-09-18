@@ -22,7 +22,7 @@ import { MD2, NoFontFamily } from "../../theme/theme";
 /** MD2 展开动画：250ms 进 / 200ms 出，标准缓动。 */
 const EXPAND_MS = { enter: 250, exit: 200 } as const;
 
-export interface ListPanelProps {
+interface ListPanelProps {
   bundle: DataBundle;
   /** 点某一首曲目 → 立刻播这一首（播放能力由外壳提供） */
   onPlayTrack?: (key: string, entry: MusicEntry) => void;

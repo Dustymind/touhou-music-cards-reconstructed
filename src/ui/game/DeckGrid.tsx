@@ -18,7 +18,7 @@ import { CardAspectRatio, MD2_BORDER } from "../../theme/theme";
 import { CharacterCard, type CardState } from "../components/CharacterCard";
 import { CheatRect } from "./CheatRect";
 
-export interface DeckGridProps {
+interface DeckGridProps {
   deck: readonly Slot[];
   rows: number;
   columns: number;

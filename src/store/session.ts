@@ -13,7 +13,7 @@ import { getLocale, setLocale, type Locale } from "../i18n/localization";
 export const TAB_ORDER = ["player", "list", "config", "game"] as const;
 export type TabId = (typeof TAB_ORDER)[number];
 
-export interface SourceOverride {
+interface SourceOverride {
   enabled: boolean;
   order: number;
 }

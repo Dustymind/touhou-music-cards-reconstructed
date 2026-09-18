@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import type { SourceRecord } from "../data/types";
 import { applyLocalManifestUrl, loadSourceTables, type TableMap } from "./sources";
 
-export interface SourcesState {
+interface SourcesState {
   tables: TableMap;
   order: string[];
   status: "loading" | "ready";

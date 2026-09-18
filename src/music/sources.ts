@@ -2,9 +2,9 @@
 import type { SourceRecord } from "../data/types";
 import { trackId } from "../data/types";
 
-export type SourceStatus = "idle" | "loading" | "ready" | "error";
+type SourceStatus = "idle" | "loading" | "ready" | "error";
 
-export interface SourceTable {
+interface SourceTable {
   id: string;
   status: SourceStatus;
   /** `trackId → URL` */
@@ -14,13 +14,13 @@ export interface SourceTable {
 
 export type TableMap = Record<string, SourceTable>;
 
-export interface ResolvedTrack {
+interface ResolvedTrack {
   sourceId: string;
   url: string;
 }
 
 /** 本地曲库 manifest 的固定文件名（助手与 v2 的约定）。 */
-export const LOCAL_MANIFEST_FILE = "manifest.json";
+const LOCAL_MANIFEST_FILE = "manifest.json";
 
 /**
  * 归一化本地曲库地址：
@@ -101,7 +101,7 @@ export function countResolvable(tables: TableMap, order: readonly string[]): num
   return seen.size;
 }
 
-export interface SourceLoadResult {
+interface SourceLoadResult {
   tables: TableMap;
   order: string[];
 }

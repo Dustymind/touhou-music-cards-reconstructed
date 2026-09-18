@@ -60,7 +60,7 @@ export class BusHub {
   }
 }
 
-export class BusTransport implements Transport {
+class BusTransport implements Transport {
   private readonly messageHandlers = new Set<MessageHandler>();
   private readonly leaveHandlers = new Set<LeaveHandler>();
 

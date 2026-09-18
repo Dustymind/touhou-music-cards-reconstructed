@@ -33,7 +33,7 @@ const queueStore = defineStore<Persisted>({
   },
 });
 
-export interface QueueState extends Persisted {
+interface QueueState extends Persisted {
   /** 用"当前可用的角色 key"补齐/修正队列（新增角色追加到末尾，消失的剔除）。 */
   syncKeys: (keys: string[]) => void;
   regenerate: (keys: string[], randomize: boolean) => void;

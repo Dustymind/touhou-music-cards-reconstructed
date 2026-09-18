@@ -84,7 +84,7 @@ export const gameButtonSx = {
   ...iconSlot,
 } as const;
 
-export interface GameButtonProps extends ButtonProps {
+interface GameButtonProps extends ButtonProps {
   /** 覆盖统一样式时用（会合并在统一样式之后） */
   sx?: ButtonProps["sx"];
 }

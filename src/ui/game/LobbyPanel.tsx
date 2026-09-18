@@ -9,7 +9,7 @@ import { GameButton } from "./GameButton";
 import { peerModeFromSearch, useNet } from "../../net/useNet";
 import { NoFontFamily } from "../../theme/theme";
 
-export interface LobbyPanelProps {
+interface LobbyPanelProps {
   /** 本地/CPU 模式下的单机提示 */
   onUsePeerTransport?: boolean;
 }

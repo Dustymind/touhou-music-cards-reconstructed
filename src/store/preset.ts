@@ -32,7 +32,7 @@ const presetStore = defineStore<PresetState>({
   },
 });
 
-export interface PresetSlice extends PresetState {
+interface PresetSlice extends PresetState {
   /** 用专辑表初始化/补齐（新增专辑默认勾选）。 */
   sync: (albums: readonly AlbumRecord[]) => void;
   setAlbum: (name: string, checked: boolean) => void;

@@ -30,7 +30,7 @@ const slideIn = keyframes`
 
 
 
-export interface PlayerPanelProps {
+interface PlayerPanelProps {
   bundle: DataBundle;
   player: PlayerApi;
   tables: TableMap;

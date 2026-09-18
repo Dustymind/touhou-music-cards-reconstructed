@@ -24,7 +24,7 @@ function chunk<T>(items: readonly T[], size: number): T[][] {
   return rows;
 }
 
-export interface UnusedCardsProps {
+interface UnusedCardsProps {
   cards: readonly CardInfo[];
   cardSet: CardSetRecord;
   cardFiles: Record<string, string[]>;
@@ -43,7 +43,7 @@ export interface UnusedCardsProps {
   testId?: string;
 }
 
-export interface UnusedCardsProps2 extends UnusedCardsProps {
+interface UnusedCardsProps2 extends UnusedCardsProps {
   /** `strip` = 单行 + 滑块（宽屏内联）；`grid` = 多行（窄屏面板，与牌桌卡槽同尺寸同列数） */
   layout?: "strip" | "grid";
   /** `grid` 布局的列数（与牌桌卡槽对齐） */

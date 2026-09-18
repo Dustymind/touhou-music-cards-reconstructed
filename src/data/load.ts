@@ -86,7 +86,7 @@ export function validateSources(raw: unknown): SourceRecord[] {
   return sources as SourceRecord[];
 }
 
-export function validateCardSets(raw: unknown): CardSetRecord[] {
+function validateCardSets(raw: unknown): CardSetRecord[] {
   const payload = raw as { default?: unknown; cardSets?: unknown } | null;
   assert(Array.isArray(payload?.cardSets) && payload.cardSets.length > 0, "cardsets.json 缺少 cardSets");
   const sets = payload.cardSets as CardSetRecord[];

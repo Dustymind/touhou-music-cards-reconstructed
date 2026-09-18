@@ -5,7 +5,7 @@ import type { Extra, MusicEntry } from "../data/types";
 import { EXTRAS } from "../data/types";
 import { defineStore, isRecord, pickBoolean } from "../persist";
 
-export interface SingleTrackState {
+interface SingleTrackState {
   enabled: boolean;
   pins: Record<string, MusicEntry>;
   disabledCharacters: Record<string, boolean>;
@@ -46,7 +46,7 @@ export const singleTrackSpec = {
 
 const singleStore = defineStore<SingleTrackState>(singleTrackSpec);
 
-export interface SingleTrackSlice extends SingleTrackState {
+interface SingleTrackSlice extends SingleTrackState {
   setEnabled: (enabled: boolean) => void;
   setPin: (key: string, entry: MusicEntry | null) => void;
   toggleCharacter: (key: string) => void;

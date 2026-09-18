@@ -7,7 +7,7 @@ import Collapse from "@mui/material/Collapse";
 import Fade from "@mui/material/Fade";
 import type { ReactNode } from "react";
 
-export interface RevealProps {
+interface RevealProps {
   show: boolean;
   children: ReactNode;
   testId?: string;

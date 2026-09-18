@@ -3,7 +3,7 @@ import type { AlbumRecord, CharacterRecord, Extra, MusicEntry } from "../data/ty
 import { allowedTracks, isTrackEnabled, type PresetState } from "./selection";
 import { isEntryAllowedInMode, type MusicMode } from "./mode";
 
-export interface AlbumGroups {
+interface AlbumGroups {
   /** 秘封曲组（12 张秘封倶楽部 CD） */
   hifuu: AlbumRecord[];
   /** CD 组：格斗作 / arrange 碟 + 其它官方 CD（先 CD） */
@@ -23,7 +23,7 @@ export function groupAlbums(albums: readonly AlbumRecord[]): AlbumGroups {
   };
 }
 
-export interface PresetStats {
+interface PresetStats {
   enabledTracks: number;
   totalTracks: number;
   charactersWithTracks: number;
@@ -72,7 +72,7 @@ export function presetStats(
 }
 
 /** 仅单曲模式的一行：角色 + 预设允许的曲目 + 当前手选。 */
-export interface SingleModeRow {
+interface SingleModeRow {
   character: CharacterRecord;
   allowed: MusicEntry[];
   pinned: MusicEntry | null;

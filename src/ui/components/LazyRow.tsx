@@ -8,7 +8,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 
-export interface LazyRowProps {
+interface LazyRowProps {
   children: React.ReactNode;
   /** 提前量（px），越大越早挂载 */
   margin?: number;

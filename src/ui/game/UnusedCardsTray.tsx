@@ -26,7 +26,7 @@ import { Localization, t } from "../../i18n/localization";
 import { CardAspectRatio, MD2 } from "../../theme/theme";
 import { UnusedCards } from "./UnusedCards";
 
-export interface UnusedCardsTrayProps {
+interface UnusedCardsTrayProps {
   /** 牌桌列数：面板里的卡面按同样的列数铺开（"与当前卡槽相同"） */
   columns: number;
   cards: CardInfo[];

@@ -15,9 +15,9 @@ import { allowedTracks, type PresetState } from "../music/selection";
 import type { MusicMode } from "../music/mode";
 import { resolveTrack, type TableMap } from "../music/sources";
 
-export type PlaybackState = "stopped" | "countingDown" | "playing" | "timeoutPause";
+type PlaybackState = "stopped" | "countingDown" | "playing" | "timeoutPause";
 
-export interface PlaybackSetting {
+interface PlaybackSetting {
   /** 播放位置随机（跳过最后 10 秒） */
   randomStart: boolean;
   /** 换歌前先响一声倒计时铃 */
@@ -26,7 +26,7 @@ export interface PlaybackSetting {
   durationSeconds: number;
 }
 
-export const DEFAULT_PLAYBACK_SETTING: PlaybackSetting = {
+const DEFAULT_PLAYBACK_SETTING: PlaybackSetting = {
   randomStart: false,
   countdown: false,
   durationSeconds: 0,

@@ -9,7 +9,7 @@ import { filterByMode, isEntryAllowedInMode, type MusicMode } from "./mode";
 export type Tri = "unset" | "on" | "off";
 
 /** 三个三态开关只管非秘封的三类；秘封曲由秘封碟勾选决定。 */
-export type CategorySwitch = Exclude<Extra, "秘封曲">;
+type CategorySwitch = Exclude<Extra, "秘封曲">;
 
 export interface PresetState {
   /** 专辑名 → 是否勾选（非秘封专辑） */
@@ -56,7 +56,7 @@ export function isTrackEnabled(preset: PresetState, album: string, extra: Extra)
   return preset.albums[album] ?? false;
 }
 
-export interface AllowedTracks {
+interface AllowedTracks {
   entries: MusicEntry[];
   /** 被单曲模式固定下来的那首（若有） */
   pinned: MusicEntry | null;
@@ -83,16 +83,6 @@ export function allowedTracks(
   return { entries: filtered, pinned: null };
 }
 
-/** 该曲目在当前预设 + 当前模式下是否可用（游戏内选曲、播放都用它）。 */
-export function isTrackUsable(
-  preset: PresetState,
-  albums: readonly AlbumRecord[],
-  entry: MusicEntry,
-  mode: MusicMode,
-): boolean {
-  const [, , extra] = entry;
-  return isTrackEnabled(preset, entry[0], extra) && isEntryAllowedInMode(albums, entry, mode);
-}
 
 /** 统计：全库可用曲目数（配置页显示预设效果）。 */
 export function countEnabled(

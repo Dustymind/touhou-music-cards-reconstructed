@@ -15,7 +15,7 @@ export interface CharacterRecord {
   music: MusicEntry[];
 }
 
-export type AlbumKind = "game" | "fighting" | "hifuu" | "other";
+type AlbumKind = "game" | "fighting" | "hifuu" | "other";
 
 export interface AlbumRecord {
   key: string;

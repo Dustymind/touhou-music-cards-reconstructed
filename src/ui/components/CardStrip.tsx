@@ -31,7 +31,7 @@ export interface StripCard {
   hoverState?: CardState;
 }
 
-export interface CardStripProps {
+interface CardStripProps {
   cards: readonly StripCard[];
   cardSet: CardSetRecord;
   /** 卡片宽度（px） */
@@ -57,7 +57,7 @@ export interface CardStripProps {
   dropActive?: boolean;
 }
 
-export interface StripLayout {
+interface StripLayout {
   step: number;
   totalWidth: number;
   maxOffset: number;

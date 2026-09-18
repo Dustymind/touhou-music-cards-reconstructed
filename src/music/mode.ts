@@ -18,7 +18,7 @@ export type MusicMode = "originals" | "otomads";
 export const MUSIC_MODES: MusicMode[] = ["originals", "otomads"];
 export const DEFAULT_MUSIC_MODE: MusicMode = "originals";
 /** 默认曲包（专辑 `pack` 字段缺省时的归属）。 */
-export const ORIGINALS_PACK = "originals";
+const ORIGINALS_PACK = "originals";
 
 /** 专辑名 → 曲包 id。未注册的专辑按原曲处理（数据缺失时不至于把曲目藏起来）。 */
 export function packOfAlbum(albums: readonly AlbumRecord[], album: string): string {
@@ -26,7 +26,7 @@ export function packOfAlbum(albums: readonly AlbumRecord[], album: string): stri
 }
 
 /** 曲包 id → 音乐模式（`originals` 之外都是 otomads 侧的曲包）。 */
-export function modeOfPack(pack: string): MusicMode {
+function modeOfPack(pack: string): MusicMode {
   return pack === ORIGINALS_PACK ? "originals" : "otomads";
 }
 

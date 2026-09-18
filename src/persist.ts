@@ -19,7 +19,7 @@ export interface StoreSpec<T> {
   migrate?: (raw: unknown, fromVersion: number) => T | null;
 }
 
-export interface StoreHandle<T> {
+interface StoreHandle<T> {
   spec: StoreSpec<T>;
   load: () => T;
   save: (value: T) => void;

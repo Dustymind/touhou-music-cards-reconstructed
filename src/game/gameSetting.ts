@@ -19,7 +19,7 @@ export const DECK_LIMITS = {
   minColumns: 1, maxColumns: 15,
 } as const;
 
-export interface GameSetting {
+interface GameSetting {
   cardWidthPercentage: number;
   deckRows: number;
   deckColumns: number;
