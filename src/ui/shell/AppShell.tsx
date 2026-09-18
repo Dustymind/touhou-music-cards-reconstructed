@@ -3,7 +3,7 @@ import {
   AppBar, Box, Button, Container, Stack, Tab, Tabs, Toolbar, Typography, useMediaQuery,
 } from "@mui/material";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Localization, t } from "../../i18n/localization";
 import { stableHash } from "../../cheat";
@@ -42,7 +42,10 @@ export function aliceLabel(smallScreen: boolean): string {
 export function AppShell({ bundle }: { bundle: DataBundle }) {
   /** 窄屏：页签折到第二行、彩蛋文案用短版（上游也是小屏显示 "Alice!"） */
   const isSmallScreen = useMediaQuery("(max-width: 599.95px)");
-  const { tab, setTab, locale, cardCollection, sourceOverrides, musicMode, localMusicUrl } = useSession();
+  const {
+    tab, setTab, locale, cardCollection, sourceOverrides, musicMode, localMusicUrl,
+    entryRequest, setEntryRequest,
+  } = useSession();
   const preset = usePreset();
   const queue = useQueue();
   const single = useSingleTrack();
@@ -102,13 +105,20 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
   );
   const sources = useSources(bundle.sources, activeSourceOverrides, localMusicUrl);
 
+  // 列表页点播：把"选中的那一首"并进 pinned（播放器本来就有"角色 → 指定曲目"的机制），
+  // 于是 entry 的解析结果就是用户点的那一首；单曲模式的 pin 仍然生效，点播优先。
+  const pinnedWithRequest = useMemo(() => {
+    if (!entryRequest) return pinned;
+    return { ...pinned, [entryRequest.key]: entryRequest.entry };
+  }, [pinned, entryRequest]);
+
   const player = usePlayer({
     characters: bundle.characters,
     albums: bundle.albums,
     tables: sources.tables,
     sourceOrder: sources.order,
     preset: activePreset,
-    pinned,
+    pinned: pinnedWithRequest,
     mode: musicMode,
     // 对局听回合角色，平时听轮播队列
     currentKey: gameActive ? game.currentKey : queue.currentKey,
@@ -117,6 +127,21 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
     setCurrent: queue.setCurrent,
     step: (direction) => queue.step(direction, queue.order),
   });
+
+  // ---- 列表页点播：状态更新后 entry 才是新的一首，所以在 effect 里起播 ----
+  const [playRequestSeq, setPlayRequestSeq] = useState(0);
+  const playTrack = useCallback((key: string, entry: MusicEntry) => {
+    setEntryRequest({ key, entry });      // 让播放器解析到这一首
+    if (useQueue.getState().currentKey !== key) queue.setCurrent(key);
+    setPlayRequestSeq((value) => value + 1);
+  }, [queue, setEntryRequest]);
+
+  useEffect(() => {
+    if (playRequestSeq === 0) return;
+    player.playImmediate();
+    // 只在点播次数变化时触发；player 每次渲染都是新对象
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playRequestSeq]);
 
   // ---- 对局驱动播放：倒计时响铃、回合开始起播、停局/终局停下 ----
   const phase = gameActive ? game.state : "off";
@@ -232,7 +257,14 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
             musicMode={musicMode}
             />
           )}
-          {tab === "list" && <ListPanel bundle={bundle} />}
+          {tab === "list" && (
+            <ListPanel
+              bundle={bundle}
+              onPlayTrack={playTrack}
+              playingKey={gameActive ? game.currentKey : queue.currentKey}
+              playingEntry={player.entry}
+            />
+          )}
           {tab === "config" && (
             <ConfigPanel bundle={bundle} tables={sources.tables} musicMode={musicMode} />
           )}

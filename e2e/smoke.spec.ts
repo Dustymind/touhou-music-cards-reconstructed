@@ -1148,3 +1148,58 @@ test("播放页解析出音源（真实源表 + 远程 URL 写入 audio.src）",
   });
   expect(typeof src).toBe("string");
 });
+
+test("播放页：曲名在上略大、角色名在下略小（用户要求互换）", async ({ page }) => {
+  await page.goto("/?locale=zh");
+  await expect(page.getByTestId("now-title")).toBeVisible();
+  const metrics = await page.evaluate(() => {
+    const title = document.querySelector('[data-testid="now-title"]')!;
+    const character = document.querySelector('[data-testid="now-character"]')!;
+    const box = (el: Element) => {
+      const rect = el.getBoundingClientRect();
+      return {
+        top: Math.round(rect.top),
+        size: Number.parseFloat(getComputedStyle(el).fontSize),
+        weight: getComputedStyle(el).fontWeight,
+        color: getComputedStyle(el).color,
+      };
+    };
+    return { title: box(title), character: box(character) };
+  });
+  expect(metrics.title.top).toBeLessThan(metrics.character.top);        // 曲名在上
+  expect(metrics.title.size).toBeGreaterThan(metrics.character.size);   // 略大
+  expect(metrics.character.color).not.toBe(metrics.title.color);        // 角色名是次要色
+});
+
+test("列表页：点角色展开曲目（默认折叠），点曲目即播放并高亮", async ({ page }) => {
+  await page.goto("/?locale=zh");
+  await page.getByRole("tab", { name: "列表", exact: true }).click();
+  const row = page.locator('[data-testid^="list-row-"]').first();
+  await expect(row).toBeVisible();
+
+  const key = ((await row.getAttribute("data-testid")) ?? "").replace("list-row-", "");
+  // 默认折叠：曲目列表不存在（未挂载）
+  await expect(page.locator('[data-testid^="list-tracks-"]')).toHaveCount(0);
+
+  await row.click();
+  const tracks = page.locator(`[data-testid="list-tracks-${key}"] [data-testid^="list-track-"]`);
+  await expect(tracks.first()).toBeVisible();
+  expect(await tracks.count()).toBeGreaterThan(1);
+
+  // 点第三首 → 立刻播放（该行高亮），播放页显示的正是这一首
+  const third = tracks.nth(2);
+  const trackId = (await third.getAttribute("data-testid")) ?? "";
+  const trackTitle = ((await third.locator(".MuiTypography-body2").first().textContent()) ?? "").trim();
+  expect(trackTitle.length).toBeGreaterThan(0);
+  await third.click();
+  await expect(page.locator(`[data-testid="${trackId}"] .MuiSvgIcon-colorPrimary`)).toHaveCount(1);
+  await page.getByRole("tab", { name: "播放", exact: true }).click();
+  await expect(page.getByTestId("now-title")).toHaveText(trackTitle);
+  await page.getByRole("tab", { name: "列表", exact: true }).click();
+
+  // 再点行本身 → 收起（切回列表时面板重挂载、展开状态是默认的折叠态，所以点两次）
+  await row.click();                                   // 展开
+  await expect(page.locator(`[data-testid="list-tracks-${key}"]`)).toBeVisible();
+  await row.click();                                   // 收起
+  await expect(page.locator('[data-testid^="list-tracks-"]')).toHaveCount(0);
+});

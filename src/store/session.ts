@@ -7,6 +7,7 @@ import { create } from "zustand";
 
 import { defineStore, isRecord, pickBoolean, pickNumber, pickString } from "../persist";
 import { DEFAULT_MUSIC_MODE, MUSIC_MODES, type MusicMode } from "../music/mode";
+import type { MusicEntry } from "../data/types";
 import { getLocale, setLocale, type Locale } from "../i18n/localization";
 
 export const TAB_ORDER = ["player", "list", "config", "game"] as const;
@@ -24,6 +25,8 @@ interface SessionState {
   musicMode: MusicMode;
   localMusicUrl: string;
   sourceOverrides: Record<string, SourceOverride>;
+  /** 列表页点了某一首曲目 → 播放器改播这一首（**不落盘**：一次性的点播意图） */
+  entryRequest: { key: string; entry: MusicEntry } | null;
   setLocale: (locale: Locale) => void;
   setTab: (tab: TabId) => void;
   setCardCollection: (collection: string) => void;
@@ -31,6 +34,8 @@ interface SessionState {
   setMusicMode: (mode: MusicMode) => void;
   /** 本地曲库地址覆盖（设置页可填；`?localmusic=` 优先） */
   setLocalMusicUrl: (url: string) => void;
+  /** 列表页点播：指定角色 + 曲目（角色变了就换角色） */
+  setEntryRequest: (request: { key: string; entry: MusicEntry } | null) => void;
   /** 开关某个源：只改 enabled，**不动**它在回退顺序里的位置。 */
   toggleSource: (id: string, enabled: boolean, allIds: string[]) => void;
   /** 上移/下移：交换相邻两个源的位置，其它源（含"默认关闭"的）保持原状。 */
@@ -103,6 +108,7 @@ export const useSession = create<SessionState>((set, get) => ({
   // URL 参数优先于存档：方便同一份构建在"同源部署"和"本机 8011"之间切换
   localMusicUrl: localMusicUrlFromQuery() ?? initial.localMusicUrl,
   sourceOverrides: sourceStore.load(),
+  entryRequest: null,
 
   setLocale(locale) {
     setLocale(locale);
@@ -120,6 +126,9 @@ export const useSession = create<SessionState>((set, get) => ({
   setMusicMode(musicMode) {
     set({ musicMode });
     sessionStore.save({ ...pickSession(get()), musicMode });
+  },
+  setEntryRequest(entryRequest) {
+    set({ entryRequest });
   },
   setLocalMusicUrl(localMusicUrl) {
     set({ localMusicUrl });

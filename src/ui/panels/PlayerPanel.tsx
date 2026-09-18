@@ -82,10 +82,15 @@ function PlayerPanelInner(props: PlayerPanelProps) {
               : <CharacterCard cardSet={cardSet} file="" state="placeholder" sx={{ width: CURRENT_CARD_WIDTH }} />}
           </Box>
           <Stack spacing={1} sx={{ flex: 1, minWidth: 0 }}>
-            <Typography variant="h5" noWrap>{character?.name ?? "—"}</Typography>
+            {/* 用户要求：**曲名在上、略大**（h6 = 20sp），**角色名在下、略小**（body2 = 14sp，次要色） */}
             {player.entry ? (
               <>
-                <Typography variant="body1">{displayTitle(player.entry[1])}</Typography>
+                <Typography variant="h6" data-testid="now-title" sx={{ lineHeight: 1.3 }}>
+                  {displayTitle(player.entry[1])}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" data-testid="now-character">
+                  {character?.name ?? "—"}
+                </Typography>
                 {/* 只用 gap：Stack 的 spacing 是给子项加 margin，换行后新行首项会多出左边距（实测 196 vs 188） */}
                 <Stack direction="row" sx={{ flexWrap: "wrap", gap: 0.5 }}>
                   <Chip size="small" variant="outlined" label={player.entry[0]} />
@@ -94,9 +99,14 @@ function PlayerPanelInner(props: PlayerPanelProps) {
                 </Stack>
               </>
             ) : (
-              <Typography variant="body2" color="text.secondary">
-                {props.pin ? displayTitle(props.pin[1]) : "—"}
-              </Typography>
+              <>
+                <Typography variant="h6" data-testid="now-title" sx={{ lineHeight: 1.3 }}>
+                  {props.pin ? displayTitle(props.pin[1]) : "—"}
+                </Typography>
+                <Typography variant="body2" color="text.secondary" data-testid="now-character">
+                  {character?.name ?? "—"}
+                </Typography>
+              </>
             )}
             {player.error && <Alert severity="warning" sx={{ py: 0, ...fadeInSx }}>{player.error}</Alert>}
             <PlayerControl
