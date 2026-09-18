@@ -2623,6 +2623,37 @@ dev 用 200ms 是为了抓住"上千毫秒/近两百毫秒"这类回归，生产
 
 ---
 
+## D92 第二轮 commit 整理（播放器布局那一串）
+
+**需求**（用户）：完成后重新清理无用 commit，并适当压缩。
+
+**做法**（沿用 D85 那次的方法，机械且可验证）：备份 `backup/pre-squash-2` → 从基线 `b8d4ee7`
+重建 → 按**时间顺序**把功能相关的提交分组，每组取该组最后一个提交的树 + 写一条说明性 message ✓。
+
+**这一轮的 8 个提交 → 4 个**：
+
+| 新提交 | 内容 | 压缩自 |
+|---|---|---|
+| `a78726c` test: run the click task guard on its own | 性能守卫单独 project | 1 |
+| `8362ade` feat: centre the player card and size its cover from the card | 播放卡片居中 + 卡面尺寸（含重叠修复） | 4 |
+| `c7145de` fix: route the local library through the dev server | 音MAD 未启用（dev 代理） | 1 |
+| `e36710d` feat: one centred column for the player on every screen | 两端统一居中列（含用例改写） | 2 |
+
+**踩到的坑（记下来）**：第一遍分组把"音MAD 修复"排在"居中列"**之后** ✗ ——
+但按历史顺序 `a3d0661` 夹在两者之间 ✗，于是后面那组把前面的改动**覆盖回去了** ✗，
+`git diff backup HEAD` 立刻发现树不一致 ✓。**教训：`read-tree` 式压缩必须按时间顺序分组** ✓
+（每组取"该组最后一个提交的树"，跳跃分组会把别的改动回滚 ✗）。
+
+**验证**：最终树与备份**逐字节一致** ✓；`pnpm typecheck` ✓、`pnpm test` **209 passed** ✓、
+`pnpm e2e:chromium` **29 passed** / `pnpm e2e:mobile` **9 passed** ✓；
+`git push --force-with-lease origin main` → `+ 7e13a83...e36710d (forced update)` ✓。
+
+**顺带修掉两条过时用例**（新布局把卡片上的 tag 换成"作者/作品"一行之后它们失效 ✗）：
+"播放页解析出音源"改成断言"有曲名且无取不到告警" ✓；"曲名在上略大"去掉"角色名是次要色"的断言 ✓
+（角色名现在是 `subtitle2` 主色 ✓）。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |

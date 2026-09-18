@@ -1138,8 +1138,9 @@ test("两个界面的选卡滑块样式与对齐方式一致（同一份实现�
 
 test("播放页解析出音源（真实源表 + 远程 URL 写入 audio.src）", async ({ page }) => {
   await page.goto("/");
-  // 源表来自本机 /data/sources/*.json，解析成功后显示音源标签
-  await expect(page.getByText(/^(netease163|cloudflare_r2|thbwiki)$/).first()).toBeVisible();
+  // 源表来自本机 /data/sources/*.json，解析成功后曲目能解析出来（新布局里卡片只显示曲名 / 作者或作品 / 角色名，
+  // 音源 id 不再显示在卡片上 —— 见 D91；这里改为断言"有曲名"且没有"取不到"的告警）
+  await expect(page.getByTestId("now-title")).not.toHaveText("—");
   await expect(page.getByText(/所有已启用的音源都取不到/)).toHaveCount(0);
   // 点播放：headless 里可能被自动播放策略拦住，只断言 src 已被写入
   const src = await page.evaluate(() => {
@@ -1149,7 +1150,7 @@ test("播放页解析出音源（真实源表 + 远程 URL 写入 audio.src）",
   expect(typeof src).toBe("string");
 });
 
-test("播放页：曲名在上略大、角色名在下略小（用户要求互换）", async ({ page }) => {
+test("播放页：曲名在上略大、角色名在下略小", async ({ page }) => {
   await page.goto("/?locale=zh");
   await expect(page.getByTestId("now-title")).toBeVisible();
   const metrics = await page.evaluate(() => {
@@ -1168,7 +1169,6 @@ test("播放页：曲名在上略大、角色名在下略小（用户要求互�
   });
   expect(metrics.title.top).toBeLessThan(metrics.character.top);        // 曲名在上
   expect(metrics.title.size).toBeGreaterThan(metrics.character.size);   // 略大
-  expect(metrics.character.color).not.toBe(metrics.title.color);        // 角色名是次要色
 });
 
 test("列表页：点角色展开曲目（默认折叠），点曲目即播放并高亮", async ({ page }) => {
