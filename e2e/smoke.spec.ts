@@ -1203,3 +1203,51 @@ test("列表页：点角色展开曲目（默认折叠），点曲目即播放�
   await row.click();                                   // 收起
   await expect(page.locator('[data-testid^="list-tracks-"]')).toHaveCount(0);
 });
+
+test("播放控制：tag 下方自上而下「进度条 / 音量 / 播放控件」，行高与行距统一（用户要求）", async ({ page }) => {
+  await page.goto("/?locale=zh");
+  await expect(page.getByTestId("player-control")).toBeVisible();
+  const metrics = await page.evaluate(() => {
+    const box = (sel: string) => {
+      const el = document.querySelector(sel)!;
+      const rect = el.getBoundingClientRect();
+      return { top: Math.round(rect.top), bottom: Math.round(rect.bottom),
+        height: Math.round(rect.height), left: Math.round(rect.left),
+        width: Math.round(rect.width), right: Math.round(rect.right) };
+    };
+    const seek = box('[data-testid="player-row-seek"]');
+    const volume = box('[data-testid="player-row-volume"]');
+    const transport = box('[data-testid="player-row-transport"]');
+    // 对齐比较用的"行首元素"：进度条滑杆、音量减键、上一首键（都应与标题同一条左边缘）
+    return {
+      seek, volume, transport,
+      gaps: [volume.top - seek.bottom, transport.top - volume.bottom],
+      // 时间码在滑杆**两端**（用户要求），三行都以列首为起点
+      timeRight: box('[data-testid="playback-time"]').right,
+      sliderLeft: box('[data-testid="seek-slider"]').left,
+      sliderRight: box('[data-testid="seek-slider"]').right,
+      durationLeft: box('[data-testid="playback-duration"]').left,
+      rowLefts: [
+        box('[data-testid="player-row-seek"]').left,
+        box('[data-testid="volume-down"]').left,
+        box('[aria-label="previous"]').left,
+      ],
+      // 时间码左边缘要对齐音量键**图标**（24dp）的左边缘，而不是 48dp 判定区域
+      timeLeft: box('[data-testid="playback-time"]').left,
+      volumeIconLeft: Math.round(document.querySelector('[data-testid="volume-down"] .MuiSvgIcon-root')!
+        .getBoundingClientRect().left),
+    };
+  });
+  // 顺序：进度条 → 音量 → 播放控件（都在 tag 下方）
+  expect(metrics.seek.top).toBeLessThan(metrics.volume.top);
+  expect(metrics.volume.top).toBeLessThan(metrics.transport.top);
+  // 行距相等（8dp 栅格）：三行盒子高度一致，间距一致
+  expect(metrics.gaps[0]).toBe(metrics.gaps[1]);
+  // 时间码左边缘 = 音量键图标左边缘（用户要求对齐"看得见的图标"）
+  expect(metrics.timeLeft, "时间码未与音量键图标对齐").toBe(metrics.volumeIconLeft);
+  // 时间码在滑杆两端（左时间 ≤ 滑杆左 ≤ 滑杆右 ≤ 右时长）
+  expect(metrics.timeRight).toBeLessThanOrEqual(metrics.sliderLeft + 1);
+  expect(metrics.durationLeft).toBeGreaterThanOrEqual(metrics.sliderRight - 1);
+  // 三行同一起点（都从列首开始）
+  expect(new Set(metrics.rowLefts).size, `三行起点不一致：${JSON.stringify(metrics.rowLefts)}`).toBe(1);
+});

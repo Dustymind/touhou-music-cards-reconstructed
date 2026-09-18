@@ -20,7 +20,7 @@ import type { MusicMode } from "../../music/mode";
 import { fadeInSx, NoFontFamily } from "../../theme/theme";
 import { CharacterCard } from "../components/CharacterCard";
 import { glitchEnabled, preferLocalCards } from "../../runtime";
-import { PlayerControl } from "../components/PlayerControl";
+import { PlayerControl, TEXT_INSET_SX } from "../components/PlayerControl";
 
 /** 切歌时卡片滑入（上游轮播的 `transform 0.3s ease-in-out` 同长同缓动）。 */
 const slideIn = keyframes`
@@ -57,7 +57,12 @@ function PlayerPanelInner(props: PlayerPanelProps) {
   return (
     <Stack spacing={2} sx={{ width: "100%", fontFamily: NoFontFamily }}>
       <Card><CardContent>
-        <Stack direction="row" spacing={2} alignItems="flex-start">
+        <Stack
+          // 窄屏纵向堆叠：原来卡面与信息并排，信息列只剩 ~176dp，控制条与音量滑杆直接被挤出卡片
+          direction={{ xs: "column", sm: "row" }}
+          spacing={2}
+          sx={{ alignItems: "flex-start" }}
+        >
           <Box sx={{ flexShrink: 0 }}>
             {character
               ? (
@@ -81,7 +86,12 @@ function PlayerPanelInner(props: PlayerPanelProps) {
               )
               : <CharacterCard cardSet={cardSet} file="" state="placeholder" sx={{ width: CURRENT_CARD_WIDTH }} />}
           </Box>
-          <Stack spacing={1} sx={{ flex: 1, minWidth: 0 }}>
+          {/* 曲名 / 角色名 / tag 之间的行距按用户要求放大（8dp → 12dp） */}
+          <Stack spacing={1.5} sx={{ flex: 1, minWidth: 0 }}>
+            {/* 曲名在上略大、角色名在下略小；整块与进度条圆点左边缘同一条竖线（TEXT_INSET_SX）。
+                内缩只加在文字块上，控制条三行仍以列首为基准 —— 否则圆点中心对不上音量键中心 */}
+            {/* 这一层既是"缩进到圆点左边缘"，也是文字块自己的行距容器 */}
+            <Stack spacing={1.5} sx={TEXT_INSET_SX}>
             {/* 用户要求：**曲名在上、略大**（h6 = 20sp），**角色名在下、略小**（body2 = 14sp，次要色） */}
             {player.entry ? (
               <>
@@ -108,20 +118,26 @@ function PlayerPanelInner(props: PlayerPanelProps) {
                 </Typography>
               </>
             )}
+            </Stack>
             {player.error && <Alert severity="warning" sx={{ py: 0, ...fadeInSx }}>{player.error}</Alert>}
-            <PlayerControl
-              playing={player.playback === "playing" || player.playback === "countingDown"}
-              currentTime={player.currentTime}
-              duration={player.duration}
-              volume={player.volume}
-              disabled={!player.entry}
-              onPlay={player.play}
-              onPause={player.pause}
-              onPrevious={player.previous}
-              onNext={player.next}
-              onSeek={player.seek}
-              onVolume={player.setVolume}
-            />
+            {/* 控制条固定在 tag 下方，自上而下：进度条 → 音量 → 播放控件
+                （桌面左对齐、移动端居中；对齐由 PlayerControl 内部按断点处理） */}
+            {/* 间距交给父级 Stack 的 spacing（8dp），这里不再额外加 mt，保证与上方 chip 的间距一致 */}
+            <Box sx={{ width: "100%" }}>
+              <PlayerControl
+                playing={player.playback === "playing" || player.playback === "countingDown"}
+                currentTime={player.currentTime}
+                duration={player.duration}
+                volume={player.volume}
+                disabled={!player.entry}
+                onPlay={player.play}
+                onPause={player.pause}
+                onPrevious={player.previous}
+                onNext={player.next}
+                onSeek={player.seek}
+                onVolume={player.setVolume}
+              />
+            </Box>
           </Stack>
         </Stack>
       </CardContent></Card>

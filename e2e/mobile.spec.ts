@@ -86,23 +86,64 @@ test.describe("移动端布局", () => {
     expect(metrics.overlineHidden).toBe(true);     // 指纹在窄屏不占位
   });
 
-  test("播放控制：进度条与音量按钮都真的可见可点", async ({ page }) => {
+  test("播放控制：进度条、音量加减按键与常驻音量滑杆都可见可点", async ({ page }) => {
     await page.goto("/?locale=zh");
     const seek = page.getByTestId("seek-slider");
-    const volume = page.getByTestId("volume-toggle");
+    const volumeDown = page.getByTestId("volume-down");
+    const volumeUp = page.getByTestId("volume-up");
+    const volumeSlider = page.getByTestId("volume-slider");
     await expect(seek).toBeVisible();
-    await expect(volume).toBeVisible();
+    await expect(volumeDown).toBeVisible();
+    await expect(volumeUp).toBeVisible();
+    // 音量滑杆**常驻**（用户要求不要折叠）
+    await expect(volumeSlider).toBeVisible();
     const boxes = await page.evaluate(() => {
       // 量 Slider 根节点（aria-label 在内部 input 上，尺寸不是控件尺寸）
       const s = document.querySelector('[data-testid="seek-slider"]')!.getBoundingClientRect();
-      const v = document.querySelector('[data-testid="volume-toggle"]')!.getBoundingClientRect();
+      const v = document.querySelector('[data-testid="volume-up"]')!.getBoundingClientRect();
+      const slider = document.querySelector('[data-testid="volume-slider"]')!.getBoundingClientRect();
       return { seekWidth: Math.round(s.width), seekHeight: Math.round(s.height),
-        volumeWidth: Math.round(v.width), volumeHeight: Math.round(v.height) };
+        volumeWidth: Math.round(v.width), volumeHeight: Math.round(v.height),
+        volumeSliderWidth: Math.round(slider.width), volumeSliderTop: Math.round(slider.top) };
     });
-    expect(boxes.seekWidth).toBeGreaterThan(180);   // 整行进度条
+    // 长度上限照搬原版 clamp(0px, 40%, 300px)：窄屏是容器的 40%，绝不会超过 300
+    expect(boxes.seekWidth).toBeGreaterThan(90);
+    expect(boxes.seekWidth).toBeLessThanOrEqual(300);
     expect(boxes.seekHeight).toBeGreaterThanOrEqual(20);
     expect(boxes.volumeWidth).toBeGreaterThanOrEqual(40);   // 触摸目标
     expect(boxes.volumeHeight).toBeGreaterThanOrEqual(40);
+    expect(boxes.volumeSliderWidth).toBeGreaterThan(60);   // 常驻滑杆，窄屏也放得下
+  });
+
+  test("播放控制三行在移动端居中（行距/行高仍统一）", async ({ page }) => {
+    await page.goto("/?locale=zh");
+    await expect(page.getByTestId("player-control")).toBeVisible();
+    const info = await page.evaluate(() => {
+      const control = document.querySelector('[data-testid="player-control"]')!.getBoundingClientRect();
+      const mid = control.left + control.width / 2;
+      // 整行内容的中心 = 该行所有子元素并集的中心（子元素宽度不等，不能简单取两个中点平均）
+      const contentMid = (id: string) => {
+        const row = document.querySelector(`[data-testid="${id}"]`)!;
+        const rects = [...row.children].map((child) => child.getBoundingClientRect());
+        const left = Math.min(...rects.map((rect) => rect.left));
+        const right = Math.max(...rects.map((rect) => rect.right));
+        return (left + right) / 2;
+      };
+      const rows = ["player-row-seek", "player-row-volume", "player-row-transport"]
+        .map((id) => document.querySelector(`[data-testid="${id}"]`)!.getBoundingClientRect());
+      return {
+        centers: ["player-row-seek", "player-row-volume", "player-row-transport"].map(contentMid),
+        mid,
+        heights: rows.map((rect) => Math.round(rect.height)),
+        sliderWidth: Math.round(document.querySelector('[data-testid="seek-slider"]')!.getBoundingClientRect().width),
+        gaps: [Math.round(rows[1]!.top - rows[0]!.bottom), Math.round(rows[2]!.top - rows[1]!.bottom)],
+      };
+    });
+    for (const center of info.centers) expect(Math.abs(center - info.mid)).toBeLessThanOrEqual(6);
+    // 行距相等（8dp 栅格）
+    expect(info.gaps[0]).toBe(info.gaps[1]);
+    // 窄屏进度条与音量条等长（两条两侧占位相同 ⇒ 自动等长），且不被 40% 卡短、不超距
+    expect(info.sliderWidth).toBeGreaterThan(180);
   });
 
   test("触摸目标：图标按钮/页签/单选 ≥40px，文字按钮 ≥32px（MD2 small）", async ({ page }) => {
