@@ -115,6 +115,43 @@ test.describe("移动端布局", () => {
     expect(boxes.volumeSliderWidth).toBeGreaterThan(60);   // 常驻滑杆，窄屏也放得下
   });
 
+  test("播放页：窄屏只把卡面 / 曲名 / 角色名居中，tag 与控制条不动", async ({ page }) => {
+    await page.goto("/?locale=zh");
+    await expect(page.getByTestId("now-title")).toBeVisible();
+    const info = await page.evaluate(() => {
+      const mid = (sel: string) => {
+        const rect = document.querySelector(sel)!.getBoundingClientRect();
+        return { c: Math.round(rect.left + rect.width / 2), l: Math.round(rect.left) };
+      };
+      const content = document.querySelector('[data-testid="player-control"]')!
+        .closest(".MuiCardContent-root")!.getBoundingClientRect();
+      return {
+        card: Math.round(content.left + content.width / 2),
+        cover: mid('[data-testid="current-card"]'),
+        title: mid('[data-testid="now-title"]'),
+        character: mid('[data-testid="now-character"]'),
+        chipLeft: mid(".MuiChip-root").l,
+        titleLeft: mid('[data-testid="now-title"]').l,
+        titleAlign: getComputedStyle(document.querySelector('[data-testid="now-title"]')!).textAlign,
+      };
+    });
+    for (const [name, item] of [["卡面", info.cover], ["曲名", info.title], ["角色名", info.character]] as const) {
+      // 容差 8dp：卡片内容宽度是奇数时，居中的四舍五入 + 卡面动画的亚像素会差几像素
+      expect(Math.abs(item.c - info.card), `${name}未居中`).toBeLessThanOrEqual(8);
+    }
+    expect(info.titleAlign).toBe("center");
+    // tag **整块**在窄屏居中（块内仍左对齐、可换行）
+    const chips = await page.evaluate(() => {
+      // 量的是 tag 的**容器块**（宽度按内容收缩），不是各枚 chip 的并集 ——
+      // 块内多行仍是左对齐，用并集算中心会偏（用户要求："整块居中，块内正常换行左对齐"）
+      const block = document.querySelector('[data-testid="player-tags"]')!.getBoundingClientRect();
+      const content = document.querySelector('[data-testid="player-control"]')!
+        .closest(".MuiCardContent-root")!.getBoundingClientRect();
+      return { center: Math.round(block.left + block.width / 2), card: Math.round(content.left + content.width / 2) };
+    });
+    expect(Math.abs(chips.center - chips.card), "tag 整块未居中").toBeLessThanOrEqual(6);
+  });
+
   test("播放控制三行在移动端居中（行距/行高仍统一）", async ({ page }) => {
     await page.goto("/?locale=zh");
     await expect(page.getByTestId("player-control")).toBeVisible();

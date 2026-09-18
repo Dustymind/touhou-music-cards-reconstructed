@@ -33,7 +33,7 @@ const TIME_SX = {
 const BUTTON_CENTER = MD2.iconButton.size / 2;
 const THUMB_OVERHANG = 6;
 /** 文字列内缩（桌面端）：曲名/角色名/tag 与进度条圆点左边缘同一条竖线。 */
-export const TEXT_ALIGN_INSET = BUTTON_CENTER - THUMB_OVERHANG;
+export const TEXT_ALIGN_INSET = BUTTON_CENTER - THUMB_OVERHANG;   // 18：旧口径（圆点左边缘），保留给对齐说明
 
 /** 三行共用：**统一行高 48dp**（MD2 最小触控区）+ 统一对齐。
  *  行高统一后，行与行之间的间距才是真正一致的（否则 28dp 的进度条行与 48dp 的按钮行
@@ -46,9 +46,6 @@ const ROW_SX = {
   minHeight: MD2.iconButton.size,
 } as const;
 
-/** 文字列内缩（桌面端）：曲名/角色名/tag 与进度条圆点左边缘同一条竖线。 */
-export const TEXT_INSET_SX = { pl: { xs: 0, sm: `${TEXT_ALIGN_INSET}px` } } as const;
-
 /* ---- 两条滑杆"等长 + 对齐"的账（用户要求） ---------------------------------------------
  * 音量行 = [减键 48] [gap 4] [滑杆] [gap 4] [加键 48]   → 滑杆左右两侧共占 104dp
  * 进度行 = 左内缩 12 [已播 36] [gap 4] [滑杆] [gap 4] [总时长 48] → 也是 104dp ✓
@@ -60,6 +57,14 @@ const GAP = 4;
 const TIME_SLOT = 36;                                                    // "0:00"
 const DURATION_SLOT = MD2.iconButton.size;                               // 48 —— 与音量键同宽
 const SEEK_ROW_INSET_SX = { pl: `${ICON_INSET}px` } as const;
+
+/** 文字列内缩（桌面端）：曲名/角色名/tag 与进度条**已播时间码**的左边缘同一条竖线 ——
+ *  也就是与音量键图标左边缘同一条（两者都等于"图标在 48dp 按钮里的留白" 12dp）。 */
+export const TEXT_INSET_SX = { pl: { xs: 0, sm: `${ICON_INSET}px` } } as const;
+
+/** 进度条行的总跨度 = 两侧各 52dp（内缩 12 + 时间 36 + gap 4 / 时长 48 + gap 4）+ 滑杆上限 300dp。
+ *  播放控件行取同样的宽度并居中，按钮组的中心就与滑杆中线重合 ✓ */
+const SEEK_ROW_SPAN = 2 * (ICON_INSET + TIME_SLOT + GAP) + 300;
 const SLIDER_SX = { flex: "1 1 auto", maxWidth: 300, minWidth: 0, display: "flex", alignItems: "center" } as const;
 /** 行间距：与卡片里其它间距一样取 MD2 8dp 栅格。
  *  （曾经给进度条行补过 4dp 下内边距做"视觉等距"，用户要求撤回 —— 见 D79。） */
@@ -168,8 +173,20 @@ export function PlayerControl(props: PlayerControlProps) {
         </IconButton>
       </Stack>
 
-      {/* 第三行：播放控件 */}
-      <Stack direction="row" data-testid="player-row-transport" sx={{ ...ROW_SX, gap: 1 }}>
+      {/* 第三行：播放控件 —— 桌面上与两条滑杆的中线对齐（滑杆两侧各占 52dp：48 键 + 4 gap，
+          所以这里左右各让开 52dp 再做水平居中，按钮组的中心就落在滑杆中线上） */}
+      <Stack
+        direction="row"
+        data-testid="player-row-transport"
+        sx={{
+          ...ROW_SX,
+          gap: 1,
+          justifyContent: "center",
+          // 与"滑杆 + 两侧各 52dp"同宽并居中：这样按钮组的中心正好落在滑杆中线上
+          maxWidth: { sm: SEEK_ROW_SPAN },
+          mx: { sm: "auto" },
+        }}
+      >
         <IconButton sx={ICON_BUTTON_SX} onClick={props.onPrevious} disabled={disabled} aria-label="previous">
           <SkipPrevious />
         </IconButton>

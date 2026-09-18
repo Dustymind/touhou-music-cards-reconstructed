@@ -6,6 +6,7 @@
  * - 当前角色的多张卡面**叠放**（上游 `CharacterCardStacked`）；
  * - 切歌时整块卡面滑入（上游是整条 `translateX` 轮播，这里用同长的 0.3s 滑入动画，见 DECISIONS D21）。
  */
+import { useEffect, useRef, useState } from "react";
 import { memo } from "react";
 import { Alert, Box, Button, Card, CardContent, Chip, Divider, Stack, Switch, TextField, Typography } from "@mui/material";
 import { keyframes } from "@emotion/react";
@@ -17,7 +18,7 @@ import { Localization, t } from "../../i18n/localization";
 import type { PlayerApi } from "../../audio/usePlayer";
 import type { TableMap } from "../../music/sources";
 import type { MusicMode } from "../../music/mode";
-import { fadeInSx, NoFontFamily } from "../../theme/theme";
+import { CardAspectRatio, fadeInSx, NoFontFamily } from "../../theme/theme";
 import { CharacterCard } from "../components/CharacterCard";
 import { glitchEnabled, preferLocalCards } from "../../runtime";
 import { PlayerControl, TEXT_INSET_SX } from "../components/PlayerControl";
@@ -49,21 +50,45 @@ interface PlayerPanelProps {
 /** 当前卡面的宽度（上游按容器百分比，这里给像素值）。 */
 const CURRENT_CARD_WIDTH = 140;
 
+/** 桌面播放卡片的阅读宽度上限：整块居中时这一列不再被卡片撑满（tag / 控制条都在这个宽度内）。 */
+const PLAYER_READING_WIDTH = 640;
+
 function PlayerPanelInner(props: PlayerPanelProps) {
   const { bundle, player, order, temporaryDisabled, currentKey } = props;
   const cardSet = bundle.cardSets.find((set) => set.id === props.cardCollection) ?? bundle.cardSets[0]!;
   const character = bundle.characters.find((item) => item.key === currentKey) ?? null;
 
+  // 桌面卡面宽度 = 信息列高度 × 卡面比例：用 ResizeObserver 跟随内容高度（CSS 里做不成 —— 
+  // `align-self: stretch` + `aspect-ratio` 在 flex 行里会退化成 0 宽，卡面会压在右边文字上）
+  const headRef = useRef<HTMLDivElement | null>(null);
+  const [coverWidth, setCoverWidth] = useState(CURRENT_CARD_WIDTH);
+  useEffect(() => {
+    const element = headRef.current;
+    if (!element || typeof ResizeObserver === "undefined") return undefined;
+    const observer = new ResizeObserver(() => {
+      const height = element.getBoundingClientRect().height;
+      setCoverWidth(Math.max(120, Math.min(280, Math.round(height * CardAspectRatio))));
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <Stack spacing={2} sx={{ width: "100%", fontFamily: NoFontFamily }}>
       <Card><CardContent>
         <Stack
+          data-testid="player-head"
           // 窄屏纵向堆叠：原来卡面与信息并排，信息列只剩 ~176dp，控制条与音量滑杆直接被挤出卡片
           direction={{ xs: "column", sm: "row" }}
           spacing={2}
-          sx={{ alignItems: "flex-start" }}
+          sx={{
+            // 用户要求：桌面**整块居中**（相对位置不变 —— 只是把这一组按自身宽度摆到卡片中间）
+            // 桌面用 stretch：卡面的高度 = 右侧（曲名/角色名/tag/进度条/音量条/控件）累加高度
+            alignItems: { xs: "center", sm: "stretch" },
+            justifyContent: { xs: "center", sm: "center" },
+          }}
         >
-          <Box sx={{ flexShrink: 0 }}>
+          <Box sx={{ flexShrink: 0, alignSelf: { xs: "center", sm: "flex-start" } }}>
             {character
               ? (
                 // 只显示这个角色的第一张卡面（上游是叠放多张；用户要求卡牌区块不重合，其余在牌堆里看）
@@ -71,7 +96,9 @@ function PlayerPanelInner(props: PlayerPanelProps) {
                   key={currentKey}
                   data-testid="current-card"
                   sx={{
-                    width: CURRENT_CARD_WIDTH,
+                    // 桌面：宽度由 ResizeObserver 按信息列高度换算（高度 × 卡面比例 = 宽度），
+                    // 于是卡面高度正好等于右侧累加高度，且宽度是**真实占位**（不会压到右边文字上）
+                    width: { xs: CURRENT_CARD_WIDTH, sm: coverWidth },
                     animation: `${slideIn} 0.3s ease-in-out`,
                   }}
                 >
@@ -80,14 +107,28 @@ function PlayerPanelInner(props: PlayerPanelProps) {
                     file={character.card[0]!}
                     glitch={glitchEnabled()}
                     preferLocal={preferLocalCards()}
+                    sx={{ width: "100%", height: { sm: "100%" } }}
                     data-testid="current-card-image"
                   />
                 </Box>
               )
-              : <CharacterCard cardSet={cardSet} file="" state="placeholder" sx={{ width: CURRENT_CARD_WIDTH }} />}
+              : (
+                <CharacterCard
+                  cardSet={cardSet}
+                  file=""
+                  state="placeholder"
+                  sx={{ width: { xs: CURRENT_CARD_WIDTH, sm: coverWidth } }}
+                />
+              )}
           </Box>
-          {/* 曲名 / 角色名 / tag 之间的行距按用户要求放大（8dp → 12dp） */}
-          <Stack spacing={1.5} sx={{ flex: 1, minWidth: 0 }}>
+          {/* 曲名 / 角色名 / tag 之间的行距按用户要求放大（8dp → 12dp）。
+              桌面给一个阅读宽度上限：否则这一列会把卡片撑满，"居中"看不出来 */}
+          <Stack
+            ref={headRef}
+            spacing={1.5}
+            sx={{ flex: { xs: 1, sm: "0 1 auto" }, width: { xs: "100%", sm: "auto" },
+              minWidth: 0, maxWidth: { sm: PLAYER_READING_WIDTH } }}
+          >
             {/* 曲名在上略大、角色名在下略小；整块与进度条圆点左边缘同一条竖线（TEXT_INSET_SX）。
                 内缩只加在文字块上，控制条三行仍以列首为基准 —— 否则圆点中心对不上音量键中心 */}
             {/* 这一层既是"缩进到圆点左边缘"，也是文字块自己的行距容器 */}
@@ -95,14 +136,35 @@ function PlayerPanelInner(props: PlayerPanelProps) {
             {/* 用户要求：**曲名在上、略大**（h6 = 20sp），**角色名在下、略小**（body2 = 14sp，次要色） */}
             {player.entry ? (
               <>
-                <Typography variant="h6" data-testid="now-title" sx={{ lineHeight: 1.3 }}>
+                <Typography
+                  variant="h6"
+                  data-testid="now-title"
+                  sx={{ lineHeight: 1.3, textAlign: { xs: "center", sm: "left" } }}
+                >
                   {displayTitle(player.entry[1])}
                 </Typography>
-                <Typography variant="body2" color="text.secondary" data-testid="now-character">
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  data-testid="now-character"
+                  sx={{ textAlign: { xs: "center", sm: "left" } }}
+                >
                   {character?.name ?? "—"}
                 </Typography>
                 {/* 只用 gap：Stack 的 spacing 是给子项加 margin，换行后新行首项会多出左边距（实测 196 vs 188） */}
-                <Stack direction="row" sx={{ flexWrap: "wrap", gap: 0.5 }}>
+                <Stack
+                  direction="row"
+                  data-testid="player-tags"
+                  sx={{
+                    flexWrap: "wrap",
+                    gap: 0.5,
+                    // 窄屏：整块 tag 居中（宽度按内容收缩 + 左右自动外边距）；
+                    // **块内**仍是正常换行 + 左对齐（不用 justifyContent: center —— 那会把每一行都居中 ✗）
+                    width: "fit-content",
+                    maxWidth: "100%",
+                    mx: { xs: "auto", sm: 0 },
+                  }}
+                >
                   <Chip size="small" variant="outlined" label={player.entry[0]} />
                   <Chip size="small" label={player.entry[2]} />
                   {player.sourceId && <Chip size="small" color="primary" label={player.sourceId} />}
@@ -110,10 +172,19 @@ function PlayerPanelInner(props: PlayerPanelProps) {
               </>
             ) : (
               <>
-                <Typography variant="h6" data-testid="now-title" sx={{ lineHeight: 1.3 }}>
+                <Typography
+                  variant="h6"
+                  data-testid="now-title"
+                  sx={{ lineHeight: 1.3, textAlign: { xs: "center", sm: "left" } }}
+                >
                   {props.pin ? displayTitle(props.pin[1]) : "—"}
                 </Typography>
-                <Typography variant="body2" color="text.secondary" data-testid="now-character">
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  data-testid="now-character"
+                  sx={{ textAlign: { xs: "center", sm: "left" } }}
+                >
                   {character?.name ?? "—"}
                 </Typography>
               </>

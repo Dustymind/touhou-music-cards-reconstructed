@@ -1227,11 +1227,17 @@ test("播放控制：tag 下方自上而下「进度条 / 音量 / 播放控件�
       sliderLeft: box('[data-testid="seek-slider"]').left,
       sliderRight: box('[data-testid="seek-slider"]').right,
       durationLeft: box('[data-testid="playback-duration"]').left,
+      // 进度条行与音量行同一起点；播放控件行**居中于滑杆中线**（用户 2026-09-18 要求）
       rowLefts: [
         box('[data-testid="player-row-seek"]').left,
         box('[data-testid="volume-down"]').left,
-        box('[aria-label="previous"]').left,
       ],
+      barCenter: Math.round((box('[data-testid="seek-slider"]').left + box('[data-testid="seek-slider"]').right) / 2),
+      transportCenter: (() => {
+        const buttons = [...document.querySelectorAll('[data-testid="player-row-transport"] button')]
+          .map((el) => el.getBoundingClientRect());
+        return Math.round((buttons[0]!.left + buttons[buttons.length - 1]!.right) / 2);
+      })(),
       // 时间码左边缘要对齐音量键**图标**（24dp）的左边缘，而不是 48dp 判定区域
       timeLeft: box('[data-testid="playback-time"]').left,
       volumeIconLeft: Math.round(document.querySelector('[data-testid="volume-down"] .MuiSvgIcon-root')!
@@ -1243,11 +1249,44 @@ test("播放控制：tag 下方自上而下「进度条 / 音量 / 播放控件�
   expect(metrics.volume.top).toBeLessThan(metrics.transport.top);
   // 行距相等（8dp 栅格）：三行盒子高度一致，间距一致
   expect(metrics.gaps[0]).toBe(metrics.gaps[1]);
+  // 桌面：整块（卡面 + 信息列）在卡片里居中，而内部相对位置不变（tag 仍与曲名同一条左边缘）
+  const centering = await page.evaluate(() => {
+    const box = (sel: string) => document.querySelector(sel)!.getBoundingClientRect();
+    // 卡片内容区的中心（PlayerControl 在信息列里，不能用它的中心当卡片中心）
+    const content = document.querySelector('[data-testid="player-control"]')!
+      .closest(".MuiCardContent-root")!.getBoundingClientRect();
+    const card = content.left + content.width / 2;
+    // 整块 = 卡面 + 信息列（这一层的容器），它的中心应当等于卡片内容的中心
+    const head = box('[data-testid="player-head"]');
+    const title = box('[data-testid="now-title"]');
+    const chip = document.querySelector(".MuiChip-root")!.getBoundingClientRect();
+    return {
+      card: Math.round(card),
+      group: Math.round(head.left + head.width / 2),
+      titleLeft: Math.round(title.left),
+      chipLeft: Math.round(chip.left),
+    };
+  });
+  expect(Math.abs(centering.group - centering.card), "整块未居中").toBeLessThanOrEqual(2);
+  // 曲名 / 角色名 / tag / 已播时间码 同一条左边缘（用户 2026-09-18 要求）
+  const leftEdges = await page.evaluate(() => {
+    const left = (sel: string) => Math.round(document.querySelector(sel)!.getBoundingClientRect().left);
+    return {
+      title: left('[data-testid="now-title"]'),
+      character: left('[data-testid="now-character"]'),
+      chip: Math.round(document.querySelector(".MuiChip-root")!.getBoundingClientRect().left),
+      time: left('[data-testid="playback-time"]'),
+    };
+  });
+  expect(new Set(Object.values(leftEdges)).size,
+    `四项左边缘不一致：${JSON.stringify(leftEdges)}`).toBe(1);
+  expect(Math.abs(centering.chipLeft - centering.titleLeft), "tag 与曲名未左对齐").toBeLessThanOrEqual(2);
   // 时间码左边缘 = 音量键图标左边缘（用户要求对齐"看得见的图标"）
   expect(metrics.timeLeft, "时间码未与音量键图标对齐").toBe(metrics.volumeIconLeft);
   // 时间码在滑杆两端（左时间 ≤ 滑杆左 ≤ 滑杆右 ≤ 右时长）
   expect(metrics.timeRight).toBeLessThanOrEqual(metrics.sliderLeft + 1);
   expect(metrics.durationLeft).toBeGreaterThanOrEqual(metrics.sliderRight - 1);
-  // 三行同一起点（都从列首开始）
-  expect(new Set(metrics.rowLefts).size, `三行起点不一致：${JSON.stringify(metrics.rowLefts)}`).toBe(1);
+  // 进度条行与音量行同一起点；播放控件行居中于滑杆中线
+  expect(new Set(metrics.rowLefts).size, `两行起点不一致：${JSON.stringify(metrics.rowLefts)}`).toBe(1);
+  expect(Math.abs(metrics.transportCenter - metrics.barCenter), "播放控件未与滑杆中线对齐").toBeLessThanOrEqual(2);
 });
