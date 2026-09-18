@@ -40,7 +40,8 @@ export const TEXT_ALIGN_INSET = BUTTON_CENTER - THUMB_OVERHANG;   // 18：旧口
  *  视觉间隔会差一倍，"行间距不统一"）。 */
 const ROW_SX = {
   alignItems: "center",
-  justifyContent: { xs: "center", sm: "flex-start" },
+  // 用户要求：两端统一、全部居中（原桌面左对齐口径已作废）
+  justifyContent: "center",
   width: "100%",
   minWidth: 0,
   minHeight: MD2.iconButton.size,
@@ -54,9 +55,10 @@ const ROW_SX = {
  * 两侧占位相同 ⇒ 两条滑杆的宽度与左右边缘**自动一致** ✓（宽度再由 flex 上限 300dp 截断）。 */
 const ICON_INSET = (MD2.iconButton.size - MD2.iconButton.icon) / 2;      // 12
 const GAP = 4;
-const TIME_SLOT = 36;                                                    // "0:00"
+// 时间码槽宽与音量键同宽（48dp）：两条行"滑杆两侧占位"才完全相等 → 两条滑杆等长且同中心 ✓
+const TIME_SLOT = MD2.iconButton.size;
 const DURATION_SLOT = MD2.iconButton.size;                               // 48 —— 与音量键同宽
-const SEEK_ROW_INSET_SX = { pl: `${ICON_INSET}px` } as const;
+
 
 /** 文字列内缩（桌面端）：曲名/角色名/tag 与进度条**已播时间码**的左边缘同一条竖线 ——
  *  也就是与音量键图标左边缘同一条（两者都等于"图标在 48dp 按钮里的留白" 12dp）。 */
@@ -102,7 +104,7 @@ export function PlayerControl(props: PlayerControlProps) {
     <Stack spacing={ROW_GAP} sx={{ width: "100%" }} data-testid="player-control">
       {/* 第一行：进度条 —— **时间码放在滑杆两端**（用户要求），滑杆吃掉中间剩下的宽度。
           窄屏靠 flex 收缩（`minWidth: 0`）保证不超距；桌面仍以列首为起点，与下面两行对齐。 */}
-      <Stack direction="row" data-testid="player-row-seek" sx={{ ...ROW_SX, gap: `${GAP}px`, ...SEEK_ROW_INSET_SX }}>
+      <Stack direction="row" data-testid="player-row-seek" sx={{ ...ROW_SX, gap: `${GAP}px` }}>
         <Typography
           variant="caption"
           sx={{ ...TIME_SX, width: TIME_SLOT }}
@@ -181,10 +183,9 @@ export function PlayerControl(props: PlayerControlProps) {
         sx={{
           ...ROW_SX,
           gap: 1,
-          justifyContent: "center",
-          // 与"滑杆 + 两侧各 52dp"同宽并居中：这样按钮组的中心正好落在滑杆中线上
-          maxWidth: { sm: SEEK_ROW_SPAN },
-          mx: { sm: "auto" },
+          // 整行居中：与进度条行同宽同中心（滑杆两侧占位一致 ⇒ 两条滑杆等长 ✓）
+          maxWidth: SEEK_ROW_SPAN,
+          mx: "auto",
         }}
       >
         <IconButton sx={ICON_BUTTON_SX} onClick={props.onPrevious} disabled={disabled} aria-label="previous">

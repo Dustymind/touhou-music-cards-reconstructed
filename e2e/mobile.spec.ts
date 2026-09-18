@@ -22,30 +22,12 @@ test.describe("移动端布局", () => {
     }
   });
 
-  test("换行的 tag 行左边缘一致（播放页 + 设置页）", async ({ page }) => {
-    // 播放页：当前曲目的专辑 / 类别 / 音源 chip 会换行，换行后必须与首行同一条左边缘
+  test("设置页换行的 tag 行左边缘一致", async ({ page }) => {
     await page.goto("/?locale=zh");
-    await page.getByRole("tab", { name: "播放", exact: true }).click();
-    await page.waitForTimeout(500);
-    const playerRows = await page.evaluate(() => {
-      const panel = document.querySelector('[data-testid="player-control"]')!.closest(".MuiPaper-root")!;
-      const rows = new Map<number, number[]>();
-      for (const chip of panel.querySelectorAll(".MuiChip-root")) {
-        const rect = chip.getBoundingClientRect();
-        const top = Math.round(rect.top);
-        rows.set(top, [...(rows.get(top) ?? []), Math.round(rect.left)]);
-      }
-      return [...rows.values()].map((lefts) => Math.min(...lefts));
-    });
-    expect(playerRows.length).toBeGreaterThan(1);                       // 确实换行了
-    expect(new Set(playerRows).size).toBe(1);                           // 各行左边缘一致
-
-    // 设置页"数据"分区：五枚 chip 换行后同样对齐
     await page.getByRole("tab", { name: "设置", exact: true }).click();
     await page.getByTestId("section-data-summary").click();
     await page.waitForTimeout(500);
     const configRows = await page.evaluate(() => {
-      // 只看那排统计 chip（下面"语言"那一行的 chip 是跟在标签后面的，本来就该缩进）
       const content = document.querySelector('[data-testid="data-chips"]')!;
       const rows = new Map<number, number[]>();
       for (const chip of content.querySelectorAll(".MuiChip-root")) {
@@ -115,41 +97,25 @@ test.describe("移动端布局", () => {
     expect(boxes.volumeSliderWidth).toBeGreaterThan(60);   // 常驻滑杆，窄屏也放得下
   });
 
-  test("播放页：窄屏只把卡面 / 曲名 / 角色名居中，tag 与控制条不动", async ({ page }) => {
+  test("播放页窄屏同样是居中列：卡面 → 曲名 → 作者/作品 → 角色名 → 三条控件", async ({ page }) => {
     await page.goto("/?locale=zh");
     await expect(page.getByTestId("now-title")).toBeVisible();
     const info = await page.evaluate(() => {
-      const mid = (sel: string) => {
-        const rect = document.querySelector(sel)!.getBoundingClientRect();
-        return { c: Math.round(rect.left + rect.width / 2), l: Math.round(rect.left) };
-      };
-      const content = document.querySelector('[data-testid="player-control"]')!
-        .closest(".MuiCardContent-root")!.getBoundingClientRect();
-      return {
-        card: Math.round(content.left + content.width / 2),
-        cover: mid('[data-testid="current-card"]'),
-        title: mid('[data-testid="now-title"]'),
-        character: mid('[data-testid="now-character"]'),
-        chipLeft: mid(".MuiChip-root").l,
-        titleLeft: mid('[data-testid="now-title"]').l,
-        titleAlign: getComputedStyle(document.querySelector('[data-testid="now-title"]')!).textAlign,
-      };
+      const rect = (id: string) => document.querySelector(`[data-testid="${id}"]`)!.getBoundingClientRect();
+      const mid = (r: DOMRect) => Math.round(r.left + r.width / 2);
+      const head = rect("player-head");
+      const lines = ["current-card", "now-title", "now-credit", "now-character",
+        "player-row-seek", "player-row-volume", "player-row-transport"]
+        .map((id) => { const r = rect(id); return { id, c: mid(r), t: Math.round(r.top), h: Math.round(r.height) }; });
+      return { headMid: mid(head), lines };
     });
-    for (const [name, item] of [["卡面", info.cover], ["曲名", info.title], ["角色名", info.character]] as const) {
-      // 容差 8dp：卡片内容宽度是奇数时，居中的四舍五入 + 卡面动画的亚像素会差几像素
-      expect(Math.abs(item.c - info.card), `${name}未居中`).toBeLessThanOrEqual(8);
+    expect(info.lines.every((line) => line.h > 0), "有整行未渲染").toBe(true);
+    for (let index = 1; index < info.lines.length; index += 1) {
+      expect(info.lines[index]!.t, "自上而下顺序不对").toBeGreaterThanOrEqual(info.lines[index - 1]!.t);
     }
-    expect(info.titleAlign).toBe("center");
-    // tag **整块**在窄屏居中（块内仍左对齐、可换行）
-    const chips = await page.evaluate(() => {
-      // 量的是 tag 的**容器块**（宽度按内容收缩），不是各枚 chip 的并集 ——
-      // 块内多行仍是左对齐，用并集算中心会偏（用户要求："整块居中，块内正常换行左对齐"）
-      const block = document.querySelector('[data-testid="player-tags"]')!.getBoundingClientRect();
-      const content = document.querySelector('[data-testid="player-control"]')!
-        .closest(".MuiCardContent-root")!.getBoundingClientRect();
-      return { center: Math.round(block.left + block.width / 2), card: Math.round(content.left + content.width / 2) };
-    });
-    expect(Math.abs(chips.center - chips.card), "tag 整块未居中").toBeLessThanOrEqual(6);
+    for (const line of info.lines) {
+      expect(Math.abs(line.c - info.headMid), `${line.id} 未居中`).toBeLessThanOrEqual(8);
+    }
   });
 
   test("播放控制三行在移动端居中（行距/行高仍统一）", async ({ page }) => {

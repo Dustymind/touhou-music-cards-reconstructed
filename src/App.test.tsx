@@ -57,7 +57,9 @@ describe("App 冒烟（真实数据）", () => {
     expect(text).toContain(aliceLabel(false));
     // 播放页默认显示 order #1 的角色（霧雨魔理沙），曲目显示名已去掉序号
     expect(text).toContain("霧雨魔理沙");
-    expect(text).toContain("netease163");
+    // 播放卡片按新规格（D91）只显示：曲名 / 作者或作品 / 角色名 —— 音源 id 不再出现在卡片上，
+    // 但"解析出来的曲目来自网易云"这件事仍由本地曲库/数据指纹一并覆盖
+    expect(text).toContain("Touhou Music Cards");
     expect(text).not.toContain("所有已启用的音源都取不到");
     expect(text).toContain("121 in rotation");
   });

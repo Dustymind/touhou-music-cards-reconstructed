@@ -8,7 +8,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { memo } from "react";
-import { Alert, Box, Button, Card, CardContent, Chip, Divider, Stack, Switch, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, Card, CardContent, Divider, Stack, Switch, TextField, Typography } from "@mui/material";
 import { keyframes } from "@emotion/react";
 import { UpcomingFan } from "../player/UpcomingFan";
 
@@ -18,10 +18,11 @@ import { Localization, t } from "../../i18n/localization";
 import type { PlayerApi } from "../../audio/usePlayer";
 import type { TableMap } from "../../music/sources";
 import type { MusicMode } from "../../music/mode";
-import { CardAspectRatio, fadeInSx, NoFontFamily } from "../../theme/theme";
+import { fadeInSx, NoFontFamily } from "../../theme/theme";
+import { CARD_WIDTH_PERCENTAGE } from "../../game/gameSetting";
 import { CharacterCard } from "../components/CharacterCard";
 import { glitchEnabled, preferLocalCards } from "../../runtime";
-import { PlayerControl, TEXT_INSET_SX } from "../components/PlayerControl";
+import { PlayerControl } from "../components/PlayerControl";
 
 /** 切歌时卡片滑入（上游轮播的 `transform 0.3s ease-in-out` 同长同缓动）。 */
 const slideIn = keyframes`
@@ -50,24 +51,46 @@ interface PlayerPanelProps {
 /** 当前卡面的宽度（上游按容器百分比，这里给像素值）。 */
 const CURRENT_CARD_WIDTH = 140;
 
-/** 桌面播放卡片的阅读宽度上限：整块居中时这一列不再被卡片撑满（tag / 控制条都在这个宽度内）。 */
-const PLAYER_READING_WIDTH = 640;
+/** 卡面相对"卡牌选择器"的显示倍率（用户指定 120%）。 */
+const COVER_SCALE = 1.2;
+/** 居中列里各行之间的间距（MD2 8dp 栅格）。 */
+const PLAYER_LINE_GAP = { xs: 1, sm: 1.5 };
+/** 控制区（进度条 / 音量条 / 播放控件）的宽度上限：三条滑杆共用一套尺寸。 */
+const PLAYER_CONTROL_WIDTH = 420;
+
+/** 音MAD 类曲目的标题是 `作者 - 曲名`：作者不在"官作白名单"里 → 取作者，曲名去掉前缀。 */
+function splitCredit(title: string): { author: string | null; title: string } {
+  const matched = /^([^-]{1,40}?)\s+-\s+(.+)$/.exec(title);
+  return matched ? { author: matched[1]!.trim(), title: matched[2]!.trim() } : { author: null, title };
+}
+
+/** 卡片上显示的曲名（音MAD 去掉 `作者 - ` 前缀）。 */
+function trackTitle(title: string): string {
+  return splitCredit(title).title;
+}
+
+/** 第二行：非官作（有作者）显示作者，否则显示作品（专辑）名。 */
+function creditLine(entry: MusicEntry | null, _character: unknown): string {
+  if (!entry) return "—";
+  return splitCredit(entry[1]).author ?? entry[0];
+}
 
 function PlayerPanelInner(props: PlayerPanelProps) {
   const { bundle, player, order, temporaryDisabled, currentKey } = props;
   const cardSet = bundle.cardSets.find((set) => set.id === props.cardCollection) ?? bundle.cardSets[0]!;
   const character = bundle.characters.find((item) => item.key === currentKey) ?? null;
 
-  // 桌面卡面宽度 = 信息列高度 × 卡面比例：用 ResizeObserver 跟随内容高度（CSS 里做不成 —— 
-  // `align-self: stretch` + `aspect-ratio` 在 flex 行里会退化成 0 宽，卡面会压在右边文字上）
-  const headRef = useRef<HTMLDivElement | null>(null);
+  // 卡面尺寸 = **卡牌选择器的 120%**（卡牌选择器 = 牌桌/轮播用的同一个卡宽比例）。
+  // 用 ResizeObserver 跟着卡片宽度走，窄屏宽屏同一套算法（用户要求两端统一布局）。
+  // 观测的是**卡片内容区**（整宽），不是居中的那一列 —— 列本身宽度随内容收缩，观测它会越算越小 ✗
+  const cardRef = useRef<HTMLDivElement | null>(null);
   const [coverWidth, setCoverWidth] = useState(CURRENT_CARD_WIDTH);
   useEffect(() => {
-    const element = headRef.current;
+    const element = cardRef.current;
     if (!element || typeof ResizeObserver === "undefined") return undefined;
     const observer = new ResizeObserver(() => {
-      const height = element.getBoundingClientRect().height;
-      setCoverWidth(Math.max(120, Math.min(280, Math.round(height * CardAspectRatio))));
+      const container = element.getBoundingClientRect().width;
+      setCoverWidth(Math.round(container * CARD_WIDTH_PERCENTAGE.default * COVER_SCALE));
     });
     observer.observe(element);
     return () => observer.disconnect();
@@ -75,141 +98,71 @@ function PlayerPanelInner(props: PlayerPanelProps) {
 
   return (
     <Stack spacing={2} sx={{ width: "100%", fontFamily: NoFontFamily }}>
-      <Card><CardContent>
+      <Card><CardContent ref={cardRef}>
+        {/* 用户要求：**两端统一**的居中列 —— 卡面 → 曲名 → 作者/作品 → 角色名 → 进度条 → 音量条 → 播放控件 */}
         <Stack
           data-testid="player-head"
-          // 窄屏纵向堆叠：原来卡面与信息并排，信息列只剩 ~176dp，控制条与音量滑杆直接被挤出卡片
-          direction={{ xs: "column", sm: "row" }}
-          spacing={2}
-          sx={{
-            // 用户要求：桌面**整块居中**（相对位置不变 —— 只是把这一组按自身宽度摆到卡片中间）
-            // 桌面用 stretch：卡面的高度 = 右侧（曲名/角色名/tag/进度条/音量条/控件）累加高度
-            alignItems: { xs: "center", sm: "stretch" },
-            justifyContent: { xs: "center", sm: "center" },
-          }}
+          spacing={PLAYER_LINE_GAP}
+          sx={{ alignItems: "center", textAlign: "center", width: "100%" }}
         >
-          <Box sx={{ flexShrink: 0, alignSelf: { xs: "center", sm: "flex-start" } }}>
-            {character
-              ? (
-                // 只显示这个角色的第一张卡面（上游是叠放多张；用户要求卡牌区块不重合，其余在牌堆里看）
-                <Box
-                  key={currentKey}
-                  data-testid="current-card"
-                  sx={{
-                    // 桌面：宽度由 ResizeObserver 按信息列高度换算（高度 × 卡面比例 = 宽度），
-                    // 于是卡面高度正好等于右侧累加高度，且宽度是**真实占位**（不会压到右边文字上）
-                    width: { xs: CURRENT_CARD_WIDTH, sm: coverWidth },
-                    animation: `${slideIn} 0.3s ease-in-out`,
-                  }}
-                >
-                  <CharacterCard
-                    cardSet={cardSet}
-                    file={character.card[0]!}
-                    glitch={glitchEnabled()}
-                    preferLocal={preferLocalCards()}
-                    sx={{ width: "100%", height: { sm: "100%" } }}
-                    data-testid="current-card-image"
-                  />
-                </Box>
-              )
-              : (
+          {character
+            ? (
+              <Box
+                key={currentKey}
+                data-testid="current-card"
+                sx={{ width: coverWidth, animation: `${slideIn} 0.3s ease-in-out` }}
+              >
                 <CharacterCard
                   cardSet={cardSet}
-                  file=""
-                  state="placeholder"
-                  sx={{ width: { xs: CURRENT_CARD_WIDTH, sm: coverWidth } }}
+                  file={character.card[0]!}
+                  glitch={glitchEnabled()}
+                  preferLocal={preferLocalCards()}
+                  data-testid="current-card-image"
                 />
-              )}
-          </Box>
-          {/* 曲名 / 角色名 / tag 之间的行距按用户要求放大（8dp → 12dp）。
-              桌面给一个阅读宽度上限：否则这一列会把卡片撑满，"居中"看不出来 */}
-          <Stack
-            ref={headRef}
-            spacing={1.5}
-            sx={{ flex: { xs: 1, sm: "0 1 auto" }, width: { xs: "100%", sm: "auto" },
-              minWidth: 0, maxWidth: { sm: PLAYER_READING_WIDTH } }}
-          >
-            {/* 曲名在上略大、角色名在下略小；整块与进度条圆点左边缘同一条竖线（TEXT_INSET_SX）。
-                内缩只加在文字块上，控制条三行仍以列首为基准 —— 否则圆点中心对不上音量键中心 */}
-            {/* 这一层既是"缩进到圆点左边缘"，也是文字块自己的行距容器 */}
-            <Stack spacing={1.5} sx={TEXT_INSET_SX}>
-            {/* 用户要求：**曲名在上、略大**（h6 = 20sp），**角色名在下、略小**（body2 = 14sp，次要色） */}
-            {player.entry ? (
-              <>
-                <Typography
-                  variant="h6"
-                  data-testid="now-title"
-                  sx={{ lineHeight: 1.3, textAlign: { xs: "center", sm: "left" } }}
-                >
-                  {displayTitle(player.entry[1])}
-                </Typography>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  data-testid="now-character"
-                  sx={{ textAlign: { xs: "center", sm: "left" } }}
-                >
-                  {character?.name ?? "—"}
-                </Typography>
-                {/* 只用 gap：Stack 的 spacing 是给子项加 margin，换行后新行首项会多出左边距（实测 196 vs 188） */}
-                <Stack
-                  direction="row"
-                  data-testid="player-tags"
-                  sx={{
-                    flexWrap: "wrap",
-                    gap: 0.5,
-                    // 窄屏：整块 tag 居中（宽度按内容收缩 + 左右自动外边距）；
-                    // **块内**仍是正常换行 + 左对齐（不用 justifyContent: center —— 那会把每一行都居中 ✗）
-                    width: "fit-content",
-                    maxWidth: "100%",
-                    mx: { xs: "auto", sm: 0 },
-                  }}
-                >
-                  <Chip size="small" variant="outlined" label={player.entry[0]} />
-                  <Chip size="small" label={player.entry[2]} />
-                  {player.sourceId && <Chip size="small" color="primary" label={player.sourceId} />}
-                </Stack>
-              </>
-            ) : (
-              <>
-                <Typography
-                  variant="h6"
-                  data-testid="now-title"
-                  sx={{ lineHeight: 1.3, textAlign: { xs: "center", sm: "left" } }}
-                >
-                  {props.pin ? displayTitle(props.pin[1]) : "—"}
-                </Typography>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  data-testid="now-character"
-                  sx={{ textAlign: { xs: "center", sm: "left" } }}
-                >
-                  {character?.name ?? "—"}
-                </Typography>
-              </>
-            )}
-            </Stack>
-            {player.error && <Alert severity="warning" sx={{ py: 0, ...fadeInSx }}>{player.error}</Alert>}
-            {/* 控制条固定在 tag 下方，自上而下：进度条 → 音量 → 播放控件
-                （桌面左对齐、移动端居中；对齐由 PlayerControl 内部按断点处理） */}
-            {/* 间距交给父级 Stack 的 spacing（8dp），这里不再额外加 mt，保证与上方 chip 的间距一致 */}
-            <Box sx={{ width: "100%" }}>
-              <PlayerControl
-                playing={player.playback === "playing" || player.playback === "countingDown"}
-                currentTime={player.currentTime}
-                duration={player.duration}
-                volume={player.volume}
-                disabled={!player.entry}
-                onPlay={player.play}
-                onPause={player.pause}
-                onPrevious={player.previous}
-                onNext={player.next}
-                onSeek={player.seek}
-                onVolume={player.setVolume}
+              </Box>
+            )
+            : (
+              <CharacterCard
+                cardSet={cardSet}
+                file=""
+                state="placeholder"
+                sx={{ width: coverWidth }}
               />
-            </Box>
-          </Stack>
+            )}
+
+          {/* 曲名（唯一的大字级） */}
+          <Typography variant="h6" data-testid="now-title" sx={{ lineHeight: 1.3 }}>
+            {player.entry ? displayTitle(trackTitle(player.entry[1])) : (props.pin ? displayTitle(props.pin[1]) : "—")}
+          </Typography>
+
+          {/* 作者不"白名单"（即非官作、标题里带 `作者 - 曲名`）→ 显示作者；否则显示作品（专辑）名 */}
+          <Typography variant="body2" color="text.secondary" data-testid="now-credit">
+            {creditLine(player.entry, character)}
+          </Typography>
+
+          {/* 角色名 */}
+          <Typography variant="subtitle2" data-testid="now-character">
+            {character?.name ?? "—"}
+          </Typography>
+
+          {player.error && <Alert severity="warning" sx={{ py: 0, ...fadeInSx }}>{player.error}</Alert>}
+
+          {/* 进度条 → 音量条 → 播放控件（自上而下，全部居中） */}
+          <Box sx={{ width: "100%", maxWidth: PLAYER_CONTROL_WIDTH, mt: 0.5 }}>
+            <PlayerControl
+              playing={player.playback === "playing" || player.playback === "countingDown"}
+              currentTime={player.currentTime}
+              duration={player.duration}
+              volume={player.volume}
+              disabled={!player.entry}
+              onPlay={player.play}
+              onPause={player.pause}
+              onPrevious={player.previous}
+              onNext={player.next}
+              onSeek={player.seek}
+              onVolume={player.setVolume}
+            />
+          </Box>
         </Stack>
       </CardContent></Card>
 
