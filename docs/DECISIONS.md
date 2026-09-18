@@ -2864,6 +2864,33 @@ pnpm test 209 passed ✓ | uv run pytest 33 passed ✓（数据快照同步更�
 
 ---
 
+## D100 第四批音MAD（11 条，含 1 条本地 wav）
+
+**需求**（用户）：10 条 bilibili + **1 条本地文件**（`C:\Users\…\…-converted.wav`，用户提醒"你是一台 WSL，
+应该能拿到宿主机的这个文件" ✓ —— 对 ✓，WSL 的 Windows 盘挂在 `/mnt/c` ✓）。
+
+**做法**：
+
+* 10 条照常：`parse_ingest_rows.py` → `ingest_otomads.py` ✓（解析 10/10、下载 10/10 ✓）；
+* **第 11 条**：直接从 `/mnt/c/Users/Yakumo_Koishi/Videos/JiJiDown/…converted.wav` **拷进**
+  `.music/incoming/y的自然对数 - 对了 向北邮出发吧.wav` ✓ →
+  `python3 tools/ingest_local_audio.py` → ffmpeg 转 **320k mp3** ✓ → 落进 `.music/otomads/` ✓
+  （文件名规则「作者 - 标题」✓，转完自动删掉 incoming 里的源文件 ✓）。
+
+**新增 `tools/ingest_local_audio.py`** ✓：本地音频 → 320k mp3 → `.music/otomads/`；
+放错的（文件名不带 ` - `）会报错而不是瞎猜 ✓。
+
+**结果**：
+
+```
+音MAD 75 → 86 条 ✓ | 覆盖角色 35 ✓ | manifest 86 ✓ | 本地源徽章 86 ✓
+应用内逐条解析 86/86 命中 ✓（其中"对了 向北邮出发吧"命中 = true ✓）
+data:check 无漂移 ✓ | tmc.validate 通过 ✓ | contentHash d5fd15d4e1ca ✓
+pnpm test 209 passed ✓ | uv run pytest 33 passed ✓（快照 464 / 454 / 86 ✓）
+```
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |
