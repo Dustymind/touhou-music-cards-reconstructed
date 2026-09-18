@@ -38,12 +38,15 @@ describe("音乐模式（原曲 / 音MAD）", () => {
       .toBe("originals");
   });
 
-  it("曲包数据进了角色表：音MAD 曲目分布在 13 个角色上", () => {
+  it("曲包数据进了角色表：音MAD 曲目分布在多个角色上", () => {
     const withOtomads = bundle.characters.filter((character) => hasTracksInMode(bundle.albums, character, "otomads"));
-    expect(withOtomads.length).toBe(13);
     const tracks = withOtomads.flatMap((character) =>
       filterByMode(bundle.albums, character.music, "otomads"));
-    expect(tracks.length).toBe(24);
+    // 不写死数量：曲包会持续增长，只断言"确实覆盖了多个角色、且条数与角色表自洽"
+    expect(withOtomads.length).toBeGreaterThan(10);
+    expect(tracks.length).toBeGreaterThanOrEqual(withOtomads.length);
+    expect(tracks.length).toBe(
+      bundle.characters.flatMap((c) => c.music).filter((entry) => entry[0] === "otomads").length);
     // 每个曲包曲目都指向 pack = otomads 的那张专辑
     expect(tracks.every((entry) => entry[0] === "otomads")).toBe(true);
   });
@@ -53,8 +56,8 @@ describe("音乐模式（原曲 / 音MAD）", () => {
     const originals = filterByMode(bundle.albums, cirno.music, "originals");
     const otomads = filterByMode(bundle.albums, cirno.music, "otomads");
     expect(originals.every((entry) => entry[0] !== "otomads")).toBe(true);
-    expect(otomads).toHaveLength(1);
-    expect(otomads[0]![0]).toBe("otomads");
+    expect(otomads.length).toBeGreaterThan(0);
+    expect(otomads.every((entry) => entry[0] === "otomads")).toBe(true);
     // 两边加起来 = 该角色全部曲目
     expect(originals.length + otomads.length).toBe(cirno.music.length);
   });
@@ -65,8 +68,10 @@ describe("音乐模式（原曲 / 音MAD）", () => {
 
     const originals = allowedTracks(preset, cirno, undefined, bundle.albums, "originals").entries;
     const otomads = allowedTracks(preset, cirno, undefined, bundle.albums, "otomads").entries;
-    expect(originals).toHaveLength(5);
-    expect(otomads).toHaveLength(1);
+    // 同样不写死：断言两种模式的条目集合互不相交、且各自非空
+    expect(originals.length).toBeGreaterThan(0);
+    expect(otomads.length).toBeGreaterThan(0);
+    expect(originals.every((entry) => entry[0] !== "otomads")).toBe(true);
 
     // pinned 直接返回（模式只影响"接下来能选哪些"，不打断已选的这一首）
     const pinned = otomads[0]!;
