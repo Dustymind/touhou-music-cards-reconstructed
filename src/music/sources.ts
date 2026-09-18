@@ -95,7 +95,10 @@ export function resolveTrack(
     for (const [key, url] of table.entries) {
       const separator = key.indexOf("\u0001");
       if (separator < 0 || key.slice(0, separator) !== album) continue;
-      if (normalizeTitle(key.slice(separator + 1)) !== wanted) continue;
+      // 兜底判定用"后缀"而不是"去前缀"：作者名里本身可能带连字符（如 `Rendering-Liu` ✗），
+      // 用 `^[^-]+ - ` 去前缀会失手；改成"磁盘名以 `作者 - 曲名` 结尾"就与作者长什么样无关 ✓
+      const stored = normalizeTitle(key.slice(separator + 1));
+      if (stored !== wanted && !stored.endsWith(` - ${wanted}`)) continue;
       if (!failed.has(`${sourceId}\u0000${key}`)) return { sourceId, url };
     }
   }

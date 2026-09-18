@@ -26,6 +26,28 @@ ROWS: list[tuple[str, str, str, str]] = [
     ("BV1Fs4y1v7H3", "【东方电气棍】电棍幻葬 ~ Netto-Fantasy", "鞍山侯国玉电乐团", "yakumo-ran"),
     ("BV1ok4y1777E", "【东方电气棍】吉吉跋扈 ~ Who Kai Da!", "鞍山侯国玉电乐团", "yakumo-ran"),
     ("BV1bP41147U9", "Otto-Fantasia", "鞍山侯国玉电乐团", "yakumo-yukari"),
+
+    # ── 2026-09 第二批（20 条）──
+    ("BV1Eb421a7wu", "【东方电气棍】怎么这么蠢的虫月 ~ Mooned Insect", "鞍山侯国玉电乐团", "wriggle-nightbug"),
+    ("BV11ubkzEEcg", "蠢々秋月", "芙兰厨陈YuYue", "wriggle-nightbug"),
+    ("BV18rPReMEEo", "【原汤化原食】已经只能听见歌声了", "芙兰厨陈YuYue", "mystia-lorelei"),
+    ("BV1LUbXzaE2A", "Beat My Old World 【音MAD|个人全明星】", "霜幻不容筱 & Shui__Huo & 逢封fn_eg", "kamishirasawa-keine"),
+    ("BV15s411S7Uw", "【缺明星】少女绮想曲", "FFFanwen", "hakurei-reimu"),
+    ("BV1yHQDYHETF", "【东方德夜抄】♿侯国玉的菜盒子　～ Kagome-Kagome♿", "冰の妖睛", "inaba-tewi"),
+    ("BV1kq4y1b7sb", "【铁道音MAD】放在降弓用刑处轴温很快就会升高 ~ 狂气的CR（2021东方乘车录单品）", "Satani_ZC & 天空海Skyocean & ItsZTChun & Rendering-Liu & 专治各种乱入", "reisen-udongein-inaba"),
+    ("BV1vWBeBEEZa", "【疾走向】今晚七点有狂气之瞳表演", "芙兰厨陈YuYue", "reisen-udongein-inaba"),
+    ("BV13W4y1i7mP", "【东方夏银梦】邀请后辈马上袭击～狂气的野兽先辈", "海老ルーミア", "reisen-udongein-inaba"),
+    ("BV1AD4y1s72f", "【2022摩多罗国玉祭单品】电棍1969", "锤子先辈", "yagokoro-eirin"),
+    ("BV1mhyWBsEc6", "yeah4oyage1029", "myrevolution", "yagokoro-eirin"),
+    ("BV1Ck4y1m7qk", "【東方永夜抄】千年幻想郷 ～ History of Thomas", "川先僧", "yagokoro-eirin"),
+    ("BV1Yy4y197wQ", "千年マスオ郷　～ History of the Masuo", "マトウダイ", "yagokoro-eirin"),
+    ("BV1t1V36EEwc", "【原曲不使用】竹取Fa♂翔", "丶Mikan", "houraisan-kaguya"),
+    ("BV1eetSznEPN", "【东方馅挂炒饭】night♂of knight", "van艺复泄", "izayoi-sakuya"),
+    ("BV123VV6JEWq", "【东方馅挂炒饭】神圣庄严的古日♂暮里 ~ Suwa Wrestled Gym", "东风股早苗", "yasaka-kanako"),
+    ("BV13P4y1z7AV", "【东方新春宴音MAD合作单品⁹】Extend Ash~蓬莱人", "稀神灵梦 & SayoYasuda", "kamishirasawa-keine"),
+    ("BV1et411u7FH", "【东方馅挂炒饭】Extend Ash　～ 蓬莱人", "鬼剑士草贝戋神", "kamishirasawa-keine"),
+    ("BV14k4y1z7RH", "【東方永夜抄】飘上月球，不死之喵", "川先僧", "fujiwara-no-mokou"),
+    ("BV1RK4y1r7wN", "【东方】飘上月球，不死乒乓", "打酱油的小火柴", "fujiwara-no-mokou"),
 ]
 
 def target(row: tuple[str, str, str, str]) -> pathlib.Path | None:
