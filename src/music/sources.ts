@@ -78,13 +78,20 @@ export function resolveTrack(
   title: string,
   failed: ReadonlySet<string> = new Set(),
 ): ResolvedTrack | null {
-  const id = trackId(album, title);
+  // 两个键：原名 + 归一化名（去 `作者 - ` 前缀、压空白、小写）。
+  // 本地 manifest 的曲名来自**磁盘文件名**（带作者前缀、大小写原样），曲包数据里作者是独立字段、
+  // 曲名不带前缀 —— 只有归一化后两边才在同一口径上（否则 `Masuo…` 这种含拉丁字母的会因大小写对不上 ✗）。
+  const keys = [trackId(album, title)];
+  const normalized = trackId(album, normalizeTitle(title));
+  if (normalized !== keys[0]) keys.push(normalized);
   for (const sourceId of order) {
     const table = tables[sourceId];
     if (!table || table.status === "error" || table.status === "idle") continue;
-    if (failed.has(`${sourceId}\u0000${id}`)) continue;
-    const url = table.entries.get(id);
-    if (url) return { sourceId, url };
+    for (const id of keys) {
+      if (failed.has(`${sourceId}\u0000${id}`)) continue;
+      const url = table.entries.get(id);
+      if (url) return { sourceId, url };
+    }
   }
   return null;
 }
