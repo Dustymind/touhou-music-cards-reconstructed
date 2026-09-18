@@ -4,6 +4,7 @@
  * 但**选择控件按 MD2 换成单选组**——MD2 里"多选一"用 radio（按钮只用于触发动作），
  * 原来每行一个「使用 / 正在使用」按钮既不符合 MD2，也不如单选一眼看清当前选中项。
  */
+import { memo } from "react";
 import { Box, Divider, FormControlLabel, Radio, RadioGroup, Stack, Typography } from "@mui/material";
 
 import type { DataBundle } from "../../../data/types";
@@ -17,7 +18,7 @@ import { SectionPanel } from "./SectionCard";
 const EXAMPLE_COUNT = 3;
 const EXAMPLE_WIDTH = 64;
 
-export function CardSetSection({ bundle }: { bundle: DataBundle }) {
+function CardSetSectionInner({ bundle }: { bundle: DataBundle }) {
   const { cardCollection, setCardCollection } = useSession();
 
   /** 示例卡：取前三名角色的第一张卡面（文件名与图集无关，目录由所选图集决定）。 */
@@ -92,3 +93,6 @@ export function CardSetSection({ bundle }: { bundle: DataBundle }) {
     </SectionPanel>
   );
 }
+
+/** 分区之间互不牵连：展开一个分区不该把其它分区的长列表一起重渲染（memo 掉）。 */
+export const CardSetSection = memo(CardSetSectionInner);

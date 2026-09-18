@@ -36,7 +36,7 @@ export function PlayerControl(props: PlayerControlProps) {
   return (
     <Stack spacing={1} sx={{ width: "100%" }} data-testid="player-control">
       {/* 窄屏：进度条单独一行（否则 flex 会被挤成 0 宽、进度条直接看不见 —— 实测） */}
-      <Stack direction="row" spacing={1} alignItems="center" sx={{ flexWrap: "wrap", rowGap: 1 }}>
+      <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap", gap: 1 }}>
         <IconButton sx={ICON_BUTTON_SX} onClick={props.onPrevious} disabled={disabled} aria-label="previous">
           <SkipPrevious />
         </IconButton>

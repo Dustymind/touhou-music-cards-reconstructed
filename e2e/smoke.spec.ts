@@ -53,8 +53,12 @@ test("仅单曲模式下拉只列预设启用的曲目", async ({ page }) => {
   await page.getByTestId("tri-角色曲-off").click();
   await page.getByLabel("single-mode").check();
 
-  // 选曲栏的文本必须垂直居中：上下内边距相等、文字中心与控件中心重合（用户反馈）
-  const centering = await page.getByTestId("single-select-chirizuka-ubame").evaluate((form) => {
+  // 选曲栏的文本必须垂直居中：上下内边距相等、文字中心与控件中心重合（用户反馈）。
+  // 行是懒挂载的（进入视口才渲染）：滚动到该行的**占位**上，它才会挂载出真实内容
+  await page.getByTestId("single-row-chirizuka-ubame").scrollIntoViewIfNeeded();
+  const singleSelect = page.getByTestId("single-select-chirizuka-ubame");
+  await expect(singleSelect).toBeVisible();
+  const centering = await singleSelect.evaluate((form) => {
     const select = form.querySelector(".MuiSelect-select") as HTMLElement;
     const style = getComputedStyle(select);
     const rect = select.getBoundingClientRect();

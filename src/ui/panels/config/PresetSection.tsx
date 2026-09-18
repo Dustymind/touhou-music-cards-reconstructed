@@ -1,4 +1,5 @@
 /** 音乐选择预设：秘封曲多层勾选 + 三个三态开关 + 「先 CD 再官作」的专辑复选。 */
+import { memo } from "react";
 import {
   Button, Checkbox, Chip, Divider, FormControlLabel, Stack, ToggleButton, ToggleButtonGroup, Typography,
 } from "@mui/material";
@@ -6,6 +7,7 @@ import {
 import type { AlbumRecord, DataBundle } from "../../../data/types";
 import { Localization, t } from "../../../i18n/localization";
 import { SectionPanel } from "./SectionCard";
+import { LazyRow } from "../../components/LazyRow";
 import { CATEGORY_KEYS, type Tri } from "../../../music/selection";
 import { groupAlbums, presetStats } from "../../../music/presetView";
 import type { MusicMode } from "../../../music/mode";
@@ -30,9 +32,15 @@ function AlbumRows({
   return (
     <Stack spacing={0}>
       {albums.map((album) => (
+        <LazyRow key={album.key} placeholderHeight={44}>
         <FormControlLabel
-          key={album.key}
-          sx={{ ml: 1 }}
+          // 缩进 8dp；标签换行时复选框与**首行**对齐（MD2 多行列表的做法）
+          sx={{
+            ml: 1,
+            alignItems: "flex-start",
+            "& .MuiCheckbox-root": { mt: -0.75 },
+            "& .MuiFormControlLabel-label": { mt: 1.25 },
+          }}
           control={
             <Checkbox
               size="small"
@@ -43,12 +51,13 @@ function AlbumRows({
           }
           label={<Typography variant="body2">{album.name}</Typography>}
         />
+        </LazyRow>
       ))}
     </Stack>
   );
 }
 
-export function PresetSection({ bundle, musicMode }: { bundle: DataBundle; musicMode: MusicMode }) {
+function PresetSectionInner({ bundle, musicMode }: { bundle: DataBundle; musicMode: MusicMode }) {
   const preset = usePreset();
   const groups = groupAlbums(bundle.albums);
   const stats = presetStats(preset, bundle.characters, bundle.albums, musicMode);
@@ -73,6 +82,7 @@ export function PresetSection({ bundle, musicMode }: { bundle: DataBundle; music
 
       {/* 秘封曲：父复选框是批量控制（不存值，显示态由 12 个子项派生） */}
       <FormControlLabel
+        sx={{ alignItems: "flex-start", "& .MuiCheckbox-root": { mt: -0.75 } }}
         control={
           <Checkbox
             checked={hifuuState === "all"}
@@ -94,9 +104,14 @@ export function PresetSection({ bundle, musicMode }: { bundle: DataBundle; music
       </Stack>
       <Stack spacing={0} sx={{ ml: 4 }}>
         {groups.hifuu.map((album) => (
+          <LazyRow key={album.key} placeholderHeight={44}>
           <FormControlLabel
-            key={album.key}
-            sx={{ ml: 1 }}
+            sx={{
+              ml: 1,
+              alignItems: "flex-start",
+              "& .MuiCheckbox-root": { mt: -0.75 },
+              "& .MuiFormControlLabel-label": { mt: 1.25 },
+            }}
             control={
               <Checkbox
                 size="small"
@@ -107,6 +122,7 @@ export function PresetSection({ bundle, musicMode }: { bundle: DataBundle; music
             }
             label={<Typography variant="body2">{album.name}</Typography>}
           />
+          </LazyRow>
         ))}
       </Stack>
 
@@ -152,7 +168,7 @@ export function PresetSection({ bundle, musicMode }: { bundle: DataBundle; music
         onToggle={(album, value) => preset.setAlbum(album.name, value)}
       />
 
-      <Stack direction="row" alignItems="center" spacing={1} sx={{ mt: 1 }}>
+      <Stack direction="row" sx={{ alignItems: "center", gap: 1, mt: 1, flexWrap: "wrap" }}>
         <Typography variant="subtitle2">{t(Localization.ConfigTabPresetGame)}</Typography>
         <Button size="small" onClick={() => setAll(groups.game, true)}>
           {t(Localization.ConfigTabPresetSelectAll)}
@@ -173,3 +189,6 @@ export function PresetSection({ bundle, musicMode }: { bundle: DataBundle; music
     </SectionPanel>
   );
 }
+
+/** 分区之间互不牵连：展开一个分区不该把其它分区的长列表一起重渲染（memo 掉）。 */
+export const PresetSection = memo(PresetSectionInner);

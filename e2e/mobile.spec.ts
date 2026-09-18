@@ -22,6 +22,43 @@ test.describe("移动端布局", () => {
     }
   });
 
+  test("换行的 tag 行左边缘一致（播放页 + 设置页）", async ({ page }) => {
+    // 播放页：当前曲目的专辑 / 类别 / 音源 chip 会换行，换行后必须与首行同一条左边缘
+    await page.goto("/?locale=zh");
+    await page.getByRole("tab", { name: "播放", exact: true }).click();
+    await page.waitForTimeout(500);
+    const playerRows = await page.evaluate(() => {
+      const panel = document.querySelector('[data-testid="player-control"]')!.closest(".MuiPaper-root")!;
+      const rows = new Map<number, number[]>();
+      for (const chip of panel.querySelectorAll(".MuiChip-root")) {
+        const rect = chip.getBoundingClientRect();
+        const top = Math.round(rect.top);
+        rows.set(top, [...(rows.get(top) ?? []), Math.round(rect.left)]);
+      }
+      return [...rows.values()].map((lefts) => Math.min(...lefts));
+    });
+    expect(playerRows.length).toBeGreaterThan(1);                       // 确实换行了
+    expect(new Set(playerRows).size).toBe(1);                           // 各行左边缘一致
+
+    // 设置页"数据"分区：五枚 chip 换行后同样对齐
+    await page.getByRole("tab", { name: "设置", exact: true }).click();
+    await page.getByTestId("section-data-summary").click();
+    await page.waitForTimeout(500);
+    const configRows = await page.evaluate(() => {
+      // 只看那排统计 chip（下面"语言"那一行的 chip 是跟在标签后面的，本来就该缩进）
+      const content = document.querySelector('[data-testid="data-chips"]')!;
+      const rows = new Map<number, number[]>();
+      for (const chip of content.querySelectorAll(".MuiChip-root")) {
+        const rect = chip.getBoundingClientRect();
+        const top = Math.round(rect.top);
+        rows.set(top, [...(rows.get(top) ?? []), Math.round(rect.left)]);
+      }
+      return [...rows.values()].map((lefts) => Math.min(...lefts));
+    });
+    expect(configRows.length).toBeGreaterThan(1);
+    expect(new Set(configRows).size).toBe(1);
+  });
+
   test("应用栏在窄屏折成两行：页签独占一行、彩蛋用短文案", async ({ page }) => {
     await page.goto("/?locale=zh");
     await page.getByRole("tab", { name: "播放", exact: true }).waitFor();

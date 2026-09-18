@@ -32,7 +32,7 @@ export function LobbyPanel(_props: LobbyPanelProps) {
 
   return (
     <Paper variant="outlined" sx={{ p: 2, fontFamily: NoFontFamily }} data-testid="lobby">
-      <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", alignItems: "center", gap: 1 }}>
+      <Stack direction="row" sx={{ flexWrap: "wrap", alignItems: "center", gap: 1 }}>
         <Typography variant="subtitle1">{t(Localization.GameLobbyOnline)}</Typography>
         <Chip size="small" label={t(statusLabel[net.status])} data-testid="net-status" />
         <TextField
@@ -102,7 +102,7 @@ export function LobbyPanel(_props: LobbyPanelProps) {
       {online && (
         <>
           <Divider sx={{ my: 1 }} />
-          <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", gap: 0.5 }}>
+          <Stack direction="row" sx={{ flexWrap: "wrap", gap: 0.5 }}>
             {net.peers.map((peer) => (
               <Chip
                 key={peer.index}

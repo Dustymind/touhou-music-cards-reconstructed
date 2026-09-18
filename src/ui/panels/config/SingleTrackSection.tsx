@@ -2,12 +2,13 @@
 import {
   Chip, FormControl, FormControlLabel, MenuItem, Select, Stack, Switch, TextField, Typography,
 } from "@mui/material";
-import { useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 
 import type { DataBundle, MusicEntry } from "../../../data/types";
 import { displayTitle, trackId } from "../../../data/types";
 import { Localization, t } from "../../../i18n/localization";
 import { SectionPanel } from "./SectionCard";
+import { LazyRow } from "../../components/LazyRow";
 import { usePreset } from "../../../store/preset";
 import { useSingleTrack } from "../../../store/single";
 import { singleModeRows } from "../../../music/presetView";
@@ -17,7 +18,13 @@ function entryLabel(entry: MusicEntry): string {
   return `${displayTitle(entry[1])} (${entry[0]})`;
 }
 
-export function SingleTrackSection({ bundle, musicMode }: { bundle: DataBundle; musicMode: MusicMode }) {
+/** 首屏先渲染多少行；其余分片补齐。
+ *  121 行 × 下拉框一次性渲染是 ~900ms 的长任务（实测）；单行约 7ms，所以每片给 6 行
+ *  （≈40ms，压在主线程 50ms 阈值以下）。 */
+const FIRST_CHUNK = 12;
+const CHUNK = 12;
+
+function SingleTrackSectionInner({ bundle, musicMode }: { bundle: DataBundle; musicMode: MusicMode }) {
   const preset = usePreset();
   const single = useSingleTrack();
   const [query, setQuery] = useState("");
@@ -28,10 +35,39 @@ export function SingleTrackSection({ bundle, musicMode }: { bundle: DataBundle; 
     [preset, bundle.characters, single.pins, single.disabledCharacters, query, bundle.albums, musicMode],
   );
 
+  // 渐进渲染：先出前 16 行，剩下的在空闲回调里分批补齐（`startTransition` 让 React 可被打断）
+  const [rendered, setRendered] = useState(FIRST_CHUNK);
+  const rowSignature = `${rows.length}|${query}`;
+  useEffect(() => {
+    setRendered(FIRST_CHUNK);
+    let cancelled = false;
+    const pump = () => {
+      if (cancelled) return;
+      // 不要包 startTransition：transition 更新会被 React 合并成**一次**大渲染，
+      // 分片就白分了（实测长任务仍是 ~1000ms）。这里要的就是"每个宏任务渲染一片"。
+      setRendered((current) => (current >= rows.length ? current : Math.min(rows.length, current + CHUNK)));
+      schedule();
+    };
+    // 必须等到**下一次绘制机会**再排下一片：单纯 setTimeout(0) 会连着跑，
+    // 浏览器根本没机会渲染，节点数在一个任务里从 625 跳到 2858（实测），长任务照样 ~900ms
+    const schedule = () => {
+      if (cancelled) return;
+      requestAnimationFrame(() => {
+        if (cancelled) return;
+        setTimeout(pump, 0);
+      });
+    };
+    if (rows.length > FIRST_CHUNK) schedule();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rowSignature]);
+
   return (
     <SectionPanel id="single" title={t(Localization.ConfigTabMusicSelectionSingle)}>
       {/* 开关行：开关在左、说明在右（原来只有一个右对齐的开关 + 空的左半边） */}
-      <Stack direction="row" spacing={2} sx={{ alignItems: "center", flexWrap: "wrap", mb: 1 }}>
+      <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap", gap: 2, mb: 1 }}>
         <FormControlLabel
           control={
             <Switch
@@ -67,11 +103,21 @@ export function SingleTrackSection({ bundle, musicMode }: { bundle: DataBundle; 
           pointerEvents: single.enabled ? "auto" : "none",
         }}
       >
-        {rows.map(({ character, allowed, pinned, disabled }) => {
+        {rows.slice(0, rendered).map(({ character, allowed, pinned, disabled }) => {
           const current = pinned ?? allowed[0] ?? null;
           const value = current ? trackId(current[0], current[1]) : "";
           return (
-            <Stack key={character.key} direction="row" spacing={1} alignItems="center">
+            <LazyRow key={character.key} testId={`single-row-${character.key}`}>
+            <Stack
+              direction="row"
+              spacing={1}
+              sx={{
+                alignItems: "center",
+                // 视口外的行跳过渲染（长列表滚动/展开更省）
+                contentVisibility: "auto",
+                containIntrinsicSize: "auto 48px",
+              }}
+            >
               <Typography
                 variant="body2"
                 noWrap
@@ -119,9 +165,13 @@ export function SingleTrackSection({ bundle, musicMode }: { bundle: DataBundle; 
                 data-testid={`single-disable-${character.key}`}
               />
             </Stack>
+            </LazyRow>
           );
         })}
       </Stack>
     </SectionPanel>
   );
 }
+
+/** 分区之间互不牵连：展开一个分区不该把其它分区的长列表一起重渲染（memo 掉）。 */
+export const SingleTrackSection = memo(SingleTrackSectionInner);

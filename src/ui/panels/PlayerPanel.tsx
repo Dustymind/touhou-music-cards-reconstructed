@@ -85,7 +85,8 @@ export function PlayerPanel(props: PlayerPanelProps) {
             {player.entry ? (
               <>
                 <Typography variant="body1">{displayTitle(player.entry[1])}</Typography>
-                <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", gap: 0.5 }}>
+                {/* 只用 gap：Stack 的 spacing 是给子项加 margin，换行后新行首项会多出左边距（实测 196 vs 188） */}
+                <Stack direction="row" sx={{ flexWrap: "wrap", gap: 0.5 }}>
                   <Chip size="small" variant="outlined" label={player.entry[0]} />
                   <Chip size="small" label={player.entry[2]} />
                   {player.sourceId && <Chip size="small" color="primary" label={player.sourceId} />}
@@ -115,7 +116,7 @@ export function PlayerPanel(props: PlayerPanelProps) {
       </CardContent></Card>
 
       <Card><CardContent>
-        <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+        <Stack direction="row" sx={{ alignItems: "center", mb: 1, gap: 1 }}>
           <Typography variant="subtitle2">{t(Localization.PlayerTabUpcoming)}</Typography>
           <Box sx={{ flex: 1 }} />
           <Button size="small" onClick={props.onShuffle}>{t(Localization.PlayerTabShuffle)}</Button>
@@ -133,7 +134,7 @@ export function PlayerPanel(props: PlayerPanelProps) {
       </CardContent></Card>
 
       <Card><CardContent>
-        <Stack direction="row" spacing={2} sx={{ flexWrap: "wrap", alignItems: "center" }}>
+        <Stack direction="row" sx={{ flexWrap: "wrap", alignItems: "center", gap: 2 }}>
           <Stack direction="row" spacing={0.5} alignItems="center">
             <Switch
               size="small"

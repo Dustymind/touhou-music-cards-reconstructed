@@ -5,7 +5,7 @@ import {
 } from "@mui/material";
 import { ArrowDownward, ArrowUpward } from "@mui/icons-material";
 
-import { useMemo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 
 import { SectionPanel } from "./SectionCard";
 import type { DataBundle } from "../../../data/types";
@@ -14,7 +14,7 @@ import { effectiveOrder, useSession } from "../../../store/session";
 import { MUSIC_MODES } from "../../../music/mode";
 import type { TableMap } from "../../../music/sources";
 
-export function SourceSection({ bundle, tables }: { bundle: DataBundle; tables: TableMap }) {
+function SourceSectionInner({ bundle, tables }: { bundle: DataBundle; tables: TableMap }) {
   const {
     locale, sourceOverrides, toggleSource, moveSource, musicMode, setMusicMode,
     localMusicUrl, setLocalMusicUrl,
@@ -137,7 +137,12 @@ export function SourceSection({ bundle, tables }: { bundle: DataBundle; tables: 
             : "…";
           return (
             <Box key={source.id} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, p: 1 }}>
-              <Stack direction="row" alignItems="center" spacing={1}>
+              <Stack
+                direction="row"
+                spacing={1}
+                // 标签换两行时，右侧的状态 chip / 开关 / 箭头与**首行**对齐（原来整块垂直居中 → 看着歪）
+                sx={{ alignItems: "flex-start", "& > *": { mt: 0.5 } }}
+              >
                 {/* 顺序编号：MD2 圆形头像（停用的源用灰色） */}
                 <Avatar
                   data-testid={`source-order-${source.id}`}
@@ -199,3 +204,6 @@ export function SourceSection({ bundle, tables }: { bundle: DataBundle; tables: 
     </SectionPanel>
   );
 }
+
+/** 分区之间互不牵连：展开一个分区不该把其它分区的长列表一起重渲染（memo 掉）。 */
+export const SourceSection = memo(SourceSectionInner);

@@ -1,5 +1,5 @@
 /** 主机侧意图落地：牌组编辑（自定义卡组 / 补满 / 打乱 / 清空）与权限边界。 */
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import * as rules from "../game/rules";
 import { emptyState, type CardInfo } from "../game/types";
@@ -18,6 +18,10 @@ beforeEach(() => {
   useGame.setState({ game: rules.adjustDeckSize(emptyState(), 2, 2), pool: POOL });
 });
 
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 describe("牌组编辑意图", () => {
   it("客户端只能动自己那一份：打乱/清空/补满都只作用于 from", () => {
     applyIntentLocally({ kind: "fillDeck", player: 0 }, 0);          // 主机补自己
@@ -26,6 +30,8 @@ describe("牌组编辑意图", () => {
     expect(deckKeys(1).filter((key) => key !== "-")).toHaveLength(4);
 
     const before = deckKeys(1);
+    // 4 张牌洗出同一顺序的概率是 1/24，会偶发失败 → 固定随机数让"顺序必然改变"（0 → 每次都与首张交换）
+    vi.spyOn(Math, "random").mockReturnValue(0);
     applyIntentLocally({ kind: "shuffleDeck", player: 1 }, 1);
     expect(deckKeys(1)).not.toEqual(before);                         // 客户端打乱自己的牌库生效
 

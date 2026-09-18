@@ -29,7 +29,8 @@ export function ConfigPanel({ bundle, tables, musicMode }: {
   return (
     <Stack sx={{ width: "100%", fontFamily: NoFontFamily, display: "flex", flexDirection: "column", gap: 2 }}>
       <SectionPanel id="data" title={t(Localization.ShellDataSummary)}>
-        <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", gap: 1 }}>
+        {/* 只用 gap，不用 spacing：Stack 的 spacing 是给子项加 margin，换行后新行第一项仍带左边距 → 行左边缘不齐 */}
+        <Stack direction="row" sx={{ flexWrap: "wrap", gap: 1 }} data-testid="data-chips">
           <Chip label={`${bundle.index.counts.characters} ${t(Localization.ShellCharacters)}`} />
           <Chip label={`${bundle.index.counts.albums} ${t(Localization.ShellAlbums)}`} />
           <Chip label={`${bundle.index.counts.distinctTracks} ${t(Localization.ShellTracks)}`} />
@@ -38,7 +39,7 @@ export function ConfigPanel({ bundle, tables, musicMode }: {
           <Chip variant="outlined" label={`${t(Localization.ShellDataHash)}: ${bundle.index.contentHash.slice(0, 12)}`} />
         </Stack>
         <Divider sx={{ my: 1.5 }} />
-        <Stack direction="row" spacing={2} alignItems="center">
+        <Stack direction="row" sx={{ alignItems: "center", gap: 1 }}>
           <Typography variant="body2">{t(Localization.ShellLanguage)}</Typography>
           {(["en", "zh"] as Locale[]).map((value) => (
             <Chip
