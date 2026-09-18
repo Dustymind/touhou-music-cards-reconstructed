@@ -3,4 +3,4 @@
 一个曲包 = 一个目录 + 一份源表；曲目带上 `pack` 归属后，界面按曲包过滤。
 当前只有内置的 `originals`（原曲），此目录为空。
 
-用法见 `docs/PLAN.md` §3.4。
+用法见 `docs/DECISIONS.md`（D52 音MAD 曲包）。
