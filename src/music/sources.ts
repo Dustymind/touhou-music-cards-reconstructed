@@ -61,11 +61,9 @@ export function buildEntries(rows: unknown): Map<string, string> {
     if (!Array.isArray(row) || row.length < 3) continue;
     const [album, title, url] = row as [string, string, string];
     if (typeof url !== "string" || url.length === 0) continue;
-    const key = trackId(album, title);
-    entries.set(key, url);
-    // 归一化别名：让"去掉作者前缀的曲名"也能查到（曲包数据就是这种形状）
-    const alias = trackId(album, normalizeTitle(title));
-    if (alias !== key && !entries.has(alias)) entries.set(alias, url);
+    // 只存**本来的键**（一行一条 ✓）。归一化匹配交给 `resolveTrack` 的兜底扫描 ——
+    // 早先在这里插过"归一化别名"，结果 `entries.size` 从 24 变 48 ✗，界面上的条目数就错了（D96）
+    entries.set(trackId(album, title), url);
   }
   return entries;
 }
@@ -81,16 +79,24 @@ export function resolveTrack(
   // 两个键：原名 + 归一化名（去 `作者 - ` 前缀、压空白、小写）。
   // 本地 manifest 的曲名来自**磁盘文件名**（带作者前缀、大小写原样），曲包数据里作者是独立字段、
   // 曲名不带前缀 —— 只有归一化后两边才在同一口径上（否则 `Masuo…` 这种含拉丁字母的会因大小写对不上 ✗）。
-  const keys = [trackId(album, title)];
-  const normalized = trackId(album, normalizeTitle(title));
-  if (normalized !== keys[0]) keys.push(normalized);
+  const wanted = normalizeTitle(title);
   for (const sourceId of order) {
     const table = tables[sourceId];
     if (!table || table.status === "error" || table.status === "idle") continue;
-    for (const id of keys) {
-      if (failed.has(`${sourceId}\u0000${id}`)) continue;
+    const id = trackId(album, title);
+    if (!failed.has(`${sourceId}\u0000${id}`)) {
       const url = table.entries.get(id);
       if (url) return { sourceId, url };
+    }
+    // 回退：按**归一化曲名**扫一遍（去 `作者 - ` 前缀、压空白、小写）。
+    // 本地 manifest 的曲名来自磁盘文件名（带作者前缀、大小写原样），曲包数据的曲名不带前缀，
+    // 只有归一化后两边才同一口径。只在直接命中失败时走这条路，代价可接受。
+    // 注意**不能**把别名写进 entries ✗ —— 那样 `entries.size` 会翻倍，界面上的条目数就错了（D96）。
+    for (const [key, url] of table.entries) {
+      const separator = key.indexOf("\u0001");
+      if (separator < 0 || key.slice(0, separator) !== album) continue;
+      if (normalizeTitle(key.slice(separator + 1)) !== wanted) continue;
+      if (!failed.has(`${sourceId}\u0000${key}`)) return { sourceId, url };
     }
   }
   return null;
