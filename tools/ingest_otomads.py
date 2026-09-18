@@ -19,8 +19,7 @@ ROWS: list[tuple[str, str, str, str]] = [
     ("BV1XpW6eXEQT", "【东方馅挂炒饭】暮里的兄贵之都（天空的花之都）", "龙青瑶RyuuSeiyou", "lily-white"),
     ("BV14H4y1p7wF", "【音Mad】疾走全明星あんさんぶる！", "芙兰厨陈YuYue", "prismriver"),
     ("BV1Wp4y1Y7uy", "【东方Project】猫灵乐团~幻影合奏", "川先僧", "prismriver"),
-    # 第 10 条原表里"作者"一栏重复了标题 → 作者待确认，先跳过
-    ("BV1FUFYeJE8e", "【2025连缘羽梦祭单品】连缘妖妖梦~Ancient Temple", "", "konpaku-youmu"),
+    ("BV1FUFYeJE8e", "【2025连缘羽梦祭单品】连缘妖妖梦~Ancient Temple", "钬__", "konpaku-youmu"),
     ("BV1By4y1C7ga", "【东方Project】广有射怪猫管我鸟事", "川先僧", "konpaku-youmu"),
     ("BV1FX4y1B7E9", "【东方电气棍】幽雅地退役吧，墨染的电棍 ~ Border of Otto", "鞍山侯国玉电乐团", "saigyouji-yuyuko"),
     ("BV19c411A7PA", "【东方电气棍】击败跋扈", "鞍山侯国玉电乐团", "chen"),
