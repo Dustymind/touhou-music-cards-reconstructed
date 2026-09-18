@@ -2432,6 +2432,25 @@ dev 用 200ms 是为了抓住"上千毫秒/近两百毫秒"这类回归，生产
 
 ---
 
+## D85 性能守卫改成单独跑
+
+**需求**（用户）：全量时单独跑（指 `e2e/perf.spec.ts` 那条"点击不产生 ≥250ms 长任务"）。
+
+**原因**：它测的是"点击 handler 耗时"，而本机同时跑着 dev server / 单端口代理 / 曲库助手 / 信令，
+负载高时会偶发击穿阈值 ✗（这几轮出现了 3 次：全量跑失败 → 单独跑 18–25s 通过 ✓）。
+
+**改法**：
+
+* `playwright.config.ts` 新增独立 project `perf`（`testMatch: /perf\.spec\.ts/`）；
+* chromium / firefox 两个 project 的 `testIgnore` 加上 `/perf\.spec\.ts/` ✓；
+* `pnpm e2e` 改为**显式列出**三个 project（`--project=chromium --project=firefox --project=mobile`）✓，
+  所以性能守卫不再进全量 ✓；新增 `pnpm e2e:perf` 单独跑它 ✓。
+
+**实测**：`playwright test --list` 全量 **67 条 / 4 文件** ✓；`--project=chromium --project=firefox --project=mobile --list`
+里 `perf.spec` 出现 **0** 次 ✓；`pnpm e2e:perf` 单跑 **1 passed（22.9s）** ✓。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |

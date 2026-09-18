@@ -190,6 +190,7 @@ pnpm e2e                 # 两个 project 全跑（约 5 分钟）
 pnpm e2e:chromium        # 只跑 chromium
 pnpm e2e:firefox         # 只跑 firefox
 pnpm e2e:mobile          # 只跑移动端（Pixel 7：412×915、触摸、DPR 2.625）
+pnpm e2e:perf            # 只跑"点击长任务"性能守卫（**不进全量**：同机跑着 dev/代理时会被负载击穿）
 pnpm e2e:peer            # 单独起本地 PeerJS 信令（127.0.0.1:9100）
 ```
 

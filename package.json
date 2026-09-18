@@ -13,11 +13,12 @@
     "data:build": "cd tools && UV_CACHE_DIR=.uv/cache uv run python -m tmc.build",
     "data:check": "cd tools && UV_CACHE_DIR=.uv/cache uv run python -m tmc.build --check",
     "data:validate": "cd tools && UV_CACHE_DIR=.uv/cache uv run python -m tmc.validate --report",
-    "e2e": "PLAYWRIGHT_BROWSERS_PATH=\"$PWD/.playwright-browsers\" playwright test",
+    "e2e": "PLAYWRIGHT_BROWSERS_PATH=\"$PWD/.playwright-browsers\" playwright test --project=chromium --project=firefox --project=mobile",
     "e2e:chromium": "PLAYWRIGHT_BROWSERS_PATH=\"$PWD/.playwright-browsers\" playwright test --project=chromium",
     "e2e:firefox": "PLAYWRIGHT_BROWSERS_PATH=\"$PWD/.playwright-browsers\" playwright test --project=firefox",
     "e2e:peer": "node e2e/peer-server.mjs",
-    "e2e:mobile": "PLAYWRIGHT_BROWSERS_PATH=\"$PWD/.playwright-browsers\" playwright test --project=mobile"
+    "e2e:mobile": "PLAYWRIGHT_BROWSERS_PATH=\"$PWD/.playwright-browsers\" playwright test --project=mobile",
+    "e2e:perf": "PLAYWRIGHT_BROWSERS_PATH=\"$PWD/.playwright-browsers\" playwright test --project=perf"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
