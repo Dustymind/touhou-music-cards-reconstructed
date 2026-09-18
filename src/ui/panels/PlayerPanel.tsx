@@ -6,7 +6,7 @@
  * - 当前角色的多张卡面**叠放**（上游 `CharacterCardStacked`）；
  * - 切歌时整块卡面滑入（上游是整条 `translateX` 轮播，这里用同长的 0.3s 滑入动画，见 DECISIONS D21）。
  */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { memo } from "react";
 import { Alert, Box, Button, Card, CardContent, Divider, Stack, Switch, TextField, Typography } from "@mui/material";
 import { keyframes } from "@emotion/react";
@@ -19,7 +19,7 @@ import type { PlayerApi } from "../../audio/usePlayer";
 import type { TableMap } from "../../music/sources";
 import type { MusicMode } from "../../music/mode";
 import { fadeInSx, NoFontFamily } from "../../theme/theme";
-import { CARD_WIDTH_PERCENTAGE } from "../../game/gameSetting";
+import { fanCardWidth } from "../player/UpcomingFan";
 import { CharacterCard } from "../components/CharacterCard";
 import { glitchEnabled, preferLocalCards } from "../../runtime";
 import { PlayerControl } from "../components/PlayerControl";
@@ -49,9 +49,7 @@ interface PlayerPanelProps {
 }
 
 /** 当前卡面的宽度（上游按容器百分比，这里给像素值）。 */
-const CURRENT_CARD_WIDTH = 140;
-
-/** 卡面相对"卡牌选择器"的显示倍率（用户指定 120%）。 */
+/** 卡面 = 卡牌选择器卡宽 × 该倍率（用户指定 120%）。 */
 const COVER_SCALE = 1.2;
 /** 居中列里各行之间的间距（MD2 8dp 栅格）。 */
 const PLAYER_LINE_GAP = { xs: 1, sm: 1.5 };
@@ -82,23 +80,20 @@ function PlayerPanelInner(props: PlayerPanelProps) {
 
   // 卡面尺寸 = **卡牌选择器的 120%**（卡牌选择器 = 牌桌/轮播用的同一个卡宽比例）。
   // 用 ResizeObserver 跟着卡片宽度走，窄屏宽屏同一套算法（用户要求两端统一布局）。
-  // 观测的是**卡片内容区**（整宽），不是居中的那一列 —— 列本身宽度随内容收缩，观测它会越算越小 ✗
-  const cardRef = useRef<HTMLDivElement | null>(null);
-  const [coverWidth, setCoverWidth] = useState(CURRENT_CARD_WIDTH);
+  // 卡面 = **卡牌选择器（"接下来"卡条）的卡宽 × 120%** —— 直接用选择器自己的尺寸函数，
+  // 保证两边永远同一个口径（选择器 = `min(窗口宽×20%, 150)`，见 UpcomingFan.fanCardWidth）。
+  const [coverWidth, setCoverWidth] = useState(() =>
+    Math.round(fanCardWidth(typeof window === "undefined" ? 1280 : window.innerWidth) * COVER_SCALE));
   useEffect(() => {
-    const element = cardRef.current;
-    if (!element || typeof ResizeObserver === "undefined") return undefined;
-    const observer = new ResizeObserver(() => {
-      const container = element.getBoundingClientRect().width;
-      setCoverWidth(Math.round(container * CARD_WIDTH_PERCENTAGE.default * COVER_SCALE));
-    });
-    observer.observe(element);
-    return () => observer.disconnect();
+    const update = () => setCoverWidth(Math.round(fanCardWidth(window.innerWidth) * COVER_SCALE));
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
   }, []);
 
   return (
     <Stack spacing={2} sx={{ width: "100%", fontFamily: NoFontFamily }}>
-      <Card><CardContent ref={cardRef}>
+      <Card><CardContent>
         {/* 用户要求：**两端统一**的居中列 —— 卡面 → 曲名 → 作者/作品 → 角色名 → 进度条 → 音量条 → 播放控件 */}
         <Stack
           data-testid="player-head"
