@@ -109,6 +109,7 @@ export const Localization = {
   GameSideYou: u("You", "你"),
   GameSideOpponent: u("Opponent", "对手"),
   GameGroupTurn: u("Turn", "回合"),
+  ConfigTabSourceForced: u("Forced on by the music mode", "由音乐模式强制启用"),
   GameUnusedExpand: u("Show", "展开"),
   GameUnusedCollapse: u("Hide", "收起"),
   GameDeckBuildHint: u(

@@ -129,7 +129,10 @@ function SourceSectionInner({ bundle, tables }: { bundle: DataBundle; tables: Ta
       <Stack spacing={1} sx={{ mt: 1 }}>
         {rows.map((source) => {
           const override = sourceOverrides[source.id];
-          const enabled = override?.enabled ?? source.enabled;
+          // 音MAD 模式会**强制**使用本地曲库（见 D52）：这一行显示成"开关关闭但实际在用"会让人误解 ✗，
+          // 所以这里显示为已启用、开关置灰，并挂一条说明 ✓
+          const forced = musicMode === "otomads" && source.kind === "local";
+          const enabled = forced || (override?.enabled ?? source.enabled);
           const table = tables[source.id];
           const status = !enabled ? "off"
             : table?.status === "ready" ? `${table.entries.size}`
@@ -170,12 +173,16 @@ function SourceSectionInner({ bundle, tables }: { bundle: DataBundle; tables: Ta
                     <Switch
                       size="small"
                       checked={enabled}
+                      disabled={forced}
                       onChange={(event) => toggleSource(source.id, event.target.checked, ids)}
                       // MUI v7 用 slotProps.input（旧的 inputProps 已经不再落到 input 上）
                       slotProps={{ input: { "aria-label": `${source.id}-enabled` } }}
                     />
                   }
-                  label={t(enabled ? Localization.ConfigTabSourceEnabled : Localization.ConfigTabSourceDisabled)}
+                  label={t(forced
+                    ? Localization.ConfigTabSourceForced
+                    : enabled ? Localization.ConfigTabSourceEnabled : Localization.ConfigTabSourceDisabled)}
+                  data-testid={`source-forced-${source.id}`}
                 />
                 <IconButton
                   size="small"
