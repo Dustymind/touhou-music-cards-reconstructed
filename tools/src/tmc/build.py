@@ -49,7 +49,8 @@ def build_albums(pack_albums: list[dict] | None = None) -> dict:
         albums.append({k: entry[k] for k in ("key", "name", "kind", "pack", "order") if k in entry}
                       | ({"work": entry["work"]} if "work" in entry else {}))
     for entry in pack_albums or []:
-        albums.append({k: entry[k] for k in ("key", "name", "kind", "pack", "order") if k in entry})
+        albums.append({k: entry[k] for k in ("key", "name", "kind", "pack", "order") if k in entry}
+                      | ({"showAlbumName": entry["showAlbumName"]} if "showAlbumName" in entry else {}))
     albums.sort(key=lambda a: a["order"])
     return {"schema": SCHEMA_VERSION, "albums": albums}
 
@@ -126,7 +127,8 @@ def main(argv: list[str] | None = None) -> int:
             "characters": len(chars),
             "albums": len(albums["albums"]),
             "trackEntries": sum(len(c["music"]) for c in chars),
-            "distinctTracks": len({(a, t) for c in chars for a, t, _e in c["music"]}),
+            # 条目是 [专辑, 曲名, extra] 外加**可选**的作者（第 4 位）→ 用 *rest 接住
+            "distinctTracks": len({(a, t) for c in chars for a, t, *_rest in c["music"]}),
             "sources": len(sources["sources"]),
             "cardSets": len(card_sets["cardSets"]),
             "packs": len(packs_json["packs"]),

@@ -305,7 +305,8 @@
    "name": "otomads",
    "kind": "other",
    "pack": "otomads",
-   "order": 100
+   "order": 100,
+   "showAlbumName": false
   }
  ]
 }

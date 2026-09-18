@@ -2677,6 +2677,41 @@ dev 用 200ms 是为了抓住"上千毫秒/近两百毫秒"这类回归，生产
 
 ---
 
+## D94 作者字段 + show_album_name（播放页第二行的规则）
+
+**需求**（用户）：播放页里**有作者信息就显示作者，否则显示专辑名**；先把音MAD 数据改成这个形状；
+专辑新增**可选布尔键 `show_album_name`**（不填默认 true），otomads 专辑设 **false**
+（于是那条没有作者的曲目**整行不显示** ✓）；作者名**原样显示、不截断** ✓。
+
+**数据与管线**：
+
+| 位置 | 改动 |
+|---|---|
+| `data/packs/otomads.toml` | 23 条拆出 `author = "…"`、标题去掉 `作者 - ` 前缀；`[[album]] otomads` 加 `show_album_name = false`（第 24 条本就没有作者信息） |
+| `tools/src/tmc/packs.py` | 透出 `author`（可选）与 `showAlbumName`（可选） |
+| `tools/src/tmc/build.py` | 作者写进角色 music 条目的**可选第 4 位**；专辑写 `showAlbumName`；`distinctTracks` 的解包改成 `a, t, *_rest` |
+| `tools/src/tmc/validate.py` | 三处 `for album, title, extra in …` 改成 `*_rest` |
+| `src/data/types.ts` | `MusicEntry` 加可选 `author?`；`AlbumRecord` 加 `showAlbumName?` |
+| `src/data/load.ts` | 条目校验放宽为"3 或 4 位 + 第 4 位必须是字符串" |
+| `src/music/sources.ts` | **方案 A**：`buildEntries` 插入"归一化曲名"别名（两边都去掉开头 `作者 - `），否则 TOML 去掉前缀后匹配不上 manifest ✗ |
+| `src/ui/panels/PlayerPanel.tsx` | `credit = author ?? (showAlbumName === false ? null : 专辑名)`；为空**整行不渲染**；删掉旧的 `splitCredit` 猜法 |
+
+**实测（浏览器）**：
+
+```
+原曲   → 曲名「マッシュルーム・ワルツ」  第二行「完全憑依ディスコグラフィ」（专辑 ✓）
+音MAD  → 曲名「普通肥猫魔法使」（无前缀 ✓） 第二行「川先僧」（作者 ✓）
+```
+
+**验证**：`pnpm data:check` 无漂移 ✓、`tmc.validate` 通过 ✓、Python **33 passed** ✓、
+`pnpm test` **209 passed** ✓、`pnpm e2e:mobile` **9 passed** ✓、chromium 播放相关 **4 passed** ✓。
+
+**过程中的两个坑**：① 4 位条目不只前端要放宽，**Python 侧三处解包**也会炸 ✗（`build.py` / `validate.py` 已修 ✓）；
+② 移动过仓库后 `tools/.venv` 里的 shebang 指向旧路径 ✗ → `uv run pytest` 报 "Failed to spawn" ✓，
+删掉 `.venv` 让 uv 重建即恢复 ✓。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |

@@ -46,6 +46,13 @@ export function applyLocalManifestUrl(
   return sources.map((source) => (source.kind === "local" ? { ...source, tableUrl: url } : source));
 }
 
+/** 归一化曲名：去掉开头的 `作者 - ` 前缀，再压空白、统一小写。
+ *  本地曲库的 manifest 按**磁盘文件名**生成（文件名带作者前缀 ✓），而曲包数据里作者是独立字段、
+ *  曲名已经不带前缀 ✓ —— 两边比较前必须同一口径，否则音MAD 匹配不上、播不出声。 */
+export function normalizeTitle(title: string): string {
+  return title.replace(/^[^-]{1,60}?\s+-\s+/, "").replace(/\s+/g, " ").trim().toLowerCase();
+}
+
 /** 把 `[[专辑, 曲目, URL], …]` 收成查表用的 Map。 */
 export function buildEntries(rows: unknown): Map<string, string> {
   const entries = new Map<string, string>();
@@ -53,7 +60,12 @@ export function buildEntries(rows: unknown): Map<string, string> {
   for (const row of rows) {
     if (!Array.isArray(row) || row.length < 3) continue;
     const [album, title, url] = row as [string, string, string];
-    if (typeof url === "string" && url.length > 0) entries.set(trackId(album, title), url);
+    if (typeof url !== "string" || url.length === 0) continue;
+    const key = trackId(album, title);
+    entries.set(key, url);
+    // 归一化别名：让"去掉作者前缀的曲名"也能查到（曲包数据就是这种形状）
+    const alias = trackId(album, normalizeTitle(title));
+    if (alias !== key && !entries.has(alias)) entries.set(alias, url);
   }
   return entries;
 }

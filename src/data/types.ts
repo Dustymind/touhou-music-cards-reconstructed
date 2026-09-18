@@ -4,7 +4,8 @@ export const EXTRAS = ["角色曲", "道中曲", "更多道中曲", "秘封曲"]
 export type Extra = (typeof EXTRAS)[number];
 
 /** `[专辑, 曲目, 附加信息]`——`曲目` 保留 `NN. ` 序号（见 docs/DECISIONS.md D6）。 */
-export type MusicEntry = [album: string, title: string, extra: Extra];
+/** `[专辑, 曲名, extra]`；第 4 位是**可选**的作者（音MAD 这类有作者信息的曲目才有）。 */
+export type MusicEntry = [album: string, title: string, extra: Extra, author?: string];
 
 export interface CharacterRecord {
   key: string;
@@ -24,6 +25,8 @@ export interface AlbumRecord {
   pack: string;
   order: number;
   work?: string;
+  /** 专辑名要不要显示（缺省 true）。false 且曲目没作者时，播放页那一行整行不显示 */
+  showAlbumName?: boolean;
 }
 
 export interface SourceRecord {

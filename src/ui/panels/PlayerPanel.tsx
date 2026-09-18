@@ -12,7 +12,7 @@ import { Alert, Box, Button, Card, CardContent, Divider, Stack, Switch, TextFiel
 import { keyframes } from "@emotion/react";
 import { UpcomingFan } from "../player/UpcomingFan";
 
-import type { DataBundle, MusicEntry } from "../../data/types";
+import type { AlbumRecord, DataBundle, MusicEntry } from "../../data/types";
 import { displayTitle } from "../../data/types";
 import { Localization, t } from "../../i18n/localization";
 import type { PlayerApi } from "../../audio/usePlayer";
@@ -48,7 +48,6 @@ interface PlayerPanelProps {
   musicMode: MusicMode;
 }
 
-/** 当前卡面的宽度（上游按容器百分比，这里给像素值）。 */
 /** 卡面 = 卡牌选择器卡宽 × 该倍率（用户指定 120%）。 */
 const COVER_SCALE = 1.2;
 /** 居中列里各行之间的间距（MD2 8dp 栅格）。 */
@@ -56,21 +55,13 @@ const PLAYER_LINE_GAP = { xs: 1, sm: 1.5 };
 /** 控制区（进度条 / 音量条 / 播放控件）的宽度上限：三条滑杆共用一套尺寸。 */
 const PLAYER_CONTROL_WIDTH = 420;
 
-/** 音MAD 类曲目的标题是 `作者 - 曲名`：作者不在"官作白名单"里 → 取作者，曲名去掉前缀。 */
-function splitCredit(title: string): { author: string | null; title: string } {
-  const matched = /^([^-]{1,40}?)\s+-\s+(.+)$/.exec(title);
-  return matched ? { author: matched[1]!.trim(), title: matched[2]!.trim() } : { author: null, title };
-}
-
-/** 卡片上显示的曲名（音MAD 去掉 `作者 - ` 前缀）。 */
-function trackTitle(title: string): string {
-  return splitCredit(title).title;
-}
-
-/** 第二行：非官作（有作者）显示作者，否则显示作品（专辑）名。 */
-function creditLine(entry: MusicEntry | null, _character: unknown): string {
-  if (!entry) return "—";
-  return splitCredit(entry[1]).author ?? entry[0];
+/** 播放页第二行：**有作者显示作者**；没有作者时看专辑的 `showAlbumName`（缺省 true），
+ *  为 false 就整行不显示（例如音MAD 那批没有作者的曲目）。 */
+function creditLine(entry: MusicEntry | null, albums: readonly AlbumRecord[]): string | null {
+  if (!entry) return null;
+  if (entry[3]) return entry[3];
+  const album = albums.find((item) => item.name === entry[0]);
+  return album?.showAlbumName === false ? null : entry[0];
 }
 
 function PlayerPanelInner(props: PlayerPanelProps) {
@@ -82,6 +73,7 @@ function PlayerPanelInner(props: PlayerPanelProps) {
   // 用 ResizeObserver 跟着卡片宽度走，窄屏宽屏同一套算法（用户要求两端统一布局）。
   // 卡面 = **卡牌选择器（"接下来"卡条）的卡宽 × 120%** —— 直接用选择器自己的尺寸函数，
   // 保证两边永远同一个口径（选择器 = `min(窗口宽×20%, 150)`，见 UpcomingFan.fanCardWidth）。
+  const credit = creditLine(player.entry, props.bundle.albums);
   const [coverWidth, setCoverWidth] = useState(() =>
     Math.round(fanCardWidth(typeof window === "undefined" ? 1280 : window.innerWidth) * COVER_SCALE));
   useEffect(() => {
@@ -127,13 +119,15 @@ function PlayerPanelInner(props: PlayerPanelProps) {
 
           {/* 曲名（唯一的大字级） */}
           <Typography variant="h6" data-testid="now-title" sx={{ lineHeight: 1.3 }}>
-            {player.entry ? displayTitle(trackTitle(player.entry[1])) : (props.pin ? displayTitle(props.pin[1]) : "—")}
+            {player.entry ? displayTitle(player.entry[1]) : (props.pin ? displayTitle(props.pin[1]) : "—")}
           </Typography>
 
           {/* 作者不"白名单"（即非官作、标题里带 `作者 - 曲名`）→ 显示作者；否则显示作品（专辑）名 */}
-          <Typography variant="body2" color="text.secondary" data-testid="now-credit">
-            {creditLine(player.entry, character)}
-          </Typography>
+          {credit && (
+            <Typography variant="body2" color="text.secondary" data-testid="now-credit">
+              {credit}
+            </Typography>
+          )}
 
           {/* 角色名 */}
           <Typography variant="subtitle2" data-testid="now-character">

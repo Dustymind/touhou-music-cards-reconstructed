@@ -60,9 +60,13 @@ export function validateCharacters(raw: unknown, expected: number): CharacterRec
     assert(Array.isArray(character.card) && character.card.length > 0, `${character.key} 缺卡面`);
     assert(Array.isArray(character.music) && character.music.length > 0, `${character.key} 缺曲目`);
     for (const entry of character.music) {
-      assert(Array.isArray(entry) && entry.length === 3, `${character.key} 曲目条目不是三元组`);
+      // `[专辑, 曲名, extra]`，第 4 位是**可选**的作者（音MAD 这类曲目才有）
+      assert(Array.isArray(entry) && (entry.length === 3 || entry.length === 4),
+        `${character.key} 曲目条目形状不对`);
       assert((EXTRAS as readonly string[]).includes(entry[2]),
         `${character.key} 的附加信息非法：${String(entry[2])}`);
+      assert(entry.length === 3 || typeof entry[3] === "string",
+        `${character.key} 的作者字段必须是字符串`);
     }
   }
   return characters;

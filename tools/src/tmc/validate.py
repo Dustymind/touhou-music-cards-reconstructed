@@ -98,7 +98,7 @@ def check_characters(chars: list[dict], albums: dict[str, dict], p: Problems):
     hifuu_entries = 0
     for char in chars:
         local: set[tuple[str, str]] = set()
-        for album, title, extra in char["music"]:
+        for album, title, extra, *_rest in char["music"]:
             entry_count += 1
             if extra not in EXTRAS:
                 p.error(f"{char['key']}: 附加信息非法「{extra}」（{album} / {title}）")
@@ -207,7 +207,7 @@ def check_stage_attribution(chars: list[dict]) -> dict[str, list[str]]:
     rows: dict[str, list[str]] = {}
     for char in chars:
         names = [n for n in char["searchNames"] if n]
-        for album, title, extra in char["music"]:
+        for album, title, extra, *_rest in char["music"]:
             if extra not in ("道中曲", "更多道中曲"):
                 continue
             work = next((w for k, _n, _kind, w, _o in repo.ALBUM_SEED
@@ -237,7 +237,7 @@ def check_overrides(chars: list[dict], p: Problems) -> int:
     table = load_overrides()
     seen: set[tuple[str, str]] = set()
     for char in chars:
-        for album, title, extra in char["music"]:
+        for album, title, extra, *_rest in char["music"]:
             if (album, title) in table:
                 seen.add((album, title))
                 want, reason, source = table[(album, title)]
@@ -338,7 +338,7 @@ def check_title_uniqueness(chars: list[dict], p: Problems) -> dict[str, object]:
     pairs: dict[tuple[str, str], set[str]] = {}
     by_album: dict[str, set[str]] = {}
     for char in chars:
-        for album, title, _extra in char["music"]:
+        for album, title, _extra, *_rest in char["music"]:
             pairs.setdefault((album, title), set()).add(char["key"])
             by_album.setdefault(album, set()).add(title)
 

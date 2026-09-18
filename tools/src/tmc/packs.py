@@ -27,7 +27,8 @@ TOML 形状::
     [[track]]
     character = "kirisame-marisa"
     album = "otomads"
-    title = "川先僧 - 普通肥猫魔法使"
+    author = "川先僧"
+    title = "普通肥猫魔法使"
     extra = "角色曲"
 """
 from __future__ import annotations
@@ -60,21 +61,28 @@ def load_packs() -> tuple[list[dict], list[dict], list[dict]]:
             "order": meta.get("order", 0),
         })
         for entry in data.get("album", []):
-            albums.append({
+            album = {
                 "key": entry["key"],
                 "name": entry["name"],
                 "kind": entry.get("kind", "other"),
                 "pack": entry.get("pack", pack_id),
                 "order": entry.get("order", 0),
-            })
+            }
+            # 可选：专辑名要不要显示（不填 = true）。曲包专辑常设 false，曲目没作者时那一行就不显示
+            if "show_album_name" in entry:
+                album["showAlbumName"] = bool(entry["show_album_name"])
+            albums.append(album)
         for entry in data.get("track", []):
-            tracks.append({
+            track = {
                 "character": entry["character"],
                 "album": entry["album"],
                 "title": entry["title"],
                 "extra": entry.get("extra", "角色曲"),
                 "pack": pack_id,
-            })
+            }
+            if entry.get("author"):
+                track["author"] = entry["author"]
+            tracks.append(track)
     packs.sort(key=lambda item: item["order"])
     return packs, albums, tracks
 
@@ -88,5 +96,8 @@ def apply_tracks(chars: list[dict], tracks: list[dict]) -> list[dict]:
         char = by_key.get(track["character"])
         if char is None:
             continue      # 校验阶段已经报错，这里只是不炸
-        char["music"].append([track["album"], track["title"], track["extra"]])
+        entry = [track["album"], track["title"], track["extra"]]
+        if track.get("author"):
+            entry.append(track["author"])   # 可选第 4 位：作者（有就显示作者，没有则看专辑的 showAlbumName）
+        char["music"].append(entry)
     return merged

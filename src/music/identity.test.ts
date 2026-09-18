@@ -36,7 +36,8 @@ describe("曲目身份：同名不同专辑 = 不同曲子", () => {
       ["東方妖々夢", SAME_TITLE, "https://a/th07.mp3"],
       ["東方花映塚", SAME_TITLE, "https://b/th09.mp3"],
     ]);
-    expect(entries.size).toBe(2);
+    // 归一化别名（去掉 `作者 - ` 前缀）会额外插入键，所以这里只要求"不少于两个"，关键是下面两次查找各自命中
+    expect(entries.size).toBeGreaterThanOrEqual(2);
     const table = { s: { id: "s", status: "ready" as const, entries } };
     expect(resolveTrack(table, ["s"], "東方妖々夢", SAME_TITLE)?.url).toBe("https://a/th07.mp3");
     expect(resolveTrack(table, ["s"], "東方花映塚", SAME_TITLE)?.url).toBe("https://b/th09.mp3");
