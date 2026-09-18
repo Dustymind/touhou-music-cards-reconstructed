@@ -69,6 +69,18 @@ ROWS: list[tuple[str, str, str, str]] = [
 
     # ── 2026-09 第三批追加（1 条）──
     ("BV17E411J7e1", "【东方充电男】第六十年的疯子裁判", "鬼剑士草贝戋神", "shiki-eiki-yamazanadu"),
+
+    # ── 2026-09 第四批（10 条，反引号格式）──
+    ("BV1Ymt1e1EyJ", "【北京地铁音MAD•东方蓟门桥】来自北京地铁的东方萃梦想！！！", "不可阻挡的TRT", "ibuki-suika"),
+    ("BV1554y1G7ef", "【东方】家居萃梦想", "打酱油的小火柴", "ibuki-suika"),
+    ("BV1xE411g7U6", "[东方鬼厨音mad]碎碗", "边界之光", "ibuki-suika"),
+    ("BV16w4m1v7Md", "【东方萃梦想】碎 月", "芙兰厨陈YuYue", "ibuki-suika"),
+    ("BV1PU4y1Z73K", "【東方吔夢想】御伽之国的吔屎警署 ~ Missing Gunpower", "kirby1324", "ibuki-suika"),
+    ("BV1uw4m1e7AZ", "【东方馅挂炒饭】新日暮里的地♂牢 ~ Missing Aniki（御伽之国的鬼岛 ~ Missing Power）", "龙青瑶RyuuSeiyou", "ibuki-suika"),
+    ("BV1ds4y1J7wK", "Masuo的笔记　～ Mysteriousuo Note", "みぇち", "shameimaru-aya"),
+    ("BV1oe4y1C7PR", "【东方雪花帖】傻风之循环 ~ Wind Tangpu", "_萳苝_", "shameimaru-aya"),
+    ("BV1VH4y1a71E", "【2024东方新春宴音MAD合作单品】山东之国的不眠夜", "鱼调YuDiao & 天空海Skyocean & DKZ53", "shameimaru-aya"),
+    ("BV1YM4y1w7Sd", "对了，一起去回忆京都吧。", "手稲", "shameimaru-aya"),
 ]
 
 def target(row: tuple[str, str, str, str]) -> pathlib.Path | None:
