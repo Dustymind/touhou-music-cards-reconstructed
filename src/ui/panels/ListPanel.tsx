@@ -4,7 +4,7 @@ import {
   ListItemText, Stack, TextField, Typography,
 } from "@mui/material";
 import SearchRounded from "@mui/icons-material/SearchRounded";
-import { useMemo, useState } from "react";
+import { memo, useCallback, useDeferredValue, useMemo, useState } from "react";
 
 import type { DataBundle } from "../../data/types";
 import { displayTitle } from "../../data/types";
@@ -12,15 +12,23 @@ import { Localization, t } from "../../i18n/localization";
 import { useQueue } from "../../store/queue";
 import { NoFontFamily } from "../../theme/theme";
 
-export function ListPanel({ bundle }: { bundle: DataBundle }) {
+function ListPanelInner({ bundle }: { bundle: DataBundle }) {
   const [query, setQuery] = useState("");
   const currentKey = useQueue((slice) => slice.currentKey);
   const temporaryDisabled = useQueue((slice) => slice.temporaryDisabled);
-  const setCurrent = useQueue((slice) => slice.setCurrent);
-  const toggleTemporary = useQueue((slice) => slice.toggleTemporary);
+
+  // 搜索用 deferred 值：输入时先出字，重列表渲染让给下一帧（避免每个按键都卡一下）
+  const deferredQuery = useDeferredValue(query);
+  // 稳定回调：不然每行拿到的都是新函数，memo 失效 → 切一行要重渲染 121 行（实测 188ms）
+  const handleSelect = useCallback((key: string) => {
+    if (useQueue.getState().temporaryDisabled[key]) {
+      useQueue.getState().toggleTemporary(key);
+    }
+    useQueue.getState().setCurrent(key);
+  }, []);
 
   const rows = useMemo(() => {
-    const needle = query.trim().toLowerCase();
+    const needle = deferredQuery.trim().toLowerCase();
     return bundle.characters
       .slice()
       .sort((a, b) => a.order - b.order)
@@ -29,7 +37,7 @@ export function ListPanel({ bundle }: { bundle: DataBundle }) {
         return [character.name, character.key, ...character.searchNames]
           .some((name) => name.toLowerCase().includes(needle));
       });
-  }, [bundle.characters, query]);
+  }, [bundle.characters, deferredQuery]);
 
   return (
     <Stack spacing={2} sx={{ width: "100%", fontFamily: NoFontFamily }}>
@@ -62,46 +70,61 @@ export function ListPanel({ bundle }: { bundle: DataBundle }) {
       <Card>
         <CardContent>
           <List disablePadding>
-            {rows.map((character) => {
-              const [album, title] = character.music[0]!;
-              const disabled = temporaryDisabled[character.key] === true;
-              const current = character.key === currentKey;
-              return (
-                <ListItem
-                  key={character.key}
-                  disablePadding
-                  divider
-                  secondaryAction={<Chip size="small" variant="outlined" label={character.music.length} />}
-                >
-                  <ListItemButton
-                    selected={current}
-                    onClick={() => {
-                      if (disabled) toggleTemporary(character.key);
-                      setCurrent(character.key);
-                    }}
-                    data-testid={`list-row-${character.key}`}
-                    sx={disabled ? { opacity: 0.5 } : undefined}
-                  >
-                    <ListItemAvatar>
-                      <Avatar sx={{ width: 32, height: 32, fontSize: "0.875rem" }}>
-                        {character.order}
-                      </Avatar>
-                    </ListItemAvatar>
-                    <ListItemText
-                      primary={character.name}
-                      secondary={`${displayTitle(title)} · ${album}`}
-                      slotProps={{
-                        primary: { variant: "body1", noWrap: true },
-                        secondary: { variant: "body2", noWrap: true, color: "text.secondary" },
-                      }}
-                    />
-                  </ListItemButton>
-                </ListItem>
-              );
-            })}
+            {rows.map((character) => (
+              <ListRow
+                key={character.key}
+                character={character}
+                current={character.key === currentKey}
+                disabled={temporaryDisabled[character.key] === true}
+                onSelect={handleSelect}
+              />
+            ))}
           </List>
         </CardContent>
       </Card>
     </Stack>
   );
 }
+
+/** 单行记忆化：`currentKey`/停用状态没变的行不重渲染（121 行逐个 MUI ListItem 很贵）。 */
+const ListRow = memo(function ListRow({
+  character, current, disabled, onSelect,
+}: {
+  character: DataBundle["characters"][number];
+  current: boolean;
+  disabled: boolean;
+  onSelect: (key: string) => void;
+}) {
+  const [album, title] = character.music[0]!;
+  return (
+    <ListItem
+      disablePadding
+      divider
+      secondaryAction={<Chip size="small" variant="outlined" label={character.music.length} />}
+    >
+      <ListItemButton
+        selected={current}
+        onClick={() => onSelect(character.key)}
+        data-testid={`list-row-${character.key}`}
+        sx={disabled ? { opacity: 0.5 } : undefined}
+      >
+        <ListItemAvatar>
+          <Avatar sx={{ width: 32, height: 32, fontSize: "0.875rem" }}>
+            {character.order}
+          </Avatar>
+        </ListItemAvatar>
+        <ListItemText
+          primary={character.name}
+          secondary={`${displayTitle(title)} · ${album}`}
+          slotProps={{
+            primary: { variant: "body1", noWrap: true },
+            secondary: { variant: "body2", noWrap: true, color: "text.secondary" },
+          }}
+        />
+      </ListItemButton>
+    </ListItem>
+  );
+});
+
+/** 面板级 memo：外壳状态（语言 / 音乐模式 / 分区展开）变化时不必重算整页。 */
+export const ListPanel = memo(ListPanelInner);

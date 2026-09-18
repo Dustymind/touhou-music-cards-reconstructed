@@ -16,6 +16,18 @@ import { NoFontFamily } from "../../../theme/theme";
 
 const TRI_ORDER: Tri[] = ["unset", "on", "off"];
 
+/** MD2 复选框行：**统一行高 40dp**、控件与文字垂直居中。
+ *  之前为了"多行标签时与首行对齐"用了 `mt: -0.75/1.25` 微调，导致复选框盒子（38dp）比单行行高（32dp）还高、
+ *  跟文字也不在同一基线上（用户反馈"勾选框高度与文字不一样"）。统一行高后一行一行都齐。 */
+export const PRESET_ROW_SX = {
+  ml: 1,
+  mr: 0,
+  minHeight: 40,
+  alignItems: "center",
+  "& .MuiCheckbox-root": { p: 1 },
+  "& .MuiFormControlLabel-label": { py: 0 },
+} as const;
+
 function triLabel(value: Tri): string {
   if (value === "on") return t(Localization.ConfigTabTriOn);
   if (value === "off") return t(Localization.ConfigTabTriOff);
@@ -34,13 +46,7 @@ function AlbumRows({
       {albums.map((album) => (
         <LazyRow key={album.key} placeholderHeight={44}>
         <FormControlLabel
-          // 缩进 8dp；标签换行时复选框与**首行**对齐（MD2 多行列表的做法）
-          sx={{
-            ml: 1,
-            alignItems: "flex-start",
-            "& .MuiCheckbox-root": { mt: -0.75 },
-            "& .MuiFormControlLabel-label": { mt: 1.25 },
-          }}
+          sx={PRESET_ROW_SX}
           control={
             <Checkbox
               size="small"
@@ -82,7 +88,7 @@ function PresetSectionInner({ bundle, musicMode }: { bundle: DataBundle; musicMo
 
       {/* 秘封曲：父复选框是批量控制（不存值，显示态由 12 个子项派生） */}
       <FormControlLabel
-        sx={{ alignItems: "flex-start", "& .MuiCheckbox-root": { mt: -0.75 } }}
+        sx={PRESET_ROW_SX}
         control={
           <Checkbox
             checked={hifuuState === "all"}
@@ -106,12 +112,7 @@ function PresetSectionInner({ bundle, musicMode }: { bundle: DataBundle; musicMo
         {groups.hifuu.map((album) => (
           <LazyRow key={album.key} placeholderHeight={44}>
           <FormControlLabel
-            sx={{
-              ml: 1,
-              alignItems: "flex-start",
-              "& .MuiCheckbox-root": { mt: -0.75 },
-              "& .MuiFormControlLabel-label": { mt: 1.25 },
-            }}
+            sx={PRESET_ROW_SX}
             control={
               <Checkbox
                 size="small"

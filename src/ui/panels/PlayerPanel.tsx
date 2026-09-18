@@ -6,6 +6,7 @@
  * - 当前角色的多张卡面**叠放**（上游 `CharacterCardStacked`）；
  * - 切歌时整块卡面滑入（上游是整条 `translateX` 轮播，这里用同长的 0.3s 滑入动画，见 DECISIONS D21）。
  */
+import { memo } from "react";
 import { Alert, Box, Button, Card, CardContent, Chip, Divider, Stack, Switch, TextField, Typography } from "@mui/material";
 import { keyframes } from "@emotion/react";
 import { UpcomingFan } from "../player/UpcomingFan";
@@ -48,7 +49,7 @@ export interface PlayerPanelProps {
 /** 当前卡面的宽度（上游按容器百分比，这里给像素值）。 */
 const CURRENT_CARD_WIDTH = 140;
 
-export function PlayerPanel(props: PlayerPanelProps) {
+function PlayerPanelInner(props: PlayerPanelProps) {
   const { bundle, player, order, temporaryDisabled, currentKey } = props;
   const cardSet = bundle.cardSets.find((set) => set.id === props.cardCollection) ?? bundle.cardSets[0]!;
   const character = bundle.characters.find((item) => item.key === currentKey) ?? null;
@@ -174,3 +175,6 @@ export function PlayerPanel(props: PlayerPanelProps) {
     </Stack>
   );
 }
+
+/** 面板级 memo：外壳状态（语言 / 音乐模式 / 分区展开）变化时不必重算整页。 */
+export const PlayerPanel = memo(PlayerPanelInner);

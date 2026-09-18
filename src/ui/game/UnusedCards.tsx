@@ -11,7 +11,18 @@ import type { CardInfo } from "../../game/types";
 import { t, Localization } from "../../i18n/localization";
 import { CardStrip, type StripCard } from "../components/CardStrip";
 import { CharacterCard } from "../components/CharacterCard";
+import { CardAspectRatio } from "../../theme/theme";
 import { DECK_GAP } from "./DeckGrid";
+import { LazyRow } from "../components/LazyRow";
+
+/** 按每行 `columns` 张切块（渲染时按行懒挂载）。 */
+function chunk<T>(items: readonly T[], size: number): T[][] {
+  const rows: T[][] = [];
+  for (let index = 0; index < items.length; index += size) {
+    rows.push(items.slice(index, index + size));
+  }
+  return rows;
+}
 
 export interface UnusedCardsProps {
   cards: readonly CardInfo[];
@@ -48,6 +59,7 @@ export function UnusedCards(props: UnusedCardsProps2) {
   const [over, setOver] = useState(false);
   /** 网格布局下的 hover（只变底色，不做位移——与播放页、卡槽一致） */
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
+  const cardHeight = Math.round(width / CardAspectRatio);
 
   const strip: StripCard[] = cards.map((card) => ({
     id: `${card.characterKey}-${card.cardIndex}`,
@@ -110,38 +122,43 @@ export function UnusedCards(props: UnusedCardsProps2) {
           }}
         />
       ) : (
-        /* 多行网格：卡面尺寸、间距**与列数**都跟牌桌卡槽一致（同 width、同 DECK_GAP、同 columns） */
+        /* 多行：卡面尺寸、间距**与列数**都跟牌桌卡槽一致（同 width、同 DECK_GAP、同 columns）。
+           按"行"切块并交给 LazyRow：滚到哪一行才挂载哪一行（121 张一次性挂载要 ~100ms 长任务） */
         <Box
           data-testid="unused-cards-grid"
-          sx={{
-            display: "grid",
-            gridTemplateColumns: columns ? `repeat(${columns}, ${width}px)` : `repeat(auto-fill, ${width}px)`,
-            gap: `${DECK_GAP}px`,
-            justifyContent: "center",
-            py: 0.5,
-          }}
+          sx={{ display: "flex", flexDirection: "column", gap: `${DECK_GAP}px`, alignItems: "center", py: 0.5 }}
         >
-          {cards.map((card) => {
-            const key = `${card.characterKey}-${card.cardIndex}`;
-            return (
-              <Box
-                key={key}
-                data-testid={`unused-card-${key}`}
-                draggable={interactive && Boolean(onCardDragStart)}
-                onDragStart={() => onCardDragStart?.(card)}
-                onClick={() => onPick(card)}
-                onMouseEnter={() => setHoveredKey(key)}
-                onMouseLeave={() => setHoveredKey((value) => (value === key ? null : value))}
-                sx={{ width, cursor: interactive ? "pointer" : "default" }}
-              >
-                <CharacterCard
-                  cardSet={cardSet}
-                  file={cardFiles[card.characterKey]?.[card.cardIndex] ?? ""}
-                  state={hoveredKey === key ? "hover" : "normal"}
-                />
+          {chunk(cards, columns ?? 8).map((row, rowIndex) => (
+            <LazyRow
+              key={row[0] ? `${row[0].characterKey}-${row[0].cardIndex}` : rowIndex}
+              placeholderHeight={cardHeight + DECK_GAP}
+              margin={160}
+            >
+              <Box sx={{ display: "flex", gap: `${DECK_GAP}px` }}>
+                {row.map((card) => {
+                  const key = `${card.characterKey}-${card.cardIndex}`;
+                  return (
+                    <Box
+                      key={key}
+                      data-testid={`unused-card-${key}`}
+                      draggable={interactive && Boolean(onCardDragStart)}
+                      onDragStart={() => onCardDragStart?.(card)}
+                      onClick={() => onPick(card)}
+                      onMouseEnter={() => setHoveredKey(key)}
+                      onMouseLeave={() => setHoveredKey((value) => (value === key ? null : value))}
+                      sx={{ width, cursor: interactive ? "pointer" : "default" }}
+                    >
+                      <CharacterCard
+                        cardSet={cardSet}
+                        file={cardFiles[card.characterKey]?.[card.cardIndex] ?? ""}
+                        state={hoveredKey === key ? "hover" : "normal"}
+                      />
+                    </Box>
+                  );
+                })}
               </Box>
-            );
-          })}
+            </LazyRow>
+          ))}
         </Box>
       )}
 

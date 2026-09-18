@@ -66,12 +66,17 @@ export interface PlayerApi {
   playImmediate: () => void;
   /** 只响一声倒计时铃（会先停掉正曲）。对局倒计时用。 */
   ringBell: () => void;
+  /** 倒计时用的短促一声（三声响用） */
+  tick: () => void;
   pause: () => void;
   next: () => void;
   previous: () => void;
   setSetting: (patch: Partial<PlaybackSetting>) => void;
   reload: () => void;
 }
+
+/** 倒计时"滴答"时长（毫秒）：短促，三声之间不糊在一起。 */
+const BELL_TICK_MS = 320;
 
 export function usePlayer(inputs: PlayerInputs): PlayerApi {
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -263,6 +268,11 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
   }, [resolved]);
 
   /** 只响铃：先停掉正曲，再响一声（铃声结束时不做任何事，由调用方决定何时起播）。 */
+  /** 倒计时滴答：比换歌铃短，且不打断"响铃结束再起播"的时序（倒计时结束时才 ringBell） */
+  const tick = useCallback(() => {
+    bellRef.current?.ring(undefined, BELL_TICK_MS);
+  }, []);
+
   const ringBell = useCallback(() => {
     playTokenRef.current += 1;
     pendingPlayRef.current = false;
@@ -326,6 +336,7 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
     play,
     playImmediate,
     ringBell,
+    tick,
     pause,
     next,
     previous,

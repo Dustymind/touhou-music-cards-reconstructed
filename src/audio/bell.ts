@@ -10,8 +10,9 @@
 export const BELL_DURATION_MS = 1100;
 
 export interface BellHandle {
-  /** 摇一次铃；铃声结束（或被 `stop` 打断）后回调一次。重复调用会打断上一次。 */
-  ring: (onDone?: () => void) => void;
+  /** 摇一次铃；铃声结束（或被 `stop` 打断）后回调一次。重复调用会打断上一次。
+   *  `durationMs` 可覆盖时长：倒计时的三声"滴答"比换歌铃短。 */
+  ring: (onDone?: () => void, durationMs?: number) => void;
   /** 打断当前铃声（不触发回调）。 */
   stop: () => void;
   /** 释放 AudioContext。 */
@@ -76,21 +77,22 @@ export function createBell(durationMs = BELL_DURATION_MS): BellHandle {
   };
 
   return {
-    ring(onDone) {
+    ring(onDone, overrideMs) {
       clearTimer();
       pending = onDone ?? null;
+      const length = Math.max(60, overrideMs ?? durationMs);
       timer = window.setTimeout(() => {
         const done = pending;
         clearTimer();
         done?.();
-      }, durationMs);
+      }, length);
 
       const Ctor = audioContextCtor();
       if (Ctor === null) return; // 静音等待
       try {
         context ??= new Ctor();
         if (context.state === "suspended") void context.resume();
-        synthesize(context, durationMs / 1000);
+        synthesize(context, length / 1000);
       } catch {
         // 音频设备不可用等情况：保持静音，时序不变
       }

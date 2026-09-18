@@ -66,9 +66,10 @@ function SingleTrackSectionInner({ bundle, musicMode }: { bundle: DataBundle; mu
 
   return (
     <SectionPanel id="single" title={t(Localization.ConfigTabMusicSelectionSingle)}>
-      {/* 开关行：开关在左、说明在右（原来只有一个右对齐的开关 + 空的左半边） */}
-      <Stack direction="row" sx={{ alignItems: "center", flexWrap: "wrap", gap: 2, mb: 1 }}>
+      {/* 开关独占一行，说明另起一行：窄屏下说明会和开关挤在一行、把开关挤得越过下方搜索框（用户反馈） */}
+      <Stack spacing={0.5} sx={{ mb: 1 }}>
         <FormControlLabel
+          sx={{ mr: 0, minHeight: 40, alignItems: "center" }}
           control={
             <Switch
               size="small"
@@ -79,7 +80,7 @@ function SingleTrackSectionInner({ bundle, musicMode }: { bundle: DataBundle; mu
           }
           label={t(Localization.ConfigTabSingleMode)}
         />
-        <Typography variant="caption" color="text.secondary" sx={{ flex: 1 }}>
+        <Typography variant="caption" color="text.secondary">
           {t(Localization.ConfigTabSingleHint)}
         </Typography>
       </Stack>

@@ -126,9 +126,12 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
     previousPhase.current = phase;
     if (before === phase) return;
     if (phase === "countdown") {
-      player.pause();        // 先停掉上一回合的曲子
-      player.ringBell();     // 3 秒倒计时响一声
-      return;
+      player.pause();                       // 先停掉上一回合的曲子
+      // 3 秒倒计时 = **三声**（每秒一声，用户要求；原来只响一声）
+      player.tick();
+      const ticks = [window.setTimeout(() => player.tick(), 1000),
+        window.setTimeout(() => player.tick(), 2000)];
+      return () => ticks.forEach((id) => window.clearTimeout(id));
     }
     if (phase === "turnStart") player.playImmediate();
     if (phase === "off") player.pause();

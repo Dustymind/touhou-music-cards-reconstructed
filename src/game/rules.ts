@@ -481,15 +481,22 @@ export function turnSeed(gameSeed: number, turnSeq: number, key: string | null):
   return Math.abs(hash) % 2147483647;
 }
 
-/** 按牌库收窄轮播：把不在任何牌库/收集区里的角色标记为临时禁用。 */
+/** 按牌库收窄轮播：把不在任何牌库/收集区里的角色标记为临时禁用。
+ *
+ * 注意 `order` 也要补上"有牌但不在轮播里"的角色：`order` 来自播放页的可用角色
+ * （受预设 / 音乐模式 / 单曲停用影响），可能**不包含**某个还有牌的对手角色。
+ * 只标记禁用的话，轮播数会小于剩余卡牌数（只有最后一张卡时甚至会让待播列表变空，用户反馈过的"混乱"）。
+ */
 export function filterMusicByDeck(state: GameState): GameState {
   const present = new Set<string>();
   for (const player of state.players) {
     for (const card of [...player.deck, ...player.collected]) if (card) present.add(card.characterKey);
   }
+  const order = [...state.order];
+  for (const key of present) if (!order.includes(key)) order.push(key);
   const temporaryDisabled: Record<string, boolean> = {};
-  for (const key of state.order) if (!present.has(key)) temporaryDisabled[key] = true;
-  return { ...state, temporaryDisabled };
+  for (const key of order) if (!present.has(key)) temporaryDisabled[key] = true;
+  return { ...state, order, temporaryDisabled };
 }
 
 export { makePlayer, slotCount };

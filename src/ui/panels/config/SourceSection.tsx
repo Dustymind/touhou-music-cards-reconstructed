@@ -140,8 +140,8 @@ function SourceSectionInner({ bundle, tables }: { bundle: DataBundle; tables: Ta
               <Stack
                 direction="row"
                 spacing={1}
-                // 标签换两行时，右侧的状态 chip / 开关 / 箭头与**首行**对齐（原来整块垂直居中 → 看着歪）
-                sx={{ alignItems: "flex-start", "& > *": { mt: 0.5 } }}
+                // MD2 行高 40dp、垂直居中：控件盒子不再比行高还高（与预设分区同一套规格）
+                sx={{ minHeight: 40, alignItems: "center" }}
               >
                 {/* 顺序编号：MD2 圆形头像（停用的源用灰色） */}
                 <Avatar

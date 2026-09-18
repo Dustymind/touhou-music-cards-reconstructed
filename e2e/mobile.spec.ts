@@ -165,7 +165,8 @@ test.describe("移动端布局", () => {
 
     // 多行 + 与卡槽同尺寸**同列数**（"与当前卡槽相同"）
     const layout = await page.evaluate(() => {
-      const cards = [...document.querySelectorAll('[data-testid="unused-cards-grid"] > *')];
+      // 面板里按"行"懒挂载，所以直接取卡面元素（不要再拿 grid 的直接子节点）
+      const cards = [...document.querySelectorAll('[data-testid^="unused-card-"]')];
       const rows = new Set(cards.map((card) => Math.round(card.getBoundingClientRect().top)));
       const columns = new Set(cards.map((card) => Math.round(card.getBoundingClientRect().left)));
       const slot = document.querySelector('[data-testid^="deck-you-card-"]')!.getBoundingClientRect();
@@ -240,7 +241,8 @@ test.describe("移动端布局", () => {
     await expect(grid).toBeVisible();
     const grown = await page.evaluate(() => {
       const sheet = document.querySelector('[data-testid="unused-cards-sheet"]')!.getBoundingClientRect();
-      const cards = [...document.querySelectorAll('[data-testid="unused-cards-grid"] > *')];
+      // 面板里按"行"懒挂载，所以直接取卡面元素（不要再拿 grid 的直接子节点）
+      const cards = [...document.querySelectorAll('[data-testid^="unused-card-"]')];
       const slot = document.querySelector('[data-testid^="deck-you-card-"]')!.getBoundingClientRect();
       return {
         height: Math.round(sheet.height),
@@ -271,26 +273,28 @@ test.describe("移动端布局", () => {
       el.getBoundingClientRect().height > 44);
     expect(wrapped).toBe(false);   // 单行按钮，没有被挤成两行
 
-    // 展开底部面板：点一张未使用卡 → 进自己牌库（面板里的卡就是触摸目标）
+    // 展开底部面板：点一张未使用卡 → 进自己牌库。
+    // 面板里的卡是**按行懒挂载**的（只挂可见的几行），所以数量用底部栏的计数判断，不数 DOM。
+    const countInBar = async (): Promise<number> => {
+      const text = (await page.getByTestId("unused-cards-bar").textContent()) ?? "";
+      return Number(text.match(/(\d+)/)?.[1] ?? "-1");
+    };
+    const total = await countInBar();
+    expect(total).toBeGreaterThan(100);
     await page.getByTestId("unused-cards-toggle").tap();
-    const unused = page.locator('[data-testid^="unused-card-"]');
     await expect(page.getByTestId("unused-cards-grid")).toBeVisible();
-    const before = await unused.count();
-    expect(before).toBeGreaterThan(100);
+    const unused = page.locator('[data-testid^="unused-card-"]');
+    expect(await unused.count()).toBeGreaterThan(4);          // 可见的几行已挂载
     await unused.first().tap();
     await expect(page.getByTestId("deck-you-card-0")).toBeVisible();
-    await expect(unused).toHaveCount(before - 1);
 
-    // 收起面板（点拖拽把手）→ 点牌库那张 → 回未使用区
+    // 收起面板（点拖拽把手）→ 点牌库那张 → 回未使用区，计数回到原值
     await page.getByTestId("unused-cards-handle").tap();
     await expect(page.getByTestId("unused-cards-grid")).toBeHidden();
+    await expect(page.getByTestId("unused-cards-bar")).toContainText(String(total - 1));
     await page.getByTestId("deck-you-card-0").tap();
     await expect(page.getByTestId("deck-you-empty-0")).toBeVisible();
-
-    // 再展开：数量回到原值
-    await page.getByTestId("unused-cards-toggle").tap();
-    await expect(page.getByTestId("unused-cards-grid")).toBeVisible();
-    await expect(unused).toHaveCount(before);
+    await expect(page.getByTestId("unused-cards-bar")).toContainText(String(total));
   });
 });
 

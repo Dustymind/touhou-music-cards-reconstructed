@@ -143,6 +143,20 @@ describe("usePlayer", () => {
     expect(audios[0]!.paused).toBe(true);
   });
 
+  it("tick：倒计时用的短促一声，不改变播放状态（三声响靠连调三次）", async () => {
+    const hook = await renderHook(() => usePlayer(inputs()));
+    await vi.waitFor(() => expect(hook.result.current.url).not.toBeNull());
+    hook.result.current.playImmediate();
+    await hook.rerender();
+    const before = hook.result.current.playback;
+
+    for (let index = 0; index < 3; index += 1) hook.result.current.tick();
+    await hook.rerender();
+    // 滴答只是提示音，不打断正曲、也不进入 countingDown（那是换歌前的长铃）
+    expect(hook.result.current.playback).toBe(before);
+    expect(audios[0]!.paused).toBe(false);
+  });
+
   it("切歌时保留播放意愿：正在播就接着播，暂停状态切歌保持暂停", async () => {
     let current = "cirno";
     const step = vi.fn(() => "kirisame-marisa");

@@ -1,4 +1,5 @@
 /** 对战页：模式/规则设置 + 双方牌库 + 收集数 + 计时器 + 回合操作。 */
+import { memo } from "react";
 import {
   Alert, Box, Card, CardContent, CardHeader, Chip, Divider, RadioGroup, Stack, TextField, Typography,
 } from "@mui/material";
@@ -69,7 +70,7 @@ const RULE_OPTIONS = [
   { value: "leisure", icon: StarRounded, label: Localization.GameModeLeisure },
 ] as const;
 
-export function GamePanel({ bundle }: { bundle: DataBundle }) {
+function GamePanelInner({ bundle }: { bundle: DataBundle }) {
   const game = useGame((slice) => slice.game);
   const pool = useGame((slice) => slice.pool);
   const cpu = useGame((slice) => slice.cpu);
@@ -716,3 +717,6 @@ export function GamePanel({ bundle }: { bundle: DataBundle }) {
     </Stack>
   );
 }
+
+/** 面板级 memo：外壳状态（语言 / 音乐模式 / 分区展开）变化时不必重算整页。 */
+export const GamePanel = memo(GamePanelInner);

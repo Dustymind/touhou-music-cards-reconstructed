@@ -458,3 +458,37 @@ describe("拖动放置与指定交牌", () => {
     expect(keys(given, 0)).toEqual(["b", null]);
   });
 });
+
+describe("按卡组筛选音乐（用户反馈的最后一张卡场景）", () => {
+  const withCards = (order: string[], deckKeys: string[]) => ({
+    ...emptyState(),
+    order,
+    players: [
+      { ...makePlayer("You"), deck: deckKeys.map((key) => ({ characterKey: key, cardIndex: 0 })) },
+      makePlayer("Opponent"),
+    ],
+  });
+
+  it("有牌但不在轮播里的角色会被补进轮播（否则轮播数 < 剩余卡牌数）", () => {
+    const state = withCards(["alice"], ["alice", "cirno"]);   // cirno 有牌却不在轮播里
+    const filtered = rules.filterMusicByDeck(state);
+    const playable = filtered.order.filter((key) => !filtered.temporaryDisabled[key]);
+    expect(playable).toContain("cirno");
+    expect(playable).toContain("alice");
+    expect(playable).toHaveLength(2);                          // 与剩余卡牌（按角色）一致
+  });
+
+  it("只剩最后一张卡时，待播列表不会变空", () => {
+    const state = withCards([], ["cirno"]);                    // 空轮播 + 一张卡
+    const filtered = rules.filterMusicByDeck(state);
+    const playable = filtered.order.filter((key) => !filtered.temporaryDisabled[key]);
+    expect(playable).toEqual(["cirno"]);
+  });
+
+  it("没有牌的角色仍然被临时禁用", () => {
+    const state = withCards(["alice", "cirno"], ["alice"]);
+    const filtered = rules.filterMusicByDeck(state);
+    expect(filtered.temporaryDisabled.cirno).toBe(true);
+    expect(filtered.temporaryDisabled.alice).toBeUndefined();
+  });
+});

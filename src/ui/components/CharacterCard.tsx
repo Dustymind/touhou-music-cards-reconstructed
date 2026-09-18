@@ -1,6 +1,6 @@
 /** 角色卡：远程图集 + 多 origin 兜底 + 状态底色（对齐上游 `CharacterCard`）。 */
 import { Box, Paper, type SxProps } from "@mui/material";
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 
 import type { CardSetRecord } from "../../data/types";
 import { CardAspectRatio, CardColors, MD2, NoFontFamily } from "../../theme/theme";
@@ -48,7 +48,7 @@ export interface CharacterCardProps {
   "data-testid"?: string;
 }
 
-export function CharacterCard({
+function CharacterCardInner({
   cardSet, file, width = "100%", state = "normal", preferLocal = false, glitch = false,
   raised = false, bare = false, onClick, sx, ...rest
 }: CharacterCardProps) {
@@ -105,3 +105,7 @@ export function CharacterCard({
     </Paper>
   );
 }
+
+/** 记忆化：卡面在一个页面里可能同时存在上百张（牌桌 / 选卡面板 / 轮播），
+ *  状态没变就不该重渲染（点一个开关把整屏卡都重画一遍会产生 click 长任务）。 */
+export const CharacterCard = memo(CharacterCardInner);

@@ -1,4 +1,5 @@
 /** 设置页：数据概览 + 卡面图集 + 音乐源 + 音乐选择预设 + 仅单曲模式。 */
+import { memo } from "react";
 import {
   Chip, Divider, Stack, Typography,
 } from "@mui/material";
@@ -17,7 +18,7 @@ import { PresetSection } from "./config/PresetSection";
 import { SingleTrackSection } from "./config/SingleTrackSection";
 import { SourceSection } from "./config/SourceSection";
 
-export function ConfigPanel({ bundle, tables, musicMode }: {
+function ConfigPanelInner({ bundle, tables, musicMode }: {
   bundle: DataBundle;
   tables: TableMap;
   musicMode: MusicMode;
@@ -61,3 +62,6 @@ export function ConfigPanel({ bundle, tables, musicMode }: {
     </Stack>
   );
 }
+
+/** 面板级 memo：外壳状态（语言 / 音乐模式 / 分区展开）变化时不必重算整页。 */
+export const ConfigPanel = memo(ConfigPanelInner);
