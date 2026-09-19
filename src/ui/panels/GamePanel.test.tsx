@@ -65,7 +65,9 @@ describe("GamePanel", () => {
           { name: "Opponent", isObserver: false, deck: [], collected: [], confirmStart: false, confirmNext: false },
         ],
         deckRows: 3, deckColumns: 8, traditional: true, melee: false,
-        order: [], gameSeed: 0, temporaryDisabled: {}, currentKey: null, turnSeq: 0, state: "selecting",
+        order: [],
+    playedTracks: [],
+      reshuffledAtTurn: 0, gameSeed: 0, temporaryDisabled: {}, currentKey: null, turnSeq: 0, state: "selecting",
         turnStartTimestamp: 0, pickEvents: [], turnWinner: null, givesLeft: 0, winner: null,
       },
     });

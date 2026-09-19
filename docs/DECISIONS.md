@@ -2952,6 +2952,44 @@ loudness.json 请求 → 200 ✓ | 表 86 首 / 目标 −11.2 dB ✓
 
 ---
 
+## D103 对局选曲：全曲库 + 已播不重复 + 轮播兜底
+
+**需求**（用户）：游戏模式下默认启用**全曲库**（每个角色随机一首 ✓）；轮播时**已播歌曲不重复** ✓；
+若轮播走完却仍有剩余卡牌（bug）→ 把曲库设定成**剩余卡牌** ✓；**注意双端同步** ✓。
+
+**实现**：
+
+| 改动 | 位置 |
+|---|---|
+| `GameState.playedTracks: string[]`（本局已播 trackId ✓），`startGame` 清零 ✓ | `src/game/types.ts` / `rules.ts` |
+| 对局中 `ignorePreset: true` → 候选 = 该角色在当前**音乐模式**下的**全部**曲目（预设只在播放页生效 ✓）；候选里排除 `playedTracks` ✓，某角色全播过则允许重复 ✓ | `src/audio/usePlayer.ts`（新增 `ignorePreset` / `played` 两个输入 ✓） |
+| `markPlayed(trackId)`：曲目确定后追加一次 ✓（两端按**同一确定性结果**追加 → 天然同步 ✓） | `src/game/useGame.ts` + `src/ui/shell/AppShell.tsx` |
+| `reshuffleIfWrapped()`：`turnSeq ≥ order.length` 且卡槽仍有牌 → 用 `filterMusicByDeck(state, mode === "multi" ? null : myIndex)` 把轮播重设成**剩余卡牌的角色** ✓（单方/双方语义与 D101 一致 ✓） | `src/game/useGame.ts`（挂在 `next()` 的出口 ✓） |
+
+**实测（单人开局，连推 13 回合，读 store）**：
+
+```
+回合角色依次：tamatsukuri-misumaru → hong-meiling → tsukumo-benben-yatsuhashi → murasa-minamitsu
+             → houjuu-nue → izayoi-sakuya → sukuna-shinmyoumaru → sekibanki → futatsuiwa-mamizou
+             → cirno → toramaru-shou → wakasagihime → konpaku-youmu
+playedTracks：3 → 53（单调增长 ✓）   自己牌数 24 → 23 ✓
+13 个回合里出现的曲名：**无重复 ✓**
+```
+
+**验证**：`pnpm typecheck` ✓、`pnpm test` **213 passed** ✓。
+
+**两点遗留已处理**（用户要求 ✓）：
+
+1. **兜底触发收窄** ✓：`GameState` 新增 `reshuffledAtTurn` ✓ → 判据改成
+   `turnSeq − reshuffledAtTurn ≥ order.length` ✓（"从上次重设到现在又转满一圈" ✓），
+   重设时把 `reshuffledAtTurn` 设为当时的 `turnSeq` ✓ —— 不再每回合反复重设 ✓。
+2. **补了双端同步的自动化验证** ✓：新增单测"同种子开局 + 同批 `nextTurn`"——
+   两端各自从同一局面出发 ✓，逐回合断言 `order` / `currentKey` / `turnSeq` / `temporaryDisabled` 完全相等 ✓，
+   并且用 `turnSeed(gameSeed, turnSeq, key)` 算出**选曲指纹**逐回合比对 ✓（两端必然同一首 ✓）；
+   6 个回合的指纹互不相同 ✓（角色确实在推进 ✓）。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |

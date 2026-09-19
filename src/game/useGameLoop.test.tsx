@@ -13,6 +13,8 @@ function setup(order: string[], decks: [CardInfo[], CardInfo[]]): void {
     cpu: { meanSeconds: 0.5, stdDevSeconds: 0, mistakeRate: 0 },
     game: {
       mode: "cpu",
+      playedTracks: [],
+      reshuffledAtTurn: 0,
       players: [
         { name: "You", isObserver: false, deck: decks[0], collected: [], confirmStart: false, confirmNext: false },
         { name: "CPU", isObserver: false, deck: decks[1], collected: [], confirmStart: false, confirmNext: false },

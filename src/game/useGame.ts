@@ -51,6 +51,7 @@ interface GameSlice {
   next: () => void;
   give: () => void;
   filterByDeck: () => void;
+  markPlayed: (trackId: string) => void;
 }
 
 export const useGame = create<GameSlice>((set, get) => ({
@@ -171,13 +172,22 @@ export const useGame = create<GameSlice>((set, get) => ({
     if (game.state !== "turnWinner") return;
     // 本地/CPU 模式由本机自动交牌（联机时由主机结算）
     if (game.givesLeft !== 0) game = rules.giveCardsRandomly(game);
-    set({ game: rules.beginCountdown(rules.detectFinish(game)) });
+    set({ game: reshuffleIfWrapped(rules.beginCountdown(rules.detectFinish(game)), get().myIndex) });
   },
 
   give() {
     const game = get().game;
     if (game.givesLeft === 0) return;
     set({ game: rules.giveCardsRandomly(game) });
+  },
+
+  
+
+/** 记下本回合实际播出的曲目（两端各自按同一确定性结果追加 → 天然同步 ✓，见 D103） */
+  markPlayed(trackId: string) {
+    const game = get().game;
+    if (game.playedTracks.includes(trackId)) return;
+    set({ game: { ...game, playedTracks: [...game.playedTracks, trackId] } });
   },
 
   filterByDeck() {
@@ -194,3 +204,14 @@ if (import.meta.env.DEV && typeof window !== "undefined") {
 }
 
 export { slotCount };
+
+/** 兜底（用户指出的 bug）：轮播转满一圈但**卡槽里还有牌** ✗ → 把轮播重设成"剩余卡牌的角色" ✓。
+ *  语义与"按卡组筛选"一致（单人/电脑只看自己一方 ✓，多人看双方 ✓），两端同源 ✓ */
+function reshuffleIfWrapped(state: GameState, viewpoint: PlayerIndex): GameState {
+  // "又转满一圈" = 从上次重设到现在走过的回合数 ≥ 当前轮播长度（turnSeq 只增不减 ✓）
+  const wrapped = state.turnSeq - state.reshuffledAtTurn >= Math.max(1, state.order.length);
+  const cardsLeft = state.players.some((player) => player.deck.some((card) => card !== null));
+  if (!wrapped || !cardsLeft || state.state === "finished") return state;
+  const reshuffled = rules.filterMusicByDeck(state, state.mode === "multi" ? null : viewpoint);
+  return { ...reshuffled, reshuffledAtTurn: state.turnSeq };
+}

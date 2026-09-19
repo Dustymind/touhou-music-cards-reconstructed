@@ -9,7 +9,7 @@ import { Localization, t } from "../../i18n/localization";
 import { stableHash } from "../../cheat";
 import { TAB_ORDER, useSession, type TabId } from "../../store/session";
 import { NoFontFamily } from "../../theme/theme";
-import type { DataBundle, MusicEntry } from "../../data/types";
+import { trackId, type DataBundle, type MusicEntry } from "../../data/types";
 import { usePreset } from "../../store/preset";
 import { useQueue } from "../../store/queue";
 import { useSources } from "../../music/useSources";
@@ -120,6 +120,9 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
     preset: activePreset,
     pinned: pinnedWithRequest,
     mode: musicMode,
+    // 对局中：忽略音乐预设（= 全曲库 ✓），并排除本局已播过的曲目 ✓
+    ignorePreset: gameActive,
+    played: game.playedTracks,
     // 对局听回合角色，平时听轮播队列
     currentKey: gameActive ? game.currentKey : queue.currentKey,
     // 对局里用 (回合号, 角色) 派生的种子：两端必然选到同一首
@@ -142,6 +145,13 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
     // 只在点播次数变化时触发；player 每次渲染都是新对象
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playRequestSeq]);
+
+  // ---- 记下本局播过的曲目：曲目确定后追加一次（两端按同一确定性结果 → 天然同步 ✓）----
+  const playedTrackId = player.entry ? trackId(player.entry[0], player.entry[1]) : null;
+  useEffect(() => {
+    if (!gameActive || !playedTrackId) return;
+    useGame.getState().markPlayed(playedTrackId);
+  }, [gameActive, playedTrackId]);
 
   // ---- 对局驱动播放：倒计时响铃、回合开始起播、停局/终局停下 ----
   const phase = gameActive ? game.state : "off";

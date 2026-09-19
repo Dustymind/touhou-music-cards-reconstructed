@@ -45,6 +45,12 @@ export interface GameState {
   melee: boolean;
   /** 轮播顺序（角色 key）；开局时由主机洗牌，随快照同步 */
   order: string[];
+  /** 本局**已经播过的曲目**（trackId）。对局里选曲会排除它们，避免同一首重复出现；
+   *  两端由同一批 intent 推出，所以放状态里就自动同步 ✓（见 D103）。 */
+  playedTracks: string[];
+  /** 上次"轮播走完但还有牌 → 重设成剩余卡牌"发生在第几回合（`turnSeq`）。
+   *  没有它的话，`turnSeq` 只增不减 → 重设后每回合都会再重设一次 ✗（见 D103 遗留①） */
+  reshuffledAtTurn: number;
   /** 本局的开局随机种子（主机抽、随快照同步）：决定洗牌结果与每回合选哪首 */
   gameSeed: number;
   temporaryDisabled: Record<string, boolean>;
@@ -69,6 +75,8 @@ export function emptyState(overrides: Partial<GameState> = {}): GameState {
     traditional: true,
     melee: false,
     order: [],
+    playedTracks: [],
+    reshuffledAtTurn: 0,
     gameSeed: 0,
     temporaryDisabled: {},
     currentKey: null,

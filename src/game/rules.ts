@@ -226,6 +226,8 @@ export function startGame(state: GameState, rng: Rng = Math.random): GameState {
     melee: players.filter((player) => !player.isObserver).length > 2,
     currentKey: order[order.length - 1] ?? null,
     temporaryDisabled: {},
+    playedTracks: [],
+    reshuffledAtTurn: 0,
     turnSeq: 0,
     pickEvents: [],
     turnWinner: null,

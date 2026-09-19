@@ -11,7 +11,7 @@ import { createBell, type BellHandle } from "./bell";
 import type { AlbumRecord, CharacterRecord, MusicEntry } from "../data/types";
 import { displayTitle, trackId } from "../data/types";
 import { newSeed, pickWithSeed, randomStartPosition } from "../music/rng";
-import { allowedTracks, type PresetState } from "../music/selection";
+import { allowedTracks, defaultPreset, type PresetState } from "../music/selection";
 import type { MusicMode } from "../music/mode";
 import { resolveTrack, type TableMap } from "../music/sources";
 
@@ -42,6 +42,10 @@ export interface PlayerInputs {
   mode: MusicMode;
   /** 单曲模式：角色 key → 固定的曲目 */
   pinned: Record<string, MusicEntry | undefined>;
+  /** 对局中：忽略"音乐预设"，候选 = 该角色在当前音乐模式下的**全部**曲目（用户要求：默认启用全曲库） */
+  ignorePreset?: boolean;
+  /** 本局已播曲目（trackId）：候选里排除掉，避免重复 ✓ */
+  played?: readonly string[];
   currentKey: string | null;
   seed: number;
   setCurrent: (key: string | null) => void;
@@ -138,13 +142,19 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
   const entry = useMemo<MusicEntry | null>(() => {
     if (!character) return null;
     const pinned = inputs.pinned[character.key] ?? null;
-    // 音乐模式过滤：音MAD 模式下对局只会抽到音MAD 曲目（v2 的 f9305f5 同一件事）
-    const { entries } = allowedTracks(inputs.preset, character, pinned, inputs.albums, inputs.mode);
+    // 对局中忽略预设（= 全曲库 ✓）；播放页仍按预设过滤 ✓。音乐模式两者都生效 ✓
+    const preset = inputs.ignorePreset ? defaultPreset(inputs.albums) : inputs.preset;
+    const { entries } = allowedTracks(preset, character, pinned, inputs.albums, inputs.mode);
     if (entries.length === 0) return null;
     if (entries.length === 1) return entries[0]!;
+    // 已播过的不再选（全播过就允许重复，否则这个角色没得放 ✗）
+    const played = new Set(inputs.played ?? []);
+    const fresh = entries.filter((entry) => !played.has(trackId(entry[0], entry[1])));
+    const pool = fresh.length > 0 ? fresh : entries;
     const seedKey = inputs.seed + character.order * 7919;
-    return pickWithSeed(entries, seedKey);
-  }, [character, inputs.pinned, inputs.preset, inputs.albums, inputs.mode, inputs.seed]);
+    return pickWithSeed(pool, seedKey);
+  }, [character, inputs.pinned, inputs.preset, inputs.albums, inputs.mode, inputs.seed,
+      inputs.ignorePreset, inputs.played]);
 
   // ---- 创建 <audio> 与铃（都不挂进 DOM 也能播） ----
   useEffect(() => {

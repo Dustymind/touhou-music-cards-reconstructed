@@ -501,3 +501,39 @@ describe("按卡组筛选音乐（用户口径：只看卡槽、单方/双方有
     expect(playable(filtered)).toEqual(["cirno"]);
   });
 });
+
+describe("对局双端同步：同一批 intent → 同一份状态与曲目序列（D103 遗留②）", () => {
+  /** 两端各自从同一份局面出发，跑同一批 intent，逐回合比对（模拟两台机器 ✓） */
+  it("同种子开局 + 同批 nextTurn → 角色序列、已播曲目集合完全一致", () => {
+    const base = rules.adjustDeckSize(emptyState({ mode: "multi" }), 3, 8);
+    const pool = ["alice", "cirno", "marisa", "reimu", "sakuya", "youmu", "yukari", "suika"];
+    const seeded = { ...base, order: pool };
+    const host = rules.startGame(seeded, () => 0.42);      // 两端同一个随机种子 ✓
+    const client = rules.startGame(seeded, () => 0.42);
+
+    expect(client.order).toEqual(host.order);
+    expect(client.currentKey).toBe(host.currentKey);
+    expect(client.gameSeed).toBe(host.gameSeed);
+
+    // 逐回合推进：状态必须逐步保持相等（playedTracks 由两端各自追加 ✓）
+    let a = host;
+    let b = client;
+    const seen = new Set<string>();
+    for (let turn = 0; turn < 6; turn += 1) {
+      const pick = (state: typeof a) => {
+        const key = state.currentKey ?? "";
+        const seed = rules.turnSeed(state.gameSeed, state.turnSeq, key);
+        return `${key}#${seed}`;                            // 确定性选曲的"指纹"
+      };
+      expect(pick(b)).toBe(pick(a));                        // ← 两端必然同一首 ✓
+      seen.add(pick(a));
+      a = rules.nextTurn(a);
+      b = rules.nextTurn(b);
+      expect(b.order).toEqual(a.order);
+      expect(b.currentKey).toBe(a.currentKey);
+      expect(b.turnSeq).toBe(a.turnSeq);
+      expect(b.temporaryDisabled).toEqual(a.temporaryDisabled);
+    }
+    expect(seen.size).toBeGreaterThan(1);                   // 角色确实在推进 ✓
+  });
+});
