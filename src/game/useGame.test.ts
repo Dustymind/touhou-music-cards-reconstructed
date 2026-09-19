@@ -134,6 +134,7 @@ describe("useGame store", () => {
       return { game: { ...slice.game, players } };
     });
     useGame.getState().filterByDeck();
-    expect(useGame.getState().game.temporaryDisabled).toEqual({ b: true, d: true });
+    // 新口径：单人/电脑只按**自己这一方**卡槽筛（c 只在对手卡槽里 → 应被禁用 ✓）
+    expect(useGame.getState().game.temporaryDisabled).toEqual({ b: true, c: true, d: true });
   });
 });

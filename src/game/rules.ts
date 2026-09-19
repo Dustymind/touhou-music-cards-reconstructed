@@ -481,16 +481,23 @@ export function turnSeed(gameSeed: number, turnSeq: number, key: string | null):
   return Math.abs(hash) % 2147483647;
 }
 
-/** 按牌库收窄轮播：把不在任何牌库/收集区里的角色标记为临时禁用。
+/** 按牌库收窄轮播：只保留**卡槽里还有牌**的角色，其余标记为临时禁用。
  *
- * 注意 `order` 也要补上"有牌但不在轮播里"的角色：`order` 来自播放页的可用角色
- * （受预设 / 音乐模式 / 单曲停用影响），可能**不包含**某个还有牌的对手角色。
- * 只标记禁用的话，轮播数会小于剩余卡牌数（只有最后一张卡时甚至会让待播列表变空，用户反馈过的"混乱"）。
+ * 用户口径（2026-09 修正）：
+ * * 只看**卡槽里的牌**（`deck`）✓ —— 已经收进"已得"的牌不算 ✗（之前把 `collected` 也算进去了 ✗）；
+ * * **单人/电脑**只按**自己这一方**的卡槽筛 ✓；**多人**按**双方**的卡槽筛 ✓。
+ *
+ * 另外 `order` 要补上"有牌但不在轮播里"的角色：`order` 来自播放页的可用角色
+ * （受预设 / 音乐模式 / 单曲停用影响），可能**不包含**某个还有牌的角色；
+ * 只标记禁用的话，轮播数会小于剩余卡牌数（只剩最后一张时待播列表会变空）。
+ *
+ * @param viewpoint 以谁的视角看：单人/电脑传入自己那一方；多人传 `null` = 双方都算
  */
-export function filterMusicByDeck(state: GameState): GameState {
+export function filterMusicByDeck(state: GameState, viewpoint: PlayerIndex | null = null): GameState {
+  const sides = viewpoint === null ? state.players : [state.players[viewpoint]];
   const present = new Set<string>();
-  for (const player of state.players) {
-    for (const card of [...player.deck, ...player.collected]) if (card) present.add(card.characterKey);
+  for (const player of sides) {
+    for (const card of player?.deck ?? []) if (card) present.add(card.characterKey);
   }
   const order = [...state.order];
   for (const key of present) if (!order.includes(key)) order.push(key);

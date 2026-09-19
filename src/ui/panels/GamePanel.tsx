@@ -37,6 +37,7 @@ import { DECK_GAP, DeckGrid } from "../game/DeckGrid";
 import { UnusedCardsTray } from "../game/UnusedCardsTray";
 import { Reveal } from "../game/Reveal";
 import { GameGroupLabel, GameRadioOption, NumberSelect } from "../game/GameControls";
+import { hasTracksInMode } from "../../music/mode";
 import { DECK_LIMITS } from "../../game/gameSetting";
 import { MD2 } from "../../theme/theme";
 import {
@@ -197,16 +198,23 @@ function GamePanelInner({ bundle }: { bundle: DataBundle }) {
 
   // 卡面图集跟随设置页的选择（原来写死第一套 → 设置里换图集对游戏页无效）
   const cardSet = bundle.cardSets.find((set) => set.id === cardCollection) ?? bundle.cardSets[0]!;
+  /** 当前音乐模式：卡池要按它过滤（见下） */
+  const musicMode = useSession((slice) => slice.musicMode);
 
-  // 卡池 = 角色 × 卡面；顺带把轮播顺序灌进对局状态
+  // 卡池 = **在当前音乐模式下有曲可放**的角色 × 卡面（用户要求：没有对应音乐的角色不进可选卡组，
+  // 否则音MAD 模式下会抽到根本放不出声音的角色 ✗）；顺带把轮播顺序灌进对局状态。
   useEffect(() => {
+    const filtered = bundle.characters.filter((character) =>
+      hasTracksInMode(bundle.albums, character, musicMode));
+    // 兜底：万一过滤后一个都不剩（例如联机测试里的精简数据 ✗），退回完整卡池 —— 否则游戏没法开始
+    const usable = filtered.length > 0 ? filtered : bundle.characters;
     const cards: CardInfo[] = [];
-    for (const character of bundle.characters) {
+    for (const character of usable) {
       character.card.forEach((_file, cardIndex) => cards.push({ characterKey: character.key, cardIndex }));
     }
     init(cards);
-    setOrder(bundle.characters.map((character) => character.key));
-  }, [bundle, init, setOrder]);
+    setOrder(usable.map((character) => character.key));
+  }, [bundle, init, setOrder, musicMode]);
 
   // 容器宽度：卡片大小按它的百分比算（上游 `containerRef.clientWidth`）
   useEffect(() => {

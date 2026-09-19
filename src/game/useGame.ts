@@ -181,7 +181,10 @@ export const useGame = create<GameSlice>((set, get) => ({
   },
 
   filterByDeck() {
-    set({ game: rules.filterMusicByDeck(get().game) });
+    const { game, myIndex } = get();
+    // 单人/电脑：只看自己这一方的卡槽；多人：双方都算（用户口径）
+    const viewpoint = game.mode === "multi" ? null : myIndex;
+    set({ game: rules.filterMusicByDeck(game, viewpoint) });
   },
 }));
 

@@ -2891,6 +2891,35 @@ pnpm test 209 passed ✓ | uv run pytest 33 passed ✓（快照 464 / 454 / 86 �
 
 ---
 
+## D101 卡池按音乐模式过滤 + 按卡组筛选只看卡槽
+
+**需求**（用户）：
+① 按卡组筛选音乐应按照**卡槽**里的卡组筛（单人为**单方**、多人为**双方**），而不是所有卡组；
+② 音MAD（及其它模式下）**没有对应音乐的角色不能出现在可选卡组**里。
+
+**① `filterMusicByDeck(state, viewpoint)`**（`src/game/rules.ts`）：
+
+* **只看卡槽**（`player.deck`）✓ —— 之前把"已得"的 `collected` 也算进去了 ✗；
+* `viewpoint` 传下标 → 只按那一方卡槽筛 ✓；传 `null` → 双方都算 ✓；
+  `useGame.filterByDeck()` 按模式决定：`mode === "multi" ? null : myIndex` ✓。
+* 单元测试重写为 5 条（只看卡槽 ✓ / 单人只看自己 ✓ / 多人双方 ✓ / 补进轮播 ✓ / 只剩一张不为空 ✓）；
+  `useGame.test.ts` 里那条旧期望同步改成新口径 ✓。
+
+**② 卡池过滤**（`src/ui/panels/GamePanel.tsx`）：卡池与对局轮播顺序都只取
+`hasTracksInMode(bundle.albums, character, musicMode)` 为真的角色 ✓；
+**兜底**：若过滤后一个不剩（例如联机测试用的精简数据 ✓），退回完整卡池，避免游戏开不起来 ✓。
+
+**实测（浏览器里直接读 store）**：
+
+```
+原曲模式卡池: 121 个角色 / 127 张卡 ✓（全量）
+音MAD 模式卡池: 35 个角色 / 38 张卡 ✓（正好是录过音MAD 的那 35 个 ✓）
+```
+
+**验证**：`pnpm typecheck` ✓、`pnpm test` **211 passed** ✓（新增 5 条规则用例 ✓）。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |
