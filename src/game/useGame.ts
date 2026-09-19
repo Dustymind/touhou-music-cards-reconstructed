@@ -2,13 +2,30 @@
  *
  * 联机（M8）会把同一份 `GameState` 走传输层同步：所以这里所有动作都是"纯 reducer 的薄封装"，
  * 不直接碰 DOM 或计时器。
+ *
+ * 随机数（D104）：本 store 是**主机权威**动作的入口，种子一律向 `useSeeds` 要 ——
+ * 权威端现抽（`draw`），客户端（`replica`）拿不到种子，于是"本地先掷一次、再被快照覆盖"的
+ * 两边不一致窗口被彻底去掉 ✗→✓。
  */
 import { create } from "zustand";
 
+import { createRng, type Rng, type SeedLabel } from "../rng";
+import { useSeeds } from "../store/seeds";
 import type { CardInfo, GameState, MatchMode, PlayerIndex } from "./types";
 import { emptyState, slotCount } from "./types";
 import * as rules from "./rules";
 import { DEFAULT_CPU_SETTINGS, planCpuPick, type CpuPlan, type CpuSettings } from "./cpu";
+
+/** 权威端现抽一个"本次动作专用"的随机数句柄；副本端返回 null（客户端不掷骰子，等主机快照）。 */
+function authorityRng(label: SeedLabel, ...labels: SeedLabel[]): Rng | null {
+  const seed = useSeeds.getState().draw(label, ...labels);
+  return seed === null ? null : createRng(seed);
+}
+
+/** 两端由**已同步**字段各自派生出同一结果时用它（不消耗 nonce，副本端也合法）。 */
+function derivedRng(label: SeedLabel, ...labels: SeedLabel[]): Rng {
+  return createRng(useSeeds.getState().derive(label, ...labels));
+}
 
 interface GameSlice {
   game: GameState;
@@ -84,7 +101,9 @@ export const useGame = create<GameSlice>((set, get) => ({
   },
 
   fill(player) {
-    set({ game: rules.randomFill(get().game, player, get().pool) });
+    const rng = authorityRng("fill", player);
+    if (!rng) return;
+    set({ game: rules.randomFill(get().game, player, get().pool, rng) });
   },
 
   clear(player) {
@@ -92,7 +111,9 @@ export const useGame = create<GameSlice>((set, get) => ({
   },
 
   shuffle(player) {
-    set({ game: rules.shuffleDeck(get().game, player) });
+    const rng = authorityRng("shuffle", player);
+    if (!rng) return;
+    set({ game: rules.shuffleDeck(get().game, player, rng) });
   },
 
   addCard(player, card, slot) {
@@ -104,9 +125,11 @@ export const useGame = create<GameSlice>((set, get) => ({
   },
 
   start() {
+    const rng = authorityRng("start");
+    if (!rng) return;
     const { game } = get();
     const ordered = game.order.length > 0 ? game.order : [];
-    set({ game: rules.startGame({ ...game, order: ordered }) });
+    set({ game: rules.startGame({ ...game, order: ordered }, rng) });
   },
 
   stop() {
@@ -132,7 +155,8 @@ export const useGame = create<GameSlice>((set, get) => ({
   },
 
   planCpu(cpuPlayer) {
-    return planCpuPick(get().game, cpuPlayer, get().cpu);
+    // 同一回合 + 同一种子 → 同一套规划（不消耗 nonce，重复规划结果稳定）
+    return planCpuPick(get().game, cpuPlayer, get().cpu, derivedRng("cpu", get().game.turnSeq));
   },
 
   setOrder(order) {
@@ -171,14 +195,20 @@ export const useGame = create<GameSlice>((set, get) => ({
     }
     if (game.state !== "turnWinner") return;
     // 本地/CPU 模式由本机自动交牌（联机时由主机结算）
-    if (game.givesLeft !== 0) game = rules.giveCardsRandomly(game);
+    if (game.givesLeft !== 0) {
+      const rng = authorityRng("give", game.turnSeq);
+      if (!rng) return;                       // 副本端：等主机结算并下发快照
+      game = rules.giveCardsRandomly(game, rng);
+    }
     set({ game: reshuffleIfWrapped(rules.beginCountdown(rules.detectFinish(game)), get().myIndex) });
   },
 
   give() {
     const game = get().game;
     if (game.givesLeft === 0) return;
-    set({ game: rules.giveCardsRandomly(game) });
+    const rng = authorityRng("give", game.turnSeq);
+    if (!rng) return;
+    set({ game: rules.giveCardsRandomly(game, rng) });
   },
 
   

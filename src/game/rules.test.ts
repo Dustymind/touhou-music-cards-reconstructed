@@ -1,6 +1,7 @@
 /** 对战规则（对齐 `.ref/notes/A-game-core-spec.md` §4 的每一条边界）。 */
 import { describe, expect, it } from "vitest";
 
+import { createRng } from "../rng";
 import * as rules from "./rules";
 import { emptyState, filledSlots, makePlayer, type CardInfo, type GameState } from "./types";
 
@@ -38,7 +39,7 @@ describe("牌库编辑", () => {
     const state = rules.adjustDeckSize(emptyState(), 2, 2);
     const withOne = rules.addCard(state, 0, card("x", 0));
     const pool = [card("x", 0), card("y", 0), card("z", 0)];
-    const filled = rules.randomFill(withOne, 1, pool, () => 0);
+    const filled = rules.randomFill(withOne, 1, pool, createRng(1));
     const used = filled.players[1]!.deck.filter((slot): slot is CardInfo => slot !== null);
     expect(used.some((entry) => entry.characterKey === "x")).toBe(false);
     expect(used.length).toBeGreaterThan(0);
@@ -52,7 +53,7 @@ describe("牌库编辑", () => {
 
   it("shuffleDeck 是同集合的排列", () => {
     const state = threeByTwo();
-    const shuffled = rules.shuffleDeck(state, 0, () => 0.5);
+    const shuffled = rules.shuffleDeck(state, 0, createRng(7));
     const keys = (deck: readonly (CardInfo | null)[]) => deck.filter(Boolean).map((c) => c!.characterKey).sort();
     expect(keys(shuffled.players[0]!.deck)).toEqual(keys(state.players[0]!.deck));
   });
@@ -61,7 +62,7 @@ describe("牌库编辑", () => {
 describe("开局与回合推进", () => {
   it("startGame 洗牌后当前角色取最后一个（首次 nextTurn 落到洗好的第 0 个）", () => {
     const state = { ...threeByTwo(), order: ["a", "b", "c"], state: "selecting" as const };
-    const started = rules.startGame(state, () => 0.5);
+    const started = rules.startGame(state, createRng(3));
     // 洗过但仍是同一批角色
     expect(started.order.slice().sort()).toEqual(["a", "b", "c"]);
     expect(started.currentKey).toBe(started.order[started.order.length - 1]);
@@ -75,11 +76,11 @@ describe("开局与回合推进", () => {
 
   it("每局洗出来的顺序不同（同一 rng 则可复现）", () => {
     const state = { ...threeByTwo(), order: ["a", "b", "c", "d", "e", "f"], state: "selecting" as const };
-    const first = rules.startGame(state, () => 0.11);
-    const second = rules.startGame(state, () => 0.77);
+    const first = rules.startGame(state, createRng(11));
+    const second = rules.startGame(state, createRng(78));
     expect(first.gameSeed).not.toBe(second.gameSeed);
     expect(first.currentKey).not.toBe(second.currentKey);      // 开局第一首不再固定
-    expect(rules.startGame(state, () => 0.11).order).toEqual(first.order);   // 同种子可复现
+    expect(rules.startGame(state, createRng(11)).order).toEqual(first.order);   // 同种子可复现
     // 原状态不被就地改掉
     expect(state.order).toEqual(["a", "b", "c", "d", "e", "f"]);
   });
@@ -257,7 +258,7 @@ describe("超时与交牌", () => {
     const state: GameState = {
       ...threeByTwo(), mode: "multi", currentKey: "e", state: "turnWinner", givesLeft: 2,
     };
-    const after = rules.giveCardsRandomly(state, () => 0);
+    const after = rules.giveCardsRandomly(state, createRng(5));
     expect(after.givesLeft).toBe(0);
     expect(filledSlots(after.players[0]!.deck)).toBe(1);
     expect(filledSlots(after.players[1]!.deck)).toBe(5);
@@ -508,8 +509,8 @@ describe("对局双端同步：同一批 intent → 同一份状态与曲目序�
     const base = rules.adjustDeckSize(emptyState({ mode: "multi" }), 3, 8);
     const pool = ["alice", "cirno", "marisa", "reimu", "sakuya", "youmu", "yukari", "suika"];
     const seeded = { ...base, order: pool };
-    const host = rules.startGame(seeded, () => 0.42);      // 两端同一个随机种子 ✓
-    const client = rules.startGame(seeded, () => 0.42);
+    const host = rules.startGame(seeded, createRng(42));      // 两端同一个随机种子 ✓
+    const client = rules.startGame(seeded, createRng(42));
 
     expect(client.order).toEqual(host.order);
     expect(client.currentKey).toBe(host.currentKey);

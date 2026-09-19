@@ -33,6 +33,57 @@ async function digest(page: Page): Promise<string> {
   return (await page.getByTestId("net-digest").getAttribute("data-digest")) ?? "";
 }
 
+/** 种子权威的现场快照（D104）：dev 构建把 store 挂在 `window.__TMC_SEEDS__` 上 */
+async function seeds(page: Page): Promise<{ ownSeed: number; adoptedSeed: number | null; authority: string }> {
+  return page.evaluate(() => {
+    const store = (window as unknown as {
+      __TMC_SEEDS__?: { getState: () => { ownSeed: number; adoptedSeed: number | null; authority: string } };
+    }).__TMC_SEEDS__;
+    if (!store) return { ownSeed: -1, adoptedSeed: null, authority: "missing" };
+    const state = store.getState();
+    return { ownSeed: state.ownSeed, adoptedSeed: state.adoptedSeed, authority: state.authority };
+  });
+}
+
+test("联机：主机发种子、客户端采用；客户端「重新抽选」由主机换种子后下发（D104）", async ({ browser }) => {
+  const context = await browser.newContext();
+  const host = await context.newPage();
+  const guest = await context.newPage();
+  await openGame(host, "/");
+  await openGame(guest, "/");
+
+  const code = await hostRoom(host);
+  await joinRoom(guest, code);
+  await expect(guest.getByTestId("net-status")).toContainText(/已连接|connected/, { timeout: 20_000 });
+
+  // 主机是权威端；客户端进房即副本端，并会采用主机的会话种子（配置随 welcome / 快照下发）
+  const hostSeed = await seeds(host);
+  expect(hostSeed.authority).toBe("authority");
+  await expect.poll(async () => (await seeds(guest)).authority, { timeout: 20_000 }).toBe("replica");
+  await expect.poll(async () => (await seeds(guest)).adoptedSeed, { timeout: 20_000 })
+    .toBe(hostSeed.ownSeed);
+  const guestOwnSeed = (await seeds(guest)).ownSeed;
+
+  // 客户端按「重新抽选」：不能自己换种子，只能请求主机
+  await guest.getByRole("tab", { name: "Player", exact: true }).click();
+  await host.getByRole("tab", { name: "Player", exact: true }).click();
+  await guest.getByRole("button", { name: "Shuffle" }).click();
+
+  await expect.poll(async () => (await seeds(host)).ownSeed, { timeout: 20_000 })
+    .not.toBe(hostSeed.ownSeed);                                     // 主机换了新种子
+  const rerolled = await seeds(host);
+  await expect.poll(async () => (await seeds(guest)).adoptedSeed, { timeout: 20_000 })
+    .toBe(rerolled.ownSeed);                                         // 客户端采用新种子
+  expect((await seeds(guest)).ownSeed).toBe(guestOwnSeed);           // 但没动自己那份（离开房间还用得上）
+
+  // 主机自己按「重新抽选」也要让客户端跟上（种子不在 GameState 里，靠同一条配置通道）
+  await host.getByRole("button", { name: "Shuffle" }).click();
+  await expect.poll(async () => (await seeds(guest)).adoptedSeed, { timeout: 20_000 })
+    .toBe((await seeds(host)).ownSeed);
+
+  await context.close();
+});
+
 test("同浏览器两个标签页联机：握手 / 聊天 / 快照同步", async ({ browser }) => {
   const context = await browser.newContext();
   const host = await context.newPage();

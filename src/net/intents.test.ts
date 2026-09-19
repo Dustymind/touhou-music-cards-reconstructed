@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as rules from "../game/rules";
 import { emptyState, type CardInfo } from "../game/types";
 import { useGame } from "../game/useGame";
+import { useSeeds } from "../store/seeds";
 import { applyIntentLocally } from "./useNet";
 
 const POOL: CardInfo[] = Array.from({ length: 12 }, (_unused, index) => ({
@@ -16,6 +17,8 @@ const deckKeys = (player: number): string[] =>
 
 beforeEach(() => {
   useGame.setState({ game: rules.adjustDeckSize(emptyState(), 2, 2), pool: POOL });
+  // 权威端（主机）固定种子：随机结果可复现（D104）
+  useSeeds.setState({ ownSeed: 20260919, adoptedSeed: null, authority: "authority", nonce: 0 });
 });
 
 afterEach(() => {
@@ -29,15 +32,18 @@ describe("牌组编辑意图", () => {
     expect(deckKeys(0).filter((key) => key !== "-")).toHaveLength(4);
     expect(deckKeys(1).filter((key) => key !== "-")).toHaveLength(4);
 
-    const before = deckKeys(1);
-    // 4 张牌洗出同一顺序的概率是 1/24，会偶发失败 → 固定随机数让"顺序必然改变"（0 → 每次都与首张交换）
-    vi.spyOn(Math, "random").mockReturnValue(0);
+    // 打乱自己那一份会真的执行：牌还是同一批（顺序由**种子**决定，不再打桩 Math.random）
+    const before = [...deckKeys(1)].sort();
+    const nonceBefore = useSeeds.getState().nonce;
     applyIntentLocally({ kind: "shuffleDeck", player: 1 }, 1);
-    expect(deckKeys(1)).not.toEqual(before);                         // 客户端打乱自己的牌库生效
+    expect([...deckKeys(1)].sort()).toEqual(before);                  // 客户端打乱自己的牌库生效
+    expect(useSeeds.getState().nonce).toBe(nonceBefore + 1);          // 且真的向权威要了一个子种子
 
     const hostBefore = deckKeys(0);
+    const hostNonce = useSeeds.getState().nonce;
     applyIntentLocally({ kind: "shuffleDeck", player: 0 }, 1);        // 客户端想动主机的牌库
     expect(deckKeys(0)).toEqual(hostBefore);                          // 被拒绝
+    expect(useSeeds.getState().nonce).toBe(hostNonce);                // 连随机数都不该抽（D104）
 
     applyIntentLocally({ kind: "clearDeck", player: 0 }, 1);
     expect(deckKeys(0).filter((key) => key !== "-")).toHaveLength(4); // 仍然拒绝

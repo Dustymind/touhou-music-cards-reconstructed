@@ -3,11 +3,23 @@
  * 与上游（事件回放 + 增量事件）的差别：这里主机在**每次接受动作后广播完整快照**并带自增 `seq`。
  * 状态很小（几百字节到几 KB），换来的是"任意时刻都能收敛、重连只要一份快照、无需处理丢事件"，
  * 直接满足"必须保证多人模式同步"的硬要求。协议版本与数据哈希在握手时校验，不一致就拒绝开局。
+ *
+ * 种子（D104）：随机数一律由**主机**决定，客户端只接收主机配置（`SessionConfigWire`）——
+ * 不再有"两端各自 `Math.random` 近似一下"的空间。
  */
 import type { CardInfo, GameState, MatchMode } from "../game/types";
+import type { Seed } from "../rng";
 
-/** 2：`GameState` 加了 `gameSeed`（开局洗牌/选曲种子）。 */
-export const PROTOCOL_VERSION = 2;
+/** 3：`SessionConfig`（音乐模式 + 会话种子）替代原来的 `musicMode` 字段；新增 `rerollQueue` 意图。 */
+export const PROTOCOL_VERSION = 3;
+
+/** 主机下发的会话配置：客户端**采用**它，而不是自己决定这些值。 */
+export interface SessionConfigWire {
+  /** 音乐模式：两端不同的话"当前模式下可用"的判定会分叉 */
+  musicMode: MusicModeWire;
+  /** 会话种子：主机生成（`useSeeds`），客户端采用后两端派生结果一致 */
+  sessionSeed: Seed;
+}
 
 export interface PeerInfo {
   index: number;
@@ -37,15 +49,17 @@ export type ClientIntent =
   | { kind: "setMode"; mode: MatchMode }
   | { kind: "setTraditional"; traditional: boolean }
   | { kind: "filterMusicByDeck" }
+  /** 重新抽选轮播：换种子是主机的事，客户端只能请求（D104） */
+  | { kind: "rerollQueue" }
   | { kind: "requestSync" };
 
 /** 主机 → 客户端。 */
 export type HostMessage =
   | {
     kind: "welcome"; yourIndex: number; peers: PeerInfo[]; state: GameState; seq: number;
-    melee: boolean; musicMode?: MusicModeWire;
+    melee: boolean; config?: SessionConfigWire;
   }
-  | { kind: "snapshot"; state: GameState; seq: number; musicMode?: MusicModeWire }
+  | { kind: "snapshot"; state: GameState; seq: number; config?: SessionConfigWire }
   | { kind: "peers"; peers: PeerInfo[] }
   | { kind: "chat"; from: number; text: string; system?: boolean }
   | { kind: "reject"; reason: "protocol" | "data" | "full"; detail: string }

@@ -8,10 +8,13 @@ import { create } from "zustand";
 
 import { useGame } from "../game/useGame";
 import { useSession } from "../store/session";
+import { useQueue } from "../store/queue";
+import { selectSessionSeed, useSeeds } from "../store/seeds";
+import { ephemeralIntBelow, randomToken } from "../rng";
 import type { MatchMode } from "../game/types";
 import { createClientEngine, createHostEngine, helloIntent, type HostEngine } from "./engines";
 import { PeerTransport } from "./peer";
-import { stateDigest, type ClientIntent, type PeerInfo } from "./protocol";
+import { stateDigest, type ClientIntent, type PeerInfo, type SessionConfigWire } from "./protocol";
 import { BroadcastChannelTransport, BusHub, supportsBroadcastChannel, type Role, type Transport } from "./transport";
 
 type NetStatus = "offline" | "hosting" | "connected" | "error";
@@ -86,7 +89,8 @@ export function __busHub(): BusHub {
 function defaultTransportFactory(role: Role, roomId: string, mode: TransportMode): Transport {
   if (mode === "peer") return new PeerTransport(role, roomId, peerServerOptions());
   if (supportsBroadcastChannel()) {
-    return new BroadcastChannelTransport(role, role === "host" ? 0 : Math.floor(Math.random() * 100000) + 1, roomId);
+    // 同浏览器多标签：客户端下标只需要互不相同（不是种子，不需要可复现）
+    return new BroadcastChannelTransport(role, role === "host" ? 0 : ephemeralIntBelow(100000) + 1, roomId);
   }
   return hubForTests.connect(role);
 }
@@ -94,6 +98,7 @@ function defaultTransportFactory(role: Role, roomId: string, mode: TransportMode
 let transport: Transport | null = null;
 let hostEngine: HostEngine | null = null;
 let unsubscribeStore: (() => void) | null = null;
+let unsubscribeSeeds: (() => void) | null = null;
 let disposeEngine: (() => void) | null = null;
 const disposeMessage: Array<() => void> = [];
 
@@ -103,9 +108,30 @@ function resetConnection(): void {
   disposeEngine = null;
   unsubscribeStore?.();
   unsubscribeStore = null;
+  unsubscribeSeeds?.();
+  unsubscribeSeeds = null;
   hostEngine = null;
   transport?.close();
   transport = null;
+}
+
+/** 主机下发的会话配置：音乐模式 + **会话种子**（客户端一律"采用"，不自己生成，D104）。 */
+function hostConfig(): SessionConfigWire {
+  return {
+    musicMode: useSession.getState().musicMode,
+    sessionSeed: selectSessionSeed(useSeeds.getState()),
+  };
+}
+
+/** 客户端采用主机配置：**总是**采用（哪怕数值恰好跟自己的相同 —— 同一个浏览器开两个标签页时
+ *  两边共用 localStorage，种子本来就一样；此时"是主机的种子"这个语义仍然要落到 store 里）。
+ *  只有种子真的变了才重排轮播，否则每个快照都会把队列洗一遍 ✗。 */
+function adoptHostConfig(config: SessionConfigWire): void {
+  useSession.getState().setMusicMode(config.musicMode);
+  const seeds = useSeeds.getState();
+  const changed = selectSessionSeed(seeds) !== config.sessionSeed;
+  seeds.adopt(config.sessionSeed);
+  if (changed) useQueue.getState().adoptSeed(config.sessionSeed);
 }
 
 export const useNet = create<NetApi>((set, get) => {
@@ -137,18 +163,19 @@ export const useNet = create<NetApi>((set, get) => {
 
     async host(options = {}) {
       resetConnection();
-      const roomId = options.roomId ?? Math.random().toString(36).slice(2, 8);
+      const roomId = options.roomId ?? randomToken(6);
       const name = options.name ?? "Host";
       transport = transportFactory("host", roomId, options.peer ? "peer" : "local");
       set({ status: "hosting", role: "host", myIndex: 0, roomId, shareCode: roomId, error: null });
+      // 开房的人就是**权威端**：种子由本机生成（`useSeeds`），客户端只能采用（D104）
+      useSeeds.getState().setAuthority("authority");
 
       hostEngine = createHostEngine(transport, {
         getState: () => useGame.getState().game,
         applyState: (state) => useGame.setState({ game: state }),
         applyIntent: (intent, from) => applyIntentLocally(intent, from),
-        // 音乐模式随快照下发：两端必须同模式，否则"当前模式下可用"的判定会分叉
-        getMusicMode: () => useSession.getState().musicMode,
-        applyMusicMode: (mode) => useSession.getState().setMusicMode(mode),
+        // 会话配置随快照下发（音乐模式 + 会话种子）
+        getConfig: hostConfig,
         dataHash: dataHash(),
         selfName: name,
         onChat: (from, text, system) => pushChat({ from: from === 0 ? name : `P${from}`, text, system }),
@@ -165,6 +192,10 @@ export const useNet = create<NetApi>((set, get) => {
         set({ digest });
         hostEngine?.broadcastSnapshot();
       });
+      // 主机自己按「重新抽选」换了种子也要让客户端跟上（种子不在 GameState 里，摘要不会变）
+      unsubscribeSeeds = useSeeds.subscribe((slice, previous) => {
+        if (slice.ownSeed !== previous.ownSeed) hostEngine?.broadcastSnapshot();
+      });
       set({ digest: stateDigest(useGame.getState().game) });
       return roomId;
     },
@@ -175,6 +206,8 @@ export const useNet = create<NetApi>((set, get) => {
       const name = options.name ?? "Guest";
       transport = transportFactory("client", roomId, options.peer ? "peer" : "local");
       set({ status: "connected", role: "client", roomId, shareCode: null, error: null, myIndex: 1 });
+      // 进房即副本端：不再自己生成种子，等主机的 `SessionConfig`（D104）
+      useSeeds.getState().setAuthority("replica");
 
       const engine = createClientEngine(transport, {
         getState: () => useGame.getState().game,
@@ -182,8 +215,8 @@ export const useNet = create<NetApi>((set, get) => {
           useGame.setState({ game: state });
           set({ digest: stateDigest(state) });
         },
-        getMusicMode: () => useSession.getState().musicMode,
-        applyMusicMode: (mode) => useSession.getState().setMusicMode(mode),
+        getConfig: hostConfig,
+        applyConfig: adoptHostConfig,
         dataHash: dataHash(),
         selfName: name,
         onChat: (from, text, system) => pushChat({ from: `P${from}`, text, system }),
@@ -196,6 +229,8 @@ export const useNet = create<NetApi>((set, get) => {
 
     leave() {
       resetConnection();
+      // 离开房间 → 本机重新成为权威（用回自己那份种子，不再用主机下发的）
+      useSeeds.getState().setAuthority("authority");
       set({ status: "offline", role: null, peers: [], shareCode: null, error: null, digest: "" });
     },
 
@@ -251,6 +286,11 @@ export function applyIntentLocally(intent: ClientIntent, from: number): void {
     }
     case "filterMusicByDeck": {
       game.filterByDeck();
+      return;
+    }
+    // 重新抽选：换种子是**主机**的事，客户端的请求落到这里（换完随快照把新配置发下去）
+    case "rerollQueue": {
+      useQueue.getState().regenerate(useQueue.getState().order, true);
       return;
     }
     // 牌组编辑（自定义卡组 / 补满 / 打乱 / 清空）：只有主机能改别人的牌库，

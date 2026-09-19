@@ -2990,6 +2990,74 @@ playedTracks：3 → 53（单调增长 ✓）   自己牌数 24 → 23 ✓
 
 ---
 
+## D104 随机种子：主机生成、客户端采用，全局统一到一套权威随机数实现
+
+**需求**（用户）：随机种子由服务端生成，客户端接收服务端配置；需要用到随机种子的场景**统一**成
+稳定权威的随机数生成实现，而不是近似伪随机。
+
+**先盘点**（`grep -rn "Math.random" src/`）：改动前有 **13 处**裸 `Math.random`、**3 种**互不相干的
+"派生"写法，其中 4 处会直接导致两端分叉：
+
+| 位置 | 旧写法 | 后果 |
+|---|---|---|
+| `game/rules.ts`（补满/打乱/开局/交牌） | `rng: Rng = Math.random` 默认参数 | 谁忘了传种子就各自随机一次；快照覆盖前两端已经显示/播过不同内容 |
+| `audio/usePlayer.ts` | `seed + character.order * 7919` | 加法线性派生（实测 121 个角色分布最多 31 / 最少 12，理想 24.2） |
+| `game/rules.ts` `turnSeed` | FNV-1a 整串哈希 → `% 2147483647` | 取模只用低位；相邻回合撞同一首 28/120（理想 20%） |
+| `music/rng.ts` `randomStartPosition` | `(seed % 2147483647) / 2147483647` | **所有曲目同一个起播比例**（实测去重后只有 1 个值 ✗） |
+| `game/cpu.ts` | `rng: () => number = Math.random` | CPU 出手不可复盘、两端不可能一致 |
+| `store/queue.ts` | 客户端 `newSeed()` 自己换种子 | "重新抽选"两端各抽各的 |
+| `net/useNet.ts` `peer.ts` `cheat.ts` `CheatRect.tsx` | 房间号/peer 后缀/装饰动效也用 `Math.random` | 与种子体系混在一起，看不出"哪里需要可复现" |
+
+**实现**（一条链路，四个文件）：
+
+| 文件 | 作用 |
+|---|---|
+| `src/rng/index.ts`（**唯一实现**） | `createRng`（mulberry32）、`deriveSeed`（murmur3 fmix32 混淆 + 有序标签 + 移位落位）、`newSeed`（crypto）、`randomToken` / `ephemeralRandom`（非种子场景）、`stableHash`（展示层也要一致的小选择） |
+| `src/store/seeds.ts`（**种子权威**） | `authority`（单机本机 / 联机主机）能 `draw`（现抽，结果随快照同步）与 `roll`（换种子）；`replica`（联机客户端）只能 `adopt` 主机下发的种子，`draw/roll` 返回 `null` |
+| `src/net/protocol.ts` + `engines.ts`（**下发**） | 协议 **v3**：`musicMode` 字段升级成 `SessionConfigWire { musicMode, sessionSeed }`，随 `welcome` / `snapshot` / `requestSync` 下发；新增 `rerollQueue` 意图 |
+| `src/game/rules.ts` `cpu.ts` `useGame.ts` `store/queue.ts` `audio/usePlayer.ts`（**收口**） | 规则层随机函数**必须显式传 `rng`**（默认值全部删掉）；`useGame` 权威端 `draw`、副本端直接 no-op；`turnSeed` → `deriveSeed(gameSeed,"turn",turnSeq,key)`；曲目选择 → `deriveSeed(seed,"track",characterKey)`；起播位置 → `deriveSeed(seed,"start",trackId)` |
+
+两条口径写进文档（`docs/rng-v1.md`）：**"主机决定的"用 `draw`，"两端各自算的"用 `derive`**；
+用错就会出现"两端不同、随后被覆盖"的闪烁。
+
+**实测**：
+
+```
+grep -rn "Math.random" src/ | grep -v "^src/rng/"            → 0 处（新增 authority.test.ts 扫源码守住）
+createRng(12345).next()  → 4207900869, 1317490944, 2079646450    ← 冻结向量，改了就是破坏协议
+deriveSeed(12345,"turn",3,"cirno") → 369832200
+随机起播：旧 = 所有曲目同一个比例（去重 1 个）；新 = 每首各自不同（同一首稳定）
+相邻回合撞同一首：旧 28/120（理想 20%）→ 新 20/120
+副本端 fill/shuffle/start → 本地状态逐字段不变、nonce 不增加（结构性不可能再闪一下 ✗→✓）
+D104 之前存在 queue 存档里的轮播种子 → 启动时迁移进 tmc.v1.seed（老用户顺序不变）
+```
+
+**顺带修掉的两条红灯**（都与本次重构无关，是数据漂移 / 时序，但会让"全绿"变成空话）：
+
+| 用例 | 原因 | 修法 |
+|---|---|---|
+| 音乐模式：音MAD 统计写死 `24 / 24` | 本地曲库已经涨到 86 首（用户往 `.music/` 加曲子） | 改成**跟着数据走**：先数同源 `/manifest.json` 的条数，再和统计对齐（与 D97 的口径一致） |
+| 播放控制：卡片"未居中" 13px | 卡片是 `translateX(12%) / 0.3s` 滑入的，量的时候动画还在跑（实测 transform 8.75px / 167ms） | 量之前等动画结束（`settledAnimations`）；稳定后三行 + 卡面 + 曲名全部误差 **0px**（chromium / firefox 实测一致） |
+
+**验证**：`pnpm typecheck` ✓、`pnpm test` **251 passed**（+37：冻结向量 / 派生性质 / 源码守卫 /
+种子权威 / 副本端不掷骰子 / 会话配置下发）；浏览器端按用户要求**两个引擎都跑**：
+
+```
+chromium 30 passed  |  firefox 29 passed + 1 skipped（"跨浏览器"用例自己开两个浏览器，只在 chromium 项目跑一次）
+mobile (Pixel 7) 9 passed        ← 合计 68 passed / 1 skipped（= pnpm e2e 的全量）
+```
+
+新增联机用例（`e2e/multiplayer.spec.ts`）：主机 `authority` / 客户端 `replica` 且 `adoptedSeed = 主机 ownSeed`；
+客户端按「重新抽选」→ 主机换种子 → 客户端采用新种子（自己的 `ownSeed` 不动）；
+主机自己按「重新抽选」也会经同一条配置通道让客户端跟上。
+
+**踩到的坑（值得记）**：同一个浏览器开两个标签页时，**两边共用 localStorage** →
+客户端一进房的 `ownSeed` 恰好等于主机种子（`tmc.v1.seed` 是同一份）。
+第一版 `adoptHostConfig` 用"种子没变就不 adopt"做优化 → 副本端 `adoptedSeed` 一直是 null（语义错了）。
+改成**总是 adopt**、只在种子真的变了才重排轮播 ✓ —— e2e 正是这么抓出来的。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |

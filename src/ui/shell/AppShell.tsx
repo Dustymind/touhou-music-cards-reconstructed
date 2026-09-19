@@ -6,12 +6,13 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Localization, t } from "../../i18n/localization";
-import { stableHash } from "../../cheat";
+import { stableHash } from "../../rng";
 import { TAB_ORDER, useSession, type TabId } from "../../store/session";
 import { NoFontFamily } from "../../theme/theme";
 import { trackId, type DataBundle, type MusicEntry } from "../../data/types";
 import { usePreset } from "../../store/preset";
 import { useQueue } from "../../store/queue";
+import { selectSessionSeed, useSeeds } from "../../store/seeds";
 import { useSources } from "../../music/useSources";
 import { usePlayer } from "../../audio/usePlayer";
 import { allowedTracks, mergeWithDefaults } from "../../music/selection";
@@ -20,6 +21,7 @@ import { effectivePin } from "../../music/presetView";
 import { useSingleTrack } from "../../store/single";
 import { useGame } from "../../game/useGame";
 import { turnSeed } from "../../game/rules";
+import { useNet } from "../../net/useNet";
 import { PlayerPanel } from "../panels/PlayerPanel";
 import { ConfigPanel } from "../panels/ConfigPanel";
 import { GamePanel } from "../panels/GamePanel";
@@ -49,6 +51,9 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
   const preset = usePreset();
   const queue = useQueue();
   const single = useSingleTrack();
+  const net = useNet();
+  /** 会话种子：单机 = 本机自己那份；联机 = **主机**下发、本机采用（D104） */
+  const sessionSeed = useSeeds(selectSessionSeed);
   const game = useGame((slice) => slice.game);
   /**
    * 对局进行中（选牌阶段之外、尚未终局）：音乐交给**对局**驱动 ——
@@ -125,8 +130,8 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
     played: game.playedTracks,
     // 对局听回合角色，平时听轮播队列
     currentKey: gameActive ? game.currentKey : queue.currentKey,
-    // 对局里用 (回合号, 角色) 派生的种子：两端必然选到同一首
-    seed: gameActive ? turnSeed(game.gameSeed, game.turnSeq, game.currentKey) : queue.seed,
+    // 对局里用 (回合号, 角色) 派生的种子：两端必然选到同一首；平时用会话种子（联机时来自主机）
+    seed: gameActive ? turnSeed(game.gameSeed, game.turnSeq, game.currentKey) : sessionSeed,
     setCurrent: queue.setCurrent,
     step: (direction) => queue.step(direction, queue.order),
   });
@@ -261,7 +266,12 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
             currentKey={queue.currentKey}
             pin={queue.currentKey ? pinned[queue.currentKey] ?? null : null}
             cardCollection={cardCollection}
-            onShuffle={() => { player.pause(); queue.regenerate(usableKeys, true); }}
+            onShuffle={() => {
+              player.pause();
+              // 换种子是权威端的事：客户端只能请求主机换，换完随配置下发（D104）
+              if (net.role === "client") net.intent({ kind: "rerollQueue" });
+              else queue.regenerate(usableKeys, true);
+            }}
             onSort={() => { player.pause(); queue.regenerate(usableKeys, false); }}
             onToggleTemporary={(key) => queue.toggleTemporary(key)}
             musicMode={musicMode}

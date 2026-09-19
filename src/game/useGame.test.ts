@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
+import { useSeeds } from "../store/seeds";
 import { useGame } from "./useGame";
 import type { CardInfo } from "./types";
 import { filledSlots } from "./types";
@@ -28,6 +29,8 @@ describe("useGame store", () => {
   beforeEach(() => {
     localStorage.clear();
     freshGame();
+    // 本机是权威端（单机 / 联机主机）：随机动作才允许落地（D104）
+    useSeeds.setState({ ownSeed: 20260919, adoptedSeed: null, authority: "authority", nonce: 0 });
   });
 
   it("init 灌入卡池并按尺寸初始化牌库", () => {
@@ -138,5 +141,70 @@ describe("useGame store", () => {
     useGame.getState().filterByDeck();
     // 新口径：单人/电脑只按**自己这一方**卡槽筛（c 只在对手卡槽里 → 应被禁用 ✓）
     expect(useGame.getState().game.temporaryDisabled).toEqual({ b: true, c: true, d: true });
+  });
+});
+
+describe("随机动作的种子权威（D104）", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    freshGame();
+    useSeeds.setState({ ownSeed: 20260919, adoptedSeed: null, authority: "authority", nonce: 0 });
+  });
+
+  it("权威端：同一种子同一起点 → 补满结果完全一致", () => {
+    const fill = (): (CardInfo | null)[] => {
+      useSeeds.setState({ ownSeed: 4242, adoptedSeed: null, authority: "authority", nonce: 0 });
+      useGame.getState().resize(1, 3);
+      useGame.getState().fill(0);
+      return useGame.getState().game.players[0]!.deck;
+    };
+    const first = fill();
+    const again = fill();
+    expect(again).toEqual(first);
+    expect(useSeeds.getState().nonce).toBe(1);
+  });
+
+  it("权威端：每次动作都换一个子种子（两次补满不会一模一样）", () => {
+    useGame.getState().resize(1, 3);
+    useGame.setState({ pool: [card("a"), card("b"), card("c"), card("d"), card("e")] });
+    useGame.getState().fill(0);
+    const first = useGame.getState().game.players[0]!.deck.map((entry) => entry?.characterKey);
+    useGame.getState().clear(0);
+    useGame.getState().fill(0);
+    const second = useGame.getState().game.players[0]!.deck.map((entry) => entry?.characterKey);
+    expect(useSeeds.getState().nonce).toBe(2);
+    expect(second).not.toEqual(first);
+  });
+
+  it("副本端（联机客户端）：补满 / 打乱 / 开局都不自己掷骰子，等主机快照", () => {
+    useSeeds.setState({ authority: "replica", adoptedSeed: 777, nonce: 0 });
+    const before = useGame.getState().game;
+    useGame.getState().fill(0);
+    useGame.getState().shuffle(0);
+    useGame.getState().start();
+    expect(useGame.getState().game).toBe(before);        // 一个都没落地
+    expect(useSeeds.getState().nonce).toBe(0);           // 也没抽种子
+  });
+
+  it("CPU 规划由 (会话种子, 回合号) 派生：两端一致、同一回合稳定", () => {
+    useGame.setState((slice) => ({
+      game: {
+        ...slice.game,
+        mode: "cpu" as const,
+        currentKey: "a",
+        turnSeq: 7,
+        state: "turnStart" as const,
+        players: [
+          slice.game.players[0]!,
+          { ...slice.game.players[1]!, deck: [card("a"), card("b")] },
+        ],
+      },
+    }));
+    const host = useGame.getState().planCpu(1);
+    expect(host).not.toBeNull();
+    // 客户端采用主机种子后（adoptedSeed = 主机 ownSeed），派生结果必须与主机相同
+    useSeeds.setState({ authority: "replica", adoptedSeed: 20260919 });
+    expect(useGame.getState().planCpu(1)).toEqual(host);
+    expect(useGame.getState().planCpu(1)).toEqual(host);      // 重复规划也稳定
   });
 });

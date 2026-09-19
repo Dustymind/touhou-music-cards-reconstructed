@@ -29,6 +29,9 @@ interface StoreHandle<T> {
 }
 
 const PREFIX = "tmc.v1.";
+
+/** 存储键前缀（`src/store/seeds.ts` 需要按老键名做一次性迁移，所以导出）。 */
+export const STORAGE_PREFIX = PREFIX;
 const errors = new Map<string, string | null>();
 
 function storage(): Storage | null {

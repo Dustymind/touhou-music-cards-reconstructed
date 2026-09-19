@@ -1,8 +1,10 @@
-/** 彩蛋：在答案卡周围画一圈随机色块（对齐上游 `CheatRect`）。 */
+/** 彩蛋：在答案卡周围画一圈随机色块（对齐上游 `CheatRect`）。
+ *  纯装饰 → 用 `ephemeralRandom()`（不需要跨端一致，也不参与种子体系，见 D104）。 */
 import { Box } from "@mui/material";
 import { useMemo } from "react";
 
 import { randomColor } from "../../cheat";
+import { ephemeralRandom } from "../../rng";
 
 interface Box {
   left: number;
@@ -35,11 +37,11 @@ function buildBoxes(width: number, height: number): Box[] {
     }
     const jitter = 0.1 * Math.min(width, height);
     boxes.push({
-      left: x + (Math.random() * 2 - 1) * jitter,
-      top: y + (Math.random() * 2 - 1) * jitter,
-      size: 10 + Math.random() * 20,
+      left: x + (ephemeralRandom() * 2 - 1) * jitter,
+      top: y + (ephemeralRandom() * 2 - 1) * jitter,
+      size: 10 + ephemeralRandom() * 20,
       color: randomColor(1, 1),
-      rotate: Math.random() * 360,
+      rotate: ephemeralRandom() * 360,
     });
   }
   return boxes;

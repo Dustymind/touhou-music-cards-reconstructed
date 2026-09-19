@@ -3,20 +3,25 @@ import { describe, expect, it } from "vitest";
 
 import * as rules from "../game/rules";
 import { emptyState, type GameState } from "../game/types";
+import { createRng } from "../rng";
 import { createClientEngine, createHostEngine, helloIntent } from "./engines";
-import { stateDigest, type ClientIntent, type PeerInfo } from "./protocol";
+import { stateDigest, type ClientIntent, type PeerInfo, type SessionConfigWire } from "./protocol";
 import { peerServerOptions } from "./useNet";
 import { BusHub } from "./transport";
 
-/** 一台"机器"：持有自己的 GameState，可选地跑主机/客户端引擎。 */
+/** 一台"机器"：持有自己的 GameState 与"主机下发的会话配置"，可选地跑主机/客户端引擎。 */
 class Endpoint {
   state: GameState;
   peers: PeerInfo[] = [];
   errors: string[] = [];
   chat: string[] = [];
+  /** 主机端：本机生成的权威种子；客户端：采用主机下发的种子（D104） */
+  seed: number;
+  config: SessionConfigWire | null = null;
 
-  constructor(readonly name: string, state?: GameState) {
+  constructor(readonly name: string, state?: GameState, seed = 1) {
     this.state = state ?? rules.adjustDeckSize(emptyState(), 2, 2);
+    this.seed = seed;
   }
 
   deps() {
@@ -24,6 +29,11 @@ class Endpoint {
       getState: () => this.state,
       applyState: (state: GameState) => { this.state = state; },
       applyIntent: (intent: ClientIntent, from: number) => { this.apply(intent, from); },
+      getConfig: (): SessionConfigWire => ({ musicMode: "originals", sessionSeed: this.seed }),
+      applyConfig: (config: SessionConfigWire) => {
+        this.config = config;
+        this.seed = config.sessionSeed;      // 客户端采用主机种子
+      },
       dataHash: "hash-aaaaaaaaaaaa",
       selfName: this.name,
       onChat: (_from: number, text: string) => this.chat.push(text),
@@ -45,7 +55,7 @@ class Endpoint {
         return;
       }
       case "confirmStart": {
-        this.state = rules.confirmStart(this.state, from);
+        this.state = rules.confirmStart(this.state, from, createRng(this.seed));
         return;
       }
       case "confirmNext": {
@@ -101,6 +111,39 @@ describe("联机引擎", () => {
     clientTransport.sendToHost({ kind: "pick", side: 1, slot: 0, timestamp: 120 });
     expect(hostEndpoint.state.players[1]!.collected).toHaveLength(1);
     expect(stateDigest(hostEndpoint.state)).toBe(stateDigest(clientEndpoint.state));
+  });
+
+  it("会话配置（音乐模式 + 会话种子）由主机下发，客户端采用（D104）", () => {
+    const hub = new BusHub();
+    const { hostEndpoint, clientEndpoint, clientTransport } = connect(hub);
+    hostEndpoint.seed = 987654;
+
+    clientTransport.sendToHost(helloIntent("Guest", false, "hash-aaaaaaaaaaaa"));
+
+    expect(clientEndpoint.config).toEqual({ musicMode: "originals", sessionSeed: 987654 });
+    expect(clientEndpoint.seed).toBe(987654);        // 客户端换成主机的种子
+  });
+
+  it("主机换种子后，下一份快照把新配置带给客户端（重新抽选）", () => {
+    const hub = new BusHub();
+    const { hostEndpoint, clientEndpoint, clientTransport, host } = connect(hub);
+    clientTransport.sendToHost(helloIntent("Guest", false, "hash-aaaaaaaaaaaa"));
+    expect(clientEndpoint.seed).toBe(hostEndpoint.seed);
+
+    hostEndpoint.seed = 55555;
+    host.broadcastSnapshot();
+    expect(clientEndpoint.config!.sessionSeed).toBe(55555);
+    expect(clientEndpoint.seed).toBe(55555);
+  });
+
+  it("重连（requestSync）也会带上会话配置", () => {
+    const hub = new BusHub();
+    const { hostEndpoint, clientEndpoint, clientTransport, client } = connect(hub);
+    hostEndpoint.seed = 246810;
+    clientTransport.sendToHost(helloIntent("Guest", false, "hash-aaaaaaaaaaaa"));
+    hostEndpoint.seed = 135791;
+    client.requestSync();
+    expect(clientEndpoint.config!.sessionSeed).toBe(135791);
   });
 
   it("数据哈希不一致 → 拒绝加入并给出可读原因", () => {

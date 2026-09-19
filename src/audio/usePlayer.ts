@@ -10,7 +10,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createBell, type BellHandle } from "./bell";
 import type { AlbumRecord, CharacterRecord, MusicEntry } from "../data/types";
 import { displayTitle, trackId } from "../data/types";
-import { newSeed, pickWithSeed, randomStartPosition } from "../music/rng";
+import { pickWithSeed, randomStartPosition } from "../rng";
 import { allowedTracks, defaultPreset, type PresetState } from "../music/selection";
 import type { MusicMode } from "../music/mode";
 import { resolveTrack, type TableMap } from "../music/sources";
@@ -151,8 +151,8 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
     const played = new Set(inputs.played ?? []);
     const fresh = entries.filter((entry) => !played.has(trackId(entry[0], entry[1])));
     const pool = fresh.length > 0 ? fresh : entries;
-    const seedKey = inputs.seed + character.order * 7919;
-    return pickWithSeed(pool, seedKey);
+    // 由 (会话种子, 角色) 派生：不同角色落到不同曲目，而同一角色在两端的取舍完全一致（D104）
+    return pickWithSeed(pool, inputs.seed, "track", character.key);
   }, [character, inputs.pinned, inputs.preset, inputs.albums, inputs.mode, inputs.seed,
       inputs.ignorePreset, inputs.played]);
 
@@ -242,8 +242,10 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
       }).catch(() => setPlayback("stopped"));
     }
     if (setting.randomStart) {
+      // 起播位置由 (会话种子, 曲目) 派生：同一首歌每次都落在同一处，不同歌各自不同（D104）
+      const trackKey = entry ? trackId(entry[0], entry[1]) : "";
       const applyRandomStart = () => {
-        audio.currentTime = randomStartPosition(audio.duration, inputs.seed);
+        audio.currentTime = randomStartPosition(audio.duration, inputs.seed, trackKey);
         audio.removeEventListener("loadedmetadata", applyRandomStart);
       };
       audio.addEventListener("loadedmetadata", applyRandomStart);
@@ -384,5 +386,3 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
     reload,
   };
 }
-
-export { newSeed };

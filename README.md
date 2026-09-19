@@ -51,4 +51,5 @@ cd tools && UV_CACHE_DIR=.uv/cache uv run python -m tmcd.local_source
 按钮 36dp、chip 32dp、深色基线），状态用 zustand，联机用 PeerJS。
 
 设计取舍、踩过的坑与每个决定的实测数字记在 [`docs/DECISIONS.md`](docs/DECISIONS.md)；
-`附加信息` 分类规则在 [`docs/rules-classification-v1.md`](docs/rules-classification-v1.md)。
+`附加信息` 分类规则在 [`docs/rules-classification-v1.md`](docs/rules-classification-v1.md)；
+随机数与"种子由谁生成"的契约在 [`docs/rng-v1.md`](docs/rng-v1.md)（改动即破坏联机一致性）。

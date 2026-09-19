@@ -1,16 +1,17 @@
 /** PeerJS 传输：真实 WebRTC（跨机器）。信令走 PeerJS 公共服务器，也可换成自建。 */
 import Peer, { type DataConnection } from "peerjs";
 
+import { randomToken } from "../rng";
 import type { Message } from "./protocol";
 import type { Role, Transport } from "./transport";
 
 const PREFIX = "tmc-cards-";
 
 /** 主机占 `tmc-cards-<room>`；其他人必须用**别的** id，否则信令服务器会以
- *  `ID ... is taken` 拒绝连接（客户端仍然连到主机 id）。 */
+ *  `ID ... is taken` 拒绝连接（客户端仍然连到主机 id）。后缀只是标识，不用种子（D104）。 */
 function peerIdFor(role: Role, roomId: string): string {
   if (role === "host") return PREFIX + roomId;
-  return `${PREFIX}${roomId}-${Math.random().toString(36).slice(2, 8)}`;
+  return `${PREFIX}${roomId}-${randomToken(6)}`;
 }
 
 interface PeerServerOptions {

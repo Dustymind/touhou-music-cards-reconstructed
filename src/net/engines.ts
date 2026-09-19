@@ -5,7 +5,7 @@
  */
 import type { GameState } from "../game/types";
 import {
-  PROTOCOL_VERSION, type ClientIntent, type HostMessage, type MusicModeWire, type PeerInfo,
+  PROTOCOL_VERSION, type ClientIntent, type HostMessage, type PeerInfo, type SessionConfigWire,
   dataHashMismatch,
 } from "./protocol";
 import type { Transport } from "./transport";
@@ -14,9 +14,9 @@ interface EngineDeps {
   /** 主机：读取/覆盖本地权威状态；客户端：只覆盖 */
   getState: () => GameState;
   applyState: (state: GameState) => void;
-  /** 音乐模式：主机读取 / 客户端采用（缺字段时保持本地不动，与 v2 的 d7f4ad4 一致） */
-  getMusicMode?: () => MusicModeWire;
-  applyMusicMode?: (mode: MusicModeWire) => void;
+  /** 会话配置（音乐模式 + 会话种子）：主机读取下发，客户端采用（D104） */
+  getConfig?: () => SessionConfigWire;
+  applyConfig?: (config: SessionConfigWire) => void;
   /** 主机：把客户端意图落到本地 store（复用 UI 用的那些动作） */
   applyIntent?: (intent: ClientIntent, from: number) => void;
   /** 静态数据哈希（两端必须一致） */
@@ -65,8 +65,9 @@ export function createHostEngine(transport: Transport, deps: EngineDeps): HostEn
 
   const broadcastSnapshot = (): void => {
     seq += 1;
-    // 音乐模式随快照下发：两端模式不同的话，"当前模式下可用"的判定会不同 → 轮换分叉
-    transport.broadcast({ kind: "snapshot", state: deps.getState(), seq, musicMode: deps.getMusicMode?.() });
+    // 会话配置随快照下发：音乐模式两端不同 → "当前模式下可用"的判定分叉；
+    // 会话种子两端不同 → 派生出来的曲目/CPU 决策分叉（D104）
+    transport.broadcast({ kind: "snapshot", state: deps.getState(), seq, config: deps.getConfig?.() });
   };
 
   const off = transport.onMessage((from, message) => {
@@ -94,7 +95,7 @@ export function createHostEngine(transport: Transport, deps: EngineDeps): HostEn
           peers: peerList(),
           state: deps.getState(),
           seq,
-          musicMode: deps.getMusicMode?.(),
+          config: deps.getConfig?.(),
           melee: infoByFrom.size + 1 > 2,
         });
         deps.onChat?.(index, `${intent.name} connected`, true);
@@ -108,7 +109,7 @@ export function createHostEngine(transport: Transport, deps: EngineDeps): HostEn
         return;
       }
       case "requestSync": {
-        transport.sendTo(from, { kind: "snapshot", state: deps.getState(), seq });
+        transport.sendTo(from, { kind: "snapshot", state: deps.getState(), seq, config: deps.getConfig?.() });
         return;
       }
       default: {
@@ -154,7 +155,7 @@ export function createClientEngine(transport: Transport, deps: EngineDeps): Clie
         myIndex = host.yourIndex;
         lastSeq = host.seq;
         deps.applyState(host.state);
-        if (host.musicMode) deps.applyMusicMode?.(host.musicMode);
+        if (host.config) deps.applyConfig?.(host.config);
         deps.onPeers?.(host.peers);
         return;
       }
@@ -162,7 +163,7 @@ export function createClientEngine(transport: Transport, deps: EngineDeps): Clie
         if (host.seq < lastSeq) return;   // 旧快照忽略（乱序保护）
         lastSeq = host.seq;
         deps.applyState(host.state);
-        if (host.musicMode) deps.applyMusicMode?.(host.musicMode);
+        if (host.config) deps.applyConfig?.(host.config);
         return;
       }
       case "peers": {

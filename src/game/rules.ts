@@ -4,13 +4,14 @@
  * 与上游的**有意差异**：真正进入 `finished` 并算出胜者（上游从不进入 `GameFinished`，只能手动 Stop），
  * 见 `docs/DECISIONS.md` D9。
  */
-import { shuffleWithSeed } from "../music/rng";
+import { SEED_MAX, deriveSeed, shuffleWithSeed, type Rng } from "../rng";
 import {
   type CardInfo, type GameState, type PickEvent, type PlayerIndex, type PlayerState, type Slot,
   emptySlots, filledSlots, makePlayer, sameCard, slotCount,
 } from "./types";
 
-type Rng = () => number;
+/** 随机来源一律**显式传入**（D104）：这里不再有 `Math.random` 默认值。
+ *  权威端现抽用 `useSeeds.draw(...)`，两端要各自算出同一结果时用 `useSeeds.derive(...)`。 */
 
 const clone = (state: GameState): GameState => ({
   ...state,
@@ -154,7 +155,7 @@ export function randomFill(
   state: GameState,
   playerIndex: PlayerIndex,
   pool: readonly CardInfo[],
-  rng: Rng = Math.random,
+  rng: Rng,
 ): GameState {
   const used = new Set<string>();
   for (const player of state.players) {
@@ -169,23 +170,16 @@ export function randomFill(
   for (let slot = 0; slot < deck.length; slot += 1) {
     if (deck[slot] !== null) continue;
     if (available.length === 0) break;
-    const pick = Math.floor(rng() * available.length);
+    const pick = rng.intBelow(available.length);
     deck[slot] = available.splice(pick, 1)[0]!;
   }
   return withPlayer(state, playerIndex, { deck });
 }
 
-export function shuffleDeck(state: GameState, playerIndex: PlayerIndex, rng: Rng = Math.random): GameState {
+export function shuffleDeck(state: GameState, playerIndex: PlayerIndex, rng: Rng): GameState {
   const player = state.players[playerIndex];
   if (!player) return state;
-  const deck = player.deck.slice();
-  for (let i = deck.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(rng() * (i + 1));
-    const a = deck[i]!;
-    deck[i] = deck[j]!;
-    deck[j] = a;
-  }
-  return withPlayer(state, playerIndex, { deck });
+  return withPlayer(state, playerIndex, { deck: rng.shuffle(player.deck) });
 }
 
 // ---------------------------------------------------------------- 开局
@@ -194,9 +188,10 @@ export function switchTraditional(state: GameState, traditional: boolean): GameS
   return { ...state, traditional };
 }
 
-export function confirmStart(state: GameState, playerIndex: PlayerIndex): GameState {
+/** 确认开局：全员确认后**由权威端给种子**开一局（D104：随机来源显式传入，不再从函数内部取）。 */
+export function confirmStart(state: GameState, playerIndex: PlayerIndex, rng: Rng): GameState {
   const next = withPlayer(state, playerIndex, { confirmStart: true });
-  return allConfirmed(next, "confirmStart") ? startGame(next) : next;
+  return allConfirmed(next, "confirmStart") ? startGame(next, rng) : next;
 }
 
 function allConfirmed(state: GameState, field: "confirmStart" | "confirmNext"): boolean {
@@ -210,11 +205,11 @@ function allConfirmed(state: GameState, field: "confirmStart" | "confirmNext"): 
  * （上游语义：首次 `nextTurn` 会落到洗好的第 0 个）。
  *
  * 上游 `handleGameStart` 就是 `createPlayingOrder(..., true)`（洗牌）→ 每局从哪个角色开始是随机的；
- * 种子随快照同步，所以两端洗出同一个顺序、每回合也选到同一首。
+ * 种子由**主机**现抽并随快照同步，所以两端洗出同一个顺序、每回合也选到同一首（D104）。
  */
-export function startGame(state: GameState, rng: Rng = Math.random): GameState {
-  const gameSeed = Math.min(2147483646, Math.floor(rng() * 2147483647));
-  const order = shuffleWithSeed(state.order, gameSeed);
+export function startGame(state: GameState, rng: Rng): GameState {
+  const gameSeed = rng.intBelow(SEED_MAX);
+  const order = shuffleWithSeed(state.order, gameSeed, "order");
   const players = state.players.map((player) => ({
     ...player, collected: [], confirmStart: false, confirmNext: false,
   }));
@@ -391,7 +386,7 @@ export function confirmNext(state: GameState, playerIndex: PlayerIndex): GameSta
 }
 
 /** 交牌（随机）：把交牌方的随机一张移到接收方的空格。 */
-export function giveCardsRandomly(state: GameState, rng: Rng = Math.random): GameState {
+export function giveCardsRandomly(state: GameState, rng: Rng): GameState {
   let next = clone(state);
   if (next.givesLeft === 0) return next;
   const giver = next.givesLeft > 0 ? 0 : 1;
@@ -404,8 +399,8 @@ export function giveCardsRandomly(state: GameState, rng: Rng = Math.random): Gam
       .map((card, slot) => ({ card, slot }))
       .filter((entry) => entry.card === null);
     if (from.length === 0 || to.length === 0) break;
-    const source = from[Math.floor(rng() * from.length)]!;
-    const target = to[Math.floor(rng() * to.length)]!;
+    const source = from[rng.intBelow(from.length)]!;
+    const target = to[rng.intBelow(to.length)]!;
     next = setCard(next, giver, source.slot, null);
     next = setCard(next, receiver, target.slot, source.card);
   }
@@ -468,19 +463,15 @@ export function stopGame(state: GameState): GameState {
 }
 
 /**
- * 一回合的选曲种子：由**已同步**的 `(turnSeq, currentKey)` 派生，两端算出来必然相同。
+ * 一回合的选曲种子：由**已同步**的 `(gameSeed, turnSeq, currentKey)` 派生，两端算出来必然相同。
  *
  * 上游由主机每个回合随机一个种子再下发；这里用纯函数从快照里派生，省掉一个同步字段，
  * 效果一样（同一回合两端选同一首），而且重放/重连也不会变。
+ *
+ * 派生走 `deriveSeed`（`docs/rng-v1.md` 的混淆 + 移位落位），不是"哈希后取模"这类近似做法（D104）。
  */
 export function turnSeed(gameSeed: number, turnSeq: number, key: string | null): number {
-  const text = `${gameSeed}\u0000${turnSeq}\u0000${key ?? ""}`;
-  let hash = 2166136261;                     // FNV-1a
-  for (let index = 0; index < text.length; index += 1) {
-    hash ^= text.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-  return Math.abs(hash) % 2147483647;
+  return deriveSeed(gameSeed, "turn", turnSeq, key ?? "-");
 }
 
 /** 按牌库收窄轮播：只保留**卡槽里还有牌**的角色，其余标记为临时禁用。

@@ -2,7 +2,12 @@
  *
  * 上游的 `?cheatcode=` 白名单是 SHA-256，原文不在仓库里；这里保留同一份白名单，
  * 用 WebCrypto 做校验（异步）。效果与上游一致：文字抖动、卡片随机底色、答案提示框。
+ *
+ * 随机数走 `src/rng`（D104）：抖动/底色是纯装饰，用 `ephemeralRandom()`（不需要跨端可复现）；
+ * `?g=` 的倾斜与文案轮换必须两端一致，用 `stableHash()`（稳定哈希）。
  */
+import { ephemeralRandom, ephemeralIntBelow, stableHash } from "./rng";
+
 let cheatEnabled = false;
 
 const GLITCH_CHARS = ["#", "%", "&", "*", "@", "!", "?", "$", " "];
@@ -21,7 +26,7 @@ export function isCheatReally(): boolean {
 
 /** 上游语义：即使开启也有一半概率返回 false，让抖动闪烁起来。 */
 export function isCheat(): boolean {
-  if (Math.random() < 0.5) return false;
+  if (ephemeralRandom() < 0.5) return false;
   return cheatEnabled;
 }
 
@@ -37,12 +42,12 @@ export async function isCheatString(input: string): Promise<boolean> {
 export function glitchString(input: string): string {
   let result = "";
   for (const ch of input) {
-    result += Math.random() < 0.5 ? ch.toUpperCase() : ch.toLowerCase();
+    result += ephemeralRandom() < 0.5 ? ch.toUpperCase() : ch.toLowerCase();
   }
   const count = Math.floor(input.length / 4);
   for (let i = 0; i < count; i += 1) {
-    const pos = Math.floor(Math.random() * result.length);
-    const ch = GLITCH_CHARS[Math.floor(Math.random() * GLITCH_CHARS.length)] ?? "#";
+    const pos = ephemeralIntBelow(result.length);
+    const ch = GLITCH_CHARS[ephemeralIntBelow(GLITCH_CHARS.length)] ?? "#";
     result = result.slice(0, pos) + ch + result.slice(pos);
   }
   return result;
@@ -75,21 +80,11 @@ export function hsvToRgb(h: number, s: number, v: number): { r: number; g: numbe
 }
 
 export function randomColor(s: number, v: number): string {
-  const { r, g, b } = hsvToRgb(Math.random(), s, v);
+  const { r, g, b } = hsvToRgb(ephemeralRandom(), s, v);
   return `rgb(${Math.floor(r * 255)}, ${Math.floor(g * 255)}, ${Math.floor(b * 255)})`;
 }
 
-/** 页面级伪随机：`?g=` 的卡片倾斜要在两端一致，所以用稳定哈希而不是 `Math.random`。 */
-export function stableHash(input: string): number {
-  let hash = 2166136261;
-  for (let i = 0; i < input.length; i += 1) {
-    hash ^= input.charCodeAt(i);
-    hash = Math.imul(hash, 16777619);
-  }
-  return Math.abs(hash) % 2147483647;
-}
-
-/** `?g` 存在时给卡片一个按文件名确定的 -5°…+4° 倾斜。 */
+/** `?g` 存在时给卡片一个按文件名确定的 -5°…+4° 倾斜（两端同一张图必须同一个角度）。 */
 export function glitchTilt(imageSource: string): number {
   return (stableHash(imageSource) % 10) - 5;
 }

@@ -520,6 +520,14 @@ async function expandSection(page: Page, id: string): Promise<void> {
   await page.waitForTimeout(400);   // 等展开动画（250ms）
 }
 
+/** 等元素上的 CSS 动画跑完再量尺寸：卡片滑入是 0.3s 的 translateX，量早了会差 10+ px。 */
+async function settledAnimations(page: Page, testId: string): Promise<void> {
+  await page.waitForFunction((id) => {
+    const element = document.querySelector(`[data-testid="${id}"]`);
+    return element !== null && element.getAnimations().every((animation) => animation.playState !== "running");
+  }, testId, { timeout: 10_000 });
+}
+
 /** 分区的头部（summary）位置，用来验证展开时头部不会移动。 */
 async function summaryTop(page: Page, id: string): Promise<number> {
   return page.getByTestId(`section-${id}-summary`).evaluate((element) =>
@@ -669,10 +677,18 @@ test("音乐模式：原曲 / 音MAD 切换（原版 otomads 模式）", async (
   await expect(page.getByTestId("preset-stats")).toContainText("378 / 378");
   expect(localRequests).toHaveLength(0);
 
-  // 切到音MAD：只剩曲包曲目（24 条），并自动去取本地曲库的 manifest（同源）
+  // 切到音MAD：只剩**本地曲库曲包**里的曲目，并自动去取本地曲库的 manifest（同源）。
+  // 曲目条数**跟着数据走**（用户会往 .music/ 里继续加音MAD，写死 24 会随数据漂移 ✗）：
+  // 从同源的 manifest 数一遍，再和设置页的统计对齐。
+  const manifest = await page.request.get("/manifest.json");
+  expect(manifest.ok()).toBe(true);
+  const packedTracks = ((await manifest.json()) as { tracks: unknown[] }).tracks.length;
+  expect(packedTracks).toBeGreaterThan(0);
+
   await page.getByTestId("music-mode-otomads").click();
-  await expect(page.getByTestId("preset-stats")).toContainText("24 / 24");
   await expect(page.getByTestId("music-mode-local-hint")).toBeVisible();
+  await expect.poll(async () => (await page.getByTestId("preset-stats").textContent()) ?? "")
+    .toContain(`${packedTracks} / ${packedTracks}`);
   await expect.poll(() => localRequests.length).toBeGreaterThan(0);
   expect(new URL(localRequests[0]!).origin).toBe(new URL(page.url()).origin);
 
@@ -1207,6 +1223,8 @@ test("列表页：点角色展开曲目（默认折叠），点曲目即播放�
 test("播放控制：tag 下方自上而下「进度条 / 音量 / 播放控件」，行高与行距统一（用户要求）", async ({ page }) => {
   await page.goto("/?locale=zh");
   await expect(page.getByTestId("player-control")).toBeVisible();
+  // 卡片是**滑入**的（translateX 12% / 0.3s）：动画没结束就量，会把 10+ px 的位移当成"没居中" ✗
+  await settledAnimations(page, "current-card");
   const metrics = await page.evaluate(() => {
     const box = (sel: string) => {
       const el = document.querySelector(sel)!;
