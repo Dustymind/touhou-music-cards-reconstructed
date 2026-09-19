@@ -1,6 +1,9 @@
 # 验收报告（M0–M9）
 
-生成时间：本次会话末。所有数字都是**当场实测**，命令与结果一并记录。
+> **历史快照**（M0–M9 验收，写到 D52 时点，2026-09-17）：下面的数字是**当时**实测的，此后 D53–D105 的变更
+> **不再并入本文件**。现状见 [`../docs/README.md`](../docs/README.md)，变更见 [`../docs/DECISIONS.md`](../docs/DECISIONS.md)。
+
+生成时间：2026-09-17（D52 时点）。所有数字都是**当场实测**，命令与结果一并记录。
 
 ---
 
@@ -13,7 +16,7 @@
 | 运行时数据 | `public/data/`：`characters.json` `albums.json` `sources.json` `cardsets.json` `index.json` `sources/*.json` | 8 个文件，含 `contentHash` |
 | 前端 | `src/`：数据层、持久化、主题、本地化、音乐源与选曲、播放层、对战规则/CPU/联机、四个页面 | 141 个测试 |
 | 端到端 | `e2e/`：冒烟（双引擎 ×6）+ 联机（同浏览器双标签、跨浏览器 chromium↔firefox + 本地 PeerJS 信令） | 15 passed / 1 skipped（2.0 分钟） |
-| 文档 | `docs/PLAN.md` `docs/DECISIONS.md` `docs/rules-classification-v1.md` `docs/DECISIONS.md` `README.md` + `reports/*` | —— |
+| 文档 | `docs/DECISIONS.md`、`docs/rules-classification-v1.md`、`README.md` + `reports/*`（当时还有 `docs/PLAN.md`，已删；现另有 `docs/rng-v1.md`） | —— |
 
 ## 2. 验收命令与结果
 

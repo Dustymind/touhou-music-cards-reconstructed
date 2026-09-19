@@ -1,5 +1,8 @@
 # M1 数据体检报告
 
+> **历史快照**（M1，2026-09-16）：下面的数字与待办都是**当时**的；数据后来涨过（音MAD 曲包 86 条等），
+> 待办也已在 M2a/M2b 闭环。现状见 [`../docs/README.md`](../docs/README.md)，本报告保留原样不再更新。
+
 生成方式：`tools/` 的 Python 管线（`uv run python -m tmc.migrate` → `tmc.validate --report` → `tmc.build`）。
 所有数字都由脚本实测，可复现；原始清单见 `.ref/notes/C-data-inventory.md`。
 
@@ -12,7 +15,7 @@
 | `data/characters/*.toml` | **121** 个角色，一角色一文件（`key` / `name` / `order` / `card` / `searchNames` / `music`） |
 | `data/albums.toml` | **39** 个专辑（`key` / `name` / `kind` / `pack` / `order` / `work`） |
 | `data/sources/*.json` | 三份源表，数组形式 `[[专辑, 曲目, URL], …]` |
-| `data/meta/` | 预留：`roles.tsv` 与 `unowned-tracks.tsv`（M2 产出） |
+| `data/meta/` | 预留：`roles.tsv` 与 `unowned-tracks.tsv`（M2 产出）—— `roles.tsv` **后未采用**，实际落成 `stage-cast.tsv` + `extra-overrides.tsv` |
 | `public/data/*.json` | 运行时产物：`characters.json` / `albums.json` / `index.json`（含 `contentHash` 供联机握手） |
 | `reports/` | 本报告 + `migration-report.md` + `validation-report.md` + `extra-pending.tsv` + `stage-check.tsv` |
 | `tools/src/tmc/` | `repo` / `roles` / `fetch_roles` / `migrate` / `validate` / `build` 六个模块 + 24 个测试 |

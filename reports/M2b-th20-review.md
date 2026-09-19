@@ -1,5 +1,8 @@
 # TH20（東方錦上京 ～ Fossilized Wonders）逐条复核
 
+> **历史快照**（M2b，2026-09-16）：结论仍然有效（14/14 命中，用户整表认可）；文中"该清单尚未生成"
+> 指的是当时 —— `data/meta/unowned-tracks.tsv` 随后已生成。现状见 [`../docs/README.md`](../docs/README.md)。
+
 来源：THBWiki 线上 Music Room 页 `https://thbwiki.cc/东方锦上京/Music`（简体标题；已抓取为
 `.ref/thbwiki/东方锦上京.md`，解析结果在 `.ref/thbwiki/rows.json`）。
 对照脚本：见本节末的复现命令。
@@ -62,7 +65,8 @@ E1/E3             → 面中 BOSS 与面 BOSS 同等；Extra 面也算"面"
 | Staff画面 | 生と死のある世界へ | 同上 | 同上 |
 
 其它作品里同类的曲目（各作标题/Ending/Staff/剧情曲）目前的处理是一致的：**不进角色数据**；
-若它们出现在源表里，会在后续的 `data/meta/unowned-tracks.tsv`（"未归属曲目"清单）里登记 —— 该清单**尚未生成**，
+若它们出现在源表里，会在后续的 `data/meta/unowned-tracks.tsv`（"未归属曲目"清单）里登记 —— 该清单
+**当时尚未生成**（现已生成：283 条），
 本轮可以一并做（见 §4 第 3 项）。
 
 ## 4. 需要你确认的 4 件事
