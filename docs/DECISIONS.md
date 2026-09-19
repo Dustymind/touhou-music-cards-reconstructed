@@ -3058,6 +3058,42 @@ mobile (Pixel 7) 9 passed        ← 合计 68 passed / 1 skipped（= pnpm e2e �
 
 ---
 
+## D105 第三轮 commit 整理（压缩 D103 那一对，并落 D104）
+
+**需求**（用户）：按之前的规则**压缩、提交**修改；随后**推送**（必要时 force）。
+
+**做法**（沿用 D85 / D92 的方法，机械且可验证）：
+
+1. 先记下**压缩前工作区**的树（`git add -A && git write-tree` → `034df55f`）当终局校验基准 ✓；
+2. 建备份分支 `backup/pre-squash-3`（= `980eea7`）✓；
+3. `git reset --soft d8fb1da` 把 D103 的 `f59a0fd` + `980eea7` 折回索引 → 一条 `039e431`
+   （树 = `86cba9d3`，与 `980eea7` **逐字节一致** ✓）；
+4. 再把工作区（D104：25 改 + 5 增）提成 `ca8b3d9`（树 = `034df55f`，与压缩前**逐字节一致** ✓）；
+5. 顺带修根 `README.md` 的 `tmcd.` 笔误（实际模块是 `tmc.local_source` ✓）→ `eb1d14f` ✓。
+
+**这一轮的 3 个提交 → 2 个**：
+
+| 新提交 | 内容 | 压缩自 |
+|---|---|---|
+| `039e431` feat: draw from the whole library and never repeat a track | D103（全曲库不重复 + 轮播重设收窄 + 双端一致性用例） | 2 |
+| `ca8b3d9` feat: let the host own the session seed and unify the rng | D104（种子权威 + 唯一 rng + 协议 v3 + 调用点收口 + 文档） | 1 |
+
+**验证**：`pnpm typecheck` ✓、`pnpm test` **251 passed** ✓；e2e 按用户要求**两个引擎都跑**：
+`chromium` **30 passed** / `firefox` **29 passed + 1 skipped** / `mobile` **9 passed** ✓（= `pnpm e2e` 全量）。
+
+**推送**：`git push origin main` → `d8fb1da..eb1d14f` **快进** ✓ —— 被压缩的两个提交从未 push，
+`d8fb1da` 一直是远端 tip，所以**不需要 force** ✓。备份分支确认后删除 ✓
+（压缩前的 SHA 记在这里备查：`980eea7`）。
+
+**踩到的坑（记下来）**：
+
+| 坑 | 现象 | 记法 |
+|---|---|---|
+| e2e 的前置条件没写清 | 音MAD 统计那条用例改成"跟着数据走"后要从同源 `/manifest.json` 数条数，而 Vite 把该路径代理到**本地曲库助手**（`127.0.0.1:8011`）；助手没起时 `manifest.ok()` 是 false → 红灯 ✗（**环境**问题，不是代码） | 先起 `cd tools && UV_CACHE_DIR=.uv/cache uv run python -m tmc.local_source`（86 首 ✓）再跑就全绿 ✓ —— "全绿"必须连同前置条件一起说 |
+| 仓库根在同名**嵌套**目录 | 会话工作目录是 `~/touhou-music-cards-reconstructed`，git 仓库根却是它下面同名的 `touhou-music-cards-reconstructed/`；在外层跑 `git` / `pnpm` 会全落空 ✗ | 命令一律显式 `cd` 到内层（先 `git rev-parse --show-toplevel` 确认 ✓） |
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |
