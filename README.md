@@ -15,7 +15,7 @@ pnpm dev                     # http://127.0.0.1:5173/?locale=zh
 音MAD 要本地曲库助手（另开一个终端；仓库根目录放 `local-source.toml`，`[library] root` 指向音乐目录）：
 
 ```bash
-cd tools && UV_CACHE_DIR=.uv/cache uv run python -m tmcd.local_source
+cd tools && UV_CACHE_DIR=.uv/cache uv run python -m tmc.local_source
 ```
 
 开发服务器已经把 `/manifest.json` 与 `/media` 代理到这个助手，所以页面里**不用填地址**。
