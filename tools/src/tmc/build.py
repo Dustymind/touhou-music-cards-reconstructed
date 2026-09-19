@@ -99,8 +99,15 @@ def build_card_sets() -> dict:
     return {"schema": SCHEMA_VERSION, "default": data.get("default", sets[0]["id"]), "cardSets": sets}
 
 
-def content_hash(characters: dict, albums: dict) -> str:
-    blob = json.dumps([characters, albums], ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+def content_hash(characters: dict, albums: dict, pack_audio: list[list[str]]) -> str:
+    """数据指纹（联机握手比它）。
+
+    **含曲包音频的来源与裁剪区间**：`source` / `start_time` / `stop_time` 虽然不进运行时数据，
+    但它们决定"两端听到的是不是同一段音频"，所以两端不一致必须**在握手期**就被拒
+    （契约见 `docs/packs-audio-v1.md` §6）。
+    """
+    blob = json.dumps([characters, albums, pack_audio], ensure_ascii=False, sort_keys=True,
+                      separators=(",", ":"))
     return hashlib.sha256(blob.encode("utf-8")).hexdigest()
 
 
@@ -119,7 +126,7 @@ def main(argv: list[str] | None = None) -> int:
     sources = build_sources()
     card_sets = build_card_sets()
     packs_json = build_packs(packs)
-    digest = content_hash(characters, albums)
+    digest = content_hash(characters, albums, pack_mod.audio_descriptors(pack_tracks))
     index = {
         "schema": SCHEMA_VERSION,
         "contentHash": digest,

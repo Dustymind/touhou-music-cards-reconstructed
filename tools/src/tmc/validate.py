@@ -408,6 +408,7 @@ def check_packs(packs: list[dict], albums: list[dict], tracks: list[dict],
             p.error(f"曲包 kind 非法：{pack['id']} → {pack['kind']}")
     char_keys = {char["key"] for char in chars}
     seen: set[tuple[str, str]] = set()
+    sources: dict[str, str] = {}
     for track in tracks:
         pack_id = track["pack"]
         if pack_id not in ids:
@@ -420,6 +421,21 @@ def check_packs(packs: list[dict], albums: list[dict], tracks: list[dict],
             p.error(f"曲包曲目的角色不存在：{track['character']}")
         if track["extra"] not in EXTRAS:
             p.error(f"曲包曲目附加信息非法：{track['extra']}")
+        where = f"{track['character']} / {track['title']}"
+        # 音频键（source / start_time / stop_time）：契约见 docs/packs-audio-v1.md
+        try:
+            packs_mod.trim_seconds(track)
+        except ValueError as error:
+            p.error(f"曲包曲目裁剪区间非法（{where}）：{error}")
+        source = track.get("source")
+        if source:
+            if not source.lower().startswith(("http://", "https://")):
+                p.error(f"曲包曲目 source 必须是 http(s) 链接（{where}）：{source!r}")
+            elif source in sources:
+                p.note(f"两条曲目共用同一个 source（{where} 与 {sources[source]}）—— "
+                       f"抓取时原件只下一份、成品用硬链接")
+            else:
+                sources[source] = where
         key = (track["character"], track["album"], track["title"])
         if key in seen:
             p.error(f"曲包曲目重复：{track['character']} / {track['album']} / {track['title']}")
@@ -427,7 +443,9 @@ def check_packs(packs: list[dict], albums: list[dict], tracks: list[dict],
     for album in albums:
         if album["pack"] in album_packs and album["pack"] not in ids and album["pack"] != "originals":
             p.error(f"专辑引用了未注册的曲包：{album['name']} → {album['pack']}")
-    return {"packs": len(packs), "albums": len(albums), "tracks": len(tracks)}
+    return {"packs": len(packs), "albums": len(albums), "tracks": len(tracks),
+            "with_source": sum(1 for track in tracks if track.get("source")),
+            "trimmed": sum(1 for track in tracks if track.get("start_time") or track.get("stop_time"))}
 
 
 def run() -> tuple["Problems", dict]:
@@ -511,7 +529,10 @@ def main(argv: list[str] | None = None) -> int:
              f"{stats['titles']['shared_pairs']} 条",
              f"- **同名但不同专辑**的曲名（不同曲子，禁止按曲名合并）："
              f"{stats['titles']['same_title_across_albums']} 个",
-             f"- 卡面图集：{stats['card_sets']}，注册音源：{stats['source_registry']}", "",
+             f"- 卡面图集：{stats['card_sets']}，注册音源：{stats['source_registry']}",
+             f"- 曲包：{stats['packs']['packs']} 个 / {stats['packs']['tracks']} 条，"
+             f"带 source（可自动抓取）{stats['packs']['with_source']} 条，"
+             f"带裁剪区间 {stats['packs']['trimmed']} 条", "",
              "## 禁止合并同名曲目的依据", ""]
     lines.append("同专辑内若去掉曲目序号会撞名，因此 `曲目` 保留 `NN. `：")
     for album, notes in stats["titles"]["number_prefix_required"].items():

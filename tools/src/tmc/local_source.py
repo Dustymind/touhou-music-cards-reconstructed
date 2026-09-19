@@ -99,11 +99,17 @@ def load_config(path, *, host=None, port=None, root=None, pack_id=None,
 
 
 def scan_library(root: str) -> list[tuple[str, str]]:
-    """曲库 → `[(专辑, 曲目), …]`。专辑 = 第一层目录名，曲目 = 去掉扩展名的文件名。"""
+    """曲库 → `[(专辑, 曲目), …]`。专辑 = 第一层目录名，曲目 = 去掉扩展名的文件名。
+
+    **点开头的东西一律跳过**（目录与文件）：抓取器把下载的原件放在 `.raw/`、状态放在 `.state/`，
+    它们都在曲库根下面；不跳过的话 manifest 会多出 `album = ".raw"` 的垃圾条目，
+    界面上的条目数也就跟着错 ✗（契约见 `docs/packs-audio-v1.md` §2）。
+    """
     found: list[tuple[str, str]] = []
-    for dirpath, _dirnames, filenames in os.walk(root):
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [name for name in dirnames if not name.startswith(".")]
         for name in filenames:
-            if not name.lower().endswith(AUDIO_EXTENSIONS):
+            if name.startswith(".") or not name.lower().endswith(AUDIO_EXTENSIONS):
                 continue
             rel = os.path.relpath(os.path.join(dirpath, name), root).replace(os.sep, "/")
             album, _, filename = rel.rpartition("/")
