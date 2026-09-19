@@ -1,6 +1,7 @@
 /** 对战规则：纯函数 reducer（改状态一律返回新对象，便于快照/联机/测试）。
  *
- * 语义来源：`.ref/notes/A-game-core-spec.md` §4（回合推进、判定、罚牌夹紧、牌库转移、终局）。
+ * 语义来源：上游 `GameJudge` 的规则语义（开工前的研读笔记 `.ref/notes/A-game-core-spec.md` §4 是当时的依据，
+ * 那个目录**不进版本库**）；结论、逐条差异与后来的改动见 `docs/DECISIONS.md` D9。
  * 与上游的**有意差异**：真正进入 `finished` 并算出胜者（上游从不进入 `GameFinished`，只能手动 Stop），
  * 见 `docs/DECISIONS.md` D9。
  */

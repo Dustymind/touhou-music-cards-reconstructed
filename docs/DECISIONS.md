@@ -151,6 +151,11 @@ type SourceDef = {
 
 **有意的行为变更**：真正进入 `GameFinished` 并计算胜者（上游从不进入该状态，只能手动 Stop）。会在 CHANGELOG 与测试中显式标注。
 
+**后被取代的部分**（D104 落地时）：第 1 条没有照原样实现 —— 回合令牌只留 `(turnSeq, currentKey)`，
+**不广播** `rngSeed` / `startedAtEpoch`；选曲种子改成两端从 `gameSeed` 纯派生（`deriveSeed("turn", …)`），
+曲目名单改成 `playedTracks`（`src/game/types.ts`），音乐模式与会话种子合成 `SessionConfig`
+（协议 v3，见 [`protocol-v1.md`](protocol-v1.md)）。本条的骨架（主机权威 + 全量快照 + `seq` + 数据哈希）仍然成立。
+
 ---
 
 ## D10 素材：卡面全部走远程，仓库不放 PNG
@@ -3091,6 +3096,40 @@ mobile (Pixel 7) 9 passed        ← 合计 68 passed / 1 skipped（= pnpm e2e �
 |---|---|---|
 | e2e 的前置条件没写清 | 音MAD 统计那条用例改成"跟着数据走"后要从同源 `/manifest.json` 数条数，而 Vite 把该路径代理到**本地曲库助手**（`127.0.0.1:8011`）；助手没起时 `manifest.ok()` 是 false → 红灯 ✗（**环境**问题，不是代码） | 先起 `cd tools && UV_CACHE_DIR=.uv/cache uv run python -m tmc.local_source`（86 首 ✓）再跑就全绿 ✓ —— "全绿"必须连同前置条件一起说 |
 | 仓库根在同名**嵌套**目录 | 会话工作目录是 `~/touhou-music-cards-reconstructed`，git 仓库根却是它下面同名的 `touhou-music-cards-reconstructed/`；在外层跑 `git` / `pnpm` 会全落空 ✗ | 命令一律显式 `cd` 到内层（先 `git rev-parse --show-toplevel` 确认 ✓） |
+
+---
+
+## D106 文档整理：一份索引 + 现状表，报告标成快照，补上协议契约
+
+**需求**（用户）：整理仓库里的所有文档，同步工作区里更早的记录，更新到现状。
+
+**做法**（先盘点、再改；盘点用两个只读子代理交叉核对，避免"凭印象整理"）：
+
+1. 新增 [`docs/README.md`](README.md)：文档全景 + **现状表**（每一项都带复现命令）；
+2. 各 README 与契约文档的过期点按**实测数字**更新（根 `README.md`、`data/README.md`、
+   `data/packs/README.md`、`tools/README.md`、`rules-classification-v1.md`）；
+3. `reports/` 分清"脚本生成 / 校验器输入 / 历史快照"三类，快照各加阶段与日期横幅，并修掉两处自相矛盾；
+4. `reports/validation-report.md` **重跑生成器**而不是手改（4 行数字回到现状 ✓）；
+5. 补上缺的**协议契约** [`protocol-v1.md`](protocol-v1.md)：工作区笔记 A 里的上游协议表从未被本仓库的
+   文档吸收（此前只有代码），协议 v3 现在有据可查；
+6. 把 D9 里"每回合广播 `rngSeed` / `startedAtEpoch`"标注为**已被 D104 取代**。
+
+**这一轮查出来的问题**（都已在上面修掉）：
+
+| 问题 | 事实 |
+|---|---|
+| `data/meta/roles.tsv` 被 3 份文档当成权威来源 | 该文件**从未存在**（`git log --all -- data/meta/roles.tsv` 为空）；真实是 `stage-cast.tsv` + `extra-overrides.tsv` |
+| `docs/PLAN.md` 被 3 处引用（含 DECISIONS 抬头） | 文件已在 `2c81ffd` 删除；引用改指现存文档 |
+| 根 `README.md` 写"单测 209 条" | 现 **251**（`pnpm test`） |
+| 曲包写"24 首 / 13 角色"、`data/packs/README.md` 写"此目录为空" | 现 **86 首 / 35 角色**（`data/packs/otomads.toml`） |
+| `M2a` 说 TH20"6 道中 + 8 角色" | 与 `M2b` 的 **7 + 7** 矛盾，后者与数据一致 |
+| `upstream-diff.md` 一处写 40、一处写 1600 | 统一为"共 1600，下面只列前 40"，并注明上游解析错位的脏行 |
+| `validation-report.md` 四行数字落后（368/378/39） | 生成物漂移；重跑 `tmc.validate --report` 即回现状 **454/464/40** |
+| `src/game/rules.ts` 拿 gitignored 的 `.ref/notes` 当溯源 | 改成指向本仓库的 D9（`.ref/` 不进版本库，读者跟不到） |
+
+**仍未吸收的工作区笔记结论**（要做得单独排期）：A 笔记的 B8–B18 上游查证项；
+旧计划里 WP7–WP9 的报告产物（`url-audit.md` / `preset-regression.md` / `extra-coverage.md` /
+`thbwiki-audit.md`）；"8 条曲名尾句号曲目的 R2 实链可达性"（`tmc.check_urls` 在，但从没出过报告）。
 
 ---
 

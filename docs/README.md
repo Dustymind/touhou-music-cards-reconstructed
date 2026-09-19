@@ -17,7 +17,7 @@
 | 数据漂移 | 无 | `pnpm data:check` |
 | 数据校验 | 通过 | `pnpm data:validate` |
 | 联机协议版本 | 3 | `src/net/protocol.ts`（`SessionConfigWire` = 音乐模式 + 会话种子） |
-| 决策日志 | D1–D105 | [`DECISIONS.md`](DECISIONS.md) |
+| 决策日志 | D1–D106 | [`DECISIONS.md`](DECISIONS.md) |
 
 > **e2e 的前置条件**：音MAD 相关用例会取同源的 `/manifest.json`（开发服务器代理到本地曲库助手），
 > 必须先起助手再跑，否则那几条会红 —— 这是环境问题，不是代码问题（D105 记过这个坑）。
@@ -27,6 +27,7 @@
 | 文档 | 管什么 | 破坏了会怎样 |
 |---|---|---|
 | [`rng-v1.md`](rng-v1.md) | 随机数实现、`draw` / `derive` 两条口径、种子由谁生成 | 联机两端分叉、存档与回放不可复现 |
+| [`protocol-v1.md`](protocol-v1.md) | 握手、消息表、顺序、会话配置下发、版本演进 | 两端状态分叉，或旧对端被静默接受 |
 | [`rules-classification-v1.md`](rules-classification-v1.md) | `music[].附加信息` 的判定规则（THBWiki 标签 → 四类） | 分类漂移、`tmc.validate` 报错 |
 
 ## 决策日志
