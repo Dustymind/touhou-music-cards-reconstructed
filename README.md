@@ -20,11 +20,28 @@ cd tools && UV_CACHE_DIR=.uv/cache uv run python -m tmc.local_source
 
 开发服务器已经把 `/manifest.json` 与 `/media` 代理到这个助手，所以页面里**不用填地址**。
 
+### 音MAD 音频：自动抓取与裁剪（可选）
+
+音频默认由人工放进曲库；`data/packs/otomads.toml` 里写了 `source` 的曲目可以自动抓，并按
+`start_time` / `stop_time` 裁掉前摇（只留正题）：
+
+```bash
+cd tools && UV_CACHE_DIR=.uv/cache uv run python -m tmc.fetch_audio              # 抓全部缺的
+cd tools && UV_CACHE_DIR=.uv/cache uv run python -m tmc.fetch_audio --track 岁月 --dry-run
+```
+
+依赖：**ffmpeg**（裁剪，系统二进制；`apt install ffmpeg` / `brew install ffmpeg`）+
+**yt-dlp**（抓取，已写进 `tools/pyproject.toml`，由 uv 管理）。
+抓取前会检查 yt-dlp 更新：有新版本就自动升级并继续，**升级失败即中止**；离线环境可加 `--offline-ok` 跳过检查。
+能否抓到**取决于运行时的网络环境**（站点地区限制、是否需要登录、站点是否改版）。
+原件留在 `<曲库>/.raw/`、状态在 `<曲库>/.state/`（都是点目录，助手扫描会跳过），
+成品是 `<曲库>/<专辑>/<作者> - <标题>.mp3` —— 语义与流程见 [`docs/packs-audio-v1.md`](docs/packs-audio-v1.md)。
+
 ## 现状
 
 数据由 `pnpm data:check` 守住：**121 个角色 / 40 张专辑 / 464 条角色曲目条目（454 首去重曲目）/ 6 套卡面**；
 另有**音MAD 曲包 86 首（35 个角色）**，音频走本地曲库助手。
-测试基线：`pnpm test` **251 条**、`uv run pytest` **33 条**、e2e **68 条通过 + 1 条跳过**。
+测试基线：`pnpm test` **251 条**、`uv run pytest` **71 条**、e2e **68 条通过 + 1 条跳过**。
 完整的现状表（含每一项的复现命令）与文档索引见 [`docs/README.md`](docs/README.md)。
 
 ## 怎么玩

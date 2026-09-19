@@ -3133,6 +3133,50 @@ mobile (Pixel 7) 9 passed        ← 合计 68 passed / 1 skipped（= pnpm e2e �
 
 ---
 
+## D107 曲包音频：`source` / `start_time` / `stop_time` + 抓取裁剪命令
+
+**需求**（用户）：给 `data/packs/otomads.toml` 的曲目加三个键 —— `source`（构建期自动抓取，yt-dlp 与 uv
+一起管理）、`start_time` / `stop_time`（`HH:MM:SS.mmm`，抓取后用本机 ffmpeg 裁剪）；依赖写进主 README。
+契约与流程落在 [`packs-audio-v1.md`](packs-audio-v1.md)（先写设计稿、定完 11 条答复再实现）。
+
+**裁定**（用户 11 条，逐条见契约 §7）：独立命令（不塞进 `tmc.build`）/ 保留原件 `/` `-c copy` /
+音频口径进 `contentHash` / yt-dlp **无新版或升级成功才继续、升级失败即中止** / 任意 yt-dlp 支持的站点
+（能否抓到取决于构建时网络环境）/ 不支持一源多段 / 随机起播与裁剪**无关**（两个时间键只在抓取期存在，
+运行时不读）/ 抓取顺带量响度 / 重复 `source` 用硬链接 / 不做 `--only`。
+
+**实现**：
+
+| 位置 | 做了什么 |
+|---|---|
+| `tmc/packs.py` | 解析三个键；**未知键直接报错**（此前只读认识的键，拼错的名字会被静默丢掉 ✗）；新增 `parse_time` / `trim_seconds` / `audio_filename` / `source_key` / `audio_descriptors` |
+| `tmc/validate.py` | 时间格式、区间先后、`source` scheme、重复 `source` 告警；报告加"带 source / 带裁剪"计数 |
+| `tmc/build.py` | `contentHash` 纳入 `[专辑, 曲名, start, stop, source]` —— 两端音频口径不同就在握手期被拒 |
+| `tmc/local_source.py` | 扫描跳过点目录/点文件（`.raw/`、`.state/`；不跳过的话 manifest 会多出垃圾专辑、条目数变多 ✗） |
+| `tmc/loudness.py` | 从 `measure_loudness.py` 抽出的可调用核心；顺手修掉"`reset` 的键没被删"与"已删文件的旧键不清"两个 bug |
+| `tmc/fetch_audio.py` | 新增：依赖检查 → yt-dlp 更新 → 逐条下载 → 裁剪 → 硬链接去重 → 顺带量响度 → 汇总与退出码 |
+| `pyproject.toml` + `uv.lock` | 加 `yt-dlp` 依赖（升级会改 lock，属预期） |
+| `data/packs/otomads.toml` | 84/86 回填 `source`：**`ROWS` 61 条 + 两个 `ingest_rows_*.json` 30 条 + mp3 的 `purl` 标签 24 条**的并集（NFKC 归一化后按"标题 + 作者"匹配） |
+
+**实测（真抓一首 `thwy - 岁月`，`BV18t411F71d`）**：
+
+```
+--dry-run        → dry 1（计划与来源）
+抓取             → fetched 1；成品与原件同一 inode（硬链接 874494，链接数 2）；时长 63.338667 不变
+临时 5s–15s 再抓  → trimmed 1；时长 10.008s（10s + 一帧）；mp3 235kbps ≈ 源 232kbps ⇒ 未重编码；
+                   原子改名后成品换新 inode、原件不动 ✓；响度该曲重量（−16.6 → −16.3），表仍 86 条
+再跑一次         → skip 1  |  去掉区间再跑 → fetched 1（回到整首并重新硬链接）
+```
+
+`public/data/index.json` 的 `contentHash` 由 `d5fd15d4…` 变 `93bdb1a9…`（预期：音频口径已进握手）。
+
+**验证**：`uv run pytest` **71 passed**（+38 条）、`pnpm typecheck` ✓、`pnpm test` **251 passed** ✓、
+`pnpm data:check` ✅ 无生成物漂移、`pnpm data:validate` ✅ 校验通过。
+
+**仍未做**：2 条曲目没有 `source`（其中一条本来就是用户本地的 wav）；非 mp3 容器与运行时抓流
+（浏览器直取 B 站）明确不做，理由见契约 §11。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |

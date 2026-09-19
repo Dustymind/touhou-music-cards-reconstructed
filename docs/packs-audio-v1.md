@@ -1,6 +1,6 @@
 # 曲包音频契约 v1（抓取与裁剪）
 
-**状态：设计稿，未实现。** 字段与流程按用户 **11 条答复**定（见 §7），已无待确认项；点头即可开工。
+**状态：已实现**（D107）。字段与流程按用户 11 条答复定（见 §7）；实现结果与偏差见 §12。
 
 对象：`data/packs/*.toml` 的 `[[track]]` 新增三个键 —— `source`（抓取）、`start_time` / `stop_time`（裁剪）。
 目的：音MAD 这类曲包曲目不必再手工下载、手工剪，改成"数据里写清来源与裁剪区间，一条命令产出可播放的音频"。
@@ -161,11 +161,20 @@ ffmpeg -y -i <原件> -t <stop> -c copy <成品>
   （FAT/exFAT、部分网络盘）回落成复制，并**打印一行提示**（不静默）。
 - 量响度按文件名 stem 缓存，硬链接的重复曲目内容相同 ⇒ 各算一次即可（结果必然一致）；重裁 A 只失效 A 的键，B 的键仍然有效。
 
-## 9. 迁移：86 条现有音MAD 的 `source`
+## 9. 迁移：86 条现有音MAD 的 `source`（已完成 84/86）
 
-BV 号目前只存在于 `tools/ingest_otomads.py` 的 `ROWS`（`(BV, 标题, 作者, 角色)`）。
-按 `(title, author, character)` 机械回填进 `data/packs/otomads.toml` 的 `source`，回填后**校验 86/86 命中**，
-随后那个脚本退休（一个真相源）。这一步同时补上了"以后要做运行时抓流也需要 BV"的前置数据。
+BV 号原先散在三处：`tools/ingest_otomads.py` 的 `ROWS`（61 条）、`tools/ingest_rows_*.json`（30 条）、
+以及**音频文件自己的 ID3 标签**（`purl` / `comment`，24 条）—— 三处并集、按
+`(标题, 作者)` 做 NFKC 归一化匹配后回填：
+
+```
+候选来源 84 组 | TOML 曲目 86 条 | 回填 84 | 仍缺 2
+   缺：(无作者) 最终鬼畜蓝蓝路 (2023 Remix)     ← 用户本地 wav，本来就没有来源
+   缺：y的自然对数 对了 向北邮出发吧             ← 需要手工补 source
+```
+
+两条缺失的曲目**不阻塞**：没有 `source` 时命令按"人工入库"处理（文件在就跳过，不在就报 missing）。
+以后补 `source` 只需在 TOML 里加一行。回填后 `ingest_otomads.py` 仍是历史脚本，但 **TOML 才是真相源**。
 
 ## 10. 验证计划
 
@@ -189,3 +198,32 @@ BV 号目前只存在于 `tools/ingest_otomads.py` 的 `ROWS`（`(BV, 标题, �
   本次只做"构建期抓取 + 本地成品"，运行时的接口形态不变（仍是 manifest + `/media`）。
 - **非 mp3 容器**：`media_path()` 写死 `.mp3`；要支持别的容器得先改成从 manifest 读扩展名，
   并让响度脚本的 glob 跟着变 —— 单独排期。
+
+## 12. 实现结果（D107）
+
+| 位置 | 做了什么 |
+|---|---|
+| `tools/src/tmc/packs.py` | 解析三个新键 + **未知键直接报错**；纯函数 `parse_time` / `trim_seconds` / `audio_filename` / `source_key` / `audio_descriptors` |
+| `tools/src/tmc/validate.py` | 曲包检查新增时间格式、区间先后、`source` scheme、重复 `source` 告警；报告加"带 source / 带裁剪"计数 |
+| `tools/src/tmc/build.py` | `contentHash` 纳入曲包音频描述符 `[专辑, 曲名, start, stop, source]` |
+| `tools/src/tmc/local_source.py` | `scan_library` 跳过点目录/点文件（`.raw/`、`.state/` 不进 manifest） |
+| `tools/src/tmc/loudness.py` | 从 `measure_loudness.py` 抽出的可调用核心；顺手修掉"`reset` 的键没被删"与"已删文件的旧键不清" |
+| `tools/src/tmc/fetch_audio.py` | 新增：依赖检查、yt-dlp 更新策略、幂等状态、下载、裁剪、硬链接去重、顺带量响度、汇总与退出码 |
+| `tools/pyproject.toml` + `uv.lock` | 加 `yt-dlp` 依赖（uv 管理；升级会改 lock，属预期） |
+| `data/packs/otomads.toml` | 84 条回填 `source`（见 §9） |
+| `public/data/index.json` | `contentHash` 从 `d5fd15d4…` 变成 `93bdb1a9…` —— 这正是"音频口径进握手"的效果 |
+| 测试 | `tools/tests/test_pack_audio.py`；Python 测试 33 → **71** |
+
+**实测**（真抓一首 `thwy - 岁月`，`BV18t411F71d`）：
+
+```
+--dry-run         → dry 1（打印计划与来源）
+抓取              → fetched 1；成品与原件同一 inode（硬链接 874494，链接数 2）；时长 63.338667 不变
+临时 5s–15s 再抓   → trimmed 1；时长 10.008s（10s + 一帧）；mp3 / 235kbps ≈ 源 232kbps ⇒ 未重编码；
+                    原子改名后成品换新 inode、原件不动；响度该曲重量（−16.6 → −16.3），表仍是 86 条
+再跑一次          → skip 1（"已是目标状态"）
+去掉区间再跑       → fetched 1（回到整首并重新硬链接到原件）
+```
+
+**与设计稿的偏差**：`--only <pack>` 按 §11 不做；除 `--track` 外没有别的筛选；
+`source` 覆盖 84/86（两条见 §9，其中一条本来就是本地文件）。
