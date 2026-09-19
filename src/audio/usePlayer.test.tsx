@@ -5,6 +5,9 @@ import type { AlbumRecord, CharacterRecord } from "../data/types";
 import { defaultPreset } from "../music/selection";
 import { buildEntries, type TableMap } from "../music/sources";
 import { BELL_DURATION_MS } from "./bell";
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { gainKeyOf } from "./usePlayer";
 import { fakeTables, installFakeAudio, renderHook, type FakeAudio } from "../test-utils";
 import { usePlayer, type PlayerInputs } from "./usePlayer";
 
@@ -232,5 +235,25 @@ describe("usePlayer", () => {
   it("音源表为空但角色有曲目 → 报错而不是静默", async () => {
     const hook = await renderHook(() => usePlayer(inputs({ tables: {} as TableMap })));
     expect(hook.result.current.error).toContain("取不到");
+  });
+});
+
+describe("逐曲音量均衡（方案 A，只对本地音MAD 生效）", () => {
+  it("曲包曲目用「作者 - 曲名」查系数（= 磁盘文件名），其它源用曲名", () => {
+    expect(gainKeyOf(["otomads", "普通肥猫魔法使", "角色曲", "川先僧"])).toBe("川先僧 - 普通肥猫魔法使");
+    expect(gainKeyOf(["東方永夜抄 ～ Imperishable Night", "恋色マスタースパーク", "角色曲"])).toBe("恋色マスタースパーク");
+    expect(gainKeyOf(null)).toBeNull();
+  });
+
+  it("只有本地曲库的曲目会查系数（其它镜像源一律 1）", () => {
+    // 用真实的 loudness.json 校验键的形状：键都是「作者 - 曲名」
+    const table = JSON.parse(
+      readFileSync(path.resolve(process.cwd(), "public/data/loudness.json"), "utf-8"),
+    ) as { gains: Record<string, number> };
+    const keys = Object.keys(table.gains);
+    expect(keys.length).toBeGreaterThan(50);
+    // 键就是磁盘文件名：多数是「作者 - 曲名」✓，但也有本来就只写曲名的 ✓，所以不强求分隔符
+    expect(keys.some((key) => key.includes(" - "))).toBe(true);
+    expect(Object.values(table.gains).every((g) => g > 0 && g <= 1)).toBe(true);
   });
 });

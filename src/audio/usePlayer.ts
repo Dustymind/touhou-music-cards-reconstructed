@@ -78,6 +78,15 @@ export interface PlayerApi {
 /** 倒计时"滴答"时长（毫秒）：短促，三声之间不糊在一起。 */
 const BELL_TICK_MS = 320;
 
+/** 均衡系数：曲包曲目的清单标题就是磁盘文件名（`作者 - 曲名` ✓），其它源没有这张表 → 1 ✓ */
+export function gainKeyOf(entry: MusicEntry | null): string | null {
+  if (!entry) return null;
+  return entry[3] ? `${entry[3]} - ${entry[1]}` : entry[1];
+}
+
+/** 本地曲库的源 id（`data/sources/sources.toml` 里那条 `kind = "local"`） */
+const LOCAL_SOURCE_ID = "local";
+
 export function usePlayer(inputs: PlayerInputs): PlayerApi {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const bellRef = useRef<BellHandle | null>(null);
@@ -105,6 +114,27 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
   );
 
   /** 当前角色在本预设下选中的曲目：多首时按种子取一首（联机同种子 → 同曲目）。 */
+  /** 逐曲音量均衡：`public/data/loudness.json` 里是"文件名 → 衰减系数"（见 tools/measure_loudness.py）。
+   *  只衰减不放大 ✓ —— 让每首听感一样响，抢答才公平 ✓。表拿到之前系数按 1 处理 ✓。 */
+  const [gains, setGains] = useState<{ targetDb?: number; gains: Record<string, number> }>({ gains: {} });
+  useEffect(() => {
+    let cancelled = false;
+    fetch("./data/loudness.json")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((payload) => {
+        if (!cancelled && payload && typeof payload.gains === "object") setGains(payload);
+      })
+      .catch(() => undefined);            // 没有这张表（例如没跑过测量脚本）就按原音量播 ✓
+    return () => { cancelled = true; };
+  }, []);
+
+  /** 只对**本地曲库**（音MAD 那批）生效 ✓ —— 别的镜像源没有这张表，也不该被改音量 ✓ */
+  const gainOf = useCallback((target: MusicEntry | null): number => {
+    if (resolved?.sourceId !== LOCAL_SOURCE_ID) return 1;
+    const key = gainKeyOf(target);
+    return (key && gains.gains[key]) || 1;
+  }, [gains, resolved?.sourceId]);
+
   const entry = useMemo<MusicEntry | null>(() => {
     if (!character) return null;
     const pinned = inputs.pinned[character.key] ?? null;
@@ -153,8 +183,8 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
   }, []);
 
   useEffect(() => {
-    if (audioRef.current) audioRef.current.volume = volume;
-  }, [volume]);
+    if (audioRef.current) audioRef.current.volume = Math.min(1, volume * gainOf(entry));
+  }, [volume, entry, gainOf]);
 
   // ---- 换歌：解析 URL ----
   // 调用方（React 组件）常常每次渲染都传新的数组/对象，所以这里只在**值真的变了**时更新 state，
