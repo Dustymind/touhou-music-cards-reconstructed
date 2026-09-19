@@ -28,6 +28,8 @@
 |---|---|---|
 | [`rng-v1.md`](rng-v1.md) | 随机数实现、`draw` / `derive` 两条口径、种子由谁生成 | 联机两端分叉、存档与回放不可复现 |
 | [`protocol-v1.md`](protocol-v1.md) | 握手、消息表、顺序、会话配置下发、版本演进 | 两端状态分叉，或旧对端被静默接受 |
+
+**设计稿（未实现，待确认）**：[`packs-audio-v1.md`](packs-audio-v1.md) —— 曲包音频的抓取（yt-dlp）与裁剪（ffmpeg）。
 | [`rules-classification-v1.md`](rules-classification-v1.md) | `music[].附加信息` 的判定规则（THBWiki 标签 → 四类） | 分类漂移、`tmc.validate` 报错 |
 
 ## 决策日志
