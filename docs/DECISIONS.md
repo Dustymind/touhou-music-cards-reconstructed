@@ -1,6 +1,6 @@
 # 决策记录（DECISIONS）
 
-本文件是**定稿的决策依据**。每条记录：结论 → 理由 → 影响面。方案正文见 [`PLAN.md`](PLAN.md)，数据分类规则见 [`rules-classification-v1.md`](rules-classification-v1.md)。
+本文件是**定稿的决策依据**。每条记录：结论 → 理由 → 影响面。文档全景见 [`README.md`](README.md)，随机数契约见 [`rng-v1.md`](rng-v1.md)，数据分类规则见 [`rules-classification-v1.md`](rules-classification-v1.md)。（开工时的 `PLAN.md` 已删，方案正文并入本文件。）
 
 裁定日期：2026-09-16（用户两轮答复）。
 

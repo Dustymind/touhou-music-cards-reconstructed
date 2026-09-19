@@ -1,8 +1,8 @@
 数据管线与本地音乐源助手（Python + uv）。
 
 ```bash
-uv sync          # 建立 tools/.venv
-uv run pytest    # 跑数据/规则测试
+UV_CACHE_DIR=.uv/cache uv sync          # 建立 tools/.venv
+UV_CACHE_DIR=.uv/cache uv run pytest    # 跑数据/规则测试（当前 33 条）
 ```
 
 当前模块：
@@ -14,6 +14,7 @@ uv run pytest    # 跑数据/规则测试
 | `tmc.stages` | 抓取并解析作品页 BOSS 表 → 面次 × 登场角色参照表 |
 | `tmc.roles` | 标签索引、`附加信息` 判定（R-OVR/R0–R6）、人工裁定表 |
 | `tmc.migrate` | 上游 v3 JSON → TOML / 专辑注册表 / 数组化源表 + 报告 |
+| `tmc.packs` | 曲包（`data/packs/*.toml`）的加载与校验：镜像表以外的曲目（音MAD） |
 | `tmc.validate` | 不变量校验、面次核对、覆盖表一致性 |
 | `tmc.build` | 生成 `public/data/*.json`（`--check` 做漂移守卫） |
 | `tmc.local_source` | 本地曲库助手：`/manifest.json` + `/media/...`（Range/CORS、端口回退） |

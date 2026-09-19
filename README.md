@@ -20,6 +20,13 @@ cd tools && UV_CACHE_DIR=.uv/cache uv run python -m tmc.local_source
 
 开发服务器已经把 `/manifest.json` 与 `/media` 代理到这个助手，所以页面里**不用填地址**。
 
+## 现状
+
+数据由 `pnpm data:check` 守住：**121 个角色 / 40 张专辑 / 464 条角色曲目条目（454 首去重曲目）/ 6 套卡面**；
+另有**音MAD 曲包 86 首（35 个角色）**，音频走本地曲库助手。
+测试基线：`pnpm test` **251 条**、`uv run pytest` **33 条**、e2e **68 条通过 + 1 条跳过**。
+完整的现状表（含每一项的复现命令）与文档索引见 [`docs/README.md`](docs/README.md)。
+
 ## 怎么玩
 
 - **播放**：轮播所有角色，一首一首放；点卡牌跳过，底部可「重新抽选 / 重置顺序」。
@@ -42,10 +49,15 @@ cd tools && UV_CACHE_DIR=.uv/cache uv run python -m tmc.local_source
 
 | 命令 | 作用 |
 |---|---|
-| `pnpm typecheck` / `pnpm test` | 类型检查 / 单测（209 条） |
+| `pnpm typecheck` / `pnpm test` | 类型检查 / 单测（251 条） |
 | `pnpm e2e` | 浏览器端到端：chromium + firefox + 移动端（Pixel 7） |
+| `pnpm e2e:chromium` / `pnpm e2e:firefox` / `pnpm e2e:mobile` | 只跑其中一端（调试用） |
 | `pnpm e2e:perf` | 单独跑「点击长任务」性能守卫（对机器负载敏感，不进全量） |
 | `pnpm data:check` | 数据生成物是否漂移（`tools/` 是 Python，用 `uv` 管环境） |
+| `cd tools && uv run pytest` | 数据管线的 Python 测试（33 条） |
+
+**e2e 有个前置条件**：音MAD 相关用例会取同源的 `/manifest.json`（开发服务器代理到本地曲库助手），
+所以要先起助手再跑，否则那几条会红 —— 这是环境问题，不是代码问题。
 
 技术栈：Vite 7 + React 19 + TypeScript + MUI 7（主题按 **Material Design 2** 写：4dp 圆角、8dp 栅格、
 按钮 36dp、chip 32dp、深色基线），状态用 zustand，联机用 PeerJS。
@@ -53,3 +65,4 @@ cd tools && UV_CACHE_DIR=.uv/cache uv run python -m tmc.local_source
 设计取舍、踩过的坑与每个决定的实测数字记在 [`docs/DECISIONS.md`](docs/DECISIONS.md)；
 `附加信息` 分类规则在 [`docs/rules-classification-v1.md`](docs/rules-classification-v1.md)；
 随机数与"种子由谁生成"的契约在 [`docs/rng-v1.md`](docs/rng-v1.md)（改动即破坏联机一致性）。
+文档全景（哪份是契约、哪份是历史快照、现状数字从哪来）见 [`docs/README.md`](docs/README.md)。
