@@ -8,7 +8,7 @@
 ## 跑起来
 
 ```bash
-fnm use && pnpm install      # Node 24 + pnpm
+fnm use 24 && pnpm install   # Node 24 + pnpm（裸 `fnm use` 在本仓库会报找不到版本文件）
 pnpm dev                     # http://127.0.0.1:5173/?locale=zh
 ```
 
@@ -71,7 +71,7 @@ cd tools && UV_CACHE_DIR=.uv/cache uv run python -m tmc.fetch_audio --track 岁�
 | `pnpm e2e:chromium` / `pnpm e2e:firefox` / `pnpm e2e:mobile` | 只跑其中一端（调试用） |
 | `pnpm e2e:perf` | 单独跑「点击长任务」性能守卫（对机器负载敏感，不进全量） |
 | `pnpm data:check` | 数据生成物是否漂移（`tools/` 是 Python，用 `uv` 管环境） |
-| `cd tools && uv run pytest` | 数据管线的 Python 测试（33 条） |
+| `cd tools && UV_CACHE_DIR=.uv/cache uv run pytest` | 数据管线的 Python 测试（71 条） |
 
 **e2e 有个前置条件**：音MAD 相关用例会取同源的 `/manifest.json`（开发服务器代理到本地曲库助手），
 所以要先起助手再跑，否则那几条会红 —— 这是环境问题，不是代码问题。
