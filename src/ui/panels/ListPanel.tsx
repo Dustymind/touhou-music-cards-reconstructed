@@ -16,7 +16,8 @@ import { memo, useCallback, useDeferredValue, useMemo, useState } from "react";
 import type { CharacterRecord, DataBundle, MusicEntry } from "../../data/types";
 import { displayTitle } from "../../data/types";
 import { Localization, t } from "../../i18n/localization";
-import { useQueue } from "../../store/queue";
+import { filterByMode, hasTracksInMode, type MusicMode } from "../../music/mode";
+import { currentQueue, useQueue } from "../../store/queue";
 import { MD2, NoFontFamily } from "../../theme/theme";
 
 /** MD2 展开动画：250ms 进 / 200ms 出，标准缓动。 */
@@ -24,6 +25,8 @@ const EXPAND_MS = { enter: 250, exit: 200 } as const;
 
 interface ListPanelProps {
   bundle: DataBundle;
+  /** 音乐模式：列表只列**当前模式下有曲可播**的角色，行内曲目也只列该模式的（B） */
+  musicMode: MusicMode;
   /** 点某一首曲目 → 立刻播这一首（播放能力由外壳提供） */
   onPlayTrack?: (key: string, entry: MusicEntry) => void;
   /** 正在播放的角色 / 曲目：用于把"正在播的这首"高亮出来 */
@@ -31,7 +34,7 @@ interface ListPanelProps {
   playingEntry?: MusicEntry | null;
 }
 
-function ListPanelInner({ bundle, onPlayTrack, playingKey, playingEntry }: ListPanelProps) {
+function ListPanelInner({ bundle, musicMode, onPlayTrack, playingKey, playingEntry }: ListPanelProps) {
   const [query, setQuery] = useState("");
   /** 展开的角色（默认全部折叠） */
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set());
@@ -42,10 +45,9 @@ function ListPanelInner({ bundle, onPlayTrack, playingKey, playingEntry }: ListP
   const deferredQuery = useDeferredValue(query);
   // 稳定回调：不然每行拿到的都是新函数，memo 失效 → 切一行要重渲染 121 行（实测 188ms）
   const handleSelect = useCallback((key: string) => {
-    if (useQueue.getState().temporaryDisabled[key]) {
-      useQueue.getState().toggleTemporary(key);
-    }
-    useQueue.getState().setCurrent(key);
+    const queue = currentQueue().getState();
+    if (queue.temporaryDisabled[key]) queue.toggleTemporary(key);
+    queue.setCurrent(key);
   }, []);
   const handleToggle = useCallback((key: string) => {
     setExpanded((previous) => {
@@ -56,17 +58,26 @@ function ListPanelInner({ bundle, onPlayTrack, playingKey, playingEntry }: ListP
     });
   }, []);
 
+  /** 当前模式下有曲可播的角色数（计数行的分母：音MAD 下是 35，不是 121） */
+  const playableCount = useMemo(
+    () => bundle.characters.filter((character) => hasTracksInMode(bundle.albums, character, musicMode)).length,
+    [bundle.characters, bundle.albums, musicMode],
+  );
+
   const rows = useMemo(() => {
     const needle = deferredQuery.trim().toLowerCase();
     return bundle.characters
       .slice()
       .sort((a, b) => a.order - b.order)
+      .filter((character) => hasTracksInMode(bundle.albums, character, musicMode))
+      // 行内只留当前模式的曲目：音MAD 模式下列表不该出现原曲曲名（B）
+      .map((character) => ({ ...character, music: filterByMode(bundle.albums, character.music, musicMode) }))
       .filter((character) => {
         if (!needle) return true;
         return [character.name, character.key, ...character.searchNames]
           .some((name) => name.toLowerCase().includes(needle));
       });
-  }, [bundle.characters, deferredQuery]);
+  }, [bundle.characters, bundle.albums, musicMode, deferredQuery]);
 
   /** 正在播放的那一首（角色 + 专辑 + 曲名），用于高亮；只算一次传给各行 */
   const playing = useMemo(
@@ -100,7 +111,7 @@ function ListPanelInner({ bundle, onPlayTrack, playingKey, playingEntry }: ListP
           }}
         />
         <Typography variant="caption" color="text.secondary">
-          {rows.length} / {bundle.characters.length}
+          {rows.length} / {playableCount}
         </Typography>
       </Stack>
 

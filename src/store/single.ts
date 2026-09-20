@@ -1,9 +1,18 @@
-/** 仅单曲模式：总开关 + 每角色手选曲目 + 按角色禁用。 */
+/** 仅单曲模式：总开关 + 每角色手选曲目 + 按角色禁用。
+ *
+ * **按音乐模式分键**（B）：`tmc.v1.single-track.originals` / `.otomads` 各一把。
+ * 手选的是"某个角色唱哪首"，而两个模式的曲目集合不同 —— 共用一份会让音MAD 侧
+ * 手选的曲目在原曲模式里"存在但不合法"，只能靠回退逻辑兜着。
+ * 老存档（单键 `tmc.v1.single-track`）归**原曲**（`legacyName`）。
+ */
 import { create } from "zustand";
+import type { StoreApi, UseBoundStore } from "zustand";
 
 import type { Extra, MusicEntry } from "../data/types";
 import { EXTRAS } from "../data/types";
-import { defineStore, isRecord, pickBoolean } from "../persist";
+import { defineStore, isRecord, pickBoolean, type StoreSpec } from "../persist";
+import type { MusicMode } from "../music/mode";
+import { useMusicMode } from "./modeScope";
 
 interface SingleTrackState {
   enabled: boolean;
@@ -13,38 +22,41 @@ interface SingleTrackState {
 
 const EXTRAS_SET = new Set<string>(EXTRAS);
 
+const FRESH: SingleTrackState = { enabled: false, pins: {}, disabledCharacters: {} };
+
 function isEntry(raw: unknown): raw is MusicEntry {
   return Array.isArray(raw) && raw.length === 3
     && typeof raw[0] === "string" && typeof raw[1] === "string"
     && EXTRAS_SET.has(String(raw[2]));
 }
 
-export const singleTrackSpec = {
-  name: "single-track",
-  version: 1,
-  fallback: { enabled: false, pins: {}, disabledCharacters: {} } as SingleTrackState,
-  validate(raw: unknown): SingleTrackState | null {
-    if (!isRecord(raw)) return null;
-    const enabled = pickBoolean(raw.enabled);
-    if (enabled === null) return null;
-    const pins: Record<string, MusicEntry> = {};
-    if (isRecord(raw.pins)) {
-      for (const [key, value] of Object.entries(raw.pins)) {
-        if (isEntry(value)) pins[key] = [value[0], value[1], value[2] as Extra];
-      }
+function validateSingleTrack(raw: unknown): SingleTrackState | null {
+  if (!isRecord(raw)) return null;
+  const enabled = pickBoolean(raw.enabled);
+  if (enabled === null) return null;
+  const pins: Record<string, MusicEntry> = {};
+  if (isRecord(raw.pins)) {
+    for (const [key, value] of Object.entries(raw.pins)) {
+      if (isEntry(value)) pins[key] = [value[0], value[1], value[2] as Extra];
     }
-    const disabledCharacters: Record<string, boolean> = {};
-    if (isRecord(raw.disabledCharacters)) {
-      for (const [key, value] of Object.entries(raw.disabledCharacters)) {
-        const flag = pickBoolean(value);
-        if (flag) disabledCharacters[key] = true;
-      }
+  }
+  const disabledCharacters: Record<string, boolean> = {};
+  if (isRecord(raw.disabledCharacters)) {
+    for (const [key, value] of Object.entries(raw.disabledCharacters)) {
+      const flag = pickBoolean(value);
+      if (flag) disabledCharacters[key] = true;
     }
-    return { enabled, pins, disabledCharacters };
-  },
-} satisfies import("../persist").StoreSpec<SingleTrackState>;
+  }
+  return { enabled, pins, disabledCharacters };
+}
 
-const singleStore = defineStore<SingleTrackState>(singleTrackSpec);
+/** 某个音乐模式的存档规格（测试直接用它验校验与迁移）。 */
+export function singleTrackSpec(mode: MusicMode): StoreSpec<SingleTrackState> {
+  const base: StoreSpec<SingleTrackState> = {
+    name: `single-track.${mode}`, version: 1, fallback: FRESH, validate: validateSingleTrack,
+  };
+  return mode === "originals" ? { ...base, legacyName: "single-track" } : base;
+}
 
 interface SingleTrackSlice extends SingleTrackState {
   setEnabled: (enabled: boolean) => void;
@@ -54,55 +66,70 @@ interface SingleTrackSlice extends SingleTrackState {
   prune: (knownKeys: readonly string[]) => void;
 }
 
-const initial = singleStore.load();
+/** 造"某个音乐模式的单曲模式状态"这把 store。 */
+function makeSlice(mode: MusicMode) {
+  const handle = defineStore(singleTrackSpec(mode));
+  const initial = handle.load();
 
-function persist(state: SingleTrackState): void {
-  singleStore.save({
-    enabled: state.enabled,
-    pins: state.pins,
-    disabledCharacters: state.disabledCharacters,
+  const pick = (state: SingleTrackState): SingleTrackState => ({
+    enabled: state.enabled, pins: state.pins, disabledCharacters: state.disabledCharacters,
   });
+  const persist = (state: SingleTrackState): void => { handle.save(pick(state)); };
+
+  return create<SingleTrackSlice>((set, get) => ({
+    ...initial,
+
+    setEnabled(enabled) {
+      const next = { ...pick(get()), enabled };
+      set({ enabled });
+      persist(next);
+    },
+
+    setPin(key, entry) {
+      const pins = { ...get().pins };
+      if (entry) pins[key] = entry;
+      else delete pins[key];
+      // 手选之后不再禁用该角色（用户意图明确）
+      const disabledCharacters = { ...get().disabledCharacters };
+      if (entry) delete disabledCharacters[key];
+      set({ pins, disabledCharacters });
+      persist({ ...pick(get()), pins, disabledCharacters });
+    },
+
+    toggleCharacter(key) {
+      const disabledCharacters = { ...get().disabledCharacters };
+      if (disabledCharacters[key]) delete disabledCharacters[key];
+      else disabledCharacters[key] = true;
+      set({ disabledCharacters });
+      persist({ ...pick(get()), disabledCharacters });
+    },
+
+    prune(knownKeys) {
+      const known = new Set(knownKeys);
+      const pins: Record<string, MusicEntry> = {};
+      for (const [key, value] of Object.entries(get().pins)) if (known.has(key)) pins[key] = value;
+      const disabledCharacters: Record<string, boolean> = {};
+      for (const key of Object.keys(get().disabledCharacters)) if (known.has(key)) disabledCharacters[key] = true;
+      set({ pins, disabledCharacters });
+      persist({ ...pick(get()), pins, disabledCharacters });
+    },
+  }));
 }
 
-export const useSingleTrack = create<SingleTrackSlice>((set, get) => ({
-  ...initial,
+const slices: Record<MusicMode, UseBoundStore<StoreApi<SingleTrackSlice>>> = {
+  originals: makeSlice("originals"),
+  otomads: makeSlice("otomads"),
+};
 
-  setEnabled(enabled) {
-    const next = { ...pick(get()), enabled };
-    set({ enabled });
-    persist(next);
-  },
+/** 某个音乐模式那把（测试与非组件代码用）。 */
+export function singleStoreFor(mode: MusicMode): UseBoundStore<StoreApi<SingleTrackSlice>> {
+  return slices[mode];
+}
 
-  setPin(key, entry) {
-    const pins = { ...get().pins };
-    if (entry) pins[key] = entry;
-    else delete pins[key];
-    // 手选之后不再禁用该角色（用户意图明确）
-    const disabledCharacters = { ...get().disabledCharacters };
-    if (entry) delete disabledCharacters[key];
-    set({ pins, disabledCharacters });
-    persist({ ...pick(get()), pins, disabledCharacters });
-  },
-
-  toggleCharacter(key) {
-    const disabledCharacters = { ...get().disabledCharacters };
-    if (disabledCharacters[key]) delete disabledCharacters[key];
-    else disabledCharacters[key] = true;
-    set({ disabledCharacters });
-    persist({ ...pick(get()), disabledCharacters });
-  },
-
-  prune(knownKeys) {
-    const known = new Set(knownKeys);
-    const pins: Record<string, MusicEntry> = {};
-    for (const [key, value] of Object.entries(get().pins)) if (known.has(key)) pins[key] = value;
-    const disabledCharacters: Record<string, boolean> = {};
-    for (const key of Object.keys(get().disabledCharacters)) if (known.has(key)) disabledCharacters[key] = true;
-    set({ pins, disabledCharacters });
-    persist({ ...pick(get()), pins, disabledCharacters });
-  },
-}));
-
-function pick(state: SingleTrackState): SingleTrackState {
-  return { enabled: state.enabled, pins: state.pins, disabledCharacters: state.disabledCharacters };
+/** 当前音乐模式那把（组件用；切模式即换表）。 */
+export function useSingleTrack(): SingleTrackSlice;
+export function useSingleTrack<T>(selector: (state: SingleTrackSlice) => T): T;
+export function useSingleTrack<T>(selector?: (state: SingleTrackSlice) => T): SingleTrackSlice | T {
+  const store = slices[useMusicMode()];
+  return selector ? store(selector) : store();
 }

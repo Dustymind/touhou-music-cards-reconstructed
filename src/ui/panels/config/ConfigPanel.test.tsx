@@ -5,9 +5,13 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import type { DataBundle } from "../../../data/types";
 import { loadRealBundle, renderHook } from "../../../test-utils";
-import { usePreset } from "../../../store/preset";
+import { presetStoreFor } from "../../../store/preset";
 import { useSession } from "../../../store/session";
-import { useSingleTrack } from "../../../store/single";
+
+/** 面板测试固定在**原曲**模式下跑（B：这三把 store 按音乐模式分键）。 */
+const usePreset = presetStoreFor("originals");
+const useSingleTrack = singleStoreFor("originals");
+import { singleStoreFor } from "../../../store/single";
 import { ConfigPanel } from "../ConfigPanel";
 
 let bundle: DataBundle;

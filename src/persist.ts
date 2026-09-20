@@ -17,6 +17,13 @@ export interface StoreSpec<T> {
   validate: (raw: unknown) => T | null;
   /** 旧版本 → 新版本；返回 null 表示无法迁移。 */
   migrate?: (raw: unknown, fromVersion: number) => T | null;
+  /**
+   * 老键名（一次性迁移）：**新键不存在而它存在**时，把老键的值原样搬到新键。
+   *
+   * 给"同一个 store 按模式分成多把键"用（B）：内容形状没变，所以**不动版本号**；
+   * 老键**不删**（回退到旧版本时还读得到），默认模式继承老存档，另一把拿默认值。
+   */
+  legacyName?: string;
 }
 
 interface StoreHandle<T> {
@@ -44,6 +51,32 @@ function storage(): Storage | null {
 
 export function defineStore<T>(spec: StoreSpec<T>): StoreHandle<T> {
   const key = PREFIX + spec.name;
+
+  /** 解析一条带版本的信封；不合法记原因并返回 null。 */
+  const parse = (raw: string): T | null => {
+    let envelope: unknown;
+    try {
+      envelope = JSON.parse(raw);
+    } catch {
+      errors.set(key, "JSON 解析失败");
+      return null;
+    }
+    const version = (envelope as { v?: unknown })?.v;
+    const data = (envelope as { data?: unknown })?.data;
+    if (typeof version !== "number") {
+      errors.set(key, "缺少版本号");
+      return null;
+    }
+    const value = version === spec.version
+      ? spec.validate(data)
+      : (spec.migrate?.(data, version) ?? null);
+    if (value === null) {
+      errors.set(key, version === spec.version ? "内容校验失败" : `无法从 v${version} 迁移`);
+      return null;
+    }
+    return value;
+  };
+
   return {
     spec,
     load() {
@@ -51,26 +84,18 @@ export function defineStore<T>(spec: StoreSpec<T>): StoreHandle<T> {
       const store = storage();
       if (!store) return spec.fallback;
       const raw = store.getItem(key);
-      if (raw === null) return spec.fallback;
-      let envelope: unknown;
+      if (raw !== null) return parse(raw) ?? spec.fallback;
+      // 老键名（同名 store 分键之前的那把）：只有新键**不存在**时才搬，老键留着不动
+      const legacyKey = spec.legacyName ? PREFIX + spec.legacyName : null;
+      if (legacyKey === null || legacyKey === key) return spec.fallback;
+      const legacyRaw = store.getItem(legacyKey);
+      if (legacyRaw === null) return spec.fallback;
+      const value = parse(legacyRaw);
+      if (value === null) return spec.fallback;
       try {
-        envelope = JSON.parse(raw);
+        store.setItem(key, JSON.stringify({ v: spec.version, data: value }));
       } catch {
-        errors.set(key, "JSON 解析失败");
-        return spec.fallback;
-      }
-      const version = (envelope as { v?: unknown })?.v;
-      const data = (envelope as { data?: unknown })?.data;
-      if (typeof version !== "number") {
-        errors.set(key, "缺少版本号");
-        return spec.fallback;
-      }
-      const value = version === spec.version
-        ? spec.validate(data)
-        : (spec.migrate?.(data, version) ?? null);
-      if (value === null) {
-        errors.set(key, version === spec.version ? "内容校验失败" : `无法从 v${version} 迁移`);
-        return spec.fallback;
+        /* 配额满：本次照常返回，下次再搬 */
       }
       return value;
     },

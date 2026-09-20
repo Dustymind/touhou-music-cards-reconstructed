@@ -8,7 +8,7 @@ import { create } from "zustand";
 
 import { useGame } from "../game/useGame";
 import { useSession } from "../store/session";
-import { useQueue } from "../store/queue";
+import { currentQueue, queueStoreFor } from "../store/queue";
 import { selectSessionSeed, useSeeds } from "../store/seeds";
 import { ephemeralIntBelow, randomToken } from "../rng";
 import type { MatchMode } from "../game/types";
@@ -131,7 +131,8 @@ function adoptHostConfig(config: SessionConfigWire): void {
   const seeds = useSeeds.getState();
   const changed = selectSessionSeed(seeds) !== config.sessionSeed;
   seeds.adopt(config.sessionSeed);
-  if (changed) useQueue.getState().adoptSeed(config.sessionSeed);
+  // 队列按模式分键（B）：重排的是**主机指定的那个模式**那把（上面刚把模式切过去）
+  if (changed) queueStoreFor(config.musicMode).getState().adoptSeed(config.sessionSeed);
 }
 
 export const useNet = create<NetApi>((set, get) => {
@@ -290,7 +291,8 @@ export function applyIntentLocally(intent: ClientIntent, from: number): void {
     }
     // 重新抽选：换种子是**主机**的事，客户端的请求落到这里（换完随快照把新配置发下去）
     case "rerollQueue": {
-      useQueue.getState().regenerate(useQueue.getState().order, true);
+      const queue = currentQueue().getState();
+      queue.regenerate(queue.order, true);
       return;
     }
     // 牌组编辑（自定义卡组 / 补满 / 打乱 / 清空）：只有主机能改别人的牌库，

@@ -11,7 +11,7 @@ import { TAB_ORDER, useSession, type TabId } from "../../store/session";
 import { NoFontFamily } from "../../theme/theme";
 import { trackId, type DataBundle, type MusicEntry } from "../../data/types";
 import { usePreset } from "../../store/preset";
-import { useQueue } from "../../store/queue";
+import { currentQueue, useQueue } from "../../store/queue";
 import { selectSessionSeed, useSeeds } from "../../store/seeds";
 import { useSources } from "../../music/useSources";
 import { usePlayer } from "../../audio/usePlayer";
@@ -71,10 +71,11 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
 
   // 把合并结果写回 store：配置页读的是 store，首帧之后必须与 activePreset 一致
   // （否则界面会显示"全部未勾选"，而队列却按默认全选在跑 —— 浏览器实测踩到过）
+  // 预设按模式分键（B）：切模式要 sync **新那把**，否则切过去第一眼还是"全部未勾选"
   useEffect(() => {
     preset.sync(bundle.albums);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bundle]);
+  }, [bundle, musicMode]);
 
   /** 仅单曲模式：每角色固定一首（未手选则取预设允许的第一首）。 */
   const pinned = useMemo(() => {
@@ -140,7 +141,7 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
   const [playRequestSeq, setPlayRequestSeq] = useState(0);
   const playTrack = useCallback((key: string, entry: MusicEntry) => {
     setEntryRequest({ key, entry });      // 让播放器解析到这一首
-    if (useQueue.getState().currentKey !== key) queue.setCurrent(key);
+    if (currentQueue().getState().currentKey !== key) queue.setCurrent(key);
     setPlayRequestSeq((value) => value + 1);
   }, [queue, setEntryRequest]);
 
@@ -280,6 +281,7 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
           {tab === "list" && (
             <ListPanel
               bundle={bundle}
+              musicMode={musicMode}
               onPlayTrack={playTrack}
               playingKey={gameActive ? game.currentKey : queue.currentKey}
               playingEntry={player.entry}

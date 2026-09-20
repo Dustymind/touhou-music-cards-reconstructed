@@ -1,10 +1,13 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { shuffleWithSeed } from "../rng";
-import { useQueue } from "./queue";
+import { queueStoreFor } from "./queue";
 import { useSeeds } from "./seeds";
 
 const KEYS = ["a", "b", "c", "d", "e"];
+
+/** 这个文件测的是队列本身的行为，固定用**原曲那把**（B：队列按音乐模式分键）。 */
+const useQueue = queueStoreFor("originals");
 
 const reset = (): void => {
   localStorage.clear();

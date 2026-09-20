@@ -1,9 +1,12 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { defineStore } from "../persist";
-import { singleTrackSpec, useSingleTrack } from "./single";
+import { singleStoreFor, singleTrackSpec } from "./single";
 
 const fresh = { enabled: false, pins: {}, disabledCharacters: {} };
+
+/** 固定用**原曲那把**（B：单曲模式状态按音乐模式分键）。 */
+const useSingleTrack = singleStoreFor("originals");
 
 describe("single track store", () => {
   beforeEach(() => {
@@ -13,7 +16,7 @@ describe("single track store", () => {
 
   it("开关落盘并可读回", () => {
     useSingleTrack.getState().setEnabled(true);
-    const raw = localStorage.getItem("tmc.v1.single-track");
+    const raw = localStorage.getItem("tmc.v1.single-track.originals");
     expect(raw).toContain('"enabled":true');
     expect(useSingleTrack.getState().enabled).toBe(true);
   });
@@ -42,7 +45,7 @@ describe("single track store", () => {
   });
 
   it("损坏的存档逐项丢弃，合法项保留", () => {
-    localStorage.setItem("tmc.v1.single-track", JSON.stringify({
+    localStorage.setItem("tmc.v1.single-track.originals", JSON.stringify({
       v: 1,
       data: {
         enabled: true,
@@ -50,14 +53,14 @@ describe("single track store", () => {
         disabledCharacters: { x: true, y: "no" },
       },
     }));
-    const loaded = defineStore(singleTrackSpec).load();
+    const loaded = defineStore(singleTrackSpec("originals")).load();
     expect(loaded.enabled).toBe(true);
     expect(Object.keys(loaded.pins)).toEqual(["good"]);
     expect(loaded.disabledCharacters).toEqual({ x: true });
   });
 
   it("整体不是对象时回落默认值", () => {
-    localStorage.setItem("tmc.v1.single-track", JSON.stringify({ v: 1, data: 42 }));
-    expect(defineStore(singleTrackSpec).load()).toEqual(fresh);
+    localStorage.setItem("tmc.v1.single-track.originals", JSON.stringify({ v: 1, data: 42 }));
+    expect(defineStore(singleTrackSpec("originals")).load()).toEqual(fresh);
   });
 });

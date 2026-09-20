@@ -11,13 +11,13 @@
 | 角色曲目条目 / 去重曲目 | 464 / 454 | 同上（`trackEntries` / `distinctTracks`） |
 | 卡面集 / 注册音源 | 6 / 4 | 同上 |
 | 音MAD 曲包 | 1 包：86 首 / 35 个角色；**84 条带 `source`**（可自动抓取）、0 条带裁剪区间 | 清单 `data/packs/otomads.toml` + 一角色一份 `data/packs/otomads/*.toml`；`cd tools && UV_CACHE_DIR=.uv/cache uv run python -m tmc.fetch_audio --dry-run` |
-| 前端单测 | **266 passed** | `pnpm test` |
+| 前端单测 | **274 passed** | `pnpm test` |
 | 数据管线测试 | **84 passed** | `cd tools && uv run pytest` |
-| 端到端 | **68 passed + 1 skipped**（chromium 30 / firefox 29+1 / mobile 9） | `pnpm e2e` |
+| 端到端 | **72 passed + 1 skipped**（chromium 32 / firefox 31+1 / mobile 9） | `pnpm e2e` |
 | 数据漂移 | 无 | `pnpm data:check` |
 | 数据校验 | 通过 | `pnpm data:validate` |
 | 联机协议版本 | 3 | `src/net/protocol.ts`（`SessionConfigWire` = 音乐模式 + 会话种子） |
-| 决策日志 | D1–D109 | [`DECISIONS.md`](DECISIONS.md) |
+| 决策日志 | D1–D110 | [`DECISIONS.md`](DECISIONS.md) |
 
 > **e2e 的前置条件**：音MAD 相关用例会取同源的 `/manifest.json`（开发服务器代理到本地曲库助手），
 > 必须先起助手再跑，否则那几条会红 —— 这是环境问题，不是代码问题（D105 记过这个坑）。
@@ -33,7 +33,7 @@
 
 ## 决策日志
 
-[`DECISIONS.md`](DECISIONS.md)：一个决定一条（D1…D109），写**为什么**、实测数字与踩过的坑。
+[`DECISIONS.md`](DECISIONS.md)：一个决定一条（D1…D110），写**为什么**、实测数字与踩过的坑。
 同一轮工作的最新条目会就地补全，更早的条目不再改 —— 要查"这个功能怎么来的、这个数字怎么量的"，grep 它。
 
 ## 阶段产物与历史快照

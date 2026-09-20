@@ -3275,6 +3275,50 @@ e2e mobile **9 passed** ✓；"压暗但保留配色"另用 Playwright 截图 + 
 
 ---
 
+## D110 运行状态与列表页按音乐模式分开（B：切模式不再互相污染）
+
+**需求**（用户）：D109 把曲包真源拆开之后，接着做"两个模式不再互相干扰" ——
+预设 / 单曲手选 / 禁用角色 / 队列顺序与当前角色**各记各的**，列表页也跟着模式走；
+之后才是 C（生成物与运行时两套数据集）。计划与 C 的细节在**仓库外**的 `B-C-PLAN.md`（不进版本库）。
+
+**为什么**：真源与曲目文件已经分开，但运行时仍是**一份合并数据 + 一个 `mode` 参数**，而状态是
+"每角色一条"的：`pins: Record<角色 key, MusicEntry>`、`queue.order: 角色 key[]`、`temporaryDisabled`、
+`preset.albums`（曲包专辑与原曲专辑挤在同一张表）—— 切一次模式就互相改写。最明显的一处是
+**列表页根本不接模式**：121 个角色全列、行首取 `character.music[0]`（曲包曲目是**追加在末尾**的
+⇒ 音MAD 模式下列表行显示的是**原曲**曲目），Chip 上的数字是两模式合计。
+
+**做法：每个模式一把独立的持久化键**（内容形状不变 ⇒ **不需要 schema 迁移**）
+
+| store | 之前 | 现在 |
+|---|---|---|
+| 选曲预设 | `tmc.v1.preset` | `tmc.v1.preset.originals` + `tmc.v1.preset.otomads` |
+| 单曲模式 | `tmc.v1.single-track` | `tmc.v1.single-track.{originals,otomads}` |
+| 轮播队列 | `tmc.v1.queue` | `tmc.v1.queue.{originals,otomads}` |
+
+| 位置 | 做了什么 |
+|---|---|
+| `src/persist.ts` | 新增 `legacyName`：**新键不存在、老键存在**时把老键原样搬过来（老键**不删**，回退旧版本还读得到）；形状没变所以不动版本号 |
+| `src/store/modeScope.ts`（新） | `useMusicMode()`（组件）与 `currentMusicMode()`（非组件），三把 store 共用 |
+| `src/store/{preset,single,queue}.ts` | 各自拆成"按模式造 store"，导出 `xxxStoreFor(mode)` 与 `useXxx()`（**保留 zustand 选择器用法**，调用点几乎零改动）；老存档归**原曲** |
+| `src/ui/shell/AppShell.tsx` | `preset.sync()` 的 effect 加 `musicMode` 依赖 —— 切模式要 sync **新那把**，否则切过去第一眼又是"全部未勾选"（这个坑记过一次）；`currentQueue()` 取当前那把 |
+| `src/net/useNet.ts` | 采用主机配置时按 `config.musicMode` 那一把 `adoptSeed`；`rerollQueue` 落在当前那把 |
+| `src/ui/panels/ListPanel.tsx` | 接 `musicMode`：行 = 该模式下有曲可播的角色，行内曲目 = `filterByMode(...)`，计数行的分母也换成该模式的可播角色数（音MAD 下不是 121） |
+
+**故意不分键的三项**（代码注释里写了理由）：`seed`（D104 的"一条会话一个权威种子"，它随
+`SessionConfig` 下发，按模式分只会让握手语义变复杂而收益为零）、`sources`（otomads 下本地源由
+`effectiveSourceOverrides()` 临时强制打开）、`session.musicMode`（就是那个开关本身）。
+
+**MD2 与间隔**：只改"哪些行 / 哪些曲目出现"，**没有动任何间距、内边距、字号、尺寸常量**。
+
+**验证**：`pnpm typecheck` ✓、`pnpm test` **274 passed**（+8：`modeScope.test.ts` 5 条 —— 老键迁移×2、
+两模式互不干扰×2、钩子换表×1；`ListPanel.test.tsx` 3 条）✓、`pnpm data:check` 无漂移 ✓、
+`pnpm e2e` **72 passed + 1 skipped**（chromium 32 / firefox 31+1 / mobile 9）✓ —— 新增的
+`e2e/mode-separation.spec.ts` 2 条在**两个桌面引擎**上都跑（列表页跟着模式、切模式不带走预设），
+计划里列的 8 条桌面布局守卫与 3 条移动端布局用例全绿 ✓；`pnpm e2e:perf` 单独跑 **1 passed** ✓
+（第一次与全量一起跑被同机负载击穿 —— 这正是它单独 project 的原因）。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |
