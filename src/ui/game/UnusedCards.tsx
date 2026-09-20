@@ -8,6 +8,7 @@ import { useState } from "react";
 
 import type { CardSetRecord } from "../../data/types";
 import type { CardInfo } from "../../game/types";
+import { cardKey } from "../../game/types";
 import { t, Localization } from "../../i18n/localization";
 import { CardStrip, type StripCard } from "../components/CardStrip";
 import { CharacterCard } from "../components/CharacterCard";
@@ -40,6 +41,8 @@ interface UnusedCardsProps {
   onDropCard?: () => void;
   /** 只有选牌阶段能改卡组 */
   interactive: boolean;
+  /** 曲目互斥被挡下的卡（`角色-卡序`，D108）：压暗、不可点选/拖拽 */
+  blockedKeys?: ReadonlySet<string>;
   testId?: string;
 }
 
@@ -53,6 +56,7 @@ interface UnusedCardsProps2 extends UnusedCardsProps {
 export function UnusedCards(props: UnusedCardsProps2) {
   const {
     cards, cardSet, cardFiles, width, visibleWidth, onPick, interactive, onCardDragStart, onDropCard,
+    blockedKeys,
     layout = "strip",
     columns,
   } = props;
@@ -61,15 +65,23 @@ export function UnusedCards(props: UnusedCardsProps2) {
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
   const cardHeight = Math.round(width / CardAspectRatio);
 
-  const strip: StripCard[] = cards.map((card) => ({
-    id: `${card.characterKey}-${card.cardIndex}`,
-    characterKey: card.characterKey,
-    cardIndex: card.cardIndex,
-    file: cardFiles[card.characterKey]?.[card.cardIndex] ?? "",
-    // 游戏选卡：hover 只变底色（与播放页一致），不做抬起位移
-    state: "normal",
-    hoverState: "hover",
-  }));
+  /** 曲目互斥被挡下的卡：可见但压暗（保留配色），且不能点/拖（D108） */
+  const isBlocked = (card: CardInfo): boolean => blockedKeys?.has(cardKey(card)) ?? false;
+  const blockedCount = cards.filter(isBlocked).length;
+
+  const strip: StripCard[] = cards.map((card) => {
+    const blocked = isBlocked(card);
+    return {
+      id: cardKey(card),
+      characterKey: card.characterKey,
+      cardIndex: card.cardIndex,
+      file: cardFiles[card.characterKey]?.[card.cardIndex] ?? "",
+      // 游戏选卡：hover 只变底色（与播放页一致），不做抬起位移
+      state: blocked ? "blocked" : "normal",
+      hoverState: blocked ? "blockedHover" : "hover",
+      disabled: blocked,
+    };
+  });
 
   return (
     <Box
@@ -94,6 +106,11 @@ export function UnusedCards(props: UnusedCardsProps2) {
       {interactive && (
         <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
           {t(Localization.GameDeckBuildHint)}
+        </Typography>
+      )}
+      {blockedCount > 0 && (
+        <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }} data-testid="unused-cards-blocked">
+          {t(Localization.GameUnusedCardsBlocked, { count: String(blockedCount) })}
         </Typography>
       )}
       {layout === "strip" ? (
@@ -136,22 +153,27 @@ export function UnusedCards(props: UnusedCardsProps2) {
             >
               <Box sx={{ display: "flex", gap: `${DECK_GAP}px` }}>
                 {row.map((card) => {
-                  const key = `${card.characterKey}-${card.cardIndex}`;
+                  const key = cardKey(card);
+                  const blocked = isBlocked(card);
+                  const hovered = hoveredKey === key;
                   return (
                     <Box
                       key={key}
                       data-testid={`unused-card-${key}`}
-                      draggable={interactive && Boolean(onCardDragStart)}
-                      onDragStart={() => onCardDragStart?.(card)}
-                      onClick={() => onPick(card)}
+                      data-disabled={blocked ? "true" : undefined}
+                      draggable={interactive && !blocked && Boolean(onCardDragStart)}
+                      onDragStart={() => { if (!blocked) onCardDragStart?.(card); }}
+                      onClick={() => { if (!blocked) onPick(card); }}
                       onMouseEnter={() => setHoveredKey(key)}
                       onMouseLeave={() => setHoveredKey((value) => (value === key ? null : value))}
-                      sx={{ width, cursor: interactive ? "pointer" : "default" }}
+                      sx={{ width, cursor: blocked ? "not-allowed" : interactive ? "pointer" : "default" }}
                     >
                       <CharacterCard
                         cardSet={cardSet}
                         file={cardFiles[card.characterKey]?.[card.cardIndex] ?? ""}
-                        state={hoveredKey === key ? "hover" : "normal"}
+                        state={blocked
+                          ? hovered ? "blockedHover" : "blocked"
+                          : hovered ? "hover" : "normal"}
                       />
                     </Box>
                   );

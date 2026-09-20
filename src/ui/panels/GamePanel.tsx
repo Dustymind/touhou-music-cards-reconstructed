@@ -38,6 +38,7 @@ import { UnusedCardsTray } from "../game/UnusedCardsTray";
 import { Reveal } from "../game/Reveal";
 import { GameGroupLabel, GameRadioOption, NumberSelect } from "../game/GameControls";
 import { hasTracksInMode } from "../../music/mode";
+import { buildSongConflicts } from "../../music/songConflicts";
 import { DECK_LIMITS } from "../../game/gameSetting";
 import { MD2 } from "../../theme/theme";
 import {
@@ -74,6 +75,7 @@ const RULE_OPTIONS = [
 function GamePanelInner({ bundle }: { bundle: DataBundle }) {
   const game = useGame((slice) => slice.game);
   const pool = useGame((slice) => slice.pool);
+  const conflicts = useGame((slice) => slice.conflicts);
   const cpu = useGame((slice) => slice.cpu);
   const {
     init, setMode, setTraditional, setCpu, resize, fill, clear, shuffle, start, stop,
@@ -212,7 +214,8 @@ function GamePanelInner({ bundle }: { bundle: DataBundle }) {
     for (const character of usable) {
       character.card.forEach((_file, cardIndex) => cards.push({ characterKey: character.key, cardIndex }));
     }
-    init(cards);
+    // 卡池 + 曲目互斥表一起灌进去（D108）：同一首歌只允许一个角色、同角色只允许一张卡面
+    init(cards, buildSongConflicts(bundle.albums, usable, musicMode));
     setOrder(usable.map((character) => character.key));
   }, [bundle, init, setOrder, musicMode]);
 
@@ -285,6 +288,9 @@ function GamePanelInner({ bundle }: { bundle: DataBundle }) {
   const rotation = game.order.filter((key) => !game.temporaryDisabled[key]).length;
   /** 卡池里还没进任何牌库/收集区的卡（上游"未使用卡牌"区） */
   const unused = useMemo(() => rules.unusedCards(game, pool), [game, pool]);
+  /** 其中被曲目互斥挡下的（D108）：压暗、不能点选或拖入 */
+  const blockedKeys = useMemo(
+    () => rules.blockedCardKeys(game, pool, conflicts), [game, pool, conflicts]);
   const building = game.state === "selecting";
 
   const handleOwnCard = (slot: number, _card: CardInfo) => {
@@ -690,6 +696,7 @@ function GamePanelInner({ bundle }: { bundle: DataBundle }) {
           width={cardWidth}
           visibleWidth={game.deckColumns * cardWidth + (game.deckColumns - 1) * DECK_GAP}
           interactive={building}
+          blockedKeys={blockedKeys}
           onPick={(card) => act.addCard(card)}
           onCardDragStart={(card) => beginDrag({ kind: "unused", card })}
           onDropCard={building ? handleDropOnUnused : undefined}

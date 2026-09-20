@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DataBundle } from "../../data/types";
 import { setLocale } from "../../i18n/localization";
 import { loadRealBundle } from "../../test-utils";
+import type { CardInfo } from "../../game/types";
 import { useGame } from "../../game/useGame";
 import { TURN_COUNTDOWN_MS } from "../../game/useGameLoop";
 import { useSession } from "../../store/session";
@@ -503,5 +504,57 @@ describe("GamePanel", () => {
     await click(container, "filter-by-deck");
     const disabled = useGame.getState().game.temporaryDisabled;
     expect(Object.values(disabled).filter(Boolean).length).toBeGreaterThan(0);
+  });
+
+  it("曲目互斥：共用一首曲子的角色只能选一次，另一张压暗且点不动（D108）", async () => {
+    const container = await render();
+    const unused = (id: string): HTMLElement | null =>
+      container.querySelector<HTMLElement>(`[data-testid="unused-card-${id}"]`);
+
+    // 先放琪露诺：与她共用《ミストレイク》的若鹭姬立刻压暗（但仍留在未使用区里）
+    await click(container, "unused-card-cirno-0");
+    expect(useGame.getState().game.players[0]!.deck[0]?.characterKey).toBe("cirno");
+    expect(unused("wakasagihime-0")).not.toBeNull();
+    expect(unused("wakasagihime-0")!.getAttribute("data-disabled")).toBe("true");
+
+    // 压暗的卡点了也进不去牌库
+    await act(async () => {
+      unused("wakasagihime-0")!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+    expect(useGame.getState().game.players[0]!.deck.filter(Boolean).map((entry) => entry!.characterKey))
+      .toEqual(["cirno"]);
+
+    // 同一个 key 的第二/第三张卡面（Prismriver 三姐妹 = 三个角色共用一个 key）同样只允许一张
+    await click(container, "unused-card-prismriver-sisters-0");
+    expect(unused("prismriver-sisters-1")!.getAttribute("data-disabled")).toBe("true");
+    expect(unused("prismriver-sisters-2")!.getAttribute("data-disabled")).toBe("true");
+
+    // 与谁都不共用曲目的角色不受影响
+    expect(unused("hakurei-reimu-0")!.getAttribute("data-disabled")).toBeNull();
+    // 提示行会说明压暗的原因
+    expect(container.querySelector('[data-testid="unused-cards-blocked"]')?.textContent)
+      .toContain("dimmed");
+  });
+
+  it("随机补满不会抽出同一首歌的两个角色（D108）", async () => {
+    const container = await render();
+    await click(container, "random-fill");
+
+    const game = useGame.getState().game;
+    const conflicts = useGame.getState().conflicts;
+    const keys = game.players.flatMap((player) => player.deck)
+      .filter((slot): slot is CardInfo => slot !== null)
+      .map((entry) => entry.characterKey);
+    expect(keys).toHaveLength(24);                    // 池子够大，照样填满
+
+    const counts = new Map<string, number>();
+    for (const key of keys) counts.set(key, (counts.get(key) ?? 0) + 1);
+    for (const [key, count] of counts) {
+      expect(count, key).toBe(1);                     // 同角色只允许一张卡面
+      for (const other of conflicts[key] ?? []) {
+        if (other === key) continue;
+        expect(counts.has(other), `${key} ↔ ${other}`).toBe(false);
+      }
+    }
   });
 });

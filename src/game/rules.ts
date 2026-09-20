@@ -8,7 +8,8 @@
 import { SEED_MAX, deriveSeed, shuffleWithSeed, type Rng } from "../rng";
 import {
   type CardInfo, type GameState, type PickEvent, type PlayerIndex, type PlayerState, type Slot,
-  emptySlots, filledSlots, makePlayer, sameCard, slotCount,
+  type SongConflicts,
+  cardKey, emptySlots, filledSlots, makePlayer, sameCard, slotCount,
 } from "./types";
 
 /** 随机来源一律**显式传入**（D104）：这里不再有 `Math.random` 默认值。
@@ -48,6 +49,49 @@ export function setCard(state: GameState, playerIndex: PlayerIndex, slot: number
   return withPlayer(state, playerIndex, { deck });
 }
 
+// ---------------------------------------------------------------- 曲目互斥（D108）
+//
+// 一场对局里同一首歌只能对应一个角色（含"一个 key 多张卡面其实多个角色"的情况），
+// 否则会同时出现两张都"听起来对"的卡。互斥表由 `src/music/songConflicts.ts` 从数据本地派生，
+// 这里只做**判定**：新角色进场的入口只有 `addCard` 与 `randomFill` 两个，所以约束放在这两处
+// 就足够（`moveDeckCard` / `giveCard` / `giveCardsRandomly` 只搬场上的牌，不会引入新角色）。
+
+/** 场上（双方牌库 + 收集区）已有的角色 key。 */
+function charactersInPlay(state: GameState): Set<string> {
+  const keys = new Set<string>();
+  for (const player of state.players) {
+    for (const card of player.deck) if (card) keys.add(card.characterKey);
+    for (const card of player.collected) keys.add(card.characterKey);
+  }
+  return keys;
+}
+
+/** 这张卡的**角色**是否与场上某个角色互斥（同一角色的另一张卡面也算，见互斥表里的自链接）。 */
+function conflictsWithPlay(
+  card: CardInfo,
+  inPlay: ReadonlySet<string>,
+  conflicts?: SongConflicts,
+): boolean {
+  const related = conflicts?.[card.characterKey];
+  if (!related) return false;
+  return related.some((key) => inPlay.has(key));
+}
+
+/** 当前**不能**放进牌库的卡面（`角色-卡序`）：与场上角色共用曲目，或同角色已有别的卡面。
+ *  选牌阶段给"未使用卡牌"置灰用（只按互斥表判定；"这张卡面已经在场上"由未使用区自己排除）。 */
+export function blockedCardKeys(
+  state: GameState,
+  pool: readonly CardInfo[],
+  conflicts?: SongConflicts,
+): Set<string> {
+  const inPlay = charactersInPlay(state);
+  const blocked = new Set<string>();
+  for (const card of pool) {
+    if (conflictsWithPlay(card, inPlay, conflicts)) blocked.add(cardKey(card));
+  }
+  return blocked;
+}
+
 /** 某张卡面现在在谁手里（牌库或收集区）；没有则 null。 */
 export function holderOf(state: GameState, card: CardInfo): { player: PlayerIndex; slot: number } | null {
   for (let index = 0; index < state.players.length; index += 1) {
@@ -61,11 +105,19 @@ export function holderOf(state: GameState, card: CardInfo): { player: PlayerInde
 }
 
 /** 自定义卡组：把一张卡放进取牌库（`slot` 指定槽位，否则第一个空位）。
- *  每个卡面在整局里只能存在一份，所以场上已有就直接拒绝（对齐上游 `addToDeck`）。 */
-export function addCard(state: GameState, playerIndex: PlayerIndex, card: CardInfo, slot?: number): GameState {
+ *  每个卡面在整局里只能存在一份，所以场上已有就直接拒绝（对齐上游 `addToDeck`）；
+ *  传入 `conflicts` 时，与场上角色共用曲目 / 同角色已有别的卡面也一并拒绝（D108）。 */
+export function addCard(
+  state: GameState,
+  playerIndex: PlayerIndex,
+  card: CardInfo,
+  slot?: number,
+  conflicts?: SongConflicts,
+): GameState {
   const player = state.players[playerIndex];
   if (!player) return state;
   if (holderOf(state, card) !== null) return state;
+  if (conflictsWithPlay(card, charactersInPlay(state), conflicts)) return state;
   const target = slot !== undefined && player.deck[slot] === null
     ? slot
     : player.deck.findIndex((entry) => entry === null);
@@ -151,28 +203,37 @@ export function clearDeck(state: GameState, playerIndex: PlayerIndex): GameState
   return withPlayer(state, playerIndex, { deck: player.deck.map(() => null) });
 }
 
-/** 随机补满：排除场上（任何玩家牌库与收集区）已有的卡面。 */
+/** 随机补满：排除场上（任何玩家牌库与收集区）已有的卡面，以及共用曲目的角色（D108）。
+ *
+ * 互斥是**逐张**判定的：放下一张就把它的角色记进 `inPlay`，后面每一张都要重新过一遍，
+ * 所以一次补满不会抽出"同一首歌的两个角色"。随机数消耗与不带互斥时**完全一致**
+ * （仍是每个空槽一次 `intBelow`），只是候选集合收窄了。 */
 export function randomFill(
   state: GameState,
   playerIndex: PlayerIndex,
   pool: readonly CardInfo[],
   rng: Rng,
+  conflicts?: SongConflicts,
 ): GameState {
-  const used = new Set<string>();
-  for (const player of state.players) {
-    for (const card of [...player.deck, ...player.collected]) {
-      if (card) used.add(`${card.characterKey}-${card.cardIndex}`);
-    }
-  }
-  const available = pool.filter((card) => !used.has(`${card.characterKey}-${card.cardIndex}`));
   const player = state.players[playerIndex];
   if (!player) return state;
+  const inPlay = charactersInPlay(state);
+  const used = new Set<string>();
+  for (const other of state.players) {
+    for (const card of [...other.deck, ...other.collected]) {
+      if (card) used.add(cardKey(card));
+    }
+  }
+  const available = pool.filter((card) => !used.has(cardKey(card)));
   const deck = player.deck.slice();
   for (let slot = 0; slot < deck.length; slot += 1) {
     if (deck[slot] !== null) continue;
-    if (available.length === 0) break;
-    const pick = rng.intBelow(available.length);
-    deck[slot] = available.splice(pick, 1)[0]!;
+    const candidates = available.filter((card) => !conflictsWithPlay(card, inPlay, conflicts));
+    if (candidates.length === 0) break;
+    const card = candidates[rng.intBelow(candidates.length)]!;
+    available.splice(available.indexOf(card), 1);
+    inPlay.add(card.characterKey);
+    deck[slot] = card;
   }
   return withPlayer(state, playerIndex, { deck });
 }

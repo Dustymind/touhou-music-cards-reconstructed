@@ -115,6 +115,9 @@ export const Localization = {
   GameDeckBuildHint: u(
     "Click an unused card to put it in your deck; click a card in your deck to take it out.",
     "点未使用的卡放进卡组；点卡组里的卡拿出来。"),
+  GameUnusedCardsBlocked: u(
+    "{count} dimmed: a track can only be used once per game",
+    "{count} 张已压暗：同一首曲子一局只能选一次"),
   GameFillCPU: u("Fill CPU", "补满电脑"),
   GameClearDeck: u("Clear Deck", "清空卡组"),
   GameShuffleDeck: u("Shuffle Deck", "打乱卡组"),

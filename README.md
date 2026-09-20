@@ -41,7 +41,7 @@ cd tools && UV_CACHE_DIR=.uv/cache uv run python -m tmc.fetch_audio --track 岁�
 
 数据由 `pnpm data:check` 守住：**121 个角色 / 40 张专辑 / 464 条角色曲目条目（454 首去重曲目）/ 6 套卡面**；
 另有**音MAD 曲包 86 首（35 个角色）**，音频走本地曲库助手。
-测试基线：`pnpm test` **251 条**、`uv run pytest` **71 条**、e2e **68 条通过 + 1 条跳过**。
+测试基线：`pnpm test` **266 条**、`uv run pytest` **71 条**、e2e **68 条通过 + 1 条跳过**。
 完整的现状表（含每一项的复现命令）与文档索引见 [`docs/README.md`](docs/README.md)。
 
 ## 怎么玩
@@ -50,6 +50,7 @@ cd tools && UV_CACHE_DIR=.uv/cache uv run python -m tmc.fetch_audio --track 岁�
 - **列表**：搜角色，点一行展开曲目，点曲目直接播；正在播的那首会高亮。
 - **设置**：音乐模式（原曲 / 音MAD）、镜像顺序、卡面图集、音乐预设（秘封曲 / 三态开关 / 单曲模式）。
 - **游戏**：单人 / 电脑 / 多人；经典与休闲两套规则。选牌阶段点未使用卡进牌组、点牌组里的卡拿回来；
+  同一首曲子一局只能对应一个角色（同一角色的多张卡面也只算一张），冲突的卡会压暗且点不动；
   窄屏下选卡是底部面板，手机上也能正常玩。
 
 ## 联机
@@ -66,7 +67,7 @@ cd tools && UV_CACHE_DIR=.uv/cache uv run python -m tmc.fetch_audio --track 岁�
 
 | 命令 | 作用 |
 |---|---|
-| `pnpm typecheck` / `pnpm test` | 类型检查 / 单测（251 条） |
+| `pnpm typecheck` / `pnpm test` | 类型检查 / 单测（266 条） |
 | `pnpm e2e` | 浏览器端到端：chromium + firefox + 移动端（Pixel 7） |
 | `pnpm e2e:chromium` / `pnpm e2e:firefox` / `pnpm e2e:mobile` | 只跑其中一端（调试用） |
 | `pnpm e2e:perf` | 单独跑「点击长任务」性能守卫（对机器负载敏感，不进全量） |

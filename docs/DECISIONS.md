@@ -3177,6 +3177,53 @@ mobile (Pixel 7) 9 passed        ← 合计 68 passed / 1 skipped（= pnpm e2e �
 
 ---
 
+## D108 曲目互斥：同一首歌只允许一张卡（随机补满与手动选卡都挡住）
+
+**需求**（用户）：使用同一首曲子的多个角色，在游戏的随机选卡里**只被选中一次**，**手动重复选也不允许**；
+未使用卡区里的冲突卡**保留但压暗**（明确要求：不是纯黑白灰）；同一角色的第二张卡面**也禁**。
+
+**实测现状**（`public/data/characters.json`）：
+
+| 情况 | 数字 | 例子 |
+|---|---|---|
+| 原曲模式下**两个角色共用一首** | **10 首 / 17 个角色** | 琪露诺·若鹭姬《ミストレイク》；咲夜·蕾米莉亚《ツェペシュの幼き末裔》；小伞·鵺《夜空のユーフォーロマンス》 |
+| 音MAD 模式下的跨角色重复 | **0 首**（86 首里） | —— |
+| 一个 key 多张卡面 | 5 个 key | 其中 4 个其实是**多个角色共用一个 key**（`prismriver-sisters` 三姐妹、`tsukumo-benben-yatsuhashi` 弁弁/八桥、`teireida-mai-nishida-satono` 舞/里乃、`yorigami-joon-shion` 女苑/紫苑），只有 `kamishirasawa-keine` 是同角色多形态 —— 用户裁定**两种都只允许一张** |
+
+不处理的后果：默认 3×8 牌库随机补满时约 **1/3 的对局**会同时抽到某一对的两个角色 —— 那首歌响起时
+两张卡都"听起来对"，但 `notifyPickEvent` 只认 `currentKey`，另一张必判错。
+
+**实现**：
+
+| 位置 | 做了什么 |
+|---|---|
+| `src/music/songConflicts.ts`（新） | `buildSongConflicts(albums, characters, mode)`：曲目 → 角色求交，把"共用同一首"的角色两两互链；给"多卡面"的角色加**自链接**（同角色第二张卡面）；只数**当前音乐模式**的曲目 —— 与对局里 `ignorePreset` 的真实选曲口径一致 |
+| `src/game/types.ts` | 新增 `SongConflicts`（只读表）与 `cardKey()`（`角色-卡序` 统一写法） |
+| `src/game/rules.ts` | `addCard` / `randomFill` 增加可选 `conflicts`；新增 `blockedCardKeys()` 供界面置灰。互斥**逐张**判定（每放一张就把角色记进 `inPlay`），所以一次补满也不会漏；卡不够时**宁缺毋滥**（不为填满而塞重复曲目） |
+| `src/game/useGame.ts` | 新增 `conflicts` 字段，`init(pool, conflicts)` 灌入，`fill` / `addCard` 透传 |
+| `src/ui/components/CharacterCard.tsx` | 新增 `blocked` / `blockedHover` 两个卡态：底色仍是普通白底，只给卡面图 `grayscale(35%) opacity(0.45)`（保留角色配色，与"真正禁用"的 `grayscale(100%)` 区分） |
+| `src/ui/components/CardStrip.tsx` | `StripCard.disabled`：不响应点击/拖拽，光标 `not-allowed` |
+| `src/ui/game/UnusedCards.tsx` | 压暗的卡**留在原位**（未使用区数量不变）、点不动也拖不动，另加一行"N 张已压暗：同一首曲子一局只能选一次" |
+| `src/ui/panels/GamePanel.tsx` | 建卡池的 effect 里一并派生互斥表；选牌阶段算 `blockedKeys` 传给未使用区（长条与窄屏面板两种版式共用） |
+
+**为什么不碰随机数与协议**：互斥表由两端各自从同一份 `bundle`（已有 `dataHash` 校验）派生，
+**不进 `GameState`、不进快照**；`randomFill` 本来就是主机权威动作（客户端只发 intent 等快照），
+随机消耗次数与改动前**完全一致**（仍是每个空槽一次 `intBelow`），所以 `docs/rng-v1.md` 与
+`PROTOCOL_VERSION` 都不用动，也不需要存档迁移（`useGame` 不落盘）。
+
+**互斥按"歌"而不是"连通分量"**：`tatara-kogasa` 分别与 `houjuu-nue`、`miyako-yoshika` 各共用一首，
+但后两者之间没有共同曲目 → 只有 kogasa 进不来，另外两个可以同时在场上（单测守着这条）。
+同名不同专辑仍算**不同**曲子（键是 `专辑\u0001曲名`，沿用附录"同名不等于同曲"的既有结论）。
+
+**验证**：`pnpm typecheck` ✓、`pnpm test` **266 passed**（+15 条：`songConflicts.test.ts` 6、
+`rules.test.ts` 6、`useGame.test.ts` 1、`GamePanel.test.tsx` 2，含真实数据的回归断言）✓、
+`pnpm data:check` ✅ 无漂移、`pnpm build` ✓；
+e2e chromium **29 passed / 1 红**（`音乐模式：原曲 / 音MAD` 取同源 `/manifest.json`，需要本地曲库助手 8011，**环境问题**）、
+e2e mobile **9 passed** ✓；"压暗但保留配色"另用 Playwright 截图 + `getComputedStyle` 核对
+（`grayscale(35%) opacity(0.45)`，粉/黄/绿/蓝仍可辨认）。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |

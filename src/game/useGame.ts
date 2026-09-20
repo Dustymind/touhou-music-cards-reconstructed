@@ -11,7 +11,7 @@ import { create } from "zustand";
 
 import { createRng, type Rng, type SeedLabel } from "../rng";
 import { useSeeds } from "../store/seeds";
-import type { CardInfo, GameState, MatchMode, PlayerIndex } from "./types";
+import type { CardInfo, GameState, MatchMode, PlayerIndex, SongConflicts } from "./types";
 import { emptyState, slotCount } from "./types";
 import * as rules from "./rules";
 import { DEFAULT_CPU_SETTINGS, planCpuPick, type CpuPlan, type CpuSettings } from "./cpu";
@@ -31,11 +31,13 @@ interface GameSlice {
   game: GameState;
   /** 可入牌库的卡池（角色 × 卡面） */
   pool: CardInfo[];
+  /** 曲目互斥表（D108）：由界面按数据 + 音乐模式派生，两端各自算同一张表，不进快照 */
+  conflicts: SongConflicts;
   cpu: CpuSettings;
   /** 本地玩家在牌桌上的位置（本地/CPU 模式是 0） */
   myIndex: PlayerIndex;
 
-  init: (pool: CardInfo[]) => void;
+  init: (pool: CardInfo[], conflicts?: SongConflicts) => void;
   setMode: (mode: MatchMode) => void;
   setTraditional: (traditional: boolean) => void;
   setCpu: (patch: Partial<CpuSettings>) => void;
@@ -74,14 +76,15 @@ interface GameSlice {
 export const useGame = create<GameSlice>((set, get) => ({
   game: emptyState(),
   pool: [],
+  conflicts: {},
   cpu: DEFAULT_CPU_SETTINGS,
   myIndex: 0,
 
-  init(pool) {
+  init(pool, conflicts = {}) {
     const game = get().game;
     const sized = rules.adjustDeckSize(game, game.deckRows, game.deckColumns);
     const players = sized.players.map((player, index) => ({ ...player, name: index === 0 ? "You" : "Opponent" }));
-    set({ pool, game: { ...sized, players } });
+    set({ pool, conflicts, game: { ...sized, players } });
   },
 
   setMode(mode) {
@@ -103,7 +106,7 @@ export const useGame = create<GameSlice>((set, get) => ({
   fill(player) {
     const rng = authorityRng("fill", player);
     if (!rng) return;
-    set({ game: rules.randomFill(get().game, player, get().pool, rng) });
+    set({ game: rules.randomFill(get().game, player, get().pool, rng, get().conflicts) });
   },
 
   clear(player) {
@@ -117,7 +120,7 @@ export const useGame = create<GameSlice>((set, get) => ({
   },
 
   addCard(player, card, slot) {
-    set({ game: rules.addCard(get().game, player, card, slot) });
+    set({ game: rules.addCard(get().game, player, card, slot, get().conflicts) });
   },
 
   removeCard(player, slot) {

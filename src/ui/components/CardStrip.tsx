@@ -29,6 +29,8 @@ export interface StripCard {
   state: CardState;
   /** hover 时的底色（游戏卡槽是 `hover`，播放页禁用项是 `disabledHover`） */
   hoverState?: CardState;
+  /** 此刻不能选（曲目互斥被挡，D108）：不响应点击与拖拽，光标 `not-allowed` */
+  disabled?: boolean;
 }
 
 interface CardStripProps {
@@ -91,15 +93,17 @@ interface StripCardViewProps {
 /** 单张卡：`memo` 之后，拖滑块（父组件重渲染）不会重新渲染卡片内容。 */
 const StripCardView = memo(function StripCardView(props: StripCardViewProps) {
   const { card, cardSet, width, left, interactive, draggable, hovered, testId } = props;
+  const disabled = Boolean(card.disabled);
   return (
     <Box
       data-testid={testId}
+      data-disabled={disabled ? "true" : undefined}
       onMouseEnter={() => props.onHover(card.id)}
       onMouseLeave={() => props.onHover(null)}
-      onClick={() => { if (interactive) props.onClick(card); }}
-      draggable={draggable}
+      onClick={() => { if (interactive && !disabled) props.onClick(card); }}
+      draggable={draggable && !disabled}
       onDragStart={(event) => {
-        if (!draggable) return;
+        if (!draggable || disabled) return;
         event.dataTransfer.setData(DRAG_MIME, "card");
         event.dataTransfer.effectAllowed = "move";
         props.onDragStart(card);
@@ -109,7 +113,7 @@ const StripCardView = memo(function StripCardView(props: StripCardViewProps) {
         left,
         top: 0,
         width,
-        cursor: interactive ? "grab" : "default",
+        cursor: disabled ? "not-allowed" : interactive ? "grab" : "default",
       }}
     >
       <CharacterCard

@@ -21,6 +21,7 @@ function freshGame(): void {
       turnStartTimestamp: 0, pickEvents: [], turnWinner: null, givesLeft: 0, winner: null,
     },
     pool: [card("a"), card("b"), card("c")],
+    conflicts: {},
     myIndex: 0,
   });
 }
@@ -141,6 +142,29 @@ describe("useGame store", () => {
     useGame.getState().filterByDeck();
     // 新口径：单人/电脑只按**自己这一方**卡槽筛（c 只在对手卡槽里 → 应被禁用 ✓）
     expect(useGame.getState().game.temporaryDisabled).toEqual({ b: true, c: true, d: true });
+  });
+
+  it("init 灌入曲目互斥表：addCard 与 fill 都按它挡掉重复曲目（D108）", () => {
+    const conflicts = { a: ["b"], b: ["a"] };
+    useGame.getState().init([card("a"), card("b"), card("c")], conflicts);
+    expect(useGame.getState().conflicts).toEqual(conflicts);
+
+    useGame.getState().addCard(0, card("a"));
+    expect(useGame.getState().game.players[0]!.deck[0]?.characterKey).toBe("a");
+    // 共用一首曲子的 b 放不进来了
+    useGame.getState().addCard(0, card("b"));
+    expect(useGame.getState().game.players[0]!.deck.filter(Boolean)).toHaveLength(1);
+
+    // 随机补满同样守约束：a / b 不会同时出现（池子里剩一张被挡 → 只填得进两张）
+    useGame.getState().clear(0);
+    useGame.getState().resize(1, 3);
+    useGame.getState().fill(0);
+    const keys = useGame.getState().game.players[0]!.deck
+      .filter((slot): slot is CardInfo => slot !== null)
+      .map((entry) => entry.characterKey);
+    expect(keys).toContain("c");
+    expect(keys.includes("a") && keys.includes("b")).toBe(false);
+    expect(keys).toHaveLength(2);
   });
 });
 

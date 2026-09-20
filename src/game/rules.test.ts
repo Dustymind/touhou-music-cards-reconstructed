@@ -538,3 +538,64 @@ describe("对局双端同步：同一批 intent → 同一份状态与曲目序�
     expect(seen.size).toBeGreaterThan(1);                   // 角色确实在推进 ✓
   });
 });
+
+describe("曲目互斥：同一首歌只能选一次（D108）", () => {
+  /** a ↔ b 共用一首曲子；x 是"一个 key 多张卡面" */
+  const conflicts = { a: ["b"], b: ["a"], x: ["x"] };
+
+  it("blockedCardKeys 标出与场上角色共用曲目的卡（含同角色的另一张卡面）", () => {
+    const state = rules.addCard(rules.adjustDeckSize(emptyState(), 1, 3), 0, card("a"));
+    const pool = [card("a"), card("b"), card("c"), card("x", 0), card("x", 1)];
+    expect([...rules.blockedCardKeys(state, pool, conflicts)]).toEqual(["b-0"]);
+    // 同角色的另一张卡面：x-0 在场上 → x-1 被挡（x 自链接；x-0 自己也命中，但它不在未使用区）
+    const withX0 = rules.addCard(state, 1, card("x", 0), undefined, conflicts);
+    expect([...rules.blockedCardKeys(withX0, pool, conflicts)].sort())
+      .toEqual(["b-0", "x-0", "x-1"]);
+    // 不传互斥表 = 没有互斥约束（兼容旧调用）
+    expect([...rules.blockedCardKeys(state, pool)]).toEqual([]);
+  });
+
+  it("addCard 拒绝共用曲目的角色，也拒绝同一角色的第二张卡面", () => {
+    const empty = rules.adjustDeckSize(emptyState(), 1, 4);
+    const withA = rules.addCard(empty, 0, card("a"), undefined, conflicts);
+    expect(rules.addCard(withA, 0, card("b"), undefined, conflicts)).toBe(withA);   // 共用曲目 → 拒
+    expect(rules.addCard(withA, 0, card("c"), undefined, conflicts)).not.toBe(withA);
+
+    const withX0 = rules.addCard(empty, 0, card("x", 0), undefined, conflicts);
+    expect(rules.addCard(withX0, 0, card("x", 1), undefined, conflicts)).toBe(withX0); // 同角色多卡面 → 拒
+  });
+
+  it("互斥是**跨牌库**的：对手手里有 a，我这边就放不进 b", () => {
+    const empty = rules.adjustDeckSize(emptyState(), 1, 2);
+    const opponentHasA = rules.addCard(empty, 1, card("a"), undefined, conflicts);
+    expect(rules.addCard(opponentHasA, 0, card("b"), undefined, conflicts)).toBe(opponentHasA);
+    expect(rules.addCard(opponentHasA, 0, card("c"), undefined, conflicts)).not.toBe(opponentHasA);
+  });
+
+  it("randomFill 遇到互斥就停下（宁缺毋滥），不会把同一首歌塞两个角色", () => {
+    const state = rules.adjustDeckSize(emptyState(), 1, 2);
+    // 卡池只有 a / b，两者共用一首 → 只填得进一张（抽到谁都是这个结果）
+    const filled = rules.randomFill(state, 0, [card("a"), card("b")], createRng(3), conflicts);
+    expect(filled.players[0]!.deck.filter((slot) => slot !== null)).toHaveLength(1);
+    // 池子里有第三张不冲突的卡就继续填满
+    const more = rules.randomFill(state, 0, [card("a"), card("b"), card("c")], createRng(3), conflicts);
+    expect(more.players[0]!.deck.filter((slot) => slot !== null)).toHaveLength(2);
+  });
+
+  it("randomFill 逐张判定：间接相连的两张卡可以同时填进去", () => {
+    // k 与 n / y 各共用一首，n 与 y 之间没有 → 只有 n / y 时能填满
+    const throughK = { k: ["n", "y"], n: ["k"], y: ["k"] };
+    const state = rules.adjustDeckSize(emptyState(), 1, 2);
+    const filled = rules.randomFill(state, 0, [card("n"), card("y")], createRng(5), throughK);
+    expect(filled.players[0]!.deck.filter((slot) => slot !== null)).toHaveLength(2);
+  });
+
+  it("randomFill 也看对手的牌库：对方的 a 不会让我方抽出 b", () => {
+    const state = rules.adjustDeckSize(emptyState(), 1, 3);
+    const opponentHasA = rules.addCard(state, 1, card("a"), undefined, conflicts);
+    const filled = rules.randomFill(opponentHasA, 0, [card("a"), card("b"), card("c")], createRng(9), conflicts);
+    const mine = filled.players[0]!.deck.filter((slot): slot is CardInfo => slot !== null);
+    expect(mine.map((entry) => entry.characterKey)).toEqual(["c"]);
+  });
+});
+

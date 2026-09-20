@@ -35,6 +35,8 @@ interface UnusedCardsTrayProps {
   width: number;
   visibleWidth: number;
   interactive: boolean;
+  /** 曲目互斥被挡下的卡（`角色-卡序`，D108）：面板里同样压暗且不可点选 */
+  blockedKeys?: ReadonlySet<string>;
   onPick: (card: CardInfo) => void;
   onCardDragStart: (card: CardInfo) => void;
   onDropCard?: () => void;

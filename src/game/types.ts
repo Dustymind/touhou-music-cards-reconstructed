@@ -7,6 +7,18 @@ export interface CardInfo {
   cardIndex: number;
 }
 
+/** 卡面的稳定键：`角色-卡序`（牌桌槽位、选卡区、互斥判定共用一套写法）。 */
+export function cardKey(card: CardInfo): string {
+  return `${card.characterKey}-${card.cardIndex}`;
+}
+
+/** 曲目互斥表：角色 key → 与它互斥的角色 key（**含自身**：同一角色的第二张卡面也不允许）。
+ *
+ * 由 `src/music/songConflicts.ts` 从数据本地派生（两端同一份 bundle → 同一张表），
+ * 所以它**不进快照、不进协议**；`GameState` 里也不放它。
+ */
+export type SongConflicts = Readonly<Record<string, readonly string[]>>;
+
 /** 牌库槽位：`null` 表示空格子。 */
 export type Slot = CardInfo | null;
 

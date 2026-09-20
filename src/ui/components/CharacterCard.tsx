@@ -9,7 +9,12 @@ import { glitchTilt, isCheat, randomColor } from "../../cheat";
 /** 卡面圆角：卡牌本体与选卡显示区边界共用（取 MD2 形状规格，避免两处各写一遍）。 */
 export const CARD_BORDER_RADIUS = `${MD2.shape}px`;
 
-export type CardState = "normal" | "hover" | "disabled" | "disabledHover" | "selected" | "correct" | "incorrect" | "placeholder";
+export type CardState =
+  | "normal" | "hover"
+  | "disabled" | "disabledHover"
+  /** 曲目互斥被挡下的卡（D108）：**保留配色**地压暗，与"真正禁用"的全灰区分开 */
+  | "blocked" | "blockedHover"
+  | "selected" | "correct" | "incorrect" | "placeholder";
 
 const COLOR_BY_STATE: Record<CardState, string> = {
   placeholder: "transparent",
@@ -17,12 +22,22 @@ const COLOR_BY_STATE: Record<CardState, string> = {
   hover: CardColors.Hover,
   disabled: CardColors.Disabled,
   disabledHover: CardColors.DisabledHover,
+  // 底色仍是普通卡的白底：压暗只作用在卡面图上，不把整张卡涂成灰
+  blocked: CardColors.Normal,
+  blockedHover: CardColors.Hover,
   selected: CardColors.Selected,
   correct: CardColors.Correct,
   incorrect: CardColors.Incorrect,
 };
 
-const GRAYSCALE: CardState[] = ["disabled", "disabledHover"];
+/** 卡面图的滤镜：`disabled` 是全灰（不可用）；`blocked` 只轻度降饱和 + 压暗，
+ *  角色配色一眼还认得出（用户要求"不是完全仅黑白灰"）。 */
+const IMAGE_FILTER: Partial<Record<CardState, string>> = {
+  disabled: "grayscale(100%)",
+  disabledHover: "grayscale(100%)",
+  blocked: "grayscale(35%) opacity(0.45)",
+  blockedHover: "grayscale(35%) opacity(0.6)",
+};
 
 /** 图集目录 + 文件名 → 绝对 URL（按 origin 列表拼）。 */
 function cardUrl(cardSet: CardSetRecord, file: string, origin: string): string {
@@ -62,7 +77,7 @@ function CharacterCardInner({
   const background = isCheat()
     ? randomColor(0.5, 1)
     : bare && state === "normal" ? CardColors.Normal : COLOR_BY_STATE[state];
-  const grayscale = GRAYSCALE.includes(state);
+  const imageFilter = IMAGE_FILTER[state] ?? "none";
   const rotation = glitch && !isPlaceholder ? glitchTilt(file) : 0;
 
   return (
@@ -97,7 +112,7 @@ function CharacterCardInner({
               inset: 0,
               objectFit: "contain",
               userSelect: "none",
-              filter: grayscale ? "grayscale(100%)" : "none",
+              filter: imageFilter,
             }}
           />
         )}
