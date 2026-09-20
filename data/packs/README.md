@@ -18,6 +18,21 @@ data/packs/otomads/kirisame-marisa.toml  # 角色文件：`key` 加若干 [[trac
 当前只有 `otomads`（音MAD，`kind = "local"`）：**86 首 / 35 个角色**，音频地址来自本地曲库助手
 （`tmc.local_source` 的 `/manifest.json`，起法见根 `README.md`）。
 
+## 录一条新曲目
+
+```bash
+python3 tools/parse_ingest_rows.py rows.txt      # ① 解析 + 校验 → tools/ingest_rows_<日期>.json
+python3 tools/ingest_otomads.py                  # ② yt-dlp 最高音质下载（已存在会跳过）
+cd tools && UV_CACHE_DIR=.uv/cache uv run python -m tmc.ingest_pack \
+    --pack otomads --rows ../tools/ingest_rows_<日期>.json       # ③ 按角色追加进角色文件
+cd .. && pnpm data:build && pnpm data:validate   # ④ 生成 + 校验
+```
+
+③ 按行的 `character` 分组落文件（文件不存在就新建，带 `key = "…"` 与两行说明），
+**只追加、不改写已有内容**（人工注释与顺序都保住），同 `(专辑, 曲名)` **幂等跳过**，
+`--dry-run` 只打印不落盘；角色 key 不在 `data/characters/*.toml` 里直接报错
+（写错一个 key 会让曲目被静默错挂）。
+
 
 ## `[[track]]` 的三个音频键（可选）
 

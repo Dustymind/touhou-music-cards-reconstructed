@@ -3224,10 +3224,10 @@ e2e mobile **9 passed** ✓；"压暗但保留配色"另用 Playwright 截图 + 
 
 ---
 
-## D109 曲包改成一角色一份文件（音MAD 分离的第一步，形状部分）
+## D109 曲包改成一角色一份文件 + 录入自动化（音MAD 分离的第一步）
 
 **需求**（用户）：把音MAD 那部分拆成 `character.toml` 风格的版本 —— 清单留在
-`data/packs/otomads.toml`，曲目进 `data/packs/otomads/*.toml`；录入也要自动化（见紧随其后的提交）。
+`data/packs/otomads.toml`，曲目进 `data/packs/otomads/*.toml`；并且**要自动化**（录入不再手工追加 TOML）。
 这一条是"音MAD 与原曲完全分离"三步里的**第一步**；B/C 的详细计划写在**仓库外**的工作区文档
 `B-C-PLAN.md`（不进版本库，供跨会话执行）。
 
@@ -3254,14 +3254,24 @@ e2e mobile **9 passed** ✓；"压暗但保留配色"另用 Playwright 截图 + 
 |---|---|
 | `tools/src/tmc/packs.py` | `load_packs()` 只读清单；新增 `_character_tracks()` 扫 `data/packs/<id>/`；`TRACK_KEYS` 去掉 `character`，新增 `CHARACTER_KEYS`；报错带**包内相对路径**（`otomads/cirno.toml`），否则 35 个 `cirno.toml` 分不清是哪个包 |
 | `tools/tests/test_pack_audio.py` | `write_pack()` 改为写"清单 + 角色文件"；新增 4 条布局反例（清单写曲目 / 缺 `key` / 文件名≠`key` / 角色文件写 `[pack]`）与"`character` 不许再写" |
-| 文档 | `data/packs/README.md`、`data/README.md`、`tools/README.md`、`docs/packs-audio-v1.md` §1 示例、根 `README.md` |
+| `tools/src/tmc/ingest_pack.py`（新） | `track_block()`（键序固定、转义引号与反斜杠）与 `append_rows()`（按角色落文件、**只追加不改写**、同 `(专辑, 曲名)` 幂等跳过、`key` 必须存在于 `data/characters/*.toml`）；CLI `python -m tmc.ingest_pack --pack otomads --rows <json>`，`--dry-run` 只打印 |
+| `tools/tests/test_ingest_pack.py`（新） | 键序与转义、新建与追加、幂等、按角色分组、保留人工注释、key/source 校验、`--dry-run` 不落盘 |
+| 文档 | `data/packs/README.md`（形状 + 录入四步）、`data/README.md`、`tools/README.md`、`docs/packs-audio-v1.md` §1 示例、根 `README.md` |
+
+**录入自动化**：此前 `[[track]]` 一直是**手工追加**的 —— `tools/ingest_otomads.py` 只下载音频、
+`tools/parse_ingest_rows.py` 只产出 JSON，**全仓库没有任何脚本写这份 TOML**。
+现在第 ③ 步按行的 `character` 分组落文件，新角色才新建文件（带 `key` 与两行说明），
+已存在的文件只追加（人工注释与顺序都保住）。
 
 **生成物逐字节不变**（本条的验收核心）：`apply_tracks()` 按 `tracks` 顺序把曲包曲目追加到每个角色
 `music` 的末尾，拆分只改文件顺序、不改**同一角色内部**的相对顺序 ⇒ `characters.json` / `albums.json` /
 `packs.json` / `index.json` 与 `contentHash` 全部不变。
 
-**验证**：`pnpm data:check` **无漂移** ✓（= 与拆分前逐字节等价）、`uv run pytest` **76 passed**（+5 条布局用例）✓、
-`pnpm data:validate` 通过（曲包 1 个 / 86 条、84 条带 source，聚合数字与拆分前一致）✓。
+**验证**：`pnpm data:check` **无漂移** ✓（= 与拆分前逐字节等价）、`uv run pytest` **84 passed**（+13 条）✓、
+`pnpm data:validate` 通过（曲包 1 个 / 86 条、84 条带 source，聚合数字与拆分前一致）✓；
+把 D99 那批真实录入行喂给新命令做只读核对：
+`python -m tmc.ingest_pack --pack otomads --rows tools/ingest_rows_2026-09b.json --dry-run`
+→ **20 条全部识别为已存在**（0 写入 / 20 跳过）✓ —— 拆分后的数据与录入器口径一致。
 
 ---
 

@@ -12,7 +12,7 @@
 | 卡面集 / 注册音源 | 6 / 4 | 同上 |
 | 音MAD 曲包 | 1 包：86 首 / 35 个角色；**84 条带 `source`**（可自动抓取）、0 条带裁剪区间 | 清单 `data/packs/otomads.toml` + 一角色一份 `data/packs/otomads/*.toml`；`cd tools && UV_CACHE_DIR=.uv/cache uv run python -m tmc.fetch_audio --dry-run` |
 | 前端单测 | **266 passed** | `pnpm test` |
-| 数据管线测试 | **76 passed** | `cd tools && uv run pytest` |
+| 数据管线测试 | **84 passed** | `cd tools && uv run pytest` |
 | 端到端 | **68 passed + 1 skipped**（chromium 30 / firefox 29+1 / mobile 9） | `pnpm e2e` |
 | 数据漂移 | 无 | `pnpm data:check` |
 | 数据校验 | 通过 | `pnpm data:validate` |
