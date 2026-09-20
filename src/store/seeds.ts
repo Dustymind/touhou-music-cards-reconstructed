@@ -52,12 +52,20 @@ function toSeed(raw: unknown): Seed | null {
   return typeof raw === "number" && Number.isInteger(raw) && raw >= 0 && raw <= SEED_MAX ? raw : null;
 }
 
-const initial = seedStore.load();
-if (initial.ownSeed === 0) {
+/** 首次运行的种子引导：读存档 → 没有就用 D104 之前存在 queue 里的那个 → 都没有就现抽一个，并落盘。
+ *
+ * 模块加载时执行一次；**也是测试入口** —— 测试跑在真实浏览器里，`vi.resetModules()` 不会重跑
+ * ESM 的顶层副作用，所以这段逻辑必须能被直接调用，否则这两条只能靠"重载模块"来测。
+ */
+export function bootstrapSeed(): Seed {
+  const stored = seedStore.load();
+  if (stored.ownSeed !== 0) return stored.ownSeed;
   const ownSeed = legacyQueueSeed() ?? newSeed();
-  initial.ownSeed = ownSeed;
-  seedStore.save(initial);
+  seedStore.save({ ownSeed });
+  return ownSeed;
 }
+
+const initial = { ownSeed: bootstrapSeed() };
 
 interface SeedState {
   /** 本机自己的种子（落盘）：单机时它就是权威种子；联机开房时会被下发给客户端 */

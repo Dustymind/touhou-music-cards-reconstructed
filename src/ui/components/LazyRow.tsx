@@ -5,8 +5,14 @@
  * 而且展开动画会被卡住；懒挂载后只挂载可见的十几行，长任务消失。
  *
  * `IntersectionObserver` 不存在时（jsdom 单测）直接挂载，保证单测里 DOM 照旧齐全。
+ * 单测现在跑在**真实浏览器**里（vitest 浏览器模式），那里有 IntersectionObserver —— 所以再补一条
+ * "测试模式（`import.meta.env.MODE === "test"`）直接挂载"，把上面这个意图在真浏览器里也保住：
+ * 单测要的是完整 DOM，滚动懒挂载是给真实用户看长列表用的（这条由 e2e 覆盖）。
  */
 import { useEffect, useRef, useState } from "react";
+
+/** 单测模式：直接挂载（构建期常量，生产构建里恒为 false，不会把懒挂载关掉）。 */
+const EAGER = import.meta.env.MODE === "test";
 
 interface LazyRowProps {
   children: React.ReactNode;
@@ -19,7 +25,7 @@ interface LazyRowProps {
 }
 
 export function LazyRow({ children, margin = 240, placeholderHeight = 48, testId }: LazyRowProps) {
-  const [shown, setShown] = useState(false);
+  const [shown, setShown] = useState(EAGER);
   const holder = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {

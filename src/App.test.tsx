@@ -1,7 +1,4 @@
 /** 冒烟：真实数据（public/data/*.json）经载入器渲染出外壳与列表。 */
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -11,8 +8,6 @@ import { aliceLabel } from "./ui/shell/AppShell";
 import { installDataFetchStub, installFakeAudio } from "./test-utils";
 import { TURN_COUNTDOWN_MS } from "./game/useGameLoop";
 import { useGame } from "./game/useGame";
-
-const dataDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../public/data");
 
 async function renderApp(): Promise<{ container: HTMLElement; root: Root }> {
   const container = document.createElement("div");
@@ -47,7 +42,7 @@ describe("App 冒烟（真实数据）", () => {
   });
 
   it("载入数据后渲染页签、角色与数据指纹", async () => {
-    installDataFetchStub(dataDir);
+    installDataFetchStub();
     const { container } = await renderApp();
     // 等到音源表载入完成（解析成功后才会出现音源标签）
     const text = await waitFor(container, (value) => value.includes("netease163"));
@@ -65,7 +60,7 @@ describe("App 冒烟（真实数据）", () => {
   });
 
   it("首次进入配置页：预设默认全选（父项勾选、统计 全库可用）", async () => {
-    installDataFetchStub(dataDir);
+    installDataFetchStub();
     const { container } = await renderApp();
     await waitFor(container, (value) => value.includes("Player"));
     const config = Array.from(container.querySelectorAll("button"))
@@ -85,7 +80,7 @@ describe("App 冒烟（真实数据）", () => {
   });
 
   it("开局后真的会出声：回合开始把当前角色的曲子播起来（回归：实际游戏无声）", async () => {
-    installDataFetchStub(dataDir);
+    installDataFetchStub();
     const audios = installFakeAudio();
     const { container } = await renderApp();
     await waitFor(container, (value) => value.includes("Player"));

@@ -2,27 +2,20 @@
  *
  * 这两条规则靠自觉很容易破（随手 `Math.random()` 最省事），但破了两端就会静默分叉 ——
  * 表现为"偶尔两端选了不同的曲子 / 抢到不同的牌"，很难查。所以在 CI 里扫一遍。
+ *
+ * 测试跑在**真实浏览器**里（没有 Node 的 fs），所以源码用 Vite 的
+ * `import.meta.glob(..., { query: "?raw" })` 在**构建期**读成字符串 ——
+ * 与"扫 src/ 目录"是同一件事（排除测试文件），只是扫描发生在打包时。
  */
-import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join, relative, sep } from "node:path";
-
 import { describe, expect, it } from "vitest";
 
-/** vitest 的工作目录就是仓库根，所以直接从 `src/` 扫。 */
-const SRC = join(process.cwd(), "src");
-
-function sourceFiles(dir: string): string[] {
-  const out: string[] = [];
-  for (const entry of readdirSync(dir)) {
-    const full = join(dir, entry);
-    if (statSync(full).isDirectory()) {
-      out.push(...sourceFiles(full));
-      continue;
-    }
-    if (/\.tsx?$/.test(entry) && !/\.test\.tsx?$/.test(entry)) out.push(full);
-  }
-  return out;
-}
+/** 全部源码，键是从**项目根**算起的绝对路径（`/src/rng/index.ts`）——
+ *  用绝对模式而不是相对本文件的 `../**`：相对模式的键会长成 `.././index.ts` 这类形态，映射不唯一。 */
+const SOURCES = import.meta.glob("/src/**/*.{ts,tsx}", {
+  query: "?raw",
+  import: "default",
+  eager: true,
+}) as Record<string, string>;
 
 /** 只看代码，不看注释：这些规则本身就在注释里被反复解释。
  *  `(^|[^:])` 是为了别把字符串里的 `https://` 当行注释。 */
@@ -32,12 +25,19 @@ function stripComments(text: string): string {
     .replace(/(^|[^:])\/\/[^\n]*/g, "$1");
 }
 
-const files = sourceFiles(SRC).map((path) => ({
-  path: relative(process.cwd(), path).split(sep).join("/"),
-  text: stripComments(readFileSync(path, "utf8")),
-}));
+const files = Object.entries(SOURCES)
+  .filter(([path]) => !/\.test\.tsx?$/.test(path))
+  .map(([path, text]) => ({ path: path.replace(/^\//, ""), text: stripComments(text) }));
 
 describe("随机数来源的守卫", () => {
+  it("确实扫到了 src/ 下的源码（glob 失效时这里先红）", () => {
+    expect(files.length).toBeGreaterThan(20);
+    expect(files.some((file) => file.path === "src/game/rules.ts")).toBe(true);
+    expect(files.some((file) => file.path === "src/rng/index.ts")).toBe(true);
+    // 测试文件本身不算在内
+    expect(files.some((file) => /\.test\.tsx?$/.test(file.path))).toBe(false);
+  });
+
   it("src/ 下（除 src/rng/）不出现 Math.random", () => {
     const offenders = files
       .filter((file) => !file.path.startsWith("src/rng/"))

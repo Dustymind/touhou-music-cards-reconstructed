@@ -5,8 +5,6 @@ import type { AlbumRecord, CharacterRecord } from "../data/types";
 import { defaultPreset } from "../music/selection";
 import { buildEntries, type TableMap } from "../music/sources";
 import { BELL_DURATION_MS } from "./bell";
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { gainKeyOf } from "./usePlayer";
 import { fakeTables, installFakeAudio, renderHook, type FakeAudio } from "../test-utils";
 import { usePlayer, type PlayerInputs } from "./usePlayer";
@@ -245,11 +243,10 @@ describe("逐曲音量均衡（方案 A，只对本地音MAD 生效）", () => {
     expect(gainKeyOf(null)).toBeNull();
   });
 
-  it("只有本地曲库的曲目会查系数（其它镜像源一律 1）", () => {
+  it("只有本地曲库的曲目会查系数（其它镜像源一律 1）", async () => {
     // 用真实的 loudness.json 校验键的形状：键都是「作者 - 曲名」
-    const table = JSON.parse(
-      readFileSync(path.resolve(process.cwd(), "public/data/loudness.json"), "utf-8"),
-    ) as { gains: Record<string, number> };
+    // （浏览器模式下 `public/` 由 Vite 服务，直接取，不读盘）
+    const table = (await (await fetch("/data/loudness.json")).json()) as { gains: Record<string, number> };
     const keys = Object.keys(table.gains);
     expect(keys.length).toBeGreaterThan(50);
     // 键就是磁盘文件名：多数是「作者 - 曲名」✓，但也有本来就只写曲名的 ✓，所以不强求分隔符

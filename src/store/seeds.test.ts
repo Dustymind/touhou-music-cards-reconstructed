@@ -1,8 +1,8 @@
 /** 种子权威：谁生成、谁采用、谁能抽（D104）。 */
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import { SEED_MAX } from "../rng";
-import { useSeeds } from "./seeds";
+import { bootstrapSeed, useSeeds } from "./seeds";
 
 function reset(overrides: Partial<Parameters<typeof useSeeds.setState>[0]> = {}): void {
   useSeeds.setState({ ownSeed: 1000, adoptedSeed: null, authority: "authority", nonce: 0, ...overrides });
@@ -88,21 +88,19 @@ describe("种子权威", () => {
     expect(useSeeds.getState().ownSeed).toBe(1000);
   });
 
-  it("D104 迁移：旧 queue 存档里的轮播种子会被搬进种子商店", async () => {
+  it("D104 迁移：旧 queue 存档里的轮播种子会被搬进种子商店", () => {
     localStorage.clear();
     localStorage.setItem("tmc.v1.queue", JSON.stringify({
       v: 1, data: { order: ["a"], temporaryDisabled: {}, currentKey: "a", seed: 424242 },
     }));
-    vi.resetModules();
-    const fresh = await import("./seeds");
-    expect(fresh.useSeeds.getState().ownSeed).toBe(424242);
+    // 直接调引导函数，而不是 resetModules + 重新 import（浏览器模式下顶层副作用不会重跑）
+    expect(bootstrapSeed()).toBe(424242);
+    expect(localStorage.getItem("tmc.v1.seed")).toContain("424242");
   });
 
-  it("首次运行：没有存档就生成一个权威种子并落盘", async () => {
+  it("首次运行：没有存档就生成一个权威种子并落盘", () => {
     localStorage.clear();
-    vi.resetModules();
-    const fresh = await import("./seeds");
-    const seed = fresh.useSeeds.getState().ownSeed;
+    const seed = bootstrapSeed();
     expect(seed).toBeGreaterThanOrEqual(0);
     expect(seed).toBeLessThanOrEqual(SEED_MAX);
     const saved = JSON.parse(localStorage.getItem("tmc.v1.seed")!) as { data: { ownSeed: number } };

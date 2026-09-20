@@ -3319,6 +3319,51 @@ e2e mobile **9 passed** ✓；"压暗但保留配色"另用 Playwright 截图 + 
 
 ---
 
+## D111 单元测试整体搬到真实浏览器（vitest 浏览器模式 + Playwright，chromium / firefox 双引擎）
+
+**需求**（用户）：单元测试也搬到 playwright 驱动上、两个浏览器都跑 —— 与 e2e 同一口径。
+（先做迁移再开 C，因为 C 的验证要用这套基建。）
+
+**为什么**：`vitest + jsdom` 看不见的恰恰是用户看得见的东西 —— 没有布局、没有真媒体、没有真事件，
+折叠分区的退出动画**永远跑不完**。这次迁移当场就抓出三条"因为 jsdom 的缺陷而通过"的用例（见下）。
+
+**做法**：`vite.config.ts` 的 `test.browser = { provider: "playwright", instances: [chromium, firefox] }`
+
+| 决定 | 理由 |
+|---|---|
+| **两个实例都跑** | 用户要求两个浏览器：`pnpm test` 一次跑两个引擎（550 条），另有 `test:chromium` / `test:firefox` 单跑 |
+| **视口钉 1280×800** | 浏览器模式默认视口是**移动端**尺寸，会让 `useMediaQuery("(max-width: 599.95px)")` 判定为窄屏（App 冒烟的彩蛋文案、按容器宽度算出的卡面尺寸都跟着变）；窄屏由 e2e 的 mobile project 负责 |
+| **浏览器会话端口钉 18001**（`VITEST_BROWSER_PORT` 可覆盖） | 默认会从 63315 往上自动找端口，在受限环境里一路报到 65536 然后崩 |
+| **单测文件串行**（`fileParallelism: false`） | 与 e2e 的 `workers: 1, fullyParallel: false` 同理：真浏览器里并行跑几个重文件会把会话拖垮（firefox 报 `Failed to connect to the browser session`，页面停在 Loading） |
+| **`LazyRow` 测试模式直接挂载** | 该组件原本就有"`IntersectionObserver` 不存在时（jsdom 单测）直接挂载，保证单测里 DOM 照旧齐全"的约定；换到真浏览器（有 IO）后这条失效 ⇒ 补 `import.meta.env.MODE === "test"`（构建期常量，生产构建恒 false，懒挂载不受影响） |
+| **去掉 `jsdom` 依赖**；命令与 e2e 对齐 | 不再有 jsdom 环境；`PLAYWRIGHT_BROWSERS_PATH="$PWD/.playwright-browsers"` 复用仓库里那套浏览器 |
+
+**为"在浏览器里跑"改的 4 处**（换环境，不改行为）：
+
+| 文件 | 之前 | 现在 |
+|---|---|---|
+| `src/test-utils.tsx` | `node:fs` 读 `public/data/*.json` 假装 fetch | 真 `fetch("/data/…")`（Vite 服务 `public/`），只拦远程音源表 |
+| `src/App.test.tsx` | `node:path` 拼数据目录 | 去掉 Node 路径，直接用同源 `/data` |
+| `src/audio/usePlayer.test.tsx` | `readFileSync("public/data/loudness.json")` | `fetch("/data/loudness.json")` |
+| `src/rng/authority.test.ts` | `node:fs` 扫 `src/` | Vite `import.meta.glob("/src/**/*.{ts,tsx}", { query: "?raw" })`（构建期读成字符串，语义不变），并补一条"确实扫到了源码"的自检 |
+
+另：`src/store/seeds.ts` 的"首次运行引导"抽成可调用的 `bootstrapSeed()` —— 浏览器模式下
+`vi.resetModules()` **不会重跑 ESM 顶层副作用**，"重载模块"不再是可用的测法（两条用例改成直接调它）。
+
+**迁移当场抓出的三类问题**（都是 jsdom 掩盖的）：
+
+1. **折叠分区的退出动画在 jsdom 里永不结束** ⇒ "收起来的分区"内容一直挂在 DOM 上，于是 `ConfigPanel`
+   的多条用例不展开也能断言到内容；真浏览器里会 `unmountOnExit`。用例改成**先展开**（本来就是该有的步骤）。
+2. **默认视口是移动端尺寸** ⇒ `App` 冒烟的彩蛋文案断言按窄屏取值。视口钉成桌面。
+3. **写死 jsdom 的兜底宽度**（`0.08 × 1000 = 80px`）⇒ 真浏览器里有真布局。`GamePanel` 那两条改成断言
+   **行为**（按容器百分比、步进、上下限夹紧、未使用区与卡槽同尺寸、落盘与恢复），不写死像素。
+
+**验证**：`pnpm test` **550 passed**（275 条 × chromium + firefox，约 80s）✓、`pnpm typecheck` ✓、
+`pnpm e2e`（dev 构建，`MODE !== "test"` ⇒ 懒挂载照旧）**72 passed + 1 skipped** ✓、
+`pnpm data:check` 无漂移 ✓。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |

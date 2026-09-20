@@ -1,7 +1,8 @@
-/** 极简 renderHook：不引入 testing-library，保持依赖面最小。 */
-import { readFile } from "node:fs/promises";
-import path from "node:path";
-
+/** 极简 renderHook：不引入 testing-library，保持依赖面最小。
+ *
+ * 测试跑在**真实浏览器**里（vitest 浏览器模式 + Playwright，chromium / firefox）：
+ * `public/` 由 Vite 直接服务，所以 `public/data/*.json` 直接用真 `fetch` 取，不需要 Node 读盘。
+ */
 import { act } from "react";
 
 import type { DataBundle } from "./data/types";
@@ -71,28 +72,28 @@ export class FakeAudio extends EventTarget {
   };
 }
 
-/** 把 `public/data/*.json` 当作 fetch 的响应源（测试不打网络）。 */
-export function installDataFetchStub(dataDir?: string): void {
-  const dir = dataDir ?? path.resolve(process.cwd(), "public/data");
-  globalThis.fetch = (async (input: RequestInfo | URL) => {
-    const url = new URL(String(input), "http://localhost/");
-    const json = (value: unknown) =>
-      new Response(JSON.stringify(value), { status: 200, headers: { "Content-Type": "application/json" } });
-    if (!url.pathname.startsWith("/data/")) {
-      // 远程音源表：给一份覆盖 order #1 角色全部曲目的假表
-      const characters = JSON.parse(await readFile(path.join(dir, "characters.json"), "utf8")) as {
-        characters: { music: [string, string, string][] }[];
-      };
-      return json(characters.characters[0]!.music.map(([album, title]) => [album, title, "data:audio/mpeg;base64,"]));
-    }
-    const file = path.join(dir, url.pathname.replace(/^\/data\//, ""));
-    return json(JSON.parse(await readFile(file, "utf8")));
+/** 把远程音源表换成假响应（测试不打网络）。
+ *
+ * `/data/*` 的请求原样交给真 `fetch`（Vite 服务 `public/`），只有镜像表的远程地址被截下来，
+ * 给一份覆盖 order #1 角色全部曲目的假表 —— 于是播放层能解析出"地址"，但不会真的去下载。
+ */
+export function installDataFetchStub(): void {
+  const realFetch = globalThis.fetch.bind(globalThis);
+  const json = (value: unknown): Response =>
+    new Response(JSON.stringify(value), { status: 200, headers: { "Content-Type": "application/json" } });
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = new URL(String(input), globalThis.location?.origin ?? "http://localhost/");
+    if (url.pathname.startsWith("/data/")) return realFetch(input as RequestInfo, init);
+    const characters = (await (await realFetch("/data/characters.json")).json()) as {
+      characters: { music: [string, string, string][] }[];
+    };
+    return json(characters.characters[0]!.music.map(([album, title]) => [album, title, "data:audio/mpeg;base64,"]));
   }) as typeof fetch;
 }
 
 /** 用真实生成物载入一份 bundle。 */
-export async function loadRealBundle(dataDir?: string): Promise<DataBundle> {
-  installDataFetchStub(dataDir);
+export async function loadRealBundle(): Promise<DataBundle> {
+  installDataFetchStub();
   return loadDataBundle("/data");
 }
 

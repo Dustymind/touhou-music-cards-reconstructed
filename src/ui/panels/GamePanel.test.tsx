@@ -398,46 +398,69 @@ describe("GamePanel", () => {
 
   it("卡片大小按容器百分比（上游默认 0.08），按钮步进 0.01 并夹住上下限", async () => {
     const container = await render();
-    const cardWidth = (): string =>
-      container.querySelector('[data-testid="deck-you"]')?.getAttribute("data-card-width") ?? "";
-    const trayWidth = (): string =>
-      container.querySelector('[data-testid="unused-cards"]')?.getAttribute("data-card-width") ?? "";
+    const cardWidth = (): number =>
+      Number(container.querySelector('[data-testid="deck-you"]')?.getAttribute("data-card-width") ?? 0);
+    const trayWidth = (): number =>
+      Number(container.querySelector('[data-testid="unused-cards"]')?.getAttribute("data-card-width") ?? 0);
+    const smaller = (): HTMLButtonElement =>
+      container.querySelector<HTMLButtonElement>('[data-testid="card-smaller"]')!;
+    const larger = (): HTMLButtonElement =>
+      container.querySelector<HTMLButtonElement>('[data-testid="card-larger"]')!;
 
-    // jsdom 没有布局，容器宽度取兜底值 1000 → 0.08 × 1000 = 80px
-    expect(cardWidth()).toBe("80");
-    expect(trayWidth()).toBe("80");     // 未使用卡牌区与卡槽同尺寸
+    // 真实浏览器里有真布局（不再是 jsdom 的兜底 1000）：只断言**行为** ——
+    // 按容器百分比、步进、夹紧、两区同尺寸 —— 不写死像素（像素随容器宽度变）。
+    const base = cardWidth();
+    expect(base).toBeGreaterThan(0);
+    expect(trayWidth()).toBe(base);            // 未使用卡牌区与卡槽同尺寸
 
     await click(container, "card-larger");
-    expect(cardWidth()).toBe("90");
-    expect(trayWidth()).toBe("90");
+    const oneStepUp = cardWidth();
+    expect(oneStepUp).toBeGreaterThan(base);   // 0.08 → 0.09
+    expect(trayWidth()).toBe(oneStepUp);
     await click(container, "card-smaller");
     await click(container, "card-smaller");
-    expect(cardWidth()).toBe("70");
-    expect(trayWidth()).toBe("70");
+    expect(cardWidth()).toBeLessThan(base);    // 0.09 → 0.07
 
+    // 一路减小：到下限后按钮禁用、宽度不再变
     for (let i = 0; i < 12; i += 1) await click(container, "card-smaller");
-    expect(cardWidth()).toBe("40");                             // 0.04 × 1000 = 下限
-    expect(container.querySelector<HTMLButtonElement>('[data-testid="card-smaller"]')?.disabled).toBe(true);
+    const floor = cardWidth();
+    expect(smaller().disabled).toBe(true);
+    await click(container, "card-smaller");
+    expect(cardWidth()).toBe(floor);
+
+    // 一路加大：到上限后按钮禁用、宽度不再变
     for (let i = 0; i < 40; i += 1) await click(container, "card-larger");
-    expect(cardWidth()).toBe("400");                            // 0.40 × 1000 = 上限
-    expect(container.querySelector<HTMLButtonElement>('[data-testid="card-larger"]')?.disabled).toBe(true);
+    const ceiling = cardWidth();
+    expect(larger().disabled).toBe(true);
+    await click(container, "card-larger");
+    expect(cardWidth()).toBe(ceiling);
+
+    // 夹在 0.04~0.40：上下限之比 ≈ 10 倍（同一容器宽度下）
+    expect(ceiling / floor).toBeGreaterThan(9);
+    expect(ceiling / floor).toBeLessThan(11);
     // 设置落盘（上游同样存在 localStorage 的 gameSetting）
     expect(localStorage.getItem("gameSetting")).toContain("cardWidthPercentage");
   });
 
   it("卡片大小与牌库尺寸会记住：改过的设置下次进游戏页自动恢复", async () => {
     const container = await render();
+    const widthOf = (root: HTMLElement): number =>
+      Number(root.querySelector('[data-testid="deck-you"]')?.getAttribute("data-card-width") ?? 0);
+    const before = widthOf(container);
+
     await click(container, "card-larger");
     await click(container, "card-larger");
     await click(container, "card-larger");
     await click(container, "card-larger");            // 0.08 → 0.12
+    const widened = widthOf(container);
+    expect(widened).toBeGreaterThan(before);
     await act(async () => {
       root?.unmount();
     });
     document.body.innerHTML = "";
 
     const again = await render();
-    expect(again.querySelector('[data-testid="deck-you"]')?.getAttribute("data-card-width")).toBe("120");
+    expect(widthOf(again)).toBe(widened);             // 重进游戏页恢复原值
   });
 
   it("拖动放置的动效前提：换格子时是同一个 DOM 节点（卡牌层 key = 角色-卡序）", async () => {

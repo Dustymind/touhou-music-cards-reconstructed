@@ -16,7 +16,28 @@ export default defineConfig({
   },
   build: { outDir: "dist", sourcemap: true },
   test: {
-    environment: "jsdom",
+    // 单元测试跑在**真实浏览器**里（Playwright 驱动）：chromium 与 firefox 两个实例都跑，
+    // 和 e2e 一个口径 —— jsdom 没有布局、没有真媒体、没有真事件，很多问题它看不见。
+    browser: {
+      enabled: true,
+      provider: "playwright",
+      headless: true,
+      screenshotFailures: false,   // 失败截图不进 test-results（e2e 的 trace 已经够用）
+      // 端口写死一个（可用 VITEST_BROWSER_PORT 覆盖）：默认的自动探测会从 63315 往上试，
+      // 在没有高位端口的环境（沙箱 / 受限网络）里会一路报到 65536 然后崩掉。
+      api: Number(process.env.VITEST_BROWSER_PORT ?? 18001),
+      // 单测文件**串行**跑：和 e2e 的 `workers: 1, fullyParallel: false` 一个道理 ——
+      // 真浏览器里并行跑多个重文件（App 冒烟要取真实数据 + 跑对局）会把会话拖垮，
+      // 表现为 firefox 报 "Failed to connect to the browser session"、页面停在 Loading。
+      fileParallelism: false,
+      // 视口写成**桌面**尺寸：默认视口是移动端那种小尺寸，会让 `useMediaQuery("(max-width: 599.95px)")`
+      // 判定为窄屏、让按容器宽度算出来的卡面尺寸跟着变 —— 单测要的是确定性的桌面口径
+      // （窄屏是 e2e 的 mobile project 负责的）。
+      instances: [
+        { browser: "chromium", viewport: { width: 1280, height: 800 } },
+        { browser: "firefox", viewport: { width: 1280, height: 800 } },
+      ],
+    },
     include: ["src/**/*.test.{ts,tsx}"],
     setupFiles: ["src/test-setup.ts"],
     globals: true,
