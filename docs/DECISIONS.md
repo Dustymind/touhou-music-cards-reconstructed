@@ -3224,6 +3224,47 @@ e2e mobile **9 passed** ✓；"压暗但保留配色"另用 Playwright 截图 + 
 
 ---
 
+## D109 曲包改成一角色一份文件（音MAD 分离的第一步，形状部分）
+
+**需求**（用户）：把音MAD 那部分拆成 `character.toml` 风格的版本 —— 清单留在
+`data/packs/otomads.toml`，曲目进 `data/packs/otomads/*.toml`；录入也要自动化（见紧随其后的提交）。
+这一条是"音MAD 与原曲完全分离"三步里的**第一步**；B/C 的详细计划写在**仓库外**的工作区文档
+`B-C-PLAN.md`（不进版本库，供跨会话执行）。
+
+**为什么**：曲包此前是**单文件 708 行 / 86 条 `[[track]]`**，`character = "…"` 逐条重复；手工追加要在一份
+共享文件里找位置，且 `character` 写错成**另一个存在的 key**（如 `yakumo-ran` ↔ `yakumo-yukari`）会
+**静默错挂** —— `apply_tracks` 只拦"不存在的 key"。一角色一份之后，归属由文件名与 `key` 决定，
+"写错"从静默变成构建期报错。
+
+**形状**：
+
+| 文件 | 内容 |
+|---|---|
+| `data/packs/otomads.toml` | 清单：只放 `[pack]` + `[[album]]`（原注释与 `show_album_name = false` 原样保留） |
+| `data/packs/otomads/<角色 key>.toml` | **35 份**：顶层 `key`（**必须等于文件名**）+ 若干 `[[track]]`（每份 1…8 条） |
+
+`[[track]]` 里不再写 `character`（角色由 `key` 决定）；清单里写 `[[track]]` 直接报错。
+能照搬 `character.toml` 的是"一角色一文件 + 顶层 `key`"，**不照搬** `music = [[专辑, 曲名, 附加信息]]`
+的位置数组 —— D107 的 `source` / `start_time` / `stop_time` 塞不进位置数组，而 D107 的教训正是
+"位置写法拼错会被静默丢"。
+
+**实现**：
+
+| 位置 | 做了什么 |
+|---|---|
+| `tools/src/tmc/packs.py` | `load_packs()` 只读清单；新增 `_character_tracks()` 扫 `data/packs/<id>/`；`TRACK_KEYS` 去掉 `character`，新增 `CHARACTER_KEYS`；报错带**包内相对路径**（`otomads/cirno.toml`），否则 35 个 `cirno.toml` 分不清是哪个包 |
+| `tools/tests/test_pack_audio.py` | `write_pack()` 改为写"清单 + 角色文件"；新增 4 条布局反例（清单写曲目 / 缺 `key` / 文件名≠`key` / 角色文件写 `[pack]`）与"`character` 不许再写" |
+| 文档 | `data/packs/README.md`、`data/README.md`、`tools/README.md`、`docs/packs-audio-v1.md` §1 示例、根 `README.md` |
+
+**生成物逐字节不变**（本条的验收核心）：`apply_tracks()` 按 `tracks` 顺序把曲包曲目追加到每个角色
+`music` 的末尾，拆分只改文件顺序、不改**同一角色内部**的相对顺序 ⇒ `characters.json` / `albums.json` /
+`packs.json` / `index.json` 与 `contentHash` 全部不变。
+
+**验证**：`pnpm data:check` **无漂移** ✓（= 与拆分前逐字节等价）、`uv run pytest` **76 passed**（+5 条布局用例）✓、
+`pnpm data:validate` 通过（曲包 1 个 / 86 条、84 条带 source，聚合数字与拆分前一致）✓。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |

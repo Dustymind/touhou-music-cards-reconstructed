@@ -8,7 +8,13 @@
 * 校验里"每条被引用的曲目都必须在三个镜像表里"这条要**跳过**曲包曲目，
   但不能跳过别的检查（专辑注册、角色存在、重复、附加信息合法性）。
 
-TOML 形状::
+布局：**一个曲包 = 一份清单 + 一角色一份曲目文件**（曲目文件与 ``data/characters/*.toml`` 同一风格，
+一角色一份、顶层 ``key``）::
+
+    data/packs/otomads.toml                    # 清单：只放 [pack] 与 [[album]]
+    data/packs/otomads/kirisame-marisa.toml    # 角色文件：该角色的若干 [[track]]
+
+清单（``data/packs/<曲包 id>.toml``）::
 
     [pack]
     id = "otomads"
@@ -24,8 +30,11 @@ TOML 形状::
     pack = "otomads"
     order = 100
 
+角色文件（``data/packs/<曲包 id>/<角色 key>.toml``）::
+
+    key = "kirisame-marisa"   # 必须与文件名一致；文件的曲目都算这个角色
+
     [[track]]
-    character = "kirisame-marisa"
     album = "otomads"
     author = "川先僧"
     title = "普通肥猫魔法使"
@@ -34,12 +43,16 @@ TOML 形状::
     start_time = "00:00:40.000"                              # 可选：裁剪开始
     stop_time = "00:01:10.000"                               # 可选：裁剪结束
 
+``[[track]]`` 里**不再写 ``character``**（角色由文件的 ``key`` 决定），清单里也**不许**写
+``[[track]]``（曲目一律进角色文件），两条都**直接报错**而不是猜。
+
 三个音频键（``source`` / ``start_time`` / ``stop_time``）**只在抓取与裁剪期被读**，
 运行时不进 ``characters.json``、前端也看不到它们（契约见 ``docs/packs-audio-v1.md``）。
 """
 from __future__ import annotations
 
 import hashlib
+import pathlib
 import re
 import tomllib
 
@@ -48,11 +61,15 @@ from . import repo
 #: 曲包的 kind：local 表示曲目地址来自本地曲库助手的 manifest
 PACK_KINDS = ("local",)
 
-#: 三个段各自允许的键。**写错键名必须报错**：早先解析只读自己认识的键，
+#: 各段允许的键。**写错键名必须报错**：早先解析只读自己认识的键，
 #: 拼错的 `starttime` 会被静默丢掉，表现为"数据里写了却不生效"（见 docs/packs-audio-v1.md §1）。
 PACK_KEYS = {"id", "label_en", "label_zh", "kind", "order"}
 ALBUM_KEYS = {"key", "name", "kind", "pack", "order", "show_album_name"}
-TRACK_KEYS = {"character", "album", "author", "title", "extra", "source", "start_time", "stop_time"}
+#: 角色文件里 `[[track]]` 的键 —— **没有** `character`：角色由文件的 `key` 决定
+TRACK_KEYS = {"album", "author", "title", "extra", "source", "start_time", "stop_time"}
+#: 角色文件的顶层键（`track` 之外）
+CHARACTER_KEYS = {"key"}
+
 
 #: 裁剪时间的格式：`HH:MM:SS.mmm`（时:分:秒.毫秒）
 TIME_RE = re.compile(r"^(\d{1,2}):([0-5]\d):([0-5]\d)\.(\d{3})$")
@@ -140,21 +157,51 @@ def load_packs() -> tuple[list[dict], list[dict], list[dict]]:
             if "show_album_name" in entry:
                 album["showAlbumName"] = bool(entry["show_album_name"])
             albums.append(album)
+        if data.get("track"):
+            raise SystemExit(f"{path.name}: 曲目要写进 data/packs/{pack_id}/<角色 key>.toml（一角色一份），"
+                             f"清单只放 [pack] 与 [[album]]")
+        tracks.extend(_character_tracks(directory / pack_id, path.name))
+    packs.sort(key=lambda item: item["order"])
+    return packs, albums, tracks
+
+
+def _character_tracks(pack_dir: pathlib.Path, manifest: str) -> list[dict]:
+    """读 ``data/packs/<曲包 id>/*.toml`` → 曲目列表（文件按名排序，文件内保持原顺序）。
+
+    角色由文件的 ``key`` 决定，**文件名必须与它一致**：曲包里的 key 写错曾一次性丢掉 3 条曲目
+    （`apply_tracks` 记过），所以这里错了直接报；报错文案带包内相对路径，
+    否则 35 个 `cirno.toml` 分不清是哪个包。
+    """
+    if not pack_dir.is_dir():
+        return []
+    out: list[dict] = []
+    for path in sorted(pack_dir.glob("*.toml")):
+        where = f"{pack_dir.name}/{path.name}"
+        with open(path, "rb") as fh:
+            data = tomllib.load(fh)
+        if "pack" in data or "album" in data:
+            raise SystemExit(f"{where}: [pack] / [[album]] 只能写在清单 {manifest} 里")
+        _reject_unknown(where, {k: v for k, v in data.items() if k != "track"}, CHARACTER_KEYS)
+        key = data.get("key")
+        if not isinstance(key, str) or not key:
+            raise SystemExit(f"{where}: 缺少 key（= 角色 key）")
+        if path.stem != key:
+            raise SystemExit(f"{where}: 文件名与 key 不一致（{path.stem} vs {key}）")
         for entry in data.get("track", []):
-            _reject_unknown(f"{path.name} 的 [[track]]", entry, TRACK_KEYS)
+            _reject_unknown(f"{where} 的 [[track]]", entry, TRACK_KEYS)
             track = {
-                "character": entry["character"],
+                "character": key,
                 "album": entry["album"],
                 "title": entry["title"],
                 "extra": entry.get("extra", "角色曲"),
-                "pack": pack_id,
+                "pack": pack_dir.name,
             }
             if entry.get("author"):
                 track["author"] = entry["author"]
-            _read_audio_keys(entry, track, f"{path.name} / {track['title']}")
-            tracks.append(track)
-    packs.sort(key=lambda item: item["order"])
-    return packs, albums, tracks
+            _read_audio_keys(entry, track, f"{where} / {track['title']}")
+            out.append(track)
+    return out
+
 
 
 def _read_audio_keys(entry: dict, track: dict, where: str) -> None:

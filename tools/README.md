@@ -2,7 +2,7 @@
 
 ```bash
 UV_CACHE_DIR=.uv/cache uv sync          # 建立 tools/.venv
-UV_CACHE_DIR=.uv/cache uv run pytest    # 跑数据/规则测试（当前 71 条）
+UV_CACHE_DIR=.uv/cache uv run pytest    # 跑数据/规则测试（当前 76 条）
 ```
 
 当前模块：
@@ -14,7 +14,7 @@ UV_CACHE_DIR=.uv/cache uv run pytest    # 跑数据/规则测试（当前 71 条
 | `tmc.stages` | 抓取并解析作品页 BOSS 表 → 面次 × 登场角色参照表 |
 | `tmc.roles` | 标签索引、`附加信息` 判定（R-OVR/R0–R6）、人工裁定表 |
 | `tmc.migrate` | 上游 v3 JSON → TOML / 专辑注册表 / 数组化源表 + 报告 |
-| `tmc.packs` | 曲包（`data/packs/*.toml`）的加载与校验：镜像表以外的曲目（音MAD） |
+| `tmc.packs` | 曲包的加载与校验：清单 `data/packs/<id>.toml` + 角色文件 `data/packs/<id>/<角色 key>.toml`（镜像表以外的曲目，如音MAD） |
 | `tmc.validate` | 不变量校验、面次核对、覆盖表一致性 |
 | `tmc.build` | 生成 `public/data/*.json`（`--check` 做漂移守卫；`contentHash` 含曲包音频口径） |
 | `tmc.fetch_audio` | 抓取（yt-dlp）+ 裁剪（ffmpeg `-c copy`）曲包音频，顺带刷新响度表 |

@@ -2,7 +2,8 @@
 
 **状态：已实现**（D107）。字段与流程按用户 11 条答复定（见 §7）；实现结果与偏差见 §12。
 
-对象：`data/packs/*.toml` 的 `[[track]]` 新增三个键 —— `source`（抓取）、`start_time` / `stop_time`（裁剪）。
+对象：曲包**角色文件**（`data/packs/<曲包 id>/<角色 key>.toml`，一角色一份；清单只放 `[pack]` / `[[album]]`）
+的 `[[track]]` 新增三个键 —— `source`（抓取）、`start_time` / `stop_time`（裁剪）。
 目的：音MAD 这类曲包曲目不必再手工下载、手工剪，改成"数据里写清来源与裁剪区间，一条命令产出可播放的音频"。
 
 ## 1. 字段
@@ -21,8 +22,10 @@
   否则 TOML 里写了也等于没写。
 
 ```toml
+# data/packs/otomads/cirno.toml（文件名必须等于 key；曲目的角色由它决定）
+key = "cirno"
+
 [[track]]
-character = "cirno"
 album = "otomads"
 author = "鞍山侯国玉电乐团"
 title = "无何有之棍 ~ Deep Silver"
@@ -210,7 +213,7 @@ BV 号原先散在三处：`tools/ingest_otomads.py` 的 `ROWS`（61 条）、`t
 | `tools/src/tmc/loudness.py` | 从 `measure_loudness.py` 抽出的可调用核心；顺手修掉"`reset` 的键没被删"与"已删文件的旧键不清" |
 | `tools/src/tmc/fetch_audio.py` | 新增：依赖检查、yt-dlp 更新策略、幂等状态、下载、裁剪、硬链接去重、顺带量响度、汇总与退出码 |
 | `tools/pyproject.toml` + `uv.lock` | 加 `yt-dlp` 依赖（uv 管理；升级会改 lock，属预期） |
-| `data/packs/otomads.toml` | 84 条回填 `source`（见 §9） |
+| `data/packs/otomads.toml` | 84 条回填 `source`（见 §9；当时还是单文件 —— D109 之后曲目在 `data/packs/otomads/*.toml` 一角色一份，见 `data/packs/README.md`） |
 | `public/data/index.json` | `contentHash` 从 `d5fd15d4…` 变成 `93bdb1a9…` —— 这正是"音频口径进握手"的效果 |
 | 测试 | `tools/tests/test_pack_audio.py`；Python 测试 33 → **71** |
 

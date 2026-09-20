@@ -85,19 +85,18 @@ def test_source_key_is_stable_and_distinct():
 
 # ------------------------------------------------------------------ 解析（含未知键）
 
-def write_pack(tmp_path, body: str):
+def write_pack(tmp_path, tracks: str, manifest: str = '[pack]\nid = "demo"\n', character: str = "cirno"):
+    """写一个最小曲包：`packs/demo.toml`（清单）+ `packs/demo/<角色>.toml`（曲目）。"""
     packs_dir = tmp_path / "packs"
-    packs_dir.mkdir(exist_ok=True)
-    (packs_dir / "demo.toml").write_text(body, encoding="utf-8")
+    (packs_dir / "demo").mkdir(parents=True, exist_ok=True)
+    (packs_dir / "demo.toml").write_text(manifest, encoding="utf-8")
+    (packs_dir / "demo" / f"{character}.toml").write_text(
+        f'key = "{character}"\n\n{tracks}', encoding="utf-8")
 
 
 def test_load_packs_reads_audio_keys(tmp_path, monkeypatch):
     write_pack(tmp_path, """
-[pack]
-id = "demo"
-
 [[track]]
-character = "cirno"
 album = "demo"
 author = "作者"
 title = "标题"
@@ -108,6 +107,7 @@ stop_time = "00:00:20.000"
 """)
     monkeypatch.setattr(packs.repo, "DATA", tmp_path)
     _packs, _albums, tracks = packs.load_packs()
+    assert tracks[0]["character"] == "cirno"                 # 角色由文件的 key 决定
     assert tracks[0]["source"] == "https://example.com/a"
     assert tracks[0]["start_time"] == "00:00:10.000"
     assert packs.trim_seconds(tracks[0]) == (10.0, 10.0)
@@ -115,24 +115,45 @@ stop_time = "00:00:20.000"
 
 @pytest.mark.parametrize(("line", "message"), [
     ('starttime = "00:00:10.000"', "不认识的键"),          # 拼错的键不许静默丢弃
+    ('character = "cirno"', "不认识的键"),                 # 角色由文件的 key 决定，不再逐条写
     ('source = "ftp://example.com/a"', "source 必须是"),   # 只认 http(s)
     ('start_time = "10"', "时间格式"),                     # 格式错
     ('start_time = "00:00:30.000"\nstop_time = "00:00:10.000"', "必须晚于"),   # 区间倒挂
 ])
 def test_load_packs_rejects_bad_keys(tmp_path, monkeypatch, line, message):
-    write_pack(tmp_path, f'[pack]\nid = "demo"\n\n[[track]]\ncharacter = "cirno"\nalbum = "demo"\n'
-                         f'title = "标题"\n{line}\n')
+    write_pack(tmp_path, f'[[track]]\nalbum = "demo"\ntitle = "标题"\n{line}\n')
     monkeypatch.setattr(packs.repo, "DATA", tmp_path)
     with pytest.raises(SystemExit, match=message):
         packs.load_packs()
 
 
 def test_load_packs_allows_stop_only(tmp_path, monkeypatch):
-    write_pack(tmp_path, '[pack]\nid = "demo"\n\n[[track]]\ncharacter = "cirno"\nalbum = "demo"\n'
-                         'title = "标题"\nstop_time = "00:00:10.000"\n')
+    write_pack(tmp_path, '[[track]]\nalbum = "demo"\ntitle = "标题"\nstop_time = "00:00:10.000"\n')
     monkeypatch.setattr(packs.repo, "DATA", tmp_path)
     _packs, _albums, tracks = packs.load_packs()
     assert packs.trim_seconds(tracks[0]) == (0.0, 10.0)      # 只给 stop ⇒ 从开头裁到 10s
+
+
+@pytest.mark.parametrize(("manifest", "character", "body", "message"), [
+    # 清单里写曲目：曲目一律进角色文件（否则两处都能写，迟早漂移）
+    ('[pack]\nid = "demo"\n\n[[track]]\nalbum = "demo"\ntitle = "标题"\n', "cirno",
+     'key = "cirno"\n', "一角色一份"),
+    # 角色文件缺 key
+    ('[pack]\nid = "demo"\n', "cirno", '[[track]]\nalbum = "demo"\ntitle = "标题"\n', "缺少 key"),
+    # 文件名与 key 不一致（写错一个字符就会被静默错挂，所以直接报）
+    ('[pack]\nid = "demo"\n', "cirno", 'key = "cirno-2"\n', "文件名与 key 不一致"),
+    # 角色文件里写 [pack] / [[album]]
+    ('[pack]\nid = "demo"\n', "cirno", 'key = "cirno"\n[pack]\nid = "demo"\n', "只能写在清单"),
+])
+def test_load_packs_rejects_bad_layout(tmp_path, monkeypatch, manifest, character, body, message):
+    packs_dir = tmp_path / "packs"
+    (packs_dir / "demo").mkdir(parents=True, exist_ok=True)
+    (packs_dir / "demo.toml").write_text(manifest, encoding="utf-8")
+    (packs_dir / "demo" / f"{character}.toml").write_text(body, encoding="utf-8")
+    monkeypatch.setattr(packs.repo, "DATA", tmp_path)
+    with pytest.raises(SystemExit, match=message):
+        packs.load_packs()
+
 
 
 # ------------------------------------------------------------------ 校验

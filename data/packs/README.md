@@ -1,12 +1,23 @@
 # 附加曲包
 
-一个曲包 = 一份 TOML（`[pack]` + `[[album]]` + `[[track]]`）；曲目带上 `pack` 归属后，界面按曲包过滤，
-"当前音乐模式可用"的判定也只算上它们里的曲目。曲包曲目**不进** `data/sources/*.json`（地址由曲包的
-`kind` 决定），所以 `tmc.validate` 会跳过"必须在镜像表里"这一条，其余检查照旧（专辑注册、角色存在、
-重复、`附加信息` 合法）。
+一个曲包 = **一份清单 + 一角色一份曲目文件**（曲目文件与 `data/characters/*.toml` 同一风格：
+一角色一份、顶层 `key`）：
 
-当前只有 `otomads.toml`（音MAD，`kind = "local"`）：**86 首 / 35 个角色**，音频地址来自本地曲库助手
-（`tmc.local_source` 的 `/manifest.json`，起法见根 `README.md`）。加载与校验在 `tools/src/tmc/packs.py`。
+```
+data/packs/otomads.toml                  # 清单：只放 [pack] 与 [[album]]
+data/packs/otomads/kirisame-marisa.toml  # 角色文件：`key` 加若干 [[track]]
+```
+
+曲目带上 `pack` 归属后，界面按曲包过滤，"当前音乐模式可用"的判定也只算上它们里的曲目。
+曲包曲目**不进** `data/sources/*.json`（地址由曲包的 `kind` 决定），所以 `tmc.validate` 会跳过
+"必须在镜像表里"这一条，其余检查照旧（专辑注册、角色存在、重复、`附加信息` 合法）。
+
+两条硬规矩（写了直接报错，不猜）：清单里**不许**写 `[[track]]`；`[[track]]` 里**不许**写 `character`
+—— 角色由文件的 `key` 决定，且**文件名必须等于 `key`**。加载与校验在 `tools/src/tmc/packs.py`。
+
+当前只有 `otomads`（音MAD，`kind = "local"`）：**86 首 / 35 个角色**，音频地址来自本地曲库助手
+（`tmc.local_source` 的 `/manifest.json`，起法见根 `README.md`）。
+
 
 ## `[[track]]` 的三个音频键（可选）
 
