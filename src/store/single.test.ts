@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
+import type { MusicEntry } from "../data/types";
 import { defineStore } from "../persist";
 import { singleStoreFor, singleTrackSpec } from "./single";
 
@@ -44,18 +45,40 @@ describe("single track store", () => {
     expect(useSingleTrack.getState().pins.cirno).toBeDefined();
   });
 
+  it("带作者的 4 元手选落盘后可完整读回（音MAD 侧手选刷新即丢的那条）", () => {
+    // 音MAD 那批曲目基本都带作者（真数据 86 条里 85 条是 4 元），手选存进去的就是 4 元组
+    const pin: MusicEntry = ["音MAD", "音MAD 一首", "角色曲", "作者"];
+    const otomads = singleStoreFor("otomads");
+    otomads.setState(fresh);
+    otomads.getState().setPin("cirno", pin);
+
+    const saved = JSON.parse(localStorage.getItem("tmc.v1.single-track.otomads")!) as
+      { data: { pins: Record<string, MusicEntry> } };
+    expect(saved.data.pins.cirno).toEqual(pin);
+
+    // 刷新（重新读档）后仍然完整：作者留着，播放页那一行才显示得出作者
+    expect(defineStore(singleTrackSpec("otomads")).load().pins.cirno).toEqual(pin);
+  });
+
   it("损坏的存档逐项丢弃，合法项保留", () => {
     localStorage.setItem("tmc.v1.single-track.originals", JSON.stringify({
       v: 1,
       data: {
         enabled: true,
-        pins: { good: ["紅魔郷", "おてんば恋娘", "角色曲"], bad: ["a"], worse: ["a", "b", "非法"] },
+        pins: {
+          good: ["紅魔郷", "おてんば恋娘", "角色曲"],
+          withAuthor: ["紅魔郷", "おてんば恋娘", "角色曲", "作者"],
+          bad: ["a"],
+          worse: ["a", "b", "非法"],
+          badAuthor: ["a", "b", "角色曲", 7],
+        },
         disabledCharacters: { x: true, y: "no" },
       },
     }));
     const loaded = defineStore(singleTrackSpec("originals")).load();
     expect(loaded.enabled).toBe(true);
-    expect(Object.keys(loaded.pins)).toEqual(["good"]);
+    expect(Object.keys(loaded.pins)).toEqual(["good", "withAuthor"]);
+    expect(loaded.pins.withAuthor?.[3]).toBe("作者");
     expect(loaded.disabledCharacters).toEqual({ x: true });
   });
 

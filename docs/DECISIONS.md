@@ -3483,6 +3483,37 @@ e2e mobile **9 passed** ✓；"压暗但保留配色"另用 Playwright 截图 + 
 
 ---
 
+## D115 单曲手选带上作者（音MAD 手选刷新即丢）
+
+**现象**：音MAD 单曲模式下给某个角色手选一首 → **刷新后手选静默消失**，播放页那一行也不再显示作者。
+（仓库外的 `REVIEW-enhanced-otomad-mode.md` B1；那批数据 86 条曲目里 **85** 条带作者 ✓。）
+
+**根因**：`MusicEntry` 的第 4 位（**可选作者**，D109 引入）没被手选存档的校验认下来 ——
+`src/store/single.ts` 的 `isEntry()` 要求 `raw.length === 3` ✗，而设置页存进去的是 4 元组 ✓
+（`chosen` 直接来自数据集的曲目 ✓）→ 读档时 `validateSingleTrack()` **逐项丢弃** ✗，不报错、不留痕 ✗。
+后一条同样致命：重建条目时写的是 `[0, 1, 2]` ✗，即便放行，作者也会被抹掉 ✗ →
+`PlayerPanel.creditLine()` 对 pin 的曲目退回专辑名（"显示作者"对**手选过的**曲目失效 ✗）。
+
+**做法**（`src/store/single.ts`）：
+
+| 位置 | 改动 |
+|---|---|
+| `isEntry()` | 接受 **3 或 4** 元（第 4 位**必须是字符串** ✓）；5 元及以上、第 4 位非字符串仍按损坏项丢弃 ✓ |
+| `copyEntry()`（新） | 重建时**保留第 4 位** ✓（3 元仍只留 3 位 ✓）；原来那句 `value[2] as Extra` 随之删掉（第 3 位收窄后本来就是 `Extra` ✓） |
+
+**测试**（原来这条没人守：`single.test.ts` / `modeScope.test.ts` 只走过 3 元组 ✗）：
+先写用例后改实现 —— 新增"4 元手选落盘 → 读回完整"1 条（走 `tmc.v1.single-track.otomads` 那把 ✓，
+即用户真正踩到的路径 ✓），并把"损坏的存档逐项丢弃"扩成同时守两端 ✓
+（合法 4 元保留 ✓、`["a","b","角色曲",7]` 仍丢 ✓）。
+
+**验证**：改前该文件 **2 failed** ✓（复现 B1 ✓）→ 改后 **7 passed** ✓；
+`pnpm typecheck` ✓、`pnpm test` **552 passed**（276 条 × chromium + firefox ✓，比 D114 的 550 多 2 ✓）、
+`pnpm data:check` 无漂移 ✓（本次不碰 `data/` 与生成物 ✓）、
+`pnpm e2e` **76 passed + 1 skipped** ✓（chromium / firefox / mobile ✓；跑前先起了本地曲库助手 8011 ✓ ——
+第一次没起，4 条取 `/manifest.json` 的用例红灯 ✗，正是 D106 记过的**环境**问题 ✓，起助手后复跑全绿 ✓）。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |
