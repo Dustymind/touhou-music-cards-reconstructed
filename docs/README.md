@@ -50,7 +50,8 @@
 ## 其他入口
 
 根 [`README.md`](../README.md)（怎么跑 / 怎么玩 / 联机 / 部署）、
-[`otomads-separation-v1.md`](otomads-separation-v1.md)（音MAD 与原曲分离的契约，**草案**）、
+[`otomads-separation-v1.md`](otomads-separation-v1.md)（音MAD 与原曲的数据/运行时分离契约，已实现）、
+[`sources-separation-v1.md`](sources-separation-v1.md)（音源层按模式拆的契约，**草案**）、
 [`../tools/README.md`](../tools/README.md)（数据管线模块）、
 [`../data/README.md`](../data/README.md)（真相源目录）、
 [`../data/packs/README.md`](../data/packs/README.md)（曲包形状）、
