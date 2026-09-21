@@ -1,0 +1,202 @@
+# 音MAD 与原曲分离契约 v1（生成物与运行时两套数据集）
+
+**状态：草案（未实现）**。§10 的 6 条待用户裁定；裁定后按本文实现，实现结果与偏差另起一节记录。
+
+对象：`public/data/*.json` 的**布局**、`tools/src/tmc/build.py` 的产出、前端 `DataBundle` 的加载，
+以及联机握手用的 `contentHash` 口径。
+目的：两个模式不再共用"一份合并数据 + 一个 `mode` 参数过滤"，而是**各自一份数据集**；
+运行时删掉那层过滤，把"模式"变成"当前数据集的名字"。
+
+前置：D109（曲包一角色一份文件）、D110（运行状态按模式分键）、D111（单测跑真实浏览器）。
+计划与执行记录在仓库外 `B-C-PLAN.md`（§4 是本体，§8/§9 是已完成的两步）。
+
+---
+
+## 1. 现状与不可破坏的不变量
+
+**现状**：`build.py` 用 `apply_tracks()` 把 86 条曲包曲目**追加进** 121 个角色的 `music` 末尾，
+生成**一份** `characters.json` / `albums.json` / `index.json`；运行时靠 `album.pack` 反推每条曲目的模式
+（`src/music/mode.ts` 的 6 个判定 + 17 处 `albums + mode` 传参）。
+
+**本契约不能破坏的四条**：
+
+| # | 不变量 | 由谁守 |
+|---|---|---|
+| 1 | 生成物可复现：`pnpm data:check` 无漂移 | `tmc.build --check` |
+| 2 | 两端同数据 → 联机一致：哈希不同的两端**在握手期**就被拒（D107 §6） | `contentHash` + `hello.dataHash` |
+| 3 | MD2 与间隔不变：不改任何间距 / 内边距 / 字号 / 尺寸常量 | e2e 的 8 条桌面布局守卫 + 3 条移动端用例 |
+| 4 | `main` 不受影响：全部改动在 `enhanced-otomad-mode` 分支上完成，未确认不合并 | 分支 + 推送规矩（B-C-PLAN §头部） |
+
+---
+
+## 2. 生成物布局（推荐 D2）
+
+```
+public/data/
+  cardsets.json        共享：卡面图集（6 套）
+  loudness.json        共享：逐曲响度增益（键是音频文件名）
+  sources.json         共享：音源注册表（顺序 / 开关 / 本地源）
+  packs.json           共享：曲包注册表（id / label / kind / order）
+  index.json           原曲：counts + contentHash
+  characters.json      原曲：121 个角色（**只有原曲曲目**）
+  albums.json          原曲：40 张专辑
+  otomads/
+    index.json         音MAD：counts + contentHash
+    characters.json    音MAD：有音MAD 曲目的 35 个角色（只有音MAD 曲目）
+    albums.json        音MAD：曲包专辑
+```
+
+**为什么共享项单独放**：`cardsets` / `loudness` / `sources` / `packs` 与模式无关；
+`loudness` 的键是**音频文件名**，两份会让"哪个才是真的"变成问题。相比 D1（每模式一个完整目录）
+少重复约 15 KB 且只有一处真源。
+
+**每模式的 `index.json`**：`counts` 只数自己那份（`characters` / `albums` / `trackEntries` / `distinctTracks`），
+`contentHash` 只覆盖自己那份（见 §6）。`packTracks` 字段退场（它存在只是因为当时两份数据合并在一处）。
+
+**体积**（今天实测）：`characters.json` 86.7 KB / `albums.json` 6.5 KB / `index.json` 0.3 KB；
+121 个角色的**身份字段**（`name`/`order`/`card`/`searchNames`）合计约 18 KB —— 见 §5 决定它在两份里
+是重复还是引用。
+
+---
+
+## 3. 构建与校验（tools）
+
+| 位置 | 改成 |
+|---|---|
+| `build.py` | 去掉 `apply_tracks()`；`build_characters(mode)` / `build_albums(mode)` 各出一份；每模式一份 `index`（各自的 `contentHash`）；共享项只出一次 |
+| `validate.py` | 按模式跑现有检查（角色存在、专辑注册、重复、`附加信息` 合法）；新增**跨模式**一致性检查：同一个角色 key 在两份里的身份字段必须一致（`name`/`order`/`card`/`searchNames`），否则界面会出现"同一个角色两个名字" |
+| `packages/packs.py` | **不改**（D109 的读法照旧：清单 + 一角色一份曲目文件） |
+| `pnpm data:check` | 按模式逐份比对（含 `index.json` 的哈希） |
+| `reports/validation-report.md` | 统计分两段（每模式一段 + 共享项） |
+
+---
+
+## 4. 前端加载与 `DataBundle`
+
+新形状（示意）：
+
+```ts
+interface ModeDataset {
+  index: DataIndex;                       // 自己的 counts / contentHash
+  characters: CharacterRecord[];          // 只有本模式的曲目
+  albums: AlbumRecord[];
+  characterByKey: Map<string, CharacterRecord>;
+  albumByName: Map<string, AlbumRecord>;
+}
+
+interface DataBundle {
+  shared: { sources: SourceRecord[]; cardSets: CardSetRecord[] };
+  datasets: Record<MusicMode, ModeDataset>;
+}
+```
+
+组件取"当前数据集"用 `src/store/modeScope.ts` 已有的一对钩子（B 引入）：
+`useMusicMode()`（组件）/ `currentMusicMode()`（非组件）→ `useDataset()` / `datasetFor(mode)`。
+
+**加载策略（待裁定，§10 Q2）**：
+
+| 策略 | 做法 | 代价 |
+|---|---|---|
+| **A：启动全取**（推荐） | 启动取两份数据集（今天是 98 KB → 约 115 KB）+ 共享项 | 无新失败路径；启动多约 17 KB（gzip 后更少） |
+| B：切模式懒加载 | 启动只取当前模式那份，切模式时再取 | 启动不变，但引入**今天不存在**的"会话中途取数据失败"状态，要接 `useData` 的 `DataLoadError` 并给它一个界面 |
+
+策略 A 下 `useData` 仍是"一次 Promise"；策略 B 需要一个按模式的懒加载器 + 失败重试 UI（MD2 的
+告警条），这是一次界面改动的额外成本 —— 收益只是省 17 KB。
+
+---
+
+## 5. 角色身份（待裁定，§10 Q3）
+
+| 方案 | 做法 | 代价 |
+|---|---|---|
+| **S1：共享真源，数据集投影**（推荐） | 真源仍只有 `data/characters/*.toml`；两份 `characters.json` 各自带身份字段（构建期从同一处投影） | 同一份身份在两份生成物里重复（18 KB）；但**只有一处要编辑**，跨模式一致性由 §3 的检查守住 |
+| S2：各自真源 | `data/packs/otomads/characters/<key>.toml` 自带 `name`/`order`/`card`/`searchNames` | 音MAD 能有自己的顺序 / 别名 / 卡面；代价是第二份名单要人维护，且"同一个角色两个名字"要靠人盯 |
+
+**今天的实际约束**：曲包角色必须是 `data/characters/*.toml` 里已有的 key（`check_packs` 会拦），
+所以 S2 目前**只能带来"顺序/别名不同"**，不能引入新角色。
+⇒ 建议 S1，并且把 S2 挂到触发条件上：**音MAD 要引入原曲里没有的角色或卡面时**再做。
+
+---
+
+## 6. 哈希与协议（待裁定，§10 Q4 —— C 最尖锐的取舍）
+
+| 方案 | 做法 | 代价 |
+|---|---|---|
+| C1 | 保留一个总哈希（两模式一起算） | 握手不变；但"分离"在联机口径上只是名义上的：任一模式改动都让另一模式失效 |
+| C2 | 每模式一个哈希，握手只比**当前模式** | 当前模式仍能在握手期拒绝；但"一方缺 otomads 数据"要拖到**切模式时**才炸 —— 违背 D107 §6 |
+| **C3：两个都交换**（推荐） | `hello` / `SessionConfig` 带上两个哈希，任一不符即拒 | 保住"握手期拒绝"的初衷；代价是**协议 v3 → v4**（`PROTOCOL_VERSION`，`src/net/protocol.ts`），且要求两端都部署了两个模式的数据 |
+
+C3 的形状（示意）：
+
+```ts
+// hello / welcome / snapshot 里由 dataHash: string 变成：
+dataHash: { originals: string; otomads: string };
+```
+
+**"要求两端都部署两份数据"是不是问题**：是 —— 今天 otomads 数据在**仓库里**（`data/packs` + 生成物），
+不是"只有本机才有"（只有**音频**是本机的：本地曲库助手）。所以两端都部署两份数据是正常状态，
+C3 不会把"单机模式"变成联机障碍。
+
+---
+
+## 7. 运行时收尾
+
+**删**：`apply_tracks()`；`src/music/mode.ts` 的 `packOfAlbum` / `modeOfEntry` / `isEntryAllowedInMode` /
+`filterByMode` / `hasTracksInMode` / `firstAllowedInMode`（6 个判定）；17 处 `albums + mode` 传参
+（`allowedTracks` / `countEnabled` / `presetStats` / `singleModeRows` / `effectivePin` / `usePlayer` /
+`ListPanel` / `AppShell` / `GamePanel`）。
+
+**留**：`MusicMode` 类型与 `MUSIC_MODES`（它仍是"当前数据集"的名字）、`effectiveSourceOverrides()`
+（音MAD 下本地源要临时打开，与数据集无关）、`useSession.musicMode`（那个开关）。
+
+**列表页 / 配置页 / 对局**：不再接收 `musicMode` 参数，直接用当前数据集（`useDataset()`）。
+
+**放弃**：多曲包扩展性（第三个曲包要再加一套数据集）。**缓解**：契约里把"数据集"写成**按模式 id 的表**
+（`Record<MusicMode, ModeDataset>` 而不是两个字段），将来加包 = 加一个 key + 一份生成物 + 一次协议字段扩展，
+而不是重写形状。
+
+---
+
+## 8. 验证清单（实现完成后逐条跑）
+
+```bash
+cd ~/touhou-music-cards-reconstructed/touhou-music-cards-reconstructed
+pnpm typecheck
+pnpm test                                     # 275 条 × chromium + firefox
+pnpm data:check                               # 按模式逐份比对
+pnpm data:validate
+cd tools && UV_CACHE_DIR=.uv/cache uv run pytest && cd ..
+# e2e 前置：cd tools && UV_CACHE_DIR=.uv/cache uv run python -m tmc.local_source
+pnpm e2e                                      # chromium + firefox + mobile
+pnpm e2e:perf                                 # 单独跑
+```
+
+**新增 e2e**（chromium + firefox 都跑）：
+
+1. **握手期拒绝**：起一个"另一份数据哈希"的页面（`?datahash=` 之类的调试覆盖，或改一个字节后重取），
+   断言进房被拒并显示原因 —— 证明 C3 的"握手期拒绝"真的还在。
+2. **切模式**：切到音MAD 再切回，列表 / 播放 / 对局都跟着换数据集（B 已有的 `mode-separation.spec.ts` 扩展）。
+
+**验收口径**：原曲模式的生成物应与 C 之前**逐字节一致**（`characters.json` / `albums.json` / `index.json`
+的字段集合可能变——`packTracks` 退场、`contentHash` 改口径——但角色与曲目内容必须一致）。
+
+---
+
+## 9. 回滚
+
+C 同时动了**生成物**与**协议版本**，回滚要两件一起退：`git checkout main -- public/data src tools docs` +
+`PROTOCOL_VERSION` 回 3。全程在 `enhanced-otomad-mode` 分支上，未确认不合并 `main`；
+分支上每步完成即推送（B-C-PLAN 头部的推送规矩）。
+
+---
+
+## 10. 待裁定（逐条）
+
+| # | 问题 | 推荐 | 另一选项的代价 |
+|---|---|---|---|
+| **Q1** | 生成物布局：D2（共享项 + 每模式一份）/ D1（每模式一个完整目录） | **D2** | D1 重复约 15 KB 且 `loudness` 有两份真源 |
+| **Q2** | 加载策略：A 启动全取 / B 切模式懒加载 | **A** | B 省 17 KB，但要新增"切模式取数据失败"的界面与重试 |
+| **Q3** | 角色身份：S1 共享真源 / S2 各自真源 | **S1** | S2 多一份要人维护的名单，且今天只能带来"顺序/别名不同" |
+| **Q4** | 哈希口径：C1 总哈希 / C2 只比当前模式 / C3 两个都交换 | **C3** | C1 名义化；C2 把失败拖到切模式；C3 需要协议 v4 |
+| **Q5** | 协议 v4 的兼容策略：直接拒绝 v3 客户端 / 允许 v3 只打原曲 | **直接拒绝**（与现有 `PROTOCOL_VERSION` 行为一致） | 兼容层要维护两条握手路径，收益低 |
+| **Q6** | 音MAD 数据集里要不要保留"没有音MAD 曲目的角色"（今天 121 − 35 = 86 个） | **不保留**（数据集只含能用上的 35 个） | 保留的话列表页要再过滤一次，等于把今天的问题搬过去 |
