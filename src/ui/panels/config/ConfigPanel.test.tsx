@@ -12,6 +12,7 @@ import { useSession } from "../../../store/session";
 const usePreset = presetStoreFor("originals");
 const useSingleTrack = singleStoreFor("originals");
 import { singleStoreFor } from "../../../store/single";
+import { sourceStoreFor } from "../../../store/sources";
 import { ConfigPanel } from "../ConfigPanel";
 
 let bundle: DataBundle;
@@ -61,7 +62,8 @@ describe("ConfigPanel", () => {
       category: { 角色曲: "unset", 道中曲: "unset", 更多道中曲: "unset" },
     });
     useSingleTrack.setState({ enabled: false, pins: {}, disabledCharacters: {} });
-    useSession.setState({ locale: "en", tab: "config", cardCollection: "dairi-sd", sourceOverrides: {} });
+    sourceStoreFor("originals").setState({ overrides: {} });
+    useSession.setState({ locale: "en", tab: "config", cardCollection: "dairi-sd" });
     usePreset.getState().sync(bundle.datasets.originals.albums);
   });
 

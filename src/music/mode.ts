@@ -10,31 +10,7 @@
  * - 换模式不改动已保存的单曲选择（每个模式各自的存档，见 D110）；
  * - 当前模式下没有曲目的角色不进轮播（现在等于"数据集里没有这个角色"）。
  */
-import type { SourceRecord } from "../data/types";
-
 export type MusicMode = "originals" | "otomads";
 
 export const MUSIC_MODES: MusicMode[] = ["originals", "otomads"];
 export const DEFAULT_MUSIC_MODE: MusicMode = "originals";
-
-/**
- * 模式对音源的隐含要求：音MAD 曲目的地址来自**本地曲库**（`kind === "local"`），
- * 所以 otomads 模式下必须把本地源打开，否则那批曲目解析不出地址。
- *
- * 与 v2 一致：本地专辑源"不参与镜像切换"——这里也不改写用户的开关，只是在
- * 传给加载器时**临时**打开本地源（用户看到的状态仍是自己的设置）。
- */
-export function effectiveSourceOverrides(
-  sources: readonly SourceRecord[],
-  overrides: Record<string, { enabled: boolean; order: number }>,
-  mode: MusicMode,
-): Record<string, { enabled: boolean; order: number }> {
-  if (mode !== "otomads") return overrides;
-  const next: Record<string, { enabled: boolean; order: number }> = {};
-  for (const [id, value] of Object.entries(overrides)) next[id] = { ...value };
-  for (const source of sources) {
-    if (source.kind !== "local") continue;
-    next[source.id] = { enabled: true, order: next[source.id]?.order ?? source.order };
-  }
-  return next;
-}

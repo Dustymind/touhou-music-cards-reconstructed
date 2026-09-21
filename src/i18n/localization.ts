@@ -42,6 +42,9 @@ export const Localization = {
   MusicModeLocalHint: u(
     "Otomads tracks live on this machine only, served by the local library helper; the local source below is used automatically in this mode.",
     "音MAD 曲目只存在于本机（由本地曲库助手提供）；这个模式下会自动使用下面的「本地曲库」。"),
+  ConfigTabSourceNoneEnabled: u(
+    "No source is enabled in this mode, so no track can be resolved.",
+    "这个模式下一个音源都没启用，曲目解析不出地址。"),
   ConfigTabSourceOrder: u("Fallback order", "回退顺序"),
   ConfigTabSourceMoveUp: u("Move up", "上移"),
   ConfigTabSourceMoveDown: u("Move down", "下移"),

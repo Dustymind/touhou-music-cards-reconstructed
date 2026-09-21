@@ -1,0 +1,21 @@
+{
+ "schema": 1,
+ "sources": [
+  {
+   "id": "local",
+   "label": {
+    "en": "Local library",
+    "zh": "本地曲库"
+   },
+   "tableUrl": "/manifest.json",
+   "kind": "local",
+   "order": 1,
+   "enabled": true,
+   "proxyable": false,
+   "description": {
+    "en": "Tracks served by the local helper (tools/src/tmc/local_source.py).",
+    "zh": "由本机助手提供的曲目（tools/src/tmc/local_source.py）。"
+   }
+  }
+ ]
+}

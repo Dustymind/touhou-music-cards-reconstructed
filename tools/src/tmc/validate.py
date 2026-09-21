@@ -146,27 +146,61 @@ def check_card_sets(p: Problems) -> int:
     return len(ids)
 
 
-def check_source_registry(p: Problems) -> int:
-    """`data/sources/sources.toml`：id/order 唯一，远程源的表文件必须存在。"""
+def check_source_registry(p: Problems) -> dict:
+    """两个模式的音源注册表：id/order 唯一、远程源的表文件存在，外加契约 §5 的四条不变量。
+
+    1. 每个模式**至少有一个** `enabled = true` 的源（否则那个模式一个地址都解析不出来）；
+    2. `otomads` 必须含**恰好一个** `kind = "local"` 的源，且默认启用（音MAD 的地址只能来自本地 manifest）；
+    3. `originals` **不得**含 `kind = "local"`（本地曲库只服务音MAD）；
+    4. 两份注册表的 `id` 不得冲突。
+    """
     import tomllib as _tomllib
 
-    with open(repo.DATA / "sources" / "sources.toml", "rb") as fh:
-        entries = _tomllib.load(fh)["source"]
-    ids, orders = set(), set()
-    for entry in entries:
-        if entry["id"] in ids:
-            p.error(f"音源 id 重复：{entry['id']}")
-        ids.add(entry["id"])
-        if entry["order"] in orders:
-            p.error(f"音源 order 重复：{entry['order']}")
-        orders.add(entry["order"])
-        if entry["kind"] == "remote":
-            rel = entry["table_url"].lstrip("/").replace("data/sources/", "")
-            if not (repo.DATA / "sources" / rel).exists():
-                p.error(f"音源 {entry['id']} 的表文件不存在：{entry['table_url']}")
-        elif entry["kind"] != "local":
-            p.error(f"音源 {entry['id']} 的 kind 非法：{entry['kind']}")
-    return len(entries)
+    by_mode: dict[str, list[dict]] = {}
+    for mode in build_mod.MODES:
+        path = repo.DATA / "sources" / f"{mode}.toml"
+        if not path.exists():
+            p.error(f"缺少音源注册表：data/sources/{mode}.toml")
+            by_mode[mode] = []
+            continue
+        with open(path, "rb") as fh:
+            by_mode[mode] = _tomllib.load(fh)["source"]
+
+    for mode, entries in by_mode.items():
+        ids, orders = set(), set()
+        for entry in entries:
+            if entry["id"] in ids:
+                p.error(f"[{mode}] 音源 id 重复：{entry['id']}")
+            ids.add(entry["id"])
+            if entry["order"] in orders:
+                p.error(f"[{mode}] 音源 order 重复：{entry['order']}")
+            orders.add(entry["order"])
+            if entry["kind"] == "remote":
+                rel = entry["table_url"].lstrip("/").replace("data/sources/", "")
+                if not (repo.DATA / "sources" / rel).exists():
+                    p.error(f"[{mode}] 音源 {entry['id']} 的表文件不存在：{entry['table_url']}")
+            elif entry["kind"] != "local":
+                p.error(f"[{mode}] 音源 {entry['id']} 的 kind 非法：{entry['kind']}")
+        if not any(entry["enabled"] for entry in entries):
+            p.error(f"[{mode}] 一个默认启用的音源都没有（该模式解析不出任何地址）")
+        locals_ = [entry for entry in entries if entry["kind"] == "local"]
+        if mode == "otomads":
+            if len(locals_) != 1:
+                p.error(f"[otomads] 必须恰好一个 kind=local 的源，实际 {len(locals_)} 个")
+            elif not locals_[0]["enabled"]:
+                p.error(f"[otomads] 本地曲库源必须默认启用（{locals_[0]['id']}）")
+        elif locals_:
+            p.error(f"[originals] 不该有 kind=local 的源：{[e['id'] for e in locals_]}")
+
+    overlap = {entry["id"] for entry in by_mode.get("originals", [])} & \
+        {entry["id"] for entry in by_mode.get("otomads", [])}
+    for source_id in sorted(overlap):
+        p.error(f"两个模式的音源 id 冲突：{source_id}")
+
+    return {
+        "total": sum(len(entries) for entries in by_mode.values()),
+        "by_mode": {mode: len(entries) for mode, entries in by_mode.items()},
+    }
 
 
 def check_sources(referenced: set[tuple[str, str]], p: Problems):
@@ -584,7 +618,9 @@ def main(argv: list[str] | None = None) -> int:
              f"{stats['titles']['shared_pairs']} 条",
              f"- **同名但不同专辑**的曲名（不同曲子，禁止按曲名合并）："
              f"{stats['titles']['same_title_across_albums']} 个",
-             f"- 卡面图集：{stats['card_sets']}，注册音源：{stats['source_registry']}",
+             f"- 卡面图集：{stats['card_sets']}，注册音源：{stats['source_registry']['total']}"
+             f"（原曲 {stats['source_registry']['by_mode'].get('originals', 0)} / "
+             f"音MAD {stats['source_registry']['by_mode'].get('otomads', 0)}）",
              f"- 曲包：{stats['packs']['packs']} 个 / {stats['packs']['tracks']} 条，"
              f"带 source（可自动抓取）{stats['packs']['with_source']} 条，"
              f"带裁剪区间 {stats['packs']['trimmed']} 条", "",

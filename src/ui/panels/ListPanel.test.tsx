@@ -36,7 +36,7 @@ function dataset(mode: "originals" | "otomads", characters: CharacterRecord[], a
       schema: 1, mode, contentHash: `hash-${mode}-12345678`,
       counts: { characters: characters.length, albums: albums.length, trackEntries: 0, distinctTracks: 0 },
     },
-    characters, albums,
+    characters, albums, sources: [],
     characterByKey: new Map(characters.map((character) => [character.key, character])),
     albumByName: new Map(albums.map((album) => [album.name, album])),
   };

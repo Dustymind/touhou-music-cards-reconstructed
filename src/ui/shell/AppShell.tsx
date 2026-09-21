@@ -14,10 +14,10 @@ import { usePreset } from "../../store/preset";
 import { currentQueue, useQueue } from "../../store/queue";
 import { selectSessionSeed, useSeeds } from "../../store/seeds";
 import { useSources } from "../../music/useSources";
+import { useSourceOverrides } from "../../store/sources";
 import { usePlayer } from "../../audio/usePlayer";
 import { allowedTracks, mergeWithDefaults } from "../../music/selection";
 import { useCurrentDataset } from "../../data/useDataset";
-import { effectiveSourceOverrides } from "../../music/mode";
 import { effectivePin } from "../../music/presetView";
 import { useSingleTrack } from "../../store/single";
 import { useGame } from "../../game/useGame";
@@ -54,7 +54,7 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
   /** 窄屏：页签折到第二行、彩蛋文案用短版（上游也是小屏显示 "Alice!"） */
   const isSmallScreen = useMediaQuery("(max-width: 599.95px)");
   const {
-    tab, setTab, locale, cardCollection, sourceOverrides, musicMode, localMusicUrl,
+    tab, setTab, locale, cardCollection, musicMode, localMusicUrl,
     entryRequest, setEntryRequest,
   } = useSession();
   /** 当前音乐模式的数据集（C：两个模式各一份，切换即换这份） */
@@ -116,12 +116,9 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [usableKeySignature]);
 
-  // 音MAD 模式的曲目只存在于本地曲库 → 临时打开本地源（不改写用户设置）
-  const activeSourceOverrides = useMemo(
-    () => effectiveSourceOverrides(bundle.shared.sources, sourceOverrides, musicMode),
-    [bundle.shared.sources, sourceOverrides, musicMode],
-  );
-  const sources = useSources(bundle.shared.sources, activeSourceOverrides, localMusicUrl);
+  // 音源也按模式分：注册表随数据集走，开关/顺序用当前模式那把存档（契约 sources-separation-v1.md）
+  const { overrides: sourceOverrides } = useSourceOverrides();
+  const sources = useSources(dataset.sources, sourceOverrides, localMusicUrl);
 
   // 列表页点播：把"选中的那一首"并进 pinned（播放器本来就有"角色 → 指定曲目"的机制），
   // 于是 entry 的解析结果就是用户点的那一首；单曲模式的 pin 仍然生效，点播优先。

@@ -3411,6 +3411,43 @@ e2e mobile **9 passed** ✓；"压暗但保留配色"另用 Playwright 截图 + 
 
 ---
 
+## D113 音源层按音乐模式拆（每个模式一份源注册表）
+
+**需求**（用户）：把音源也拆开 —— 契约草案 `docs/sources-separation-v1.md` §8 的 6 条**全部按推荐采纳**
+（生成物位置 / 源表随数据集 / 镜像表不挪 / 音MAD 下本地源可关但给提示 / 老存档归原曲 / 保留本地提示行）。
+
+**为什么**：四个音源挤在一张注册表里 —— 三个远程镜像只服务原曲，本地曲库只服务音MAD。后果有两个：
+① 音MAD 模式下**照样下载**那三份镜像表（149 KB + 97 KB + 87.7 KB ≈ **334 KB**，一条也用不上）；
+② 因为本地源默认关、而音MAD 的地址只能从本地 manifest 解析，于是有了 `effectiveSourceOverrides()` 这个
+**运行期补丁**（音MAD 下强制打开本地源）+ 设置页里同一条规则的**第二份副本**（`forced`：显示为开且不可点）。
+
+**做法**：
+
+| 位置 | 改动 |
+|---|---|
+| `data/sources/originals.toml` / `otomads.toml` | 注册表按模式拆（原曲 = 三个镜像；音MAD = 只有本地源，`order = 1`、`enabled = true`）；`sources.toml` 删除 |
+| `build.py` | `build_sources(mode)`：生成物 `public/data/sources.json` + `public/data/otomads/sources.json`（**随数据集**）；三份镜像表仍在 `public/data/sources/`（内容全是原曲，不挪） |
+| `validate.py` | `check_source_registry()` 按模式跑 + 契约 §5 的四条不变量：每模式至少一个默认启用的源 / otomads 恰好一个 local 且默认开 / originals 不得含 local / 两表 id 不冲突 |
+| `src/store/sources.ts`（新） | 用户开关与回退顺序按模式分键：`tmc.v1.sources.originals`（老键 `tmc.v1.sources` 迁入）+ `.otomads`；`effectiveOrder` 从 session 搬来 |
+| `src/data/{types,load}.ts` | `ModeDataset.sources`；`SharedData` 只剩 `cardSets` |
+| `src/music/mode.ts` | **删 `effectiveSourceOverrides()`**（连同它的两条用例） |
+| `SourceSection` | 用 `dataset.sources`；删 `forced`；本地地址栏只在有本地源的模式（音MAD）出现；一个启用的源都没有时给提示（用户可以自己关，不拦着） |
+
+**为什么删补丁而不是留**：留着它会在用户明确关掉本地源时**照样强制打开**（与新存档分键互相打架），
+并把"某模式的源没配对"这种配置错误掩盖掉；删掉之后用**构建期校验**顶上 —— 配错了 `pnpm data:validate` 就红，
+而不是等到浏览器里"音MAD 没声音"（那是 D52 当年加补丁要防的症状，现在由不变量守）。
+
+**不进哈希**（写进契约 §6）：源注册表与表 URL **不进** `contentHash` / `dataHash` ——
+本地 manifest 的地址每台机器不同（`?localmusic=`），进哈希会让两台各自起助手的机器无法联机。
+
+**验证**：`pnpm data:check` 无漂移 ✓、`pnpm data:validate` 通过 ✓、`uv run pytest` **84 passed** ✓、
+`pnpm typecheck` ✓、`pnpm test` **550 passed**（275 条 × chromium + firefox）✓、
+`pnpm e2e` **76 passed + 1 skipped**（chromium 34 / firefox 33+1 / mobile 9）✓ ——
+新增"**音MAD 模式下不再下载原曲镜像表**"（原曲侧有请求、切到音MAD 后一次都没有）；
+`pnpm e2e:perf` 单独跑 ✓。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |

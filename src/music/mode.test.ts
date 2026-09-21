@@ -8,7 +8,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { loadRealBundle } from "../test-utils";
 import type { DataBundle, MusicEntry } from "../data/types";
 import { datasetFor } from "../data/useDataset";
-import { DEFAULT_MUSIC_MODE, MUSIC_MODES, effectiveSourceOverrides } from "./mode";
+import { DEFAULT_MUSIC_MODE, MUSIC_MODES } from "./mode";
 import { allowedTracks, defaultPreset } from "./selection";
 import { effectivePin } from "./presetView";
 
@@ -96,19 +96,5 @@ describe("音乐模式（原曲 / 音MAD）", () => {
     expect(effectivePin(preset, cirno, { cirno: chosen })).toEqual(chosen);
     // 没手选 → 预设允许的第一首
     expect(effectivePin(preset, cirno, {})).toEqual(allowedTracks(preset, cirno).entries[0]);
-  });
-
-  it("音MAD 模式下必须打开本地曲库（其余源保持用户设置）", () => {
-    const overrides = { netease163: { enabled: false, order: 1 } };
-
-    // 原曲：原样返回，不动用户设置
-    expect(effectiveSourceOverrides(bundle.shared.sources, overrides, "originals")).toEqual(overrides);
-
-    // 音MAD：临时打开本地源（kind === "local"），其它键不变
-    const forced = effectiveSourceOverrides(bundle.shared.sources, overrides, "otomads");
-    expect(forced.local!.enabled).toBe(true);
-    expect(forced.netease163).toEqual({ enabled: false, order: 1 });
-    // 不改写入参
-    expect(overrides).toEqual({ netease163: { enabled: false, order: 1 } });
   });
 });

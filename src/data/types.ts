@@ -68,13 +68,14 @@ export interface ModeDataset {
   index: DataIndex;
   characters: CharacterRecord[];
   albums: AlbumRecord[];
+  /** 本模式的音源注册表（原曲 = 三个远程镜像；音MAD = 本地曲库助手） */
+  sources: SourceRecord[];
   characterByKey: Map<string, CharacterRecord>;
   albumByName: Map<string, AlbumRecord>;
 }
 
-/** 与模式无关的资源：音源表与卡面图集本来就是全站共享的，不进数据集。 */
+/** 与模式无关的资源：卡面图集是全站共享的（素材只有一套）。 */
 export interface SharedData {
-  sources: SourceRecord[];
   cardSets: CardSetRecord[];
 }
 

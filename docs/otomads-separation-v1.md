@@ -146,8 +146,9 @@ C3 不会把"单机模式"变成联机障碍。
 （`allowedTracks` / `countEnabled` / `presetStats` / `singleModeRows` / `effectivePin` / `usePlayer` /
 `ListPanel` / `AppShell` / `GamePanel`）。
 
-**留**：`MusicMode` 类型与 `MUSIC_MODES`（它仍是"当前数据集"的名字）、`effectiveSourceOverrides()`
-（音MAD 下本地源要临时打开，与数据集无关）、`useSession.musicMode`（那个开关）。
+**留**：`MusicMode` 类型与 `MUSIC_MODES`（它仍是"当前数据集"的名字）、`useSession.musicMode`（那个开关）。
+（当时留着的 `effectiveSourceOverrides()` —— 音MAD 下临时打开本地源 —— 已在 **D113** 删掉：
+音源层也按模式拆之后，音MAD 的注册表里本来就只有本地源且默认开，不需要运行期补丁。）
 
 **列表页 / 配置页 / 对局**：不再接收 `musicMode` 参数，直接用当前数据集（`useDataset()`）。
 
@@ -224,7 +225,7 @@ C 同时动了**生成物**与**协议版本**，回滚要两件一起退：`git
 |---|---|
 | `src/data/{types,load}.ts` | `DataBundle` → `{ shared, datasets: Record<MusicMode, ModeDataset> }`；两个数据集启动时都取（策略 A） |
 | `src/data/useDataset.ts`（新） | `useCurrentDataset(bundle)` / `datasetFor(bundle, mode)` |
-| `src/music/mode.ts` | 删 6 个判定（`packOfAlbum` / `modeOfEntry` / `isEntryAllowedInMode` / `filterByMode` / `hasTracksInMode` / `firstAllowedInMode`）；留 `MusicMode` 与 `effectiveSourceOverrides` |
+| `src/music/mode.ts` | 删 6 个判定（`packOfAlbum` / `modeOfEntry` / `isEntryAllowedInMode` / `filterByMode` / `hasTracksInMode` / `firstAllowedInMode`）；留 `MusicMode`（`effectiveSourceOverrides` 在 D113 也删了） |
 | `selection.ts` / `presetView.ts` | `allowedTracks` / `countEnabled` / `presetStats` / `singleModeRows` / `effectivePin` 去掉 `albums + mode` 参数（17 处传参消失） |
 | `songConflicts.ts` | `buildSongConflicts(characters)`：传进来的就是当前数据集 |
 | 面板 | `ListPanel` / `ConfigPanel` / `PresetSection` / `SingleTrackSection` / `GamePanel` / `PlayerPanel` / `UpcomingFan` 收 `bundle` 后自取当前数据集；`musicMode` 传参全部消失 |

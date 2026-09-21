@@ -13,7 +13,7 @@ function fakeDataset(characters: CharacterRecord[], albums: AlbumRecord[]): Mode
   return {
     mode: "originals",
     index: { schema: 1, mode: "originals", contentHash: "fake-hash-1234", counts: { characters: characters.length, albums: albums.length, trackEntries: 0, distinctTracks: 0 } },
-    characters, albums,
+    characters, albums, sources: [],
     characterByKey: new Map(characters.map((character) => [character.key, character])),
     albumByName: new Map(albums.map((album) => [album.name, album])),
   };

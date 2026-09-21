@@ -48,22 +48,6 @@
     "en": "Music from THBWiki. Sometimes very slow.",
     "zh": "THBWiki 镜像。有时很慢。"
    }
-  },
-  {
-   "id": "local",
-   "label": {
-    "en": "Local library",
-    "zh": "本地曲库"
-   },
-   "tableUrl": "/manifest.json",
-   "kind": "local",
-   "order": 4,
-   "enabled": false,
-   "proxyable": false,
-   "description": {
-    "en": "Tracks served by the local helper (tools/src/tmc/local_source.py).",
-    "zh": "由本机助手提供的曲目（tools/src/tmc/local_source.py）。"
-   }
   }
  ]
 }

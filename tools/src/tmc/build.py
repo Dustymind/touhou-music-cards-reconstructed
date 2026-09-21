@@ -111,9 +111,12 @@ def build_packs(packs: list[dict]) -> dict:
     return {"schema": SCHEMA_VERSION, "packs": packs}
 
 
-def build_sources() -> dict:
-    """音乐源注册表 → 运行时 JSON（前端只读这一份，不在代码里硬编码音源）。"""
-    with open(repo.DATA / "sources" / "sources.toml", "rb") as fh:
+def build_sources(mode: str) -> dict:
+    """**某个模式**的音乐源注册表 → 运行时 JSON（契约 `docs/sources-separation-v1.md` §2）。
+
+    一个模式一份：原曲 = 三个远程镜像；音MAD = 本地曲库助手。前端只读这一份，不在代码里硬编码音源。
+    """
+    with open(repo.DATA / "sources" / f"{mode}.toml", "rb") as fh:
         data = tomllib.load(fh)
     sources = []
     for entry in data["source"]:
@@ -201,9 +204,10 @@ def build_outputs() -> tuple[dict, dict[str, dict[str, str]]]:
         outputs[base / "characters.json"] = _dumps(characters)
         outputs[base / "albums.json"] = _dumps(albums)
         outputs[base / "index.json"] = _dumps(index)
+        # 源表随数据集走（音源层也按模式分，见 sources-separation-v1.md）
+        outputs[base / "sources.json"] = _dumps(build_sources(mode))
 
     # 共享项：与模式无关，只写一份
-    outputs[repo.PUBLIC_DATA / "sources.json"] = _dumps(build_sources())
     outputs[repo.PUBLIC_DATA / "cardsets.json"] = _dumps(build_card_sets())
     outputs[repo.PUBLIC_DATA / "packs.json"] = _dumps(build_packs(packs))
     for source_id in ("netease163", "cloudflare_r2", "thbwiki"):

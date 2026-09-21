@@ -115,18 +115,20 @@ function validateCardSets(raw: unknown): CardSetRecord[] {
 async function loadDataset(base: string, expected: MusicMode): Promise<ModeDataset> {
   const url = (name: string) => `${base.replace(/\/$/, "")}/${name}`;
   const index = validateIndex(await fetchJson(url("index.json")), expected);
-  const [rawCharacters, rawAlbums] = await Promise.all([
+  const [rawCharacters, rawAlbums, rawSources] = await Promise.all([
     fetchJson(url("characters.json")),
     fetchJson(url("albums.json")),
+    fetchJson(url("sources.json")),
   ]);
   const characters = validateCharacters(rawCharacters, index.counts.characters);
   const albums = validateAlbums(rawAlbums);
+  const sources = validateSources(rawSources);
   const characterByKey = new Map(characters.map((character) => [character.key, character]));
   const albumByName = new Map(albums.map((album) => [album.name, album]));
   for (const album of albums) {
     assert(album.kind !== "hifuu" || album.name.length > 0, "秘封专辑缺名字");
   }
-  return { mode: expected, index, characters, albums, characterByKey, albumByName };
+  return { mode: expected, index, characters, albums, sources, characterByKey, albumByName };
 }
 
 /** 载入全部运行时数据：**两个模式的数据集一起取**（契约 §4 策略 A：没有"切模式取数据失败"这条路）。
@@ -135,13 +137,11 @@ async function loadDataset(base: string, expected: MusicMode): Promise<ModeDatas
  */
 export async function loadDataBundle(base = "./data"): Promise<DataBundle> {
   const url = (name: string) => `${base.replace(/\/$/, "")}/${name}`;
-  const [originals, otomads, rawSources, rawCardSets] = await Promise.all([
+  const [originals, otomads, rawCardSets] = await Promise.all([
     loadDataset(url(""), "originals"),
     loadDataset(url("otomads"), "otomads"),
-    fetchJson(url("sources.json")),
     fetchJson(url("cardsets.json")),
   ]);
-  const sources = validateSources(rawSources);
   const cardSets = validateCardSets(rawCardSets);
 
   const datasets = { originals, otomads } as Record<MusicMode, ModeDataset>;
@@ -149,7 +149,7 @@ export async function loadDataBundle(base = "./data"): Promise<DataBundle> {
   for (const mode of MUSIC_MODES) {
     assert(datasets[mode] !== undefined, `缺少 ${mode} 数据集`);
   }
-  return { shared: { sources, cardSets }, datasets };
+  return { shared: { cardSets }, datasets };
 }
 
 

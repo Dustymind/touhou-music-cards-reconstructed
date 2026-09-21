@@ -719,7 +719,9 @@ test("本地曲库地址：默认同源，?localmusic= 可指向本机助手（�
   await page.goto("/");
   await page.getByRole("tab", { name: "Config", exact: true }).click();
   await expandSection(page, "source");
+  // 音源层按模式拆（契约 sources-separation-v1.md）：本地地址栏只在音MAD（注册表里有本地源）时出现
   await page.getByTestId("music-mode-otomads").click();
+  await expect(page.getByLabel("local-music-url")).toBeVisible();
   await expect.poll(() => sameOrigin.length).toBeGreaterThan(0);
   expect(new URL(sameOrigin[0]!).origin).toBe(new URL(page.url()).origin);
 
@@ -734,9 +736,9 @@ test("本地曲库地址：默认同源，?localmusic= 可指向本机助手（�
   await page.goto("/?localmusic=127.0.0.1:8011");
   await page.getByRole("tab", { name: "Config", exact: true }).click();
   await expandSection(page, "source");
+  await page.getByTestId("music-mode-otomads").click();
   // 设置页回显的是"存档里的覆盖值"
   await expect(page.getByLabel("local-music-url")).toHaveValue("127.0.0.1:8011");
-  await page.getByTestId("music-mode-otomads").click();
   await expect.poll(() => overridden.length).toBeGreaterThan(0);
   expect(overridden[0]).toContain("http://127.0.0.1:8011/manifest.json");
 });
@@ -761,37 +763,41 @@ test("音乐源回退顺序：显示用源名称，重排不打乱开关（用�
       number: (badge.textContent ?? "").trim(),
       name: badge.closest(".MuiBox-root")?.querySelector(".MuiTypography-body2")?.textContent?.trim(),
     })));
+  // 原曲注册表里只有三个远程镜像（本地源属于音MAD，见 sources-separation-v1.md）
   expect(await rowNames()).toEqual([
     { number: "1", name: "网易云音乐" },
     { number: "2", name: "Cloudflare R2" },
     { number: "3", name: "THBWiki" },
-    { number: "4", name: "本地曲库" },
   ]);
 
-  // 「本地曲库」默认关闭：上移别的源不能把它打开
-  const localSwitch = page.locator('[aria-label="local-enabled"]');
-  await expect(localSwitch).not.toBeChecked();
   await page.getByLabel("thbwiki-up").click();
   await page.getByLabel("thbwiki-up").click();
   await expect(display).toContainText("1THBWiki");
-  // THBWiki 这一行真的挪到了第一位，编号仍是 1..4
+  // THBWiki 这一行真的挪到了第一位，编号仍是 1..3
   expect(await rowNames()).toEqual([
     { number: "1", name: "THBWiki" },
     { number: "2", name: "网易云音乐" },
     { number: "3", name: "Cloudflare R2" },
-    { number: "4", name: "本地曲库" },
   ]);
-  await expect(localSwitch).not.toBeChecked();
 
   // 第一个源不能再上移，最后一个源不能再下移
   await expect(page.getByLabel("thbwiki-up")).toBeDisabled();
-  await expect(page.getByLabel("local-down")).toBeDisabled();
+  await expect(page.getByLabel("cloudflare_r2-down")).toBeDisabled();
 
   // 关掉 THBWiki 不会改变它在回退顺序里的位置
   const orderBefore = (await display.textContent()) ?? "";
   await page.locator('[aria-label="thbwiki-enabled"]').click({ force: true });
   await expect(display).toHaveText(orderBefore);
   await expect(page.getByTestId("source-status-thbwiki")).toHaveText("off");
+
+  // 切到音MAD：这一侧**只有**本地曲库一个源（不再有"强制打开"的标记），本地地址栏同时出现
+  await page.getByTestId("music-mode-otomads").click();
+  await expect(page.getByLabel("local-music-url")).toBeVisible();
+  expect(await rowNames()).toEqual([{ number: "1", name: "本地曲库" }]);
+  await expect(page.locator('[data-testid^="source-state-"]')).toContainText("已启用");
+  // 用户自己把它关掉也不会被拦着，但会给一行提示
+  await page.locator('[aria-label="local-enabled"]').click();
+  await expect(page.getByTestId("source-none-enabled")).toBeVisible();
 });
 
 test("MD2 细节：下拉标签入框、搜索框居中、边框可见（用户反馈后）", async ({ page }) => {
@@ -876,7 +882,8 @@ test("MD2 细节：下拉标签入框、搜索框居中、边框可见（用户�
     }));
   expect(orderBadges.length).toBeGreaterThanOrEqual(2);
   expect(orderBadges.every((badge) => badge.round && badge.square && badge.size === 24)).toBe(true);
-  expect(orderBadges.map((badge) => badge.text)).toEqual(["1", "2", "3", "4"]);
+  // 原曲注册表里三个远程镜像（本地源属于音MAD，见 sources-separation-v1.md）
+  expect(orderBadges.map((badge) => badge.text)).toEqual(["1", "2", "3"]);
 });
 
 test("游戏页按钮尺寸、内边距与图标间距统一", async ({ page }) => {

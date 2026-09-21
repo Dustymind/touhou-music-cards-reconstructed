@@ -5,7 +5,7 @@
  */
 import { create } from "zustand";
 
-import { defineStore, isRecord, pickBoolean, pickNumber, pickString } from "../persist";
+import { defineStore, isRecord, pickString } from "../persist";
 import { DEFAULT_MUSIC_MODE, MUSIC_MODES, type MusicMode } from "../music/mode";
 import type { MusicEntry } from "../data/types";
 import { getLocale, setLocale, type Locale } from "../i18n/localization";
@@ -13,18 +13,12 @@ import { getLocale, setLocale, type Locale } from "../i18n/localization";
 export const TAB_ORDER = ["player", "list", "config", "game"] as const;
 export type TabId = (typeof TAB_ORDER)[number];
 
-interface SourceOverride {
-  enabled: boolean;
-  order: number;
-}
-
 interface SessionState {
   locale: Locale;
   tab: TabId;
   cardCollection: string;
   musicMode: MusicMode;
   localMusicUrl: string;
-  sourceOverrides: Record<string, SourceOverride>;
   /** 列表页点了某一首曲目 → 播放器改播这一首（**不落盘**：一次性的点播意图） */
   entryRequest: { key: string; entry: MusicEntry } | null;
   setLocale: (locale: Locale) => void;
@@ -36,10 +30,6 @@ interface SessionState {
   setLocalMusicUrl: (url: string) => void;
   /** 列表页点播：指定角色 + 曲目（角色变了就换角色） */
   setEntryRequest: (request: { key: string; entry: MusicEntry } | null) => void;
-  /** 开关某个源：只改 enabled，**不动**它在回退顺序里的位置。 */
-  toggleSource: (id: string, enabled: boolean, allIds: string[]) => void;
-  /** 上移/下移：交换相邻两个源的位置，其它源（含"默认关闭"的）保持原状。 */
-  moveSource: (id: string, direction: -1 | 1, allIds: string[], defaultEnabled: Record<string, boolean>) => void;
 }
 
 const LOCALES = ["en", "zh"] as const;
@@ -74,29 +64,6 @@ interface SessionPrefs {
   localMusicUrl: string;
 }
 
-const sourceStore = defineStore<Record<string, SourceOverride>>({
-  name: "sources",
-  version: 1,
-  fallback: {},
-  validate(raw) {
-    if (!isRecord(raw)) return null;
-    const out: Record<string, SourceOverride> = {};
-    for (const [id, value] of Object.entries(raw)) {
-      if (!isRecord(value)) continue;
-      const enabled = pickBoolean(value.enabled);
-      const order = pickNumber(value.order, 0, 99);
-      if (enabled === null || order === null) continue;
-      out[id] = { enabled, order };
-    }
-    return out;
-  },
-  migrate(raw) {
-    // v0 曾经只存一个"启用的音源 id"（单选）；迁移成开关表
-    const legacy = pickString(raw);
-    return legacy ? { [legacy]: { enabled: true, order: 1 } } : null;
-  },
-});
-
 const initial = sessionStore.load();
 setLocale(initial.locale);
 
@@ -107,7 +74,6 @@ export const useSession = create<SessionState>((set, get) => ({
   musicMode: initial.musicMode,
   // URL 参数优先于存档：方便同一份构建在"同源部署"和"本机 8011"之间切换
   localMusicUrl: localMusicUrlFromQuery() ?? initial.localMusicUrl,
-  sourceOverrides: sourceStore.load(),
   entryRequest: null,
 
   setLocale(locale) {
@@ -134,37 +100,6 @@ export const useSession = create<SessionState>((set, get) => ({
     set({ localMusicUrl });
     sessionStore.save({ ...pickSession(get()), localMusicUrl });
   },
-  toggleSource(id, enabled, allIds) {
-    const overrides = get().sourceOverrides;
-    // 位置按"当前实际顺序"取，不要用注册表里的 order —— 否则开关一下就把用户排好的顺序冲掉
-    const position = effectiveOrder(overrides, allIds).indexOf(id);
-    const next = {
-      ...overrides,
-      [id]: { enabled, order: position >= 0 ? position + 1 : (overrides[id]?.order ?? 1) },
-    };
-    set({ sourceOverrides: next });
-    sourceStore.save(next);
-  },
-  moveSource(id, direction, allIds, defaultEnabled) {
-    const overrides = get().sourceOverrides;
-    const current = effectiveOrder(overrides, allIds);
-    const index = current.indexOf(id);
-    const target = index + direction;
-    if (index < 0 || target < 0 || target >= current.length) return;
-    const swapped = [...current];
-    [swapped[index], swapped[target]] = [swapped[target]!, swapped[index]!];
-    const next: Record<string, SourceOverride> = {};
-    for (const [position, sourceId] of swapped.entries()) {
-      next[sourceId] = {
-        // 没有覆盖过的源必须沿用**注册表里的默认开关**（"本地曲库"默认是关的，
-        // 之前这里写死 true，一上移就被悄悄打开了）
-        enabled: overrides[sourceId]?.enabled ?? defaultEnabled[sourceId] ?? true,
-        order: position + 1,
-      };
-    }
-    set({ sourceOverrides: next });
-    sourceStore.save(next);
-  },
 }));
 
 function pickSession(
@@ -184,18 +119,6 @@ function localMusicUrlFromQuery(): string | null {
   if (typeof window === "undefined") return null;
   const value = new URLSearchParams(window.location.search).get("localmusic");
   return value && value.trim() !== "" ? value.trim() : null;
-}
-
-/** 按覆盖表算出实际的 fallback 顺序（未覆盖的按注册表顺序排在后面）。 */
-export function effectiveOrder(
-  overrides: Record<string, SourceOverride>,
-  allIds: string[],
-): string[] {
-  const overridden = allIds
-    .filter((id) => overrides[id])
-    .sort((a, b) => (overrides[a]!.order) - (overrides[b]!.order));
-  const rest = allIds.filter((id) => !overrides[id]);
-  return [...overridden, ...rest];
 }
 
 export { getLocale };

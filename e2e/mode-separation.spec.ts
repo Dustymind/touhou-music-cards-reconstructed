@@ -101,3 +101,31 @@ test("切模式不带走另一个模式的预设（状态按模式分键）", as
   expect(keys).toContain("tmc.v1.preset.originals");
   expect(keys).toContain("tmc.v1.preset.otomads");
 });
+
+test("音MAD 模式下不再下载原曲的镜像表（音源层按模式拆的直接收益）", async ({ page }) => {
+  // 原曲：三份镜像表会被取（控制组）
+  const originals: string[] = [];
+  page.on("request", (request) => {
+    if (/\/data\/sources\/[a-z0-9_]+\.json$/.test(new URL(request.url()).pathname)) {
+      originals.push(request.url());
+    }
+  });
+  await page.goto("/");
+  await expect.poll(() => originals.length).toBeGreaterThan(0);
+
+  // 切到音MAD（音源注册表里只有本地曲库）→ 那三份表一次都不该再取
+  await page.getByRole("tab", { name: "Config", exact: true }).click();
+  await expandSection(page, "source");
+  await page.getByTestId("music-mode-otomads").click();
+  await expect(page.getByLabel("local-music-url")).toBeVisible();
+  const afterSwitch = originals.length;
+
+  await page.getByRole("tab", { name: "Player", exact: true }).click();
+  await page.waitForTimeout(1500);           // 留出"如果会取"的时间
+  expect(originals.length).toBe(afterSwitch);
+
+  // 而音MAD 侧的注册表只有本地曲库一个源（切页签会卸载配置页，分区要重新展开）
+  await page.getByRole("tab", { name: "Config", exact: true }).click();
+  await expandSection(page, "source");
+  await expect(page.locator('[data-testid^="source-order-"]')).toHaveCount(1);
+});

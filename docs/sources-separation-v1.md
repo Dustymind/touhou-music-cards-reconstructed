@@ -1,6 +1,6 @@
 # 音源层分离契约 v1（音源注册表按模式拆）
 
-**状态：草案（未实现）**。§8 的待裁定项确认后实现；实现结果另起一节记录。
+**状态：已实现**（D113）。§8 的 6 条按推荐全部采纳（用户裁定）；实现结果见 §9。
 
 对象：`data/sources/sources.toml`（音源注册表）、`public/data/sources.json`（它的生成物）、
 `tmc.v1.sources`（用户的开关/顺序存档），以及 `effectiveSourceOverrides()` 这个运行期补丁。
@@ -102,9 +102,45 @@ public/data/sources/*.json         # 三份镜像表原样复制（它们本来�
 
 | # | 问题 | 推荐 | 另一选项的代价 |
 |---|---|---|---|
-| **Q1** | 注册表生成物放哪：`public/data/sources.json` + `public/data/otomads/sources.json` / 都塞进模式目录（`originals/…`，会动原曲那套既定路径） | **根 + otomads/** | 后者要与 C 的"原曲在根"约定打一架 |
-| **Q2** | 源表归属：`dataset.sources`（随数据集）/ 留在 `shared` 加 mode 字段 | **随数据集** | 留 shared 等于"数据分离了、源没分离" |
-| **Q3** | 三份镜像表是否跟着挪到某个模式目录下 | **不挪** | 挪了要改 `table_url` 与部署代理，收益为零 |
-| **Q4** | 音MAD 下本地源**可不可以被用户关掉**（关了那个模式就没源） | **可以，但给一行提示**（"关掉后音MAD 无可用音源"）；不学今天的"不可点" | 强制不可点会与"存档分键、用户说了算"的口径打架；完全不管则用户可能自己把自己弄哑 |
-| **Q5** | 老存档 `tmc.v1.sources` 归哪个模式 | **归原曲**（同 B/D110） | 归音MAD 会让原曲的镜像顺序丢 |
-| **Q6** | `SourceSection` 在音MAD 下是否保留"曲目只存在于本机"的提示行 | **保留**（换成本模式口径的文案） | 去掉会让"为什么这里只有一个源"没人解释 |
+| **Q1** | 注册表生成物放哪：`public/data/sources.json` + `public/data/otomads/sources.json` / 都塞进模式目录（`originals/…`，会动原曲那套既定路径） | **根 + otomads/ ✅** | 后者要与 C 的"原曲在根"约定打一架 |
+| **Q2** | 源表归属：`dataset.sources`（随数据集）/ 留在 `shared` 加 mode 字段 | **随数据集 ✅** | 留 shared 等于"数据分离了、源没分离" |
+| **Q3** | 三份镜像表是否跟着挪到某个模式目录下 | **不挪 ✅** | 挪了要改 `table_url` 与部署代理，收益为零 |
+| **Q4** | 音MAD 下本地源**可不可以被用户关掉**（关了那个模式就没源） | **可以，但给一行提示 ✅**（`source-none-enabled`） | 强制不可点会与"存档分键、用户说了算"的口径打架；完全不管则用户可能自己把自己弄哑 |
+| **Q5** | 老存档 `tmc.v1.sources` 归哪个模式 | **归原曲 ✅**（同 B/D110） | 归音MAD 会让原曲的镜像顺序丢 |
+| **Q6** | `SourceSection` 在音MAD 下是否保留"曲目只存在于本机"的提示行 | **保留 ✅**（`music-mode-local-hint`） | 去掉会让"为什么这里只有一个源"没人解释 |
+
+---
+
+## 9. 实现记录（D113）
+
+**真源与生成物**：
+
+| 文件 | 内容 |
+|---|---|
+| `data/sources/originals.toml` | 三个远程镜像（netease163 / cloudflare_r2 / thbwiki），**不含**本地源 |
+| `data/sources/otomads.toml` | 只有本地曲库源，`order = 1`、`enabled = true`（本模式唯一来源） |
+| `public/data/sources.json` / `public/data/otomads/sources.json` | 各自的生成物（`build_sources(mode)`） |
+| `public/data/sources/{netease163,cloudflare_r2,thbwiki}.json` | **不挪**（契约 §2） |
+
+- `tmc.validate` 的 `check_source_registry()` 按模式跑，并加了契约 §5 的四条不变量
+  （每模式至少一个默认启用的源 / otomads 恰好一个 local 且默认开 / originals 不得含 local / 两表 id 不冲突）。
+- 生成物从 12 个文件变 **14 个**（多出原曲与音MAD 各自的 `sources.json`）。
+
+**前端**：
+
+| 位置 | 改动 |
+|---|---|
+| `src/data/types.ts` / `load.ts` | `ModeDataset.sources`（随数据集取 `sources.json`）；`SharedData` 只剩 `cardSets` |
+| `src/store/sources.ts`（新） | 音源开关/顺序按模式分键：`tmc.v1.sources.originals`（老键迁入）/ `.otomads`；`effectiveOrder` 一并搬来 |
+| `src/store/session.ts` | 不再持有音源开关/顺序（搬去上面那把） |
+| `src/music/mode.ts` | **删掉 `effectiveSourceOverrides()`** —— 音源层按模式拆之后没有"临时强制打开"这回事了 |
+| `src/ui/shell/AppShell.tsx` | `useSources(dataset.sources, 当前模式那把覆盖, …)` |
+| `src/ui/panels/config/SourceSection.tsx` | 用 `dataset.sources`；删 `forced`（不再有"强制"标记）；本地地址栏只在**本数据集有本地源**（= 音MAD）时出现；一个启用的源都没有时给一行提示 |
+
+**验证**：`pnpm data:check` 无漂移 ✓、`pnpm data:validate` 通过 ✓、`uv run pytest` **84 passed** ✓、
+`pnpm typecheck` ✓、`pnpm test` **550 passed**（275 条 × chromium + firefox）✓、
+`pnpm e2e` **76 passed + 1 skipped**（chromium 34 / firefox 33+1 / mobile 9）✓ ——
+新增 `e2e/mode-separation.spec.ts` 的"音MAD 模式下不再下载原曲镜像表"（原曲侧有请求、切到音MAD 后**一次都没有**）。
+
+**与草案的偏差**：一处 —— 本地曲库地址输入框在**原曲模式下不再显示**（原曲注册表里根本没有本地源），
+草案没写到这一条；这是"配置页永远只列本数据集的源"的自然结果。

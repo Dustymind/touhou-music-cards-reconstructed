@@ -10,30 +10,37 @@ import { memo, useMemo, useState } from "react";
 import { SectionPanel } from "./SectionCard";
 import type { DataBundle } from "../../../data/types";
 import { Localization, localized, t } from "../../../i18n/localization";
-import { effectiveOrder, useSession } from "../../../store/session";
+import { useSession } from "../../../store/session";
+import { effectiveOrder, useSourceOverrides } from "../../../store/sources";
+import { useCurrentDataset } from "../../../data/useDataset";
 import { MUSIC_MODES } from "../../../music/mode";
 import type { TableMap } from "../../../music/sources";
 
 function SourceSectionInner({ bundle, tables }: { bundle: DataBundle; tables: TableMap }) {
   const {
-    locale, sourceOverrides, toggleSource, moveSource, musicMode, setMusicMode,
-    localMusicUrl, setLocalMusicUrl,
+    locale, musicMode, setMusicMode, localMusicUrl, setLocalMusicUrl,
   } = useSession();
+  const { overrides: sourceOverrides, toggle: toggleSource, move: moveSource } = useSourceOverrides();
+  /** 音源也按模式分（契约 sources-separation-v1.md）：配置页列的永远是**当前数据集**的源 */
+  const dataset = useCurrentDataset(bundle);
   const [draftUrl, setDraftUrl] = useState(localMusicUrl);
-  const ids = bundle.shared.sources.map((source) => source.id);
+  const ids = dataset.sources.map((source) => source.id);
   const order = effectiveOrder(sourceOverrides, ids);
   /** 按 id 查源（原来在 labelOf/isEnabled/渲染里各做一次线性查找）。 */
   const byId = useMemo(
-    () => new Map(bundle.shared.sources.map((source) => [source.id, source])),
-    [bundle.shared.sources],
+    () => new Map(dataset.sources.map((source) => [source.id, source])),
+    [dataset.sources],
   );
-  /** 注册表里的默认开关（"本地曲库"默认关闭）——重排时必须沿用，不能被当成"开着"。 */
-  const defaultEnabled = Object.fromEntries(bundle.shared.sources.map((source) => [source.id, source.enabled]));
+  /** 注册表里的默认开关（按模式，见各自的 toml）——重排时必须沿用，不能被当成"开着"。 */
+  const defaultEnabled = Object.fromEntries(dataset.sources.map((source) => [source.id, source.enabled]));
+  const localSource = dataset.sources.find((source) => source.kind === "local");
   const labelOf = (id: string): string => {
     const source = byId.get(id);
     return source ? localized(source.label, locale) : id;
   };
   const isEnabled = (id: string): boolean => sourceOverrides[id]?.enabled ?? byId.get(id)?.enabled ?? true;
+  /** 本模式一个启用的源都没有 → 曲目解析不出地址（校验只守注册表默认值，用户仍可以自己关掉） */
+  const noneEnabled = !ids.some((id) => isEnabled(id));
   /** 行按回退顺序排列（上移/下移移动的是"源"本身，编号只是位置）。 */
   const rows = order
     .map((id) => byId.get(id))
@@ -69,13 +76,14 @@ function SourceSectionInner({ bundle, tables }: { bundle: DataBundle; tables: Ta
         )}
       </Stack>
 
-      {/* 本地曲库地址：留空 = 用数据里的默认值（单端口部署就是同源的 /manifest.json） */}
+      {/* 本地曲库地址：只有**本数据集的注册表里有本地源**时才出现（原曲那边没有本地源，留空即默认） */}
+      {localSource && (
       <Stack direction="row" spacing={1} sx={{ mb: 2, alignItems: "center" }} data-testid="local-music-url">
         <TextField
           size="small"
           fullWidth
           label={t(Localization.LocalMusicUrl)}
-          placeholder={bundle.shared.sources.find((source) => source.kind === "local")?.tableUrl ?? "/manifest.json"}
+          placeholder={localSource?.tableUrl ?? "/manifest.json"}
           value={draftUrl}
           onChange={(event) => setDraftUrl(event.target.value)}
           slotProps={{ htmlInput: { "aria-label": "local-music-url" } }}
@@ -90,6 +98,14 @@ function SourceSectionInner({ bundle, tables }: { bundle: DataBundle; tables: Ta
           {t(Localization.LocalMusicApply)}
         </Button>
       </Stack>
+      )}
+
+      {/* 一个启用的源都没有：曲目解析不出地址（用户自己关掉时的提示，不拦着） */}
+      {noneEnabled && (
+        <Typography variant="caption" color="error.main" data-testid="source-none-enabled" sx={{ display: "block", mt: 1 }}>
+          {t(Localization.ConfigTabSourceNoneEnabled)}
+        </Typography>
+      )}
 
       {/* 回退顺序显示：编号 + 实际名称（原来直接把内部 id 拼成字符串，既不可读也不随语言变） */}
       <Stack
@@ -129,10 +145,9 @@ function SourceSectionInner({ bundle, tables }: { bundle: DataBundle; tables: Ta
       <Stack spacing={1} sx={{ mt: 1 }}>
         {rows.map((source) => {
           const override = sourceOverrides[source.id];
-          // 音MAD 模式会**强制**使用本地曲库（见 D52）：这一行显示成"开关关闭但实际在用"会让人误解 ✗，
-          // 所以这里显示为已启用、开关置灰，并挂一条说明 ✓
-          const forced = musicMode === "otomads" && source.kind === "local";
-          const enabled = forced || (override?.enabled ?? source.enabled);
+          // 音源层已按模式拆（契约 sources-separation-v1.md）：音MAD 注册表里只有本地源、它默认就是开的，
+          // 所以这里没有"强制打开"这回事了，用户想关也能关（关了就给下面那条提示）。
+          const enabled = override?.enabled ?? source.enabled;
           const table = tables[source.id];
           const status = !enabled ? "off"
             : table?.status === "ready" ? `${table.entries.size}`
@@ -173,16 +188,13 @@ function SourceSectionInner({ bundle, tables }: { bundle: DataBundle; tables: Ta
                     <Switch
                       size="small"
                       checked={enabled}
-                      disabled={forced}
                       onChange={(event) => toggleSource(source.id, event.target.checked, ids)}
                       // MUI v7 用 slotProps.input（旧的 inputProps 已经不再落到 input 上）
                       slotProps={{ input: { "aria-label": `${source.id}-enabled` } }}
                     />
                   }
-                  label={t(forced
-                    ? Localization.ConfigTabSourceForced
-                    : enabled ? Localization.ConfigTabSourceEnabled : Localization.ConfigTabSourceDisabled)}
-                  data-testid={`source-forced-${source.id}`}
+                  label={t(enabled ? Localization.ConfigTabSourceEnabled : Localization.ConfigTabSourceDisabled)}
+                  data-testid={`source-state-${source.id}`}
                 />
                 <IconButton
                   size="small"

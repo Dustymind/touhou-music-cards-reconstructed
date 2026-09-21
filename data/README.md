@@ -12,7 +12,7 @@
 - `meta/stage-cast.tsv` 作品 × 面次 × 登场角色参照表（`tmc.validate` 导出，供离线复核）
 - `packs/` 附加曲包；当前是 `otomads.toml`（清单）+ `otomads/*.toml`（一角色一份，35 份；音MAD：本地专辑，**86 首 / 35 个角色**，见 `packs/README.md`）
 - `sources/*.json` 音乐源表，数组形式 `[[专辑, 曲目, URL], …]`（三份镜像：netease163 / cloudflare_r2 / thbwiki）
-- `sources/sources.toml` 源注册表（顺序 / 开关 / 本地源的同源路径 `/manifest.json`）
+- `sources/originals.toml` / `sources/otomads.toml` **各模式一份源注册表**（原曲 = 三个远程镜像；音MAD = 本地曲库助手，其同源路径 `/manifest.json`）
 
 规则见 `docs/rules-classification-v1.md`。曲目归属的标签来源是 THBWiki 抓取快照
 `.ref/thbwiki/rows.json`（`tmc.fetch_roles` 产出，`tmc.roles` 读取），人工例外只写在 `extra-overrides.tsv`。
