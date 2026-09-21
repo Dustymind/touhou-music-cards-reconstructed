@@ -1,0 +1,13 @@
+{
+ "schema": 1,
+ "albums": [
+  {
+   "key": "otomads",
+   "name": "otomads",
+   "kind": "other",
+   "pack": "otomads",
+   "order": 100,
+   "showAlbumName": false
+  }
+ ]
+}

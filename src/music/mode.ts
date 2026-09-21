@@ -1,78 +1,24 @@
 /** 音乐模式：原曲（originals）/ 音MAD（otomads）。
  *
- * 口径照改版仓库（v2 工作区）的 `MusicMode`，但**判定方式换成显式的曲包归属**：
- * v2 用"这个曲目键在不在本地表里"来推断，属于启发式；本项目在 `data/packs/*.toml`
- * 里给曲包自带的专辑打 `pack` 标记（见 `tools/src/tmc/packs.py`），所以
+ * C 之后这里只剩**"当前在用哪份数据集"**这一件事：两个模式各自有一份完整数据集
+ * （`public/data/index.json` 与 `public/data/otomads/index.json`，契约见
+ * `docs/otomads-separation-v1.md`），运行时靠 `src/data/useDataset.ts` 选一份，
+ * **不再**按 `album.pack` 逐条过滤曲目（原先那 6 个判定函数已随 C 删除）。
  *
- *   曲目的模式 = 它所属专辑的 `pack`；`pack = "originals"` → 原曲，其它 → 该曲包的模式。
- *
- * 行为对齐 v2：
+ * 行为照旧（对齐改版仓库 v2）：
  * - 模式只决定"接下来能选哪些曲目"，**不打断正在播放的这一首**；
- * - 换模式不改动已保存的单曲选择（只在读档时把**明确**属于另一模式的选曲换成第一个可用项）；
- * - 当前模式下没有可用曲目的角色不进轮播。
+ * - 换模式不改动已保存的单曲选择（每个模式各自的存档，见 D110）；
+ * - 当前模式下没有曲目的角色不进轮播（现在等于"数据集里没有这个角色"）。
  */
-import type { AlbumRecord, CharacterRecord, MusicEntry, SourceRecord } from "../data/types";
+import type { SourceRecord } from "../data/types";
 
 export type MusicMode = "originals" | "otomads";
 
 export const MUSIC_MODES: MusicMode[] = ["originals", "otomads"];
 export const DEFAULT_MUSIC_MODE: MusicMode = "originals";
-/** 默认曲包（专辑 `pack` 字段缺省时的归属）。 */
-const ORIGINALS_PACK = "originals";
-
-/** 专辑名 → 曲包 id。未注册的专辑按原曲处理（数据缺失时不至于把曲目藏起来）。 */
-export function packOfAlbum(albums: readonly AlbumRecord[], album: string): string {
-  return albums.find((entry) => entry.name === album)?.pack ?? ORIGINALS_PACK;
-}
-
-/** 曲包 id → 音乐模式（`originals` 之外都是 otomads 侧的曲包）。 */
-function modeOfPack(pack: string): MusicMode {
-  return pack === ORIGINALS_PACK ? "originals" : "otomads";
-}
-
-/** 单个曲目属于哪个模式。 */
-export function modeOfEntry(albums: readonly AlbumRecord[], entry: MusicEntry): MusicMode {
-  return modeOfPack(packOfAlbum(albums, entry[0]));
-}
-
-/** 该曲目在当前模式下是否可用。 */
-export function isEntryAllowedInMode(
-  albums: readonly AlbumRecord[],
-  entry: MusicEntry,
-  mode: MusicMode,
-): boolean {
-  return modeOfEntry(albums, entry) === mode;
-}
-
-/** 角色在当前模式下是否有至少一首可用曲目（预设勾选之外的模式过滤）。 */
-export function hasTracksInMode(
-  albums: readonly AlbumRecord[],
-  character: CharacterRecord,
-  mode: MusicMode,
-): boolean {
-  return character.music.some((entry) => isEntryAllowedInMode(albums, entry, mode));
-}
-
-/** 按模式过滤曲目；`otomads` 模式只留曲包曲目，`originals` 只留镜像曲目。 */
-export function filterByMode(
-  albums: readonly AlbumRecord[],
-  entries: readonly MusicEntry[],
-  mode: MusicMode,
-): MusicEntry[] {
-  return entries.filter((entry) => isEntryAllowedInMode(albums, entry, mode));
-}
-
-/** 某模式下第一个可用曲目（切换模式后修选曲用）。 */
-export function firstAllowedInMode(
-  albums: readonly AlbumRecord[],
-  character: CharacterRecord,
-  mode: MusicMode,
-): MusicEntry | null {
-  return character.music.find((entry) => isEntryAllowedInMode(albums, entry, mode)) ?? null;
-}
 
 /**
- * 模式对音源的隐含要求：曲包曲目的地址来自**本地曲库**（`kind === "local"`），
+ * 模式对音源的隐含要求：音MAD 曲目的地址来自**本地曲库**（`kind === "local"`），
  * 所以 otomads 模式下必须把本地源打开，否则那批曲目解析不出地址。
  *
  * 与 v2 一致：本地专辑源"不参与镜像切换"——这里也不改写用户的开关，只是在

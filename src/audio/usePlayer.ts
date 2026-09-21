@@ -8,11 +8,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { createBell, type BellHandle } from "./bell";
-import type { AlbumRecord, CharacterRecord, MusicEntry } from "../data/types";
+import type { ModeDataset, MusicEntry } from "../data/types";
 import { displayTitle, trackId } from "../data/types";
 import { pickWithSeed, randomStartPosition } from "../rng";
 import { allowedTracks, defaultPreset, type PresetState } from "../music/selection";
-import type { MusicMode } from "../music/mode";
 import { resolveTrack, type TableMap } from "../music/sources";
 
 type PlaybackState = "stopped" | "countingDown" | "playing" | "timeoutPause";
@@ -33,13 +32,11 @@ const DEFAULT_PLAYBACK_SETTING: PlaybackSetting = {
 };
 
 export interface PlayerInputs {
-  characters: readonly CharacterRecord[];
-  albums: readonly AlbumRecord[];
+  /** 当前模式的**数据集**（C：只含本模式的角色与曲目，不再按模式过滤） */
+  dataset: ModeDataset;
   tables: TableMap;
   sourceOrder: readonly string[];
   preset: PresetState;
-  /** 音乐模式（原曲 / 音MAD）：只抽当前模式下可用的曲目 */
-  mode: MusicMode;
   /** 单曲模式：角色 key → 固定的曲目 */
   pinned: Record<string, MusicEntry | undefined>;
   /** 对局中：忽略"音乐预设"，候选 = 该角色在当前音乐模式下的**全部**曲目（用户要求：默认启用全曲库） */
@@ -113,8 +110,8 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
   const [error, setError] = useState<string | null>(null);
 
   const character = useMemo(
-    () => inputs.characters.find((item) => item.key === inputs.currentKey) ?? null,
-    [inputs.characters, inputs.currentKey],
+    () => inputs.dataset.characters.find((item) => item.key === inputs.currentKey) ?? null,
+    [inputs.dataset.characters, inputs.currentKey],
   );
 
   /** 当前角色在本预设下选中的曲目：多首时按种子取一首（联机同种子 → 同曲目）。 */
@@ -143,8 +140,8 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
     if (!character) return null;
     const pinned = inputs.pinned[character.key] ?? null;
     // 对局中忽略预设（= 全曲库 ✓）；播放页仍按预设过滤 ✓。音乐模式两者都生效 ✓
-    const preset = inputs.ignorePreset ? defaultPreset(inputs.albums) : inputs.preset;
-    const { entries } = allowedTracks(preset, character, pinned, inputs.albums, inputs.mode);
+    const preset = inputs.ignorePreset ? defaultPreset(inputs.dataset.albums) : inputs.preset;
+    const { entries } = allowedTracks(preset, character, pinned);
     if (entries.length === 0) return null;
     if (entries.length === 1) return entries[0]!;
     // 已播过的不再选（全播过就允许重复，否则这个角色没得放 ✗）
@@ -153,7 +150,7 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
     const pool = fresh.length > 0 ? fresh : entries;
     // 由 (会话种子, 角色) 派生：不同角色落到不同曲目，而同一角色在两端的取舍完全一致（D104）
     return pickWithSeed(pool, inputs.seed, "track", character.key);
-  }, [character, inputs.pinned, inputs.preset, inputs.albums, inputs.mode, inputs.seed,
+  }, [character, inputs.pinned, inputs.preset, inputs.dataset, inputs.seed,
       inputs.ignorePreset, inputs.played]);
 
   // ---- 创建 <audio> 与铃（都不挂进 DOM 也能播） ----

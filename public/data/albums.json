@@ -299,14 +299,6 @@
    "kind": "other",
    "pack": "originals",
    "order": 39
-  },
-  {
-   "key": "otomads",
-   "name": "otomads",
-   "kind": "other",
-   "pack": "otomads",
-   "order": 100,
-   "showAlbumName": false
   }
  ]
 }

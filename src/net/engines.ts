@@ -5,7 +5,7 @@
  */
 import type { GameState } from "../game/types";
 import {
-  PROTOCOL_VERSION, type ClientIntent, type HostMessage, type PeerInfo, type SessionConfigWire,
+  PROTOCOL_VERSION, type ClientIntent, type DataHashes, type HostMessage, type PeerInfo, type SessionConfigWire,
   dataHashMismatch,
 } from "./protocol";
 import type { Transport } from "./transport";
@@ -20,7 +20,7 @@ interface EngineDeps {
   /** 主机：把客户端意图落到本地 store（复用 UI 用的那些动作） */
   applyIntent?: (intent: ClientIntent, from: number) => void;
   /** 静态数据哈希（两端必须一致） */
-  dataHash: string;
+  dataHash: DataHashes;
   selfName: string;
   onChat?: (from: number, text: string, isSystem: boolean) => void;
   onError?: (message: string) => void;
@@ -194,6 +194,6 @@ export function createClientEngine(transport: Transport, deps: EngineDeps): Clie
   };
 }
 
-export function helloIntent(name: string, isObserver: boolean, dataHash: string): ClientIntent {
+export function helloIntent(name: string, isObserver: boolean, dataHash: DataHashes): ClientIntent {
   return { kind: "hello", name, isObserver, dataHash, protocol: PROTOCOL_VERSION };
 }

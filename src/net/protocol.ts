@@ -10,8 +10,15 @@
 import type { CardInfo, GameState, MatchMode } from "../game/types";
 import type { Seed } from "../rng";
 
-/** 3：`SessionConfig`（音乐模式 + 会话种子）替代原来的 `musicMode` 字段；新增 `rerollQueue` 意图。 */
-export const PROTOCOL_VERSION = 3;
+/** 4：数据按音乐模式分成两份数据集 ⇒ 握手要交换**两个**数据哈希（契约 `docs/otomads-separation-v1.md` §6 C3）。
+ *  3：`SessionConfig`（音乐模式 + 会话种子）替代原来的 `musicMode` 字段；新增 `rerollQueue` 意图。 */
+export const PROTOCOL_VERSION = 4;
+
+/** 两个模式各自的数据哈希：任一不同都拒绝，且都在**握手期**拒（D107 §6 的初衷）。 */
+export interface DataHashes {
+  originals: string;
+  otomads: string;
+}
 
 /** 主机下发的会话配置：客户端**采用**它，而不是自己决定这些值。 */
 export interface SessionConfigWire {
@@ -26,13 +33,13 @@ export interface PeerInfo {
   name: string;
   isObserver: boolean;
   isHost: boolean;
-  /** 该端的静态数据哈希（`public/data/index.json` 的 contentHash） */
-  dataHash: string;
+  /** 该端的静态数据哈希：**一个模式一个**（`public/data/index.json` 与 `public/data/otomads/index.json`） */
+  dataHash: DataHashes;
 }
 
 /** 客户端 → 主机的意图（主机负责校验与落地）。 */
 export type ClientIntent =
-  | { kind: "hello"; name: string; isObserver: boolean; dataHash: string; protocol: number }
+  | { kind: "hello"; name: string; isObserver: boolean; dataHash: DataHashes; protocol: number }
   | { kind: "pick"; side: 0 | 1; slot: number; timestamp: number }
   | { kind: "confirmStart" }
   | { kind: "confirmNext" }
@@ -96,6 +103,8 @@ export function stateDigest(state: GameState): string {
   return parts.join(" ");
 }
 
-export function dataHashMismatch(a: string, b: string): boolean {
-  return a.slice(0, 12) !== b.slice(0, 12);
+/** 两个模式各比一次：**任一模式的数据不同就拒绝**（不等到切模式才发现）。 */
+export function dataHashMismatch(a: DataHashes, b: DataHashes): boolean {
+  return a.originals.slice(0, 12) !== b.originals.slice(0, 12)
+    || a.otomads.slice(0, 12) !== b.otomads.slice(0, 12);
 }

@@ -13,11 +13,11 @@ import { keyframes } from "@emotion/react";
 import { UpcomingFan } from "../player/UpcomingFan";
 
 import type { AlbumRecord, DataBundle, MusicEntry } from "../../data/types";
+import { useCurrentDataset } from "../../data/useDataset";
 import { displayTitle } from "../../data/types";
 import { Localization, t } from "../../i18n/localization";
 import type { PlayerApi } from "../../audio/usePlayer";
 import type { TableMap } from "../../music/sources";
-import type { MusicMode } from "../../music/mode";
 import { fadeInSx, NoFontFamily } from "../../theme/theme";
 import { fanCardWidth } from "../player/UpcomingFan";
 import { CharacterCard } from "../components/CharacterCard";
@@ -45,7 +45,6 @@ interface PlayerPanelProps {
   onToggleTemporary: (key: string) => void;
   cardCollection: string;
   /** 音乐模式（原曲 / 音MAD）：只影响"接下来能选哪些曲目" */
-  musicMode: MusicMode;
 }
 
 /** 卡面 = 卡牌选择器卡宽 × 该倍率（用户指定 120%）。 */
@@ -66,14 +65,15 @@ function creditLine(entry: MusicEntry | null, albums: readonly AlbumRecord[]): s
 
 function PlayerPanelInner(props: PlayerPanelProps) {
   const { bundle, player, order, temporaryDisabled, currentKey } = props;
-  const cardSet = bundle.cardSets.find((set) => set.id === props.cardCollection) ?? bundle.cardSets[0]!;
-  const character = bundle.characters.find((item) => item.key === currentKey) ?? null;
+  const dataset = useCurrentDataset(bundle);
+  const cardSet = bundle.shared.cardSets.find((set) => set.id === props.cardCollection) ?? bundle.shared.cardSets[0]!;
+  const character = dataset.characters.find((item) => item.key === currentKey) ?? null;
 
   // 卡面尺寸 = **卡牌选择器的 120%**（卡牌选择器 = 牌桌/轮播用的同一个卡宽比例）。
   // 用 ResizeObserver 跟着卡片宽度走，窄屏宽屏同一套算法（用户要求两端统一布局）。
   // 卡面 = **卡牌选择器（"接下来"卡条）的卡宽 × 120%** —— 直接用选择器自己的尺寸函数，
   // 保证两边永远同一个口径（选择器 = `min(窗口宽×20%, 150)`，见 UpcomingFan.fanCardWidth）。
-  const credit = creditLine(player.entry, props.bundle.albums);
+  const credit = creditLine(player.entry, dataset.albums);
   const [coverWidth, setCoverWidth] = useState(() =>
     Math.round(fanCardWidth(typeof window === "undefined" ? 1280 : window.innerWidth) * COVER_SCALE));
   useEffect(() => {

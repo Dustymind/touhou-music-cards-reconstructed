@@ -1,14 +1,11 @@
 {
  "schema": 1,
- "contentHash": "93bdb1a95d61d291db67c343b0d624f536ab3956ab1956184bdf9c0059277bd2",
+ "mode": "originals",
+ "contentHash": "e95684b826fb82aa15b8a9e1323664a877e92d4bb5097963d2d8a016989b2a47",
  "counts": {
   "characters": 121,
-  "albums": 40,
-  "trackEntries": 464,
-  "distinctTracks": 454,
-  "sources": 4,
-  "cardSets": 6,
-  "packs": 1,
-  "packTracks": 86
+  "albums": 39,
+  "trackEntries": 378,
+  "distinctTracks": 368
  }
 }

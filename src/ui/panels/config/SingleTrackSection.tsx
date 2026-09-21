@@ -9,10 +9,10 @@ import { displayTitle, trackId } from "../../../data/types";
 import { Localization, t } from "../../../i18n/localization";
 import { SectionPanel } from "./SectionCard";
 import { LazyRow } from "../../components/LazyRow";
+import { useCurrentDataset } from "../../../data/useDataset";
 import { usePreset } from "../../../store/preset";
 import { useSingleTrack } from "../../../store/single";
 import { singleModeRows } from "../../../music/presetView";
-import type { MusicMode } from "../../../music/mode";
 
 function entryLabel(entry: MusicEntry): string {
   return `${displayTitle(entry[1])} (${entry[0]})`;
@@ -24,15 +24,15 @@ function entryLabel(entry: MusicEntry): string {
 const FIRST_CHUNK = 12;
 const CHUNK = 12;
 
-function SingleTrackSectionInner({ bundle, musicMode }: { bundle: DataBundle; musicMode: MusicMode }) {
+function SingleTrackSectionInner({ bundle }: { bundle: DataBundle }) {
   const preset = usePreset();
+  const dataset = useCurrentDataset(bundle);
   const single = useSingleTrack();
   const [query, setQuery] = useState("");
 
   const rows = useMemo(
-    () => singleModeRows(preset, bundle.characters, single.pins, single.disabledCharacters, query,
-      bundle.albums, musicMode),
-    [preset, bundle.characters, single.pins, single.disabledCharacters, query, bundle.albums, musicMode],
+    () => singleModeRows(preset, dataset.characters, single.pins, single.disabledCharacters, query),
+    [preset, dataset.characters, single.pins, single.disabledCharacters, query],
   );
 
   // 渐进渲染：先出前 16 行，剩下的在空闲回调里分批补齐（`startTransition` 让 React 可被打断）

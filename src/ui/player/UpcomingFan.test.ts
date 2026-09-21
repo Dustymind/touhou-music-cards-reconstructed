@@ -21,11 +21,11 @@ describe("卡片长条版式", () => {
   });
 
   it("牌堆内容：每个角色的每张卡面都在，且按顺序给出稳定 id", async () => {
-    const bundle = await loadRealBundle();
-    const order = bundle.characters.slice(0, 5).map((character) => character.key);
-    const expected = bundle.characters.slice(0, 5)
+    const dataset = (await loadRealBundle()).datasets.originals;
+    const order = dataset.characters.slice(0, 5).map((character) => character.key);
+    const expected = dataset.characters.slice(0, 5)
       .reduce((sum, character) => sum + character.card.length, 0);
-    const { cards, cardWidth } = fanLayout(bundle, order, 1200);
+    const { cards, cardWidth } = fanLayout(dataset, order, 1200);
     expect(cards).toHaveLength(expected);
     expect(cardWidth).toBe(150);
     expect(cards[0]!.id).toBe(`${order[0]}-0`);
@@ -33,9 +33,9 @@ describe("卡片长条版式", () => {
   });
 
   it("真实数据：整条牌堆的张数 = 全部卡面数", async () => {
-    const bundle = await loadRealBundle();
-    const order = bundle.characters.map((character) => character.key);
-    const total = bundle.characters.reduce((sum, character) => sum + character.card.length, 0);
-    expect(fanLayout(bundle, order, 1200).cards).toHaveLength(total);
+    const dataset = (await loadRealBundle()).datasets.originals;
+    const order = dataset.characters.map((character) => character.key);
+    const total = dataset.characters.reduce((sum, character) => sum + character.card.length, 0);
+    expect(fanLayout(dataset, order, 1200).cards).toHaveLength(total);
   });
 });

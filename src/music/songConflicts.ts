@@ -17,24 +17,20 @@
  * 互斥是**按歌**而不是"连通分量"：`tatara-kogasa` 分别与 `houjuu-nue`、`miyako-yoshika`
  * 各共用一首，但后两者之间没有共同曲目 → 它们可以同时在场上，只有 kogasa 进不来。
  */
-import type { AlbumRecord, CharacterRecord } from "../data/types";
+import type { CharacterRecord } from "../data/types";
 import { trackId } from "../data/types";
 import type { SongConflicts } from "../game/types";
-import { isEntryAllowedInMode, type MusicMode } from "./mode";
 
-/** 派生互斥表；表里没有的角色 = 与谁都不互斥（不必查表）。 */
-export function buildSongConflicts(
-  albums: readonly AlbumRecord[],
-  characters: readonly CharacterRecord[],
-  mode: MusicMode,
-): SongConflicts {
-  /** 曲目 → 用它的角色（只数当前模式下可播的曲目）。 */
+/** 派生互斥表；表里没有的角色 = 与谁都不互斥（不必查表）。
+ *
+ * C 之后传进来的就是**当前模式的数据集**（只含本模式曲目），所以这里不再需要按模式过滤。 */
+export function buildSongConflicts(characters: readonly CharacterRecord[]): SongConflicts {
+  /** 曲目 → 用它的角色 */
   const ownersOfTrack = new Map<string, Set<string>>();
-  /** 当前模式下有曲可播的角色（= 会进卡池的那些） */
+  /** 数据集里有曲目的角色（= 会进卡池的那些） */
   const playable = new Set<string>();
   for (const character of characters) {
     for (const entry of character.music) {
-      if (!isEntryAllowedInMode(albums, entry, mode)) continue;
       playable.add(character.key);
       const id = trackId(entry[0], entry[1]);
       const owners = ownersOfTrack.get(id) ?? new Set<string>();

@@ -5,6 +5,10 @@ import * as rules from "../game/rules";
 import { emptyState, type GameState } from "../game/types";
 import { createRng } from "../rng";
 import { createClientEngine, createHostEngine, helloIntent } from "./engines";
+import type { DataHashes } from "./protocol";
+
+/** 握手比的是**两个模式各一个**哈希（协议 v4 / 契约 §6 C3）。 */
+const HASH: DataHashes = { originals: "hash-aaaaaaaaaaaa", otomads: "hash-cccccccccccc" };
 import { stateDigest, type ClientIntent, type PeerInfo, type SessionConfigWire } from "./protocol";
 import { peerServerOptions } from "./useNet";
 import { BusHub } from "./transport";
@@ -34,7 +38,7 @@ class Endpoint {
         this.config = config;
         this.seed = config.sessionSeed;      // 客户端采用主机种子
       },
-      dataHash: "hash-aaaaaaaaaaaa",
+      dataHash: HASH,
       selfName: this.name,
       onChat: (_from: number, text: string) => this.chat.push(text),
       onError: (message: string) => this.errors.push(message),
@@ -88,7 +92,7 @@ describe("联机引擎", () => {
   it("握手后客户端拿到主机快照与自己的下标", () => {
     const hub = new BusHub();
     const { hostEndpoint, clientEndpoint, clientTransport, host } = connect(hub);
-    clientTransport.sendToHost(helloIntent("Guest", false, "hash-aaaaaaaaaaaa"));
+    clientTransport.sendToHost(helloIntent("Guest", false, HASH));
 
     expect(clientEndpoint.state.deckRows).toBe(2);
     expect(clientEndpoint.peers.map((peer) => peer.name)).toEqual(["Host", "Guest"]);
@@ -100,7 +104,7 @@ describe("联机引擎", () => {
   it("客户端的抢拍意图经主机落地后，两端摘要一致", () => {
     const hub = new BusHub();
     const { hostEndpoint, clientEndpoint, clientTransport } = connect(hub);
-    clientTransport.sendToHost(helloIntent("Guest", false, "hash-aaaaaaaaaaaa"));
+    clientTransport.sendToHost(helloIntent("Guest", false, HASH));
 
     // 主机把当前角色的卡放到客户端那侧（1 号牌桌）
     hostEndpoint.state = rules.setCard(hostEndpoint.state, 1, 0, { characterKey: "a", cardIndex: 0 });
@@ -118,7 +122,7 @@ describe("联机引擎", () => {
     const { hostEndpoint, clientEndpoint, clientTransport } = connect(hub);
     hostEndpoint.seed = 987654;
 
-    clientTransport.sendToHost(helloIntent("Guest", false, "hash-aaaaaaaaaaaa"));
+    clientTransport.sendToHost(helloIntent("Guest", false, HASH));
 
     expect(clientEndpoint.config).toEqual({ musicMode: "originals", sessionSeed: 987654 });
     expect(clientEndpoint.seed).toBe(987654);        // 客户端换成主机的种子
@@ -127,7 +131,7 @@ describe("联机引擎", () => {
   it("主机换种子后，下一份快照把新配置带给客户端（重新抽选）", () => {
     const hub = new BusHub();
     const { hostEndpoint, clientEndpoint, clientTransport, host } = connect(hub);
-    clientTransport.sendToHost(helloIntent("Guest", false, "hash-aaaaaaaaaaaa"));
+    clientTransport.sendToHost(helloIntent("Guest", false, HASH));
     expect(clientEndpoint.seed).toBe(hostEndpoint.seed);
 
     hostEndpoint.seed = 55555;
@@ -140,7 +144,7 @@ describe("联机引擎", () => {
     const hub = new BusHub();
     const { hostEndpoint, clientEndpoint, clientTransport, client } = connect(hub);
     hostEndpoint.seed = 246810;
-    clientTransport.sendToHost(helloIntent("Guest", false, "hash-aaaaaaaaaaaa"));
+    clientTransport.sendToHost(helloIntent("Guest", false, HASH));
     hostEndpoint.seed = 135791;
     client.requestSync();
     expect(clientEndpoint.config!.sessionSeed).toBe(135791);
@@ -149,7 +153,7 @@ describe("联机引擎", () => {
   it("数据哈希不一致 → 拒绝加入并给出可读原因", () => {
     const hub = new BusHub();
     const { clientEndpoint, clientTransport } = connect(hub);
-    clientTransport.sendToHost(helloIntent("Guest", false, "hash-bbbbbbbbbbbb"));
+    clientTransport.sendToHost(helloIntent("Guest", false, { ...HASH, otomads: "hash-bbbbbbbbbbbb" }));
     expect(clientEndpoint.errors.join(" ")).toContain("静态数据不一致");
     expect(clientEndpoint.peers).toEqual([]);
   });
@@ -158,7 +162,7 @@ describe("联机引擎", () => {
     const hub = new BusHub();
     const { clientEndpoint, clientTransport } = connect(hub);
     clientTransport.sendToHost(
-      { ...helloIntent("Guest", false, "hash-aaaaaaaaaaaa"), protocol: 99 } as ClientIntent);
+      { ...helloIntent("Guest", false, HASH), protocol: 99 } as ClientIntent);
     expect(clientEndpoint.errors.join(" ")).toContain("协议版本不一致");
   });
 
@@ -172,7 +176,7 @@ describe("联机引擎", () => {
   it("重连（requestSync）后状态重新对齐", () => {
     const hub = new BusHub();
     const { hostEndpoint, clientEndpoint, clientTransport, client } = connect(hub);
-    clientTransport.sendToHost(helloIntent("Guest", false, "hash-aaaaaaaaaaaa"));
+    clientTransport.sendToHost(helloIntent("Guest", false, HASH));
 
     // 主机推进若干步，客户端错过其中一次广播
     hostEndpoint.state = rules.adjustDeckSize(hostEndpoint.state, 1, 3);
@@ -185,7 +189,7 @@ describe("联机引擎", () => {
   it("旧快照（seq 更小）被忽略，不会把状态打回去", () => {
     const hub = new BusHub();
     const { hostEndpoint, clientEndpoint, clientTransport } = connect(hub);
-    clientTransport.sendToHost(helloIntent("Guest", false, "hash-aaaaaaaaaaaa"));
+    clientTransport.sendToHost(helloIntent("Guest", false, HASH));
 
     // 先收到一份较新的快照（seq 5）
     const newer = rules.adjustDeckSize(hostEndpoint.state, 3, 3);

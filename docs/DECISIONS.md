@@ -3364,6 +3364,53 @@ e2e mobile **9 passed** ✓；"压暗但保留配色"另用 Playwright 截图 + 
 
 ---
 
+## D112 音MAD 与原曲各一份数据集（C：生成物与运行时分离，协议升到 v4）
+
+**需求**（用户）：把两个模式**彻底分开** —— 生成物、加载、运行时都不再共用"一份合并数据 + 一个 mode 参数"。
+契约草案 `docs/otomads-separation-v1.md` 的 6 条待裁定项用户全部按推荐采纳（D2 / A / S1 / C3 / 拒绝 v3 / 数据集不带空角色）；
+在分支 `enhanced-otomad-mode` 上实现。
+
+**做法**：一个模式一份**完整数据集**，共享项各留一份
+
+| 类别 | 文件 |
+|---|---|
+| 共享 | `sources.json` / `cardsets.json` / `packs.json` / `sources/*.json` |
+| 原曲 | `public/data/{index,characters,albums}.json` —— **121** 角色 / 378 条 / 去重 368 / 39 专辑 |
+| 音MAD | `public/data/otomads/{index,characters,albums}.json` —— **35** 角色 / 86 条 / 去重 86 / 1 专辑 |
+
+每份 `index.json` 带 `mode` 与自己的 `contentHash`；并集 **464 条 / 454 首去重**与分离前一致。
+角色身份仍只有**一处真源**（`data/characters/*.toml`，契约 S1），两份生成物各投影一份，
+跨模式一致性由 `tmc.validate` 新增的 `check_datasets()` 守（`name`/`order`/`card`/`searchNames` 必须相同）。
+
+| 位置 | 改动 |
+|---|---|
+| `tools/src/tmc/build.py` | 删 `apply_tracks()`；`build_characters(mode)` / `build_albums(mode)` / `build_index(mode)`；共享项只写一次 |
+| `tools/src/tmc/validate.py` | 新增 `check_datasets()`（每份只含本模式曲目 / 各自不重复 / 跨模式身份一致）；原曲那套检查跑在真源上（曲包曲目不再混进来） |
+| `src/data/{types,load}.ts` | `DataBundle` → `{ shared, datasets: Record<MusicMode, ModeDataset> }`；两个数据集**启动时都取**（策略 A，没有"切模式取数据失败"这条路） |
+| `src/data/useDataset.ts`（新） | `useCurrentDataset(bundle)` / `datasetFor(bundle, mode)` |
+| `src/music/mode.ts` | 删 6 个判定（`packOfAlbum` / `modeOfEntry` / `isEntryAllowedInMode` / `filterByMode` / `hasTracksInMode` / `firstAllowedInMode`）；留 `MusicMode` 与 `effectiveSourceOverrides` |
+| `selection.ts` / `presetView.ts` / `songConflicts.ts` | 去掉 `albums + mode` 参数（17 处传参消失） |
+| 面板 | `ListPanel` / `ConfigPanel` / `PresetSection` / `SingleTrackSection` / `GamePanel` / `PlayerPanel` / `UpcomingFan` 自取当前数据集，`musicMode` 传参全部消失 |
+| `src/net/*` | **协议 v4**：`DataHashes {originals, otomads}`，`hello` / `PeerInfo` 带两个哈希，`dataHashMismatch` 两个都比 |
+
+**为什么协议要动**：D107 §6 的保证是"两端数据不同 → **握手期**就拒"。数据分成两份之后，
+只比一个哈希会让"一方缺 otomads 数据"拖到**切模式时**才炸（C2），而保留总哈希（C1）又让"分离"在联机口径上名义化。
+所以两个哈希都交换、都校验（C3）；代价是 v3 客户端直接拒绝加入（无兼容层，收益不值那两条握手路径）。
+
+**放弃与缓解**：多曲包扩展性（第三个曲包要再加一套数据集）。缓解：`datasets` 写成**按模式 id 的表**
+而不是两个字段，将来加包 = 加一个 key + 一份生成物 +（若哈希仍要覆盖它）一次协议字段扩展。
+
+**验证**：`pnpm data:check` 无漂移 ✓、`pnpm data:validate` 通过 ✓、`uv run pytest` **84 passed** ✓、
+`pnpm typecheck` ✓、`pnpm test` **548 passed**（274 条 × chromium + firefox）✓、
+`pnpm e2e` **74 passed + 1 skipped**（chromium 33 / firefox 32+1 / mobile 9）✓ ——
+其中新增 `e2e/multiplayer.spec.ts` 的**握手期拒绝**用例（访客页被注入"另一份"哈希 → 主机拒、
+大厅显示原因、主机不把它算进参与者），两个桌面引擎都跑 ✓。
+
+**回滚**：C 同时动了生成物与协议版本，回滚要两件一起退（`public/data` + `PROTOCOL_VERSION`）；
+全程在 `enhanced-otomad-mode` 分支，未确认不合并 `main`。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |

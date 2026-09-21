@@ -16,6 +16,7 @@ import { selectSessionSeed, useSeeds } from "../../store/seeds";
 import { useSources } from "../../music/useSources";
 import { usePlayer } from "../../audio/usePlayer";
 import { allowedTracks, mergeWithDefaults } from "../../music/selection";
+import { useCurrentDataset } from "../../data/useDataset";
 import { effectiveSourceOverrides } from "../../music/mode";
 import { effectivePin } from "../../music/presetView";
 import { useSingleTrack } from "../../store/single";
@@ -41,6 +42,14 @@ export function aliceLabel(smallScreen: boolean): string {
   return ALICE_LABELS[stableHash("Alice") % ALICE_LABELS.length]!;
 }
 
+/** 联机握手要比的**两个**数据哈希（一个模式一个，契约 `docs/otomads-separation-v1.md` §6 C3）。 */
+export function dataHashes(bundle: DataBundle): Record<string, string> {
+  return {
+    originals: bundle.datasets.originals.index.contentHash,
+    otomads: bundle.datasets.otomads.index.contentHash,
+  };
+}
+
 export function AppShell({ bundle }: { bundle: DataBundle }) {
   /** 窄屏：页签折到第二行、彩蛋文案用短版（上游也是小屏显示 "Alice!"） */
   const isSmallScreen = useMediaQuery("(max-width: 599.95px)");
@@ -48,6 +57,8 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
     tab, setTab, locale, cardCollection, sourceOverrides, musicMode, localMusicUrl,
     entryRequest, setEntryRequest,
   } = useSession();
+  /** 当前音乐模式的数据集（C：两个模式各一份，切换即换这份） */
+  const dataset = useCurrentDataset(bundle);
   const preset = usePreset();
   const queue = useQueue();
   const single = useSingleTrack();
@@ -63,17 +74,17 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
 
   // 联机握手要用静态数据哈希：挂在 window 上，避免层层透传
   useEffect(() => {
-    (window as unknown as { __TMC_DATA_HASH__?: string }).__TMC_DATA_HASH__ = bundle.index.contentHash;
-  }, [bundle.index.contentHash]);
+    (window as unknown as { __TMC_DATA_HASH__?: Record<string, string> }).__TMC_DATA_HASH__ = dataHashes(bundle);
+  }, [bundle]);
 
   // 预设：持久化状态与新专辑默认勾选合并（首帧就要用它算队列，不能等 effect）
-  const activePreset = useMemo(() => mergeWithDefaults(preset, bundle.albums), [preset, bundle.albums]);
+  const activePreset = useMemo(() => mergeWithDefaults(preset, dataset.albums), [preset, dataset.albums]);
 
   // 把合并结果写回 store：配置页读的是 store，首帧之后必须与 activePreset 一致
   // （否则界面会显示"全部未勾选"，而队列却按默认全选在跑 —— 浏览器实测踩到过）
   // 预设按模式分键（B）：切模式要 sync **新那把**，否则切过去第一眼还是"全部未勾选"
   useEffect(() => {
-    preset.sync(bundle.albums);
+    preset.sync(dataset.albums);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bundle, musicMode]);
 
@@ -81,20 +92,21 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
   const pinned = useMemo(() => {
     if (!single.enabled) return {};
     const pins: Record<string, MusicEntry> = {};
-    for (const character of bundle.characters) {
-      const entry = effectivePin(activePreset, character, single.pins, bundle.albums, musicMode);
+    for (const character of dataset.characters) {
+      const entry = effectivePin(activePreset, character, single.pins);
       if (entry) pins[character.key] = entry;
     }
     return pins;
-  }, [single.enabled, single.pins, activePreset, bundle.characters, bundle.albums, musicMode]);
+  }, [single.enabled, single.pins, activePreset, dataset.characters]);
 
+  // C：数据集只含本模式有曲目的角色，所以"可用"只剩"预设允许且未被单曲模式禁用"
   const usableKeys = useMemo(
-    () => bundle.characters
+    () => dataset.characters
       .filter((character) =>
-        allowedTracks(activePreset, character, undefined, bundle.albums, musicMode).entries.length > 0
+        allowedTracks(activePreset, character).entries.length > 0
         && !single.disabledCharacters[character.key])
       .map((character) => character.key),
-    [activePreset, bundle.characters, bundle.albums, musicMode, single.disabledCharacters],
+    [activePreset, dataset.characters, single.disabledCharacters],
   );
 
   // 队列跟着"可用角色集合"走：新增角色追加到末尾，消失的剔除，保留用户顺序
@@ -106,10 +118,10 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
 
   // 音MAD 模式的曲目只存在于本地曲库 → 临时打开本地源（不改写用户设置）
   const activeSourceOverrides = useMemo(
-    () => effectiveSourceOverrides(bundle.sources, sourceOverrides, musicMode),
-    [bundle.sources, sourceOverrides, musicMode],
+    () => effectiveSourceOverrides(bundle.shared.sources, sourceOverrides, musicMode),
+    [bundle.shared.sources, sourceOverrides, musicMode],
   );
-  const sources = useSources(bundle.sources, activeSourceOverrides, localMusicUrl);
+  const sources = useSources(bundle.shared.sources, activeSourceOverrides, localMusicUrl);
 
   // 列表页点播：把"选中的那一首"并进 pinned（播放器本来就有"角色 → 指定曲目"的机制），
   // 于是 entry 的解析结果就是用户点的那一首；单曲模式的 pin 仍然生效，点播优先。
@@ -119,13 +131,11 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
   }, [pinned, entryRequest]);
 
   const player = usePlayer({
-    characters: bundle.characters,
-    albums: bundle.albums,
+    dataset,
     tables: sources.tables,
     sourceOrder: sources.order,
     preset: activePreset,
     pinned: pinnedWithRequest,
-    mode: musicMode,
     // 对局中：忽略音乐预设（= 全曲库 ✓），并排除本局已播过的曲目 ✓
     ignorePreset: gameActive,
     played: game.playedTracks,
@@ -181,7 +191,7 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
   }, [phase]);
 
   const jumpToAlice = () => {
-    const alice = bundle.characters.find((character) => character.key === "alice-margatroid");
+    const alice = dataset.characters.find((character) => character.key === "alice-margatroid");
     setTab("player");
     if (alice) queue.setCurrent(alice.key);
   };
@@ -246,7 +256,7 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
             color="text.secondary"
             sx={{ whiteSpace: "nowrap", display: { xs: "none", md: "block" } }}
           >
-            {t(Localization.ShellDataHash)} {bundle.index.contentHash.slice(0, 12)} · {locale}
+            {t(Localization.ShellDataHash)} {dataset.index.contentHash.slice(0, 12)} · {locale}
           </Typography>
           <Button color="secondary" onClick={jumpToAlice} disabled={gameActive} sx={{ minWidth: 0 }}>
             {aliceLabel(isSmallScreen)}
@@ -275,20 +285,18 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
             }}
             onSort={() => { player.pause(); queue.regenerate(usableKeys, false); }}
             onToggleTemporary={(key) => queue.toggleTemporary(key)}
-            musicMode={musicMode}
             />
           )}
           {tab === "list" && (
             <ListPanel
               bundle={bundle}
-              musicMode={musicMode}
               onPlayTrack={playTrack}
               playingKey={gameActive ? game.currentKey : queue.currentKey}
               playingEntry={player.entry}
             />
           )}
           {tab === "config" && (
-            <ConfigPanel bundle={bundle} tables={sources.tables} musicMode={musicMode} />
+            <ConfigPanel bundle={bundle} tables={sources.tables} />
           )}
           {tab === "game" && <GamePanel bundle={bundle} />}
         </Stack>

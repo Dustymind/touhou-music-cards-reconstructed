@@ -41,7 +41,7 @@ cd tools && UV_CACHE_DIR=.uv/cache uv run python -m tmc.fetch_audio --track 岁�
 
 数据由 `pnpm data:check` 守住：**121 个角色 / 40 张专辑 / 464 条角色曲目条目（454 首去重曲目）/ 6 套卡面**；
 另有**音MAD 曲包 86 首（35 个角色）**，音频走本地曲库助手。
-测试基线：`pnpm test` **550 passed**（275 条 × chromium + firefox，两个引擎都跑）、`uv run pytest` **84 条**、e2e **72 条通过 + 1 条跳过**。
+测试基线：`pnpm test` **548 passed**（274 条 × chromium + firefox，两个引擎都跑）、`uv run pytest` **84 条**、e2e **74 条通过 + 1 条跳过**。
 完整的现状表（含每一项的复现命令）与文档索引见 [`docs/README.md`](docs/README.md)。
 
 ## 怎么玩
@@ -68,7 +68,7 @@ cd tools && UV_CACHE_DIR=.uv/cache uv run python -m tmc.fetch_audio --track 岁�
 
 | 命令 | 作用 |
 |---|---|
-| `pnpm typecheck` / `pnpm test` | 类型检查 / 单测（275 条，chromium + firefox 两个引擎） |
+| `pnpm typecheck` / `pnpm test` | 类型检查 / 单测（274 条，chromium + firefox 两个引擎） |
 | `pnpm test:chromium` / `pnpm test:firefox` | 只跑其中一个引擎（调试用） |
 | `pnpm e2e` | 浏览器端到端：chromium + firefox + 移动端（Pixel 7） |
 | `pnpm e2e:chromium` / `pnpm e2e:firefox` / `pnpm e2e:mobile` | 只跑其中一端（调试用） |

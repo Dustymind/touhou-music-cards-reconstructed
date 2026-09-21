@@ -1,6 +1,6 @@
 # 音MAD 与原曲分离契约 v1（生成物与运行时两套数据集）
 
-**状态：草案（未实现）**。§10 的 6 条待用户裁定；裁定后按本文实现，实现结果与偏差另起一节记录。
+**状态：已实现**（D112，分支 `enhanced-otomad-mode`）。§10 的 6 条按推荐全部采纳（用户裁定）；实现结果见 §11。
 
 对象：`public/data/*.json` 的**布局**、`tools/src/tmc/build.py` 的产出、前端 `DataBundle` 的加载，
 以及联机握手用的 `contentHash` 口径。
@@ -194,9 +194,47 @@ C 同时动了**生成物**与**协议版本**，回滚要两件一起退：`git
 
 | # | 问题 | 推荐 | 另一选项的代价 |
 |---|---|---|---|
-| **Q1** | 生成物布局：D2（共享项 + 每模式一份）/ D1（每模式一个完整目录） | **D2** | D1 重复约 15 KB 且 `loudness` 有两份真源 |
-| **Q2** | 加载策略：A 启动全取 / B 切模式懒加载 | **A** | B 省 17 KB，但要新增"切模式取数据失败"的界面与重试 |
-| **Q3** | 角色身份：S1 共享真源 / S2 各自真源 | **S1** | S2 多一份要人维护的名单，且今天只能带来"顺序/别名不同" |
-| **Q4** | 哈希口径：C1 总哈希 / C2 只比当前模式 / C3 两个都交换 | **C3** | C1 名义化；C2 把失败拖到切模式；C3 需要协议 v4 |
-| **Q5** | 协议 v4 的兼容策略：直接拒绝 v3 客户端 / 允许 v3 只打原曲 | **直接拒绝**（与现有 `PROTOCOL_VERSION` 行为一致） | 兼容层要维护两条握手路径，收益低 |
-| **Q6** | 音MAD 数据集里要不要保留"没有音MAD 曲目的角色"（今天 121 − 35 = 86 个） | **不保留**（数据集只含能用上的 35 个） | 保留的话列表页要再过滤一次，等于把今天的问题搬过去 |
+| **Q1** | 生成物布局：D2（共享项 + 每模式一份）/ D1（每模式一个完整目录） | **D2 ✅ 已采纳** | D1 重复约 15 KB 且 `loudness` 有两份真源 |
+| **Q2** | 加载策略：A 启动全取 / B 切模式懒加载 | **A ✅ 已采纳** | B 省 17 KB，但要新增"切模式取数据失败"的界面与重试 |
+| **Q3** | 角色身份：S1 共享真源 / S2 各自真源 | **S1 ✅ 已采纳** | S2 多一份要人维护的名单，且今天只能带来"顺序/别名不同" |
+| **Q4** | 哈希口径：C1 总哈希 / C2 只比当前模式 / C3 两个都交换 | **C3 ✅ 已采纳**（协议升到 **v4**） | C1 名义化；C2 把失败拖到切模式；C3 需要协议 v4 |
+| **Q5** | 协议 v4 的兼容策略：直接拒绝 v3 客户端 / 允许 v3 只打原曲 | **直接拒绝 ✅ 已采纳**（与现有 `PROTOCOL_VERSION` 行为一致） | 兼容层要维护两条握手路径，收益低 |
+| **Q6** | 音MAD 数据集里要不要保留"没有音MAD 曲目的角色"（今天 121 − 35 = 86 个） | **不保留 ✅ 已采纳**（数据集只含能用上的 35 个） | 保留的话列表页要再过滤一次，等于把今天的问题搬过去 |
+
+---
+
+## 11. 实现记录（D112）
+
+**生成物**（`pnpm data:build` 写出 12 个文件）：
+
+| 文件 | 内容 |
+|---|---|
+| `public/data/{index,characters,albums}.json` | 原曲：**121** 角色 / 378 条 / 去重 368 / 39 专辑 |
+| `public/data/otomads/{index,characters,albums}.json` | 音MAD：**35** 角色 / 86 条 / 去重 86 / 1 专辑 |
+| `public/data/{sources,cardsets,packs}.json`、`sources/*.json` | 共享（与模式无关） |
+
+- 每份 `index.json` 带 `mode` 与自己的 `contentHash`；并集 **464 条 / 454 首去重**与分离前一致。
+- `build.py`：删 `apply_tracks()`，改 `build_characters(mode)` / `build_albums(mode)` / `build_index(mode)`。
+- `validate.py`：新增 `check_datasets()` —— 每份只含本模式曲目、各自的 `(角色,专辑,曲目)` 不重复、
+  **跨模式身份一致**（`name`/`order`/`card`/`searchNames`）；原曲那套检查跑在真源上（曲包曲目不再混进去）。
+
+**前端**：
+
+| 位置 | 改动 |
+|---|---|
+| `src/data/{types,load}.ts` | `DataBundle` → `{ shared, datasets: Record<MusicMode, ModeDataset> }`；两个数据集启动时都取（策略 A） |
+| `src/data/useDataset.ts`（新） | `useCurrentDataset(bundle)` / `datasetFor(bundle, mode)` |
+| `src/music/mode.ts` | 删 6 个判定（`packOfAlbum` / `modeOfEntry` / `isEntryAllowedInMode` / `filterByMode` / `hasTracksInMode` / `firstAllowedInMode`）；留 `MusicMode` 与 `effectiveSourceOverrides` |
+| `selection.ts` / `presetView.ts` | `allowedTracks` / `countEnabled` / `presetStats` / `singleModeRows` / `effectivePin` 去掉 `albums + mode` 参数（17 处传参消失） |
+| `songConflicts.ts` | `buildSongConflicts(characters)`：传进来的就是当前数据集 |
+| 面板 | `ListPanel` / `ConfigPanel` / `PresetSection` / `SingleTrackSection` / `GamePanel` / `PlayerPanel` / `UpcomingFan` 收 `bundle` 后自取当前数据集；`musicMode` 传参全部消失 |
+| `src/net/*` | **协议 v4**：`DataHashes {originals, otomads}`，`hello` 与 `PeerInfo` 都带两个哈希，`dataHashMismatch` 两个都比 |
+
+**验证**：`pnpm data:check` 无漂移 ✓、`uv run pytest` **84 passed** ✓、`pnpm typecheck` ✓、
+`pnpm test` **548 passed**（274 条 × chromium + firefox）✓、
+`pnpm e2e` **74 passed + 1 skipped**（chromium 33 / firefox 32+1 / mobile 9）✓ ——
+其中新增 `e2e/multiplayer.spec.ts` 的**握手期拒绝**用例（访客页被注入"另一份"哈希 → 主机拒、
+大厅显示原因、主机不把它算进参与者），两个桌面引擎都跑 ✓。
+
+**与草案的偏差**：无。`apply_tracks()` 与 6 个判定确实删掉了；`packs.json` 因为"只描述有哪些包"
+留在共享项（草案 §2 就是这么写的）。

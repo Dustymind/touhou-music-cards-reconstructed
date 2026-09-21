@@ -1,13 +1,23 @@
 import { act } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { AlbumRecord, CharacterRecord } from "../data/types";
+import type { AlbumRecord, CharacterRecord, ModeDataset } from "../data/types";
 import { defaultPreset } from "../music/selection";
 import { buildEntries, type TableMap } from "../music/sources";
 import { BELL_DURATION_MS } from "./bell";
 import { gainKeyOf } from "./usePlayer";
 import { fakeTables, installFakeAudio, renderHook, type FakeAudio } from "../test-utils";
 import { usePlayer, type PlayerInputs } from "./usePlayer";
+/** C：播放器现在收"当前模式的数据集"（只含本模式曲目），测试自己拼一份最小数据集。 */
+function fakeDataset(characters: CharacterRecord[], albums: AlbumRecord[]): ModeDataset {
+  return {
+    mode: "originals",
+    index: { schema: 1, mode: "originals", contentHash: "fake-hash-1234", counts: { characters: characters.length, albums: albums.length, trackEntries: 0, distinctTracks: 0 } },
+    characters, albums,
+    characterByKey: new Map(characters.map((character) => [character.key, character])),
+    albumByName: new Map(albums.map((album) => [album.name, album])),
+  };
+}
 
 const albums: AlbumRecord[] = [{ key: "th06", name: "紅魔郷", kind: "game", pack: "originals", order: 1 }];
 const cirno: CharacterRecord = {
@@ -24,11 +34,9 @@ const marisa: CharacterRecord = {
 
 function inputs(overrides: Partial<PlayerInputs> = {}): PlayerInputs {
   return {
-    characters: [cirno, marisa],
-    albums,
+    dataset: fakeDataset([cirno, marisa], albums),
     tables: fakeTables([[["紅魔郷", "おてんば恋娘"], ["紅魔郷", "恋色マスタースパーク"], ["紅魔郷", "オリエンタルダークフライト"]]]),
     sourceOrder: ["fake"],
-    mode: "originals",
     preset: defaultPreset(albums),
     pinned: {},
     currentKey: "cirno",

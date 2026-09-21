@@ -1,13 +1,9 @@
 /** 曲目互斥表（D108）：同一首歌只能对应一个角色、同一角色只允许一张卡面。 */
 import { describe, expect, it } from "vitest";
 
-import type { AlbumRecord, CharacterRecord, MusicEntry } from "../data/types";
+import type { CharacterRecord, MusicEntry } from "../data/types";
 import { loadRealBundle } from "../test-utils";
 import { buildSongConflicts } from "./songConflicts";
-
-const album = (name: string, pack = "originals"): AlbumRecord => ({
-  key: name, name, kind: "game", pack, order: 0,
-});
 
 const character = (
   key: string,
@@ -15,16 +11,15 @@ const character = (
   card: string[] = [`${key}.png`],
 ): CharacterRecord => ({ key, name: key, order: 0, card, searchNames: [key], music });
 
-const ALBUMS = [album("原曲盘"), album("音MAD盘", "otomads")];
 
 describe("buildSongConflicts", () => {
   it("共用一首曲子的角色互相排斥；只间接相连的不算（按歌，不是连通分量）", () => {
-    const table = buildSongConflicts(ALBUMS, [
+    const table = buildSongConflicts([
       character("a", [["原曲盘", "x", "角色曲"]]),
       character("b", [["原曲盘", "x", "角色曲"], ["原曲盘", "y", "角色曲"]]),
       character("c", [["原曲盘", "y", "角色曲"]]),
       character("d", [["原曲盘", "z", "角色曲"]]),
-    ], "originals");
+    ]);
 
     expect(table["a"]).toEqual(["b"]);
     expect(table["b"]).toEqual(["a", "c"]);
@@ -36,35 +31,32 @@ describe("buildSongConflicts", () => {
   });
 
   it("同一角色的多张卡面互相排斥（自链接）", () => {
-    const table = buildSongConflicts(ALBUMS, [
+    const table = buildSongConflicts([
       character("sisters", [["原曲盘", "x", "角色曲"]], ["l.png", "m.png", "r.png"]),
       character("single", [["原曲盘", "y", "角色曲"]]),
-    ], "originals");
+    ]);
 
     expect(table).toEqual({ sisters: ["sisters"] });
   });
 
-  it("只数当前音乐模式的曲目：另一模式里的重复不算", () => {
+  it("同一专辑里两个角色共用一首曲目照样互斥（模式过滤已不在这一层）", () => {
     const characters = [
       character("a", [["音MAD盘", "m", "角色曲"]]),
       character("b", [["音MAD盘", "m", "角色曲"]]),
     ];
-    expect(buildSongConflicts(ALBUMS, characters, "originals")).toEqual({});
-    expect(buildSongConflicts(ALBUMS, characters, "otomads")).toEqual({ a: ["b"], b: ["a"] });
+    // C：数据集自己就是"某个模式的那份"，所以同样的角色表交给它即可
+    expect(buildSongConflicts([characters[0]!])).toEqual({});
+    expect(buildSongConflicts(characters)).toEqual({ a: ["b"], b: ["a"] });
   });
 
-  it("该模式下没曲可播的角色不进表（不会留下空转的自链接）", () => {
-    const table = buildSongConflicts(ALBUMS, [
-      character("sisters", [["原曲盘", "x", "角色曲"]], ["l.png", "m.png"]),
-    ], "otomads");
-    expect(table).toEqual({});
-  });
+  // C 之后没有"在数据集里但本模式不可播"的角色了：数据集只含本模式有曲目的角色
+  // （由 `tmc.validate` 的 check_datasets 守），所以"空转自链接"这一类不可能再出现。
 });
 
 describe("真实数据（public/data）", () => {
   it("原曲模式的 10 首共用曲目全在表里，且不误伤只间接相连的角色", async () => {
     const bundle = await loadRealBundle();
-    const table = buildSongConflicts(bundle.albums, bundle.characters, "originals");
+    const table = buildSongConflicts(bundle.datasets.originals.characters);
 
     // 琪露诺 / 若鹭姬 共用《ミストレイク》
     expect(table["cirno"]).toEqual(["wakasagihime"]);
@@ -87,7 +79,7 @@ describe("真实数据（public/data）", () => {
 
   it("音MAD 模式没有跨角色重复（只剩多卡面的自链接）", async () => {
     const bundle = await loadRealBundle();
-    const table = buildSongConflicts(bundle.albums, bundle.characters, "otomads");
+    const table = buildSongConflicts(bundle.datasets.otomads.characters);
     for (const [key, related] of Object.entries(table)) {
       expect(related.every((other) => other === key), key).toBe(true);
     }

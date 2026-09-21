@@ -16,7 +16,7 @@ import { memo, useCallback, useDeferredValue, useMemo, useState } from "react";
 import type { CharacterRecord, DataBundle, MusicEntry } from "../../data/types";
 import { displayTitle } from "../../data/types";
 import { Localization, t } from "../../i18n/localization";
-import { filterByMode, hasTracksInMode, type MusicMode } from "../../music/mode";
+import { useCurrentDataset } from "../../data/useDataset";
 import { currentQueue, useQueue } from "../../store/queue";
 import { MD2, NoFontFamily } from "../../theme/theme";
 
@@ -25,8 +25,6 @@ const EXPAND_MS = { enter: 250, exit: 200 } as const;
 
 interface ListPanelProps {
   bundle: DataBundle;
-  /** 音乐模式：列表只列**当前模式下有曲可播**的角色，行内曲目也只列该模式的（B） */
-  musicMode: MusicMode;
   /** 点某一首曲目 → 立刻播这一首（播放能力由外壳提供） */
   onPlayTrack?: (key: string, entry: MusicEntry) => void;
   /** 正在播放的角色 / 曲目：用于把"正在播的这首"高亮出来 */
@@ -34,7 +32,9 @@ interface ListPanelProps {
   playingEntry?: MusicEntry | null;
 }
 
-function ListPanelInner({ bundle, musicMode, onPlayTrack, playingKey, playingEntry }: ListPanelProps) {
+function ListPanelInner({ bundle, onPlayTrack, playingKey, playingEntry }: ListPanelProps) {
+  // C：数据集已经只含**当前模式**的角色与曲目，不再需要按 album.pack 过滤（B 的那层过滤删掉）
+  const dataset = useCurrentDataset(bundle);
   const [query, setQuery] = useState("");
   /** 展开的角色（默认全部折叠） */
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(() => new Set());
@@ -58,26 +58,20 @@ function ListPanelInner({ bundle, musicMode, onPlayTrack, playingKey, playingEnt
     });
   }, []);
 
-  /** 当前模式下有曲可播的角色数（计数行的分母：音MAD 下是 35，不是 121） */
-  const playableCount = useMemo(
-    () => bundle.characters.filter((character) => hasTracksInMode(bundle.albums, character, musicMode)).length,
-    [bundle.characters, bundle.albums, musicMode],
-  );
+  /** 计数行的分母：数据集里有曲目的角色数（音MAD 是 35，不是 121） */
+  const playableCount = dataset.characters.length;
 
   const rows = useMemo(() => {
     const needle = deferredQuery.trim().toLowerCase();
-    return bundle.characters
+    return dataset.characters
       .slice()
       .sort((a, b) => a.order - b.order)
-      .filter((character) => hasTracksInMode(bundle.albums, character, musicMode))
-      // 行内只留当前模式的曲目：音MAD 模式下列表不该出现原曲曲名（B）
-      .map((character) => ({ ...character, music: filterByMode(bundle.albums, character.music, musicMode) }))
       .filter((character) => {
         if (!needle) return true;
         return [character.name, character.key, ...character.searchNames]
           .some((name) => name.toLowerCase().includes(needle));
       });
-  }, [bundle.characters, bundle.albums, musicMode, deferredQuery]);
+  }, [dataset.characters, deferredQuery]);
 
   /** 正在播放的那一首（角色 + 专辑 + 曲名），用于高亮；只算一次传给各行 */
   const playing = useMemo(

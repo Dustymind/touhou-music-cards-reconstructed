@@ -1,0 +1,1111 @@
+{
+ "schema": 1,
+ "characters": [
+  {
+   "key": "kirisame-marisa",
+   "name": "霧雨魔理沙",
+   "order": 1,
+   "card": [
+    "魔理沙.png"
+   ],
+   "searchNames": [
+    "霧雨魔理沙",
+    "Kirisame Marisa",
+    "雾雨魔理沙",
+    "wuyu molisha"
+   ],
+   "music": [
+    [
+     "otomads",
+     "普通肥猫魔法使",
+     "角色曲",
+     "川先僧"
+    ]
+   ]
+  },
+  {
+   "key": "alice-margatroid",
+   "name": "アリス・マーガトロイド",
+   "order": 2,
+   "card": [
+    "アリス＆上海蓬莱.png"
+   ],
+   "searchNames": [
+    "アリス・マーガトロイド",
+    "Arisu Magatoroido",
+    "Alice Margatroid",
+    "爱丽丝·玛格特罗依德",
+    "ailisi mageteluoyide",
+    "爱丽丝·玛格特洛依德"
+   ],
+   "music": [
+    [
+     "otomads",
+     "电棍裁判 ~ 玩弄唢呐的选手",
+     "角色曲",
+     "鞍山侯国玉电乐团"
+    ],
+    [
+     "otomads",
+     "【东方电气棍】鞍山的唢呐师",
+     "角色曲",
+     "鞍山侯国玉电乐团"
+    ]
+   ]
+  },
+  {
+   "key": "hakurei-reimu",
+   "name": "博麗霊夢",
+   "order": 3,
+   "card": [
+    "霊夢.png"
+   ],
+   "searchNames": [
+    "博麗霊夢",
+    "Hakurei Reimu",
+    "博丽灵梦",
+    "boli lingmeng"
+   ],
+   "music": [
+    [
+     "otomads",
+     "恶俗小径　～ Chaoshan Path",
+     "角色曲",
+     "nulla"
+    ],
+    [
+     "otomads",
+     "♿春色小径（心绮楼Ver.）",
+     "角色曲",
+     "弦卷こころOfficial"
+    ],
+    [
+     "otomads",
+     "【缺明星】少女绮想曲",
+     "角色曲",
+     "FFFanwen"
+    ]
+   ]
+  },
+  {
+   "key": "rumia",
+   "name": "ルーミア",
+   "order": 4,
+   "card": [
+    "ルーミア.png"
+   ],
+   "searchNames": [
+    "ルーミア",
+    "Rumia",
+    "露米娅",
+    "lumiya"
+   ],
+   "music": [
+    [
+     "otomads",
+     "露米娅的██视频流出",
+     "角色曲",
+     "木大的雷某"
+    ],
+    [
+     "otomads",
+     "妖魔夜行！",
+     "角色曲",
+     "芙兰厨陈YuYue"
+    ]
+   ]
+  },
+  {
+   "key": "daiyousei",
+   "name": "大妖精",
+   "order": 5,
+   "card": [
+    "大妖精.png"
+   ],
+   "searchNames": [
+    "大妖精",
+    "Daiyousei",
+    "大妖精",
+    "dayaojing"
+   ],
+   "music": [
+    [
+     "otomads",
+     "[原图不使用]Lunate Elf♿",
+     "角色曲",
+     "黑区awa"
+    ]
+   ]
+  },
+  {
+   "key": "cirno",
+   "name": "チルノ",
+   "order": 6,
+   "card": [
+    "チルノ.png"
+   ],
+   "searchNames": [
+    "チルノ",
+    "Cirno",
+    "琪露诺",
+    "qilunuo"
+   ],
+   "music": [
+    [
+     "otomads",
+     "东方原曲大致最开始的音的おてんば恋娘",
+     "角色曲",
+     "きゅーみぅ"
+    ],
+    [
+     "otomads",
+     "无何有之棍 ~ Deep Silver",
+     "角色曲",
+     "鞍山侯国玉电乐团"
+    ]
+   ]
+  },
+  {
+   "key": "hong-meiling",
+   "name": "紅美鈴",
+   "order": 7,
+   "card": [
+    "美鈴.png"
+   ],
+   "searchNames": [
+    "紅美鈴",
+    "Hong Meiling",
+    "红美铃",
+    "hongmeiling"
+   ],
+   "music": [
+    [
+     "otomads",
+     "【东方馅挂炒饭】上海红茶馆",
+     "角色曲",
+     "拔剑Sketon"
+    ],
+    [
+     "otomads",
+     "【东方电气棍】鞍山红茶馆 ~ Chinese Tea",
+     "角色曲",
+     "Chyan_184"
+    ],
+    [
+     "otomads",
+     "明治十七年の上郡アリス",
+     "角色曲",
+     "Rokkan"
+    ]
+   ]
+  },
+  {
+   "key": "koakuma",
+   "name": "小悪魔",
+   "order": 8,
+   "card": [
+    "小悪魔.png"
+   ],
+   "searchNames": [
+    "小悪魔",
+    "Koakuma",
+    "小恶魔",
+    "xiaoemo"
+   ],
+   "music": [
+    [
+     "otomads",
+     "Masuo魔法図書館",
+     "角色曲",
+     "地下部 vs Rinsaku vs 逢封fn_eg vs Moonview210 vs chleain"
+    ]
+   ]
+  },
+  {
+   "key": "patchouli-knowledge",
+   "name": "パチュリー・ノーレッジ",
+   "order": 9,
+   "card": [
+    "パチュリー.png"
+   ],
+   "searchNames": [
+    "パチュリー・ノーレッジ",
+    "Pachuri Noredji",
+    "Patchouli Knowledge",
+    "帕秋莉·诺蕾姬",
+    "paqiuli nuoleiji"
+   ],
+   "music": [
+    [
+     "otomads",
+     "【183／东方电气棍】Locked Girl ~ 室密棍哥",
+     "角色曲",
+     "_Karacher_"
+    ]
+   ]
+  },
+  {
+   "key": "izayoi-sakuya",
+   "name": "十六夜咲夜",
+   "order": 10,
+   "card": [
+    "咲夜.png"
+   ],
+   "searchNames": [
+    "十六夜咲夜",
+    "Izayoi Sakuya",
+    "十六夜咲夜",
+    "shiliuye xiaoye"
+   ],
+   "music": [
+    [
+     "otomads",
+     "月时盆",
+     "角色曲",
+     "打酱油的小火柴 & 长叶松烯"
+    ],
+    [
+     "otomads",
+     "【音MAD】バグ ナイワケ ナイツ",
+     "角色曲",
+     "ねむちゃんぐ"
+    ],
+    [
+     "otomads",
+     "【东方都映冢】Flowering Night【音MAD】",
+     "角色曲",
+     "SYLVASTER"
+    ],
+    [
+     "otomads",
+     "【音MAD】2020骑士之夜合作",
+     "角色曲",
+     "NOVA音MAD社"
+    ],
+    [
+     "otomads",
+     "【东方馅挂炒饭】night♂of knight",
+     "角色曲",
+     "van艺复泄"
+    ]
+   ]
+  },
+  {
+   "key": "remilia-scarlet",
+   "name": "レミリア・スカーレット",
+   "order": 11,
+   "card": [
+    "レミリア.png"
+   ],
+   "searchNames": [
+    "レミリア・スカーレット",
+    "Remiria Sukaretto",
+    "Remilia Scarlet",
+    "蕾米莉亚·斯卡雷特",
+    "leimiliya sikalete",
+    "蕾米莉亚·斯卡蕾特"
+   ],
+   "music": [
+    [
+     "otomads",
+     "【音MAD】献给逝去公主的七重奏！",
+     "角色曲",
+     "芙兰厨陈YuYue"
+    ],
+    [
+     "otomads",
+     "【东方电气棍】献给已逝棍妣的八重奏",
+     "角色曲",
+     "鞍山侯国玉电乐团"
+    ],
+    [
+     "otomads",
+     "【东方红魔馆】献给已逝猫咪的七重奏",
+     "角色曲",
+     "川先僧"
+    ]
+   ]
+  },
+  {
+   "key": "flandre-scarlet",
+   "name": "フランドール・スカーレット",
+   "order": 12,
+   "card": [
+    "フラン.png"
+   ],
+   "searchNames": [
+    "フランドール・スカーレット",
+    "Furandoru Sukaretto",
+    "Flandre Scarlet",
+    "芙兰朵露·斯卡雷特",
+    "fulanduolu sikaleite",
+    "芙兰朵露·斯卡蕾特"
+   ],
+   "music": [
+    [
+     "otomads",
+     "最终鬼畜蓝蓝路 (2023 Remix)",
+     "角色曲"
+    ],
+    [
+     "otomads",
+     "【最终鬼畜妹】来了！2026！",
+     "角色曲",
+     "木大的雷某"
+    ],
+    [
+     "otomads",
+     "最终鬼畜全明星•BILIBILI【东方新春宴'24单品】",
+     "角色曲",
+     "心水湛清 & thwy & 許祭 & Passthem & 浪涛I2A"
+    ]
+   ]
+  },
+  {
+   "key": "letty-whiterock",
+   "name": "レティ・ホワイトロック",
+   "order": 13,
+   "card": [
+    "レティ.png"
+   ],
+   "searchNames": [
+    "レティ・ホワイトロック",
+    "Reti Howaitorokku",
+    "Letty Whiterock",
+    "蕾蒂·霍瓦特洛克",
+    "leidi huowateluoke"
+   ],
+   "music": [
+    [
+     "otomads",
+     "Crystallize Masuo",
+     "角色曲",
+     "循環"
+    ],
+    [
+     "otomads",
+     "Crystallize Otto ／ 结晶化的白银",
+     "角色曲",
+     "鞍山侯国玉电乐团"
+    ]
+   ]
+  },
+  {
+   "key": "chen",
+   "name": "橙",
+   "order": 14,
+   "card": [
+    "橙.png"
+   ],
+   "searchNames": [
+    "橙",
+    "Chen",
+    "橙",
+    "cheng"
+   ],
+   "music": [
+    [
+     "otomads",
+     "【2023新春宴音MAD单品】远野马娘前线",
+     "角色曲",
+     "丹花伊吹 & 艾了个拉 & 四季映姬78 & thwy & Binkales"
+    ],
+    [
+     "otomads",
+     "【东方电气棍】掉业棕（Withered Estick）",
+     "角色曲",
+     "鞍山侯国玉电乐团"
+    ],
+    [
+     "otomads",
+     "【东方电气棍】击败跋扈",
+     "角色曲",
+     "鞍山侯国玉电乐团"
+    ]
+   ]
+  },
+  {
+   "key": "lily-white",
+   "name": "リリーホワイト",
+   "order": 15,
+   "card": [
+    "リリー.png"
+   ],
+   "searchNames": [
+    "リリーホワイト",
+    "Riri Howaito",
+    "Lily White",
+    "莉莉白",
+    "lilibai",
+    "莉莉霍瓦特"
+   ],
+   "music": [
+    [
+     "otomads",
+     "【东方馅挂炒饭】暮里的兄贵之都（天空的花之都）",
+     "角色曲",
+     "龙青瑶RyuuSeiyou"
+    ]
+   ]
+  },
+  {
+   "key": "prismriver-sisters",
+   "name": "ルナサ/メルラン/リリカ・プリズムリバー",
+   "order": 16,
+   "card": [
+    "ルナサ.png",
+    "メルラン.png",
+    "リリカ.png"
+   ],
+   "searchNames": [
+    "姐妹",
+    "jiemei",
+    "3",
+    "プリズムリバー三姉妹",
+    "Prismriver Sisters",
+    "Purizumuriba",
+    "普莉兹姆利巴",
+    "pulizumuliba",
+    "Lunasa",
+    "Merlin",
+    "Lyrica",
+    "露娜萨·普莉兹姆利巴",
+    "梅露兰·普莉兹姆利巴",
+    "莉莉卡·普莉兹姆利巴",
+    "ルナサ・プリズムリバー",
+    "メルラン・プリズムリバー",
+    "リリカ・プリズムリバー"
+   ],
+   "music": [
+    [
+     "otomads",
+     "【音Mad】疾走全明星あんさんぶる！",
+     "角色曲",
+     "芙兰厨陈YuYue"
+    ],
+    [
+     "otomads",
+     "【东方Project】猫灵乐团~幻影合奏",
+     "角色曲",
+     "川先僧"
+    ]
+   ]
+  },
+  {
+   "key": "konpaku-youmu",
+   "name": "魂魄妖夢",
+   "order": 17,
+   "card": [
+    "妖夢.png"
+   ],
+   "searchNames": [
+    "魂魄妖夢",
+    "Konpaku Youmu",
+    "魂魄妖梦",
+    "hunpo yaomeng"
+   ],
+   "music": [
+    [
+     "otomads",
+     "【东方Project】广有射怪猫管我鸟事",
+     "角色曲",
+     "川先僧"
+    ],
+    [
+     "otomads",
+     "【2025连缘羽梦祭单品】连缘妖妖梦~Ancient Temple",
+     "角色曲",
+     "钬__"
+    ]
+   ]
+  },
+  {
+   "key": "saigyouji-yuyuko",
+   "name": "西行寺幽々子",
+   "order": 18,
+   "card": [
+    "幽々子.png"
+   ],
+   "searchNames": [
+    "西行寺幽々子",
+    "Saigyouji Yuyuko",
+    "西行寺幽幽子",
+    "xixingsi youyouzi"
+   ],
+   "music": [
+    [
+     "otomads",
+     "【东方电气棍】幽雅地退役吧，墨染的电棍 ~ Border of Otto",
+     "角色曲",
+     "鞍山侯国玉电乐团"
+    ]
+   ]
+  },
+  {
+   "key": "yakumo-ran",
+   "name": "八雲藍",
+   "order": 19,
+   "card": [
+    "藍.png"
+   ],
+   "searchNames": [
+    "八雲藍",
+    "Yakumo Ran",
+    "八云蓝",
+    "bayun lan"
+   ],
+   "music": [
+    [
+     "otomads",
+     "【东方电气棍】电棍幻葬 ~ Netto-Fantasy",
+     "角色曲",
+     "鞍山侯国玉电乐团"
+    ],
+    [
+     "otomads",
+     "【东方电气棍】吉吉跋扈 ~ Who Kai Da!",
+     "角色曲",
+     "鞍山侯国玉电乐团"
+    ]
+   ]
+  },
+  {
+   "key": "yakumo-yukari",
+   "name": "八雲紫",
+   "order": 20,
+   "card": [
+    "紫.png"
+   ],
+   "searchNames": [
+    "八雲紫",
+    "Yakumo Yukari",
+    "八云紫",
+    "bayun zi"
+   ],
+   "music": [
+    [
+     "otomads",
+     "Otto-Fantasia",
+     "角色曲",
+     "鞍山侯国玉电乐团"
+    ]
+   ]
+  },
+  {
+   "key": "wriggle-nightbug",
+   "name": "リグル･ナイトバグ",
+   "order": 21,
+   "card": [
+    "リグル.png"
+   ],
+   "searchNames": [
+    "リグル･ナイトバグ",
+    "Riguru Naitobagu",
+    "Wriggle Nightbug",
+    "莉格露·奈特巴格",
+    "ligelu naitebage"
+   ],
+   "music": [
+    [
+     "otomads",
+     "【东方电气棍】怎么这么蠢的虫月 ~ Mooned Insect",
+     "角色曲",
+     "鞍山侯国玉电乐团"
+    ],
+    [
+     "otomads",
+     "蠢々秋月",
+     "角色曲",
+     "芙兰厨陈YuYue"
+    ]
+   ]
+  },
+  {
+   "key": "mystia-lorelei",
+   "name": "ミスティア・ローレライ",
+   "order": 22,
+   "card": [
+    "ミスティア.png"
+   ],
+   "searchNames": [
+    "ミスティア・ローレライ",
+    "Misutia Rorerai",
+    "Mystia Lorelei",
+    "米斯蒂娅·萝蕾拉",
+    "misidiya luoleila"
+   ],
+   "music": [
+    [
+     "otomads",
+     "【原汤化原食】已经只能听见歌声了",
+     "角色曲",
+     "芙兰厨陈YuYue"
+    ]
+   ]
+  },
+  {
+   "key": "kamishirasawa-keine",
+   "name": "上白沢慧音",
+   "order": 23,
+   "card": [
+    "慧音.png",
+    "慧音2.png"
+   ],
+   "searchNames": [
+    "上白沢慧音",
+    "Kamishirasawa Keine",
+    "上白泽慧音",
+    "shangbaize huiyin"
+   ],
+   "music": [
+    [
+     "otomads",
+     "Beat My Old World 【音MAD|个人全明星】",
+     "角色曲",
+     "霜幻不容筱 & Shui__Huo & 逢封fn_eg"
+    ],
+    [
+     "otomads",
+     "【东方新春宴音MAD合作单品⁹】Extend Ash~蓬莱人",
+     "角色曲",
+     "稀神灵梦 & SayoYasuda"
+    ],
+    [
+     "otomads",
+     "【东方馅挂炒饭】Extend Ash　～ 蓬莱人",
+     "角色曲",
+     "鬼剑士草贝戋神"
+    ]
+   ]
+  },
+  {
+   "key": "inaba-tewi",
+   "name": "因幡てゐ",
+   "order": 24,
+   "card": [
+    "てゐ.png"
+   ],
+   "searchNames": [
+    "因幡てゐ",
+    "Inaba Tewi",
+    "因幡帝",
+    "yinba di",
+    "因幡天为"
+   ],
+   "music": [
+    [
+     "otomads",
+     "【东方德夜抄】♿侯国玉的菜盒子　～ Kagome-Kagome♿",
+     "角色曲",
+     "冰の妖睛"
+    ],
+    [
+     "otomads",
+     "【东方馅挂炒饭】宇佐大人的白旗",
+     "角色曲",
+     "青空彼方"
+    ],
+    [
+     "otomads",
+     "Masuo大人的白旗",
+     "角色曲",
+     "森林"
+    ]
+   ]
+  },
+  {
+   "key": "reisen-udongein-inaba",
+   "name": "鈴仙・優曇華院・イナバ",
+   "order": 25,
+   "card": [
+    "鈴仙.png"
+   ],
+   "searchNames": [
+    "鈴仙・優曇華院・イナバ",
+    "Reisen Udongein Inaba",
+    "铃仙·优昙华院·因幡",
+    "lingxian youtanhauyuan yinfan"
+   ],
+   "music": [
+    [
+     "otomads",
+     "【铁道音MAD】放在降弓用刑处轴温很快就会升高 ~ 狂气的CR（2021东方乘车录单品）",
+     "角色曲",
+     "Satani_ZC & 天空海Skyocean & ItsZTChun & Rendering-Liu & 专治各种乱入"
+    ],
+    [
+     "otomads",
+     "【疾走向】今晚七点有狂气之瞳表演",
+     "角色曲",
+     "芙兰厨陈YuYue"
+    ],
+    [
+     "otomads",
+     "【东方夏银梦】邀请后辈马上袭击～狂气的野兽先辈",
+     "角色曲",
+     "海老ルーミア"
+    ]
+   ]
+  },
+  {
+   "key": "yagokoro-eirin",
+   "name": "八意永琳",
+   "order": 26,
+   "card": [
+    "永琳.png"
+   ],
+   "searchNames": [
+    "八意永琳",
+    "Yagokoro Eirin",
+    "八意永琳",
+    "bayi yonglin"
+   ],
+   "music": [
+    [
+     "otomads",
+     "【2022摩多罗国玉祭单品】电棍1969",
+     "角色曲",
+     "锤子先辈"
+    ],
+    [
+     "otomads",
+     "yeah4oyage1029",
+     "角色曲",
+     "myrevolution"
+    ],
+    [
+     "otomads",
+     "【東方永夜抄】千年幻想郷 ～ History of Thomas",
+     "角色曲",
+     "川先僧"
+    ],
+    [
+     "otomads",
+     "千年マスオ郷　～ History of the Masuo",
+     "角色曲",
+     "マトウダイ"
+    ]
+   ]
+  },
+  {
+   "key": "houraisan-kaguya",
+   "name": "蓬莱山輝夜",
+   "order": 27,
+   "card": [
+    "輝夜.png"
+   ],
+   "searchNames": [
+    "蓬莱山輝夜",
+    "Houraisan Kaguya",
+    "蓬莱山辉夜",
+    "penglaishan huiye"
+   ],
+   "music": [
+    [
+     "otomads",
+     "【原曲不使用】竹取Fa♂翔",
+     "角色曲",
+     "丶Mikan"
+    ]
+   ]
+  },
+  {
+   "key": "fujiwara-no-mokou",
+   "name": "藤原妹紅",
+   "order": 28,
+   "card": [
+    "妹紅.png"
+   ],
+   "searchNames": [
+    "藤原妹紅",
+    "Fujiwara no Mokou",
+    "藤原妹红",
+    "tengyuan meihong"
+   ],
+   "music": [
+    [
+     "otomads",
+     "【東方永夜抄】飘上月球，不死之喵",
+     "角色曲",
+     "川先僧"
+    ],
+    [
+     "otomads",
+     "【东方】飘上月球，不死乒乓",
+     "角色曲",
+     "打酱油的小火柴"
+    ]
+   ]
+  },
+  {
+   "key": "medicine-melancholy",
+   "name": "メディスン・メランコリー",
+   "order": 29,
+   "card": [
+    "メディスン.png"
+   ],
+   "searchNames": [
+    "メディスン・メランコリー",
+    "Medisun Merankori",
+    "Medicine Melancholy",
+    "梅蒂欣·梅兰可莉",
+    "meidixin meilankeli"
+   ],
+   "music": [
+    [
+     "otomads",
+     "剧毒Masuo ～ Forsaken Masuo",
+     "角色曲",
+     "餃子と垂れ"
+    ]
+   ]
+  },
+  {
+   "key": "kazami-yuuka",
+   "name": "風見幽香",
+   "order": 30,
+   "card": [
+    "幽香.png"
+   ],
+   "searchNames": [
+    "風見幽香",
+    "Kazami Yuuka",
+    "风见幽香",
+    "fengjian youxiang"
+   ],
+   "music": [
+    [
+     "otomads",
+     "【东方电气棍】今昔幻想乡",
+     "角色曲",
+     "比占庭"
+    ],
+    [
+     "otomads",
+     "今昔gay想郷　～ Masuo Land",
+     "角色曲",
+     "みぇち"
+    ]
+   ]
+  },
+  {
+   "key": "onozuka-komachi",
+   "name": "小野塚小町",
+   "order": 31,
+   "card": [
+    "小町.png"
+   ],
+   "searchNames": [
+    "小野塚小町",
+    "Onozuka Komachi",
+    "小野冢小町",
+    "xiaoyezhong xiaoting"
+   ],
+   "music": [
+    [
+     "otomads",
+     "电棍：源流懐♿",
+     "角色曲",
+     "DJGun"
+    ],
+    [
+     "otomads",
+     "【东方】厨♂房归航",
+     "角色曲",
+     "龙青瑶RyuuSeiyou"
+    ],
+    [
+     "otomads",
+     "【东方馅挂炒饭】彼岸♂归航",
+     "角色曲",
+     "Deepmau5"
+    ],
+    [
+     "otomads",
+     "【元首】彼岸归元~Magical Führer Tour 2019",
+     "角色曲",
+     "轩缘无痕"
+    ]
+   ]
+  },
+  {
+   "key": "shiki-eiki-yamazanadu",
+   "name": "四季映姫・ヤマザナドゥ",
+   "order": 32,
+   "card": [
+    "映姫.png"
+   ],
+   "searchNames": [
+    "四季映姫・ヤマザナドゥ",
+    "Shiki Eiki Yamazanadu",
+    "四季映姬·亚玛萨那度",
+    "siji yingji yamasannadu",
+    "四季映姬·夜摩仙那度"
+   ],
+   "music": [
+    [
+     "otomads",
+     "【原曲不使用】第六十年的东方审判",
+     "角色曲",
+     "麦恩_exe"
+    ],
+    [
+     "otomads",
+     "【东方电气棍】第六十年的职业选手 ～ Pro Player of Sixty Years",
+     "角色曲",
+     "云生结海lou"
+    ],
+    [
+     "otomads",
+     "【东方充电男】第六十年的疯子裁判",
+     "角色曲",
+     "鬼剑士草贝戋神"
+    ]
+   ]
+  },
+  {
+   "key": "shameimaru-aya",
+   "name": "射命丸文",
+   "order": 38,
+   "card": [
+    "文.png"
+   ],
+   "searchNames": [
+    "射命丸文",
+    "Shameimaru Aya",
+    "射命丸文",
+    "shemingwan wen"
+   ],
+   "music": [
+    [
+     "otomads",
+     "【东方电气棍】大旋風神哈利路少女",
+     "角色曲",
+     "云生结海lou"
+    ],
+    [
+     "otomads",
+     "風神魔酢汚",
+     "角色曲",
+     "Rinsaku"
+    ],
+    [
+     "otomads",
+     "【东方食雪汉】**少女",
+     "角色曲",
+     "フランソウ"
+    ],
+    [
+     "otomads",
+     "Masuo的笔记　～ Mysteriousuo Note",
+     "角色曲",
+     "みぇち"
+    ],
+    [
+     "otomads",
+     "【东方雪花帖】傻风之循环 ~ Wind Tangpu",
+     "角色曲",
+     "_萳苝_"
+    ],
+    [
+     "otomads",
+     "【2024东方新春宴音MAD合作单品】山东之国的不眠夜",
+     "角色曲",
+     "鱼调YuDiao & 天空海Skyocean & DKZ53"
+    ],
+    [
+     "otomads",
+     "对了，一起去回忆京都吧。",
+     "角色曲",
+     "手稲"
+    ],
+    [
+     "otomads",
+     "对了 向北邮出发吧",
+     "角色曲",
+     "y的自然对数"
+    ]
+   ]
+  },
+  {
+   "key": "yasaka-kanako",
+   "name": "八坂神奈子",
+   "order": 40,
+   "card": [
+    "神奈子.png"
+   ],
+   "searchNames": [
+    "八坂神奈子",
+    "Yasaka Kanako",
+    "八坂神奈子",
+    "baban shennaizi"
+   ],
+   "music": [
+    [
+     "otomads",
+     "【东方馅挂炒饭】神圣庄严的古日♂暮里 ~ Suwa Wrestled Gym",
+     "角色曲",
+     "东风股早苗"
+    ]
+   ]
+  },
+  {
+   "key": "ibuki-suika",
+   "name": "伊吹萃香",
+   "order": 105,
+   "card": [
+    "萃香.png"
+   ],
+   "searchNames": [
+    "伊吹萃香",
+    "Ibuki Suika",
+    "伊吹萃香",
+    "yichui cuixiang"
+   ],
+   "music": [
+    [
+     "otomads",
+     "岁月",
+     "角色曲",
+     "thwy"
+    ],
+    [
+     "otomads",
+     "【北京地铁音MAD•东方蓟门桥】来自北京地铁的东方萃梦想！！！",
+     "角色曲",
+     "不可阻挡的TRT"
+    ],
+    [
+     "otomads",
+     "【东方】家居萃梦想",
+     "角色曲",
+     "打酱油的小火柴"
+    ],
+    [
+     "otomads",
+     "[东方鬼厨音mad]碎碗",
+     "角色曲",
+     "边界之光"
+    ],
+    [
+     "otomads",
+     "【东方萃梦想】碎 月",
+     "角色曲",
+     "芙兰厨陈YuYue"
+    ],
+    [
+     "otomads",
+     "【東方吔夢想】御伽之国的吔屎警署 ~ Missing Gunpower",
+     "角色曲",
+     "kirby1324"
+    ],
+    [
+     "otomads",
+     "【东方馅挂炒饭】新日暮里的地♂牢 ~ Missing Aniki（御伽之国的鬼岛 ~ Missing Power）",
+     "角色曲",
+     "龙青瑶RyuuSeiyou"
+    ]
+   ]
+  }
+ ]
+}

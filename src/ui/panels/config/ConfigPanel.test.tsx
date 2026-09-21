@@ -29,7 +29,7 @@ async function renderPanel(): Promise<{ container: HTMLElement; root: Root }> {
   document.body.appendChild(container);
   const root = createRoot(container);
   await act(async () => {
-    root.render(<ConfigPanel bundle={bundle} tables={{}} musicMode="originals" />);
+    root.render(<ConfigPanel bundle={bundle} tables={{}} />);
   });
   return { container, root };
 }
@@ -62,7 +62,7 @@ describe("ConfigPanel", () => {
     });
     useSingleTrack.setState({ enabled: false, pins: {}, disabledCharacters: {} });
     useSession.setState({ locale: "en", tab: "config", cardCollection: "dairi-sd", sourceOverrides: {} });
-    usePreset.getState().sync(bundle.albums);
+    usePreset.getState().sync(bundle.datasets.originals.albums);
   });
 
   it("设置分区默认折叠，展开后才挂载内容（MD2 扩展面板）", async () => {

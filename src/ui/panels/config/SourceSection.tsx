@@ -20,15 +20,15 @@ function SourceSectionInner({ bundle, tables }: { bundle: DataBundle; tables: Ta
     localMusicUrl, setLocalMusicUrl,
   } = useSession();
   const [draftUrl, setDraftUrl] = useState(localMusicUrl);
-  const ids = bundle.sources.map((source) => source.id);
+  const ids = bundle.shared.sources.map((source) => source.id);
   const order = effectiveOrder(sourceOverrides, ids);
   /** 按 id 查源（原来在 labelOf/isEnabled/渲染里各做一次线性查找）。 */
   const byId = useMemo(
-    () => new Map(bundle.sources.map((source) => [source.id, source])),
-    [bundle.sources],
+    () => new Map(bundle.shared.sources.map((source) => [source.id, source])),
+    [bundle.shared.sources],
   );
   /** 注册表里的默认开关（"本地曲库"默认关闭）——重排时必须沿用，不能被当成"开着"。 */
-  const defaultEnabled = Object.fromEntries(bundle.sources.map((source) => [source.id, source.enabled]));
+  const defaultEnabled = Object.fromEntries(bundle.shared.sources.map((source) => [source.id, source.enabled]));
   const labelOf = (id: string): string => {
     const source = byId.get(id);
     return source ? localized(source.label, locale) : id;
@@ -75,7 +75,7 @@ function SourceSectionInner({ bundle, tables }: { bundle: DataBundle; tables: Ta
           size="small"
           fullWidth
           label={t(Localization.LocalMusicUrl)}
-          placeholder={bundle.sources.find((source) => source.kind === "local")?.tableUrl ?? "/manifest.json"}
+          placeholder={bundle.shared.sources.find((source) => source.kind === "local")?.tableUrl ?? "/manifest.json"}
           value={draftUrl}
           onChange={(event) => setDraftUrl(event.target.value)}
           slotProps={{ htmlInput: { "aria-label": "local-music-url" } }}

@@ -16,31 +16,27 @@ async function expandSection(page: Page, id: string): Promise<void> {
 }
 
 interface Loaded {
-  characters: { key: string; music: [string, string, string][] }[];
   playable: { originals: string[]; otomads: string[] };
   onlyOriginals: string;
 }
 
-/** 从同源的生成物里数"每个模式下有曲可播的角色"，别写死数字。 */
+/** 从同源的生成物里数每个数据集有多少角色，别写死数字。
+ *
+ * C 之后数据分两份：`/data/*.json` 是原曲数据集，`/data/otomads/*.json` 是音MAD 数据集。
+ */
 async function loadCounts(page: Page): Promise<Loaded> {
-  const albums = (await (await page.request.get("/data/albums.json")).json()).albums as
-    { name: string; pack: string }[];
-  const characters = (await (await page.request.get("/data/characters.json")).json()).characters as
-    Loaded["characters"];
-  const packOf = new Map(albums.map((album) => [album.name, album.pack]));
-  const usable = (character: Loaded["characters"][number], pack: string): boolean =>
-    character.music.some((entry) => (packOf.get(entry[0]) ?? "originals") === pack);
-  const playable = {
-    originals: characters.filter((character) => usable(character, "originals")).map((c) => c.key),
-    otomads: characters.filter((character) => usable(character, "otomads")).map((c) => c.key),
+  const read = async (base: string): Promise<string[]> => {
+    const payload = await (await page.request.get(`${base}/characters.json`)).json();
+    return (payload.characters as { key: string }[]).map((character) => character.key);
   };
+  const playable = { originals: await read("/data"), otomads: await read("/data/otomads") };
   const onlyOriginals = playable.originals.find((key) => !playable.otomads.includes(key));
   if (onlyOriginals === undefined) throw new Error("数据里没有'只有原曲曲目'的角色");
-  return { characters, playable, onlyOriginals };
+  return { playable, onlyOriginals };
 }
 
 test("列表页跟着音乐模式：音MAD 下只列有音MAD 曲目的角色", async ({ page }) => {
-  const { characters, playable, onlyOriginals } = await loadCounts(page);
+  const { playable, onlyOriginals } = await loadCounts(page);
   // 数据前提：两个模式的可播角色数不同，否则这条用例证明不了什么
   expect(playable.otomads.length).toBeGreaterThan(0);
   expect(playable.otomads.length).toBeLessThan(playable.originals.length);
@@ -58,7 +54,7 @@ test("列表页跟着音乐模式：音MAD 下只列有音MAD 曲目的角色", 
   await page.getByRole("tab", { name: "List", exact: true }).click();
   await expect(page.getByText(`${playable.otomads.length} / ${playable.otomads.length}`)).toBeVisible();
   await expect(page.getByTestId(`list-row-${onlyOriginals}`)).toHaveCount(0);
-  expect(playable.otomads.length).toBeLessThan(characters.length);
+
 
   // 行内只列音MAD 曲目：找一个有音MAD 曲目的角色展开，检查它的曲目行
   const key = playable.otomads.find((candidate) => candidate === "cirno") ?? playable.otomads[0]!;

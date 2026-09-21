@@ -1,33 +1,53 @@
-/** B：列表页接音乐模式 —— 只列当前模式下有曲可播的角色，行内曲目与计数也只算该模式。
+/** 列表页跟着音乐模式走（B 的用例，C 之后由**数据集**决定内容，不再按 album.pack 过滤）。
  *
- * 之前列表页**根本不看模式**：121 个角色全列，行首取 `character.music[0]`（曲包曲目是追加在
- * 末尾的 ⇒ 音MAD 模式下列表行显示的是原曲曲目），Chip 上的数字是两模式合计。
+ * B 之前列表页**根本不看模式**：121 个角色全列、行首取 `character.music[0]`（曲包曲目追加在末尾
+ * ⇒ 音MAD 模式下列表行显示的是原曲曲目）、Chip 是两模式合计。C 之后数据集自己就是"某个模式的那份"。
  */
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, describe, expect, it, beforeEach } from "vitest";
 
-import type { DataBundle } from "../../data/types";
+import type { AlbumRecord, CharacterRecord, DataBundle, ModeDataset } from "../../data/types";
 import { setLocale } from "../../i18n/localization";
 import { useSession } from "../../store/session";
 import { queueStoreFor } from "../../store/queue";
 import { ListPanel } from "./ListPanel";
 
+const ORIGINALS_ALBUM: AlbumRecord = { key: "th06", name: "原曲盘", kind: "game", pack: "originals", order: 1 };
+const OTOMADS_ALBUM: AlbumRecord = { key: "otomads", name: "otomads", kind: "other", pack: "otomads", order: 100 };
+
+const cirnoOriginals: CharacterRecord = {
+  key: "cirno", name: "チルノ", order: 1, card: ["c.png"], searchNames: ["Cirno"],
+  music: [["原曲盘", "おてんば恋娘", "角色曲"]],
+};
+const reimu: CharacterRecord = {
+  key: "reimu", name: "霊夢", order: 2, card: ["r.png"], searchNames: ["Reimu"],
+  music: [["原曲盘", "少女綺想曲", "角色曲"]],
+};
+const cirnoOtomads: CharacterRecord = {
+  key: "cirno", name: "チルノ", order: 1, card: ["c.png"], searchNames: ["Cirno"],
+  music: [["otomads", "音MAD 一首", "角色曲", "作者"]],
+};
+
+function dataset(mode: "originals" | "otomads", characters: CharacterRecord[], albums: AlbumRecord[]): ModeDataset {
+  return {
+    mode,
+    index: {
+      schema: 1, mode, contentHash: `hash-${mode}-12345678`,
+      counts: { characters: characters.length, albums: albums.length, trackEntries: 0, distinctTracks: 0 },
+    },
+    characters, albums,
+    characterByKey: new Map(characters.map((character) => [character.key, character])),
+    albumByName: new Map(albums.map((album) => [album.name, album])),
+  };
+}
+
 const bundle = {
-  albums: [
-    { key: "th06", name: "原曲盘", kind: "game", pack: "originals", order: 1 },
-    { key: "otomads", name: "otomads", kind: "other", pack: "otomads", order: 100 },
-  ],
-  characters: [
-    {
-      key: "cirno", name: "チルノ", order: 1, card: ["c.png"], searchNames: ["Cirno"],
-      music: [["原曲盘", "おてんば恋娘", "角色曲"], ["otomads", "音MAD 一首", "角色曲", "作者"]],
-    },
-    {
-      key: "reimu", name: "霊夢", order: 2, card: ["r.png"], searchNames: ["Reimu"],
-      music: [["原曲盘", "少女綺想曲", "角色曲"]],
-    },
-  ],
+  shared: { sources: [], cardSets: [] },
+  datasets: {
+    originals: dataset("originals", [cirnoOriginals, reimu], [ORIGINALS_ALBUM]),
+    otomads: dataset("otomads", [cirnoOtomads], [OTOMADS_ALBUM]),
+  },
 } as unknown as DataBundle;
 
 let root: Root | null = null;
@@ -38,7 +58,7 @@ async function render(mode: "originals" | "otomads"): Promise<HTMLElement> {
   document.body.appendChild(container);
   root = createRoot(container);
   await act(async () => {
-    root!.render(<ListPanel bundle={bundle} musicMode={mode} />);
+    root!.render(<ListPanel bundle={bundle} />);
   });
   return container;
 }

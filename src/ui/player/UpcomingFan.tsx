@@ -6,7 +6,8 @@
 import { Box } from "@mui/material";
 import { useEffect, useRef, useState } from "react";
 
-import type { CardSetRecord, DataBundle } from "../../data/types";
+import type { CardSetRecord, DataBundle, ModeDataset } from "../../data/types";
+import { useCurrentDataset } from "../../data/useDataset";
 import { CardAspectRatio } from "../../theme/theme";
 import { CardStrip, type StripCard } from "../components/CardStrip";
 
@@ -28,14 +29,14 @@ export function fanCardWidth(windowWidth: number): number {
 
 /** 牌堆内容：按轮播顺序把每个角色的每张卡面排开（等距、不重叠）。 */
 export function fanLayout(
-  bundle: DataBundle,
+  dataset: ModeDataset,
   order: readonly string[],
   windowWidth: number,
 ): { cards: StripCard[]; cardWidth: number; cardHeight: number } {
   const cardWidth = fanCardWidth(windowWidth);
   const cards: StripCard[] = [];
   for (const key of order) {
-    const character = bundle.characterByKey.get(key);
+    const character = dataset.characterByKey.get(key);
     const files = character?.card.length ? character.card : [""];
     files.forEach((file, cardIndex) => {
       cards.push({ id: `${key}-${cardIndex}`, characterKey: key, cardIndex, file, state: "normal" });
@@ -45,6 +46,7 @@ export function fanLayout(
 }
 
 export function UpcomingFan(props: UpcomingFanProps) {
+  const dataset = useCurrentDataset(props.bundle);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [measured, setMeasured] = useState(0);
   const windowWidth = typeof window === "undefined" ? 1200 : window.innerWidth;
@@ -62,7 +64,7 @@ export function UpcomingFan(props: UpcomingFanProps) {
 
   const visibleWidth = props.visibleWidth ?? Math.max(240, measured || Math.round(windowWidth * 0.62));
 
-  const { cards } = fanLayout(props.bundle, props.order, windowWidth);
+  const { cards } = fanLayout(dataset, props.order, windowWidth);
   const withState: StripCard[] = cards.map((card) => {
     const disabled = Boolean(props.temporaryDisabled[card.characterKey]);
     return {

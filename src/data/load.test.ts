@@ -17,11 +17,15 @@ const character = (overrides: Partial<CharacterRecord> = {}): CharacterRecord =>
 
 describe("data validators", () => {
   it("index 必须带 schema 与 contentHash", () => {
-    expect(() => validateIndex({ schema: 2, contentHash: "abcdefghij", counts: { characters: 1 } }))
+    expect(() => validateIndex({ schema: 2, mode: "originals", contentHash: "abcdefghij", counts: { characters: 1 } }, "originals"))
+      .toThrow(DataLoadError);
+    // 数据集自带 mode：与调用方期望不符就是坏数据（C：一模式一份）
+    expect(() => validateIndex({ schema: 1, mode: "otomads", contentHash: "abcdefghij", counts: { characters: 1 } }, "originals"))
       .toThrow(DataLoadError);
     const index = validateIndex({
-      schema: 1, contentHash: "abcdefghij", counts: { characters: 1, albums: 1, trackEntries: 1, distinctTracks: 1 },
-    });
+      schema: 1, mode: "originals", contentHash: "abcdefghij",
+      counts: { characters: 1, albums: 1, trackEntries: 1, distinctTracks: 1 },
+    }, "originals");
     expect(index.schema).toBe(1);
   });
 

@@ -64,15 +64,20 @@ def test_manual_overrides_win_and_are_traceable():
 
 
 def test_data_invariants_hold():
-    # 下面几个数字是**当前数据的快照**（曲包增长时要一起更新；含义见 docs/DECISIONS.md D52/D97）
+    # 下面几个数字是**当前数据的快照**（曲包增长时要一起更新；含义见 docs/DECISIONS.md D52/D97/D112）
     problems, stats = validate.run()
     assert problems.errors == [], problems.errors
     assert stats["characters"] == 121
     # 39 个原曲专辑 + 1 张曲包专辑（音MAD / otomads，见 D52）
     assert stats["albums"] == 40
-    # 378 = 357 条上游条目 + 21 条人工补配；再加 24 条音MAD 曲包曲目
-    assert stats["entries"] == 464
-    assert stats["distinct_tracks"] == 454
+    # C：数据按模式分成两份，`entries` 是**原曲数据集**（曲包曲目不再并进来）
+    modes = stats["modes"]
+    assert modes["originals"] == {"characters": 121, "entries": 378, "distinctTracks": 368}
+    assert modes["otomads"] == {"characters": 35, "entries": 86, "distinctTracks": 86}
+    # 并集与分离前逐字节同义：378 + 86 = 464 条 / 368 + 86 = 454 首去重
+    assert modes["union"] == {"entries": 464, "distinctTracks": 454}
+    assert stats["entries"] == 378
+    assert stats["distinct_tracks"] == 368
     assert stats["packs"]["packs"] == 1
     assert stats["packs"]["tracks"] == 86
     assert stats["pending"] == 0

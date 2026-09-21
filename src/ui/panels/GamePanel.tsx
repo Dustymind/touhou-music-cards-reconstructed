@@ -35,9 +35,9 @@ import type { CardState } from "../components/CharacterCard";
 import { fadeInSx, NoFontFamily } from "../../theme/theme";
 import { DECK_GAP, DeckGrid } from "../game/DeckGrid";
 import { UnusedCardsTray } from "../game/UnusedCardsTray";
+import { useCurrentDataset } from "../../data/useDataset";
 import { Reveal } from "../game/Reveal";
 import { GameGroupLabel, GameRadioOption, NumberSelect } from "../game/GameControls";
-import { hasTracksInMode } from "../../music/mode";
 import { buildSongConflicts } from "../../music/songConflicts";
 import { DECK_LIMITS } from "../../game/gameSetting";
 import { MD2 } from "../../theme/theme";
@@ -192,32 +192,29 @@ function GamePanelInner({ bundle }: { bundle: DataBundle }) {
   }), [isClient, net, myIndex, pick, resize, setMode, setTraditional, filterByDeck, fill, clear, shuffle,
     addCard, removeCard, moveDeckCard, giveCard, start, stop, next, give, game.turnStartTimestamp]);
 
+  const dataset = useCurrentDataset(bundle);
+
   const cardFiles = useMemo(() => {
     const map: Record<string, string[]> = {};
-    for (const character of bundle.characters) map[character.key] = character.card;
+    for (const character of dataset.characters) map[character.key] = character.card;
     return map;
-  }, [bundle.characters]);
+  }, [dataset.characters]);
 
   // 卡面图集跟随设置页的选择（原来写死第一套 → 设置里换图集对游戏页无效）
-  const cardSet = bundle.cardSets.find((set) => set.id === cardCollection) ?? bundle.cardSets[0]!;
-  /** 当前音乐模式：卡池要按它过滤（见下） */
-  const musicMode = useSession((slice) => slice.musicMode);
+  const cardSet = bundle.shared.cardSets.find((set) => set.id === cardCollection) ?? bundle.shared.cardSets[0]!;
 
-  // 卡池 = **在当前音乐模式下有曲可放**的角色 × 卡面（用户要求：没有对应音乐的角色不进可选卡组，
-  // 否则音MAD 模式下会抽到根本放不出声音的角色 ✗）；顺带把轮播顺序灌进对局状态。
+  // 卡池 = 当前数据集的角色 × 卡面（C：数据集只含本模式有曲目的角色，"没有对应音乐的角色"已不存在）；
+  // 顺带把轮播顺序灌进对局状态。
   useEffect(() => {
-    const filtered = bundle.characters.filter((character) =>
-      hasTracksInMode(bundle.albums, character, musicMode));
-    // 兜底：万一过滤后一个都不剩（例如联机测试里的精简数据 ✗），退回完整卡池 —— 否则游戏没法开始
-    const usable = filtered.length > 0 ? filtered : bundle.characters;
+    const usable = dataset.characters;
     const cards: CardInfo[] = [];
     for (const character of usable) {
       character.card.forEach((_file, cardIndex) => cards.push({ characterKey: character.key, cardIndex }));
     }
     // 卡池 + 曲目互斥表一起灌进去（D108）：同一首歌只允许一个角色、同角色只允许一张卡面
-    init(cards, buildSongConflicts(bundle.albums, usable, musicMode));
+    init(cards, buildSongConflicts(usable));
     setOrder(usable.map((character) => character.key));
-  }, [bundle, init, setOrder, musicMode]);
+  }, [dataset, init, setOrder]);
 
   // 容器宽度：卡片大小按它的百分比算（上游 `containerRef.clientWidth`）
   useEffect(() => {
@@ -282,7 +279,7 @@ function GamePanelInner({ bundle }: { bundle: DataBundle }) {
   const glitch = glitchEnabled();
 
   const currentName = game.currentKey
-    ? bundle.characterByKey.get(game.currentKey)?.name ?? game.currentKey
+    ? dataset.characterByKey.get(game.currentKey)?.name ?? game.currentKey
     : "—";
   const revealAnswer = game.state === "turnWinner" || game.state === "finished";
   const rotation = game.order.filter((key) => !game.temporaryDisabled[key]).length;

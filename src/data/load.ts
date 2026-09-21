@@ -11,8 +11,10 @@ import {
   type DataIndex,
   EXTRAS,
   type Extra,
+  type ModeDataset,
   type SourceRecord,
 } from "./types";
+import { MUSIC_MODES, type MusicMode } from "../music/mode";
 
 export class DataLoadError extends Error {
   constructor(message: string, readonly cause?: unknown) {
@@ -37,10 +39,11 @@ function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new DataLoadError(message);
 }
 
-export function validateIndex(raw: unknown): DataIndex {
-  assert(raw && typeof raw === "object", "index.json 结构不对");
+export function validateIndex(raw: unknown, expected: MusicMode): DataIndex {
+  assert(raw && typeof raw === "object", `${expected}/index.json 结构不对`);
   const index = raw as DataIndex;
   assert(index.schema === 1, `数据 schema 版本不支持：${String(index.schema)}`);
+  assert(index.mode === expected, `index.json 的 mode 不对：${String(index.mode)} ≠ ${expected}`);
   assert(typeof index.contentHash === "string" && index.contentHash.length > 8, "index.json 缺 contentHash");
   assert(index.counts && typeof index.counts.characters === "number", "index.json 缺 counts");
   return index;
@@ -108,27 +111,47 @@ function validateCardSets(raw: unknown): CardSetRecord[] {
 }
 
 /** 载入全部运行时数据；`base` 默认相对当前页面（部署到子目录也可用）。 */
-export async function loadDataBundle(base = "./data"): Promise<DataBundle> {
+/** 载入**某个模式**的数据集（`base` 是该数据集所在目录：原曲 `./data`，音MAD `./data/otomads`）。 */
+async function loadDataset(base: string, expected: MusicMode): Promise<ModeDataset> {
   const url = (name: string) => `${base.replace(/\/$/, "")}/${name}`;
-  const index = validateIndex(await fetchJson(url("index.json")));
-  const [rawCharacters, rawAlbums, rawSources, rawCardSets] = await Promise.all([
+  const index = validateIndex(await fetchJson(url("index.json")), expected);
+  const [rawCharacters, rawAlbums] = await Promise.all([
     fetchJson(url("characters.json")),
     fetchJson(url("albums.json")),
-    fetchJson(url("sources.json")),
-    fetchJson(url("cardsets.json")),
   ]);
   const characters = validateCharacters(rawCharacters, index.counts.characters);
   const albums = validateAlbums(rawAlbums);
-  const sources = validateSources(rawSources);
-  const cardSets = validateCardSets(rawCardSets);
-
-  const characterByKey = new Map(characters.map((c) => [c.key, c]));
-  const albumByName = new Map(albums.map((a) => [a.name, a]));
+  const characterByKey = new Map(characters.map((character) => [character.key, character]));
+  const albumByName = new Map(albums.map((album) => [album.name, album]));
   for (const album of albums) {
     assert(album.kind !== "hifuu" || album.name.length > 0, "秘封专辑缺名字");
   }
-  return { index, characters, albums, sources, cardSets, characterByKey, albumByName };
+  return { mode: expected, index, characters, albums, characterByKey, albumByName };
 }
+
+/** 载入全部运行时数据：**两个模式的数据集一起取**（契约 §4 策略 A：没有"切模式取数据失败"这条路）。
+ *
+ * `base` 默认相对当前页面（部署到子目录也可用）；音MAD 数据集在 `<base>/otomads/`。
+ */
+export async function loadDataBundle(base = "./data"): Promise<DataBundle> {
+  const url = (name: string) => `${base.replace(/\/$/, "")}/${name}`;
+  const [originals, otomads, rawSources, rawCardSets] = await Promise.all([
+    loadDataset(url(""), "originals"),
+    loadDataset(url("otomads"), "otomads"),
+    fetchJson(url("sources.json")),
+    fetchJson(url("cardsets.json")),
+  ]);
+  const sources = validateSources(rawSources);
+  const cardSets = validateCardSets(rawCardSets);
+
+  const datasets = { originals, otomads } as Record<MusicMode, ModeDataset>;
+  // 两个模式都要有：缺一个就说明生成物没同步（部署漏了目录也会在这里红）
+  for (const mode of MUSIC_MODES) {
+    assert(datasets[mode] !== undefined, `缺少 ${mode} 数据集`);
+  }
+  return { shared: { sources, cardSets }, datasets };
+}
+
 
 /** 某角色的曲目按附加信息分组（预设 UI 与统计用）。 */
 export function groupByExtra(character: CharacterRecord): Record<Extra, number> {

@@ -84,6 +84,33 @@ test("联机：主机发种子、客户端采用；客户端「重新抽选」�
   await context.close();
 });
 
+test("握手期拒绝：数据哈希不同的一端进不来（协议 v4：两个模式各比一次）", async ({ browser }) => {
+  const context = await browser.newContext();
+  const host = await context.newPage();
+  await openGame(host, "/");
+  const code = await hostRoom(host);
+
+  // 访客页的数据换成"另一份"：两个模式各比一次，任一不同都在**握手期**被拒（契约 §6 C3）。
+  // 注意：必须和主机同 context —— 本地 PeerServer 的配置在 localStorage 里。
+  const guest = await context.newPage();
+  await guest.addInitScript(() => {
+    Object.defineProperty(window, "__TMC_DATA_HASH__", {
+      configurable: true,
+      get: () => ({ originals: "000000000000", otomads: "111111111111" }),
+      set: () => undefined,
+    });
+  });
+  await openGame(guest, "/");
+  await joinRoom(guest, code);
+
+  await expect(guest.getByTestId("net-error")).toBeVisible({ timeout: 30_000 });
+  await expect(guest.getByTestId("net-error")).toContainText(/数据|data/i);
+  // 主机不把被拒绝的一方算进参与者（参与者列表就是大厅文本里的 "N: 名字"）
+  await expect(host.getByTestId("lobby")).not.toContainText("Guest");
+
+  await context.close();
+});
+
 test("同浏览器两个标签页联机：握手 / 聊天 / 快照同步", async ({ browser }) => {
   const context = await browser.newContext();
   const host = await context.newPage();

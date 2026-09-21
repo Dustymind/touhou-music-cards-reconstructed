@@ -16,6 +16,7 @@ import re
 import tomllib
 from pathlib import Path
 
+from . import build as build_mod
 from . import packs as packs_mod
 from . import repo
 
@@ -395,6 +396,53 @@ def check_pending(chars: list[dict], p: Problems):
     return len(rows)
 
 
+def check_datasets(chars: list[dict], pack_tracks: list[dict], pack_albums: list[dict],
+                   albums: dict[str, dict], p: "Problems") -> dict:
+    """每模式数据集（契约 `docs/otomads-separation-v1.md` §2/§3）。
+
+    查三件事：① 每份数据集**只含本模式的曲目**；② 各自的 `(角色, 专辑, 曲目)` 不重复、专辑已注册、
+    附加信息合法；③ **跨模式身份一致** —— 同一个角色 key 的 `name`/`order`/`card`/`searchNames`
+    必须一样，否则界面上会出现"同一个角色两个名字"（契约 §5 S1）。
+    """
+    pack_names = {entry["name"] for entry in pack_albums}
+    datasets = {mode: build_mod.build_characters(mode, chars, pack_tracks)["characters"]
+                for mode in build_mod.MODES}
+    stats: dict = {}
+    for mode, entries in datasets.items():
+        seen: set[tuple[str, str, str]] = set()
+        count = 0
+        for char in entries:
+            for album, title, extra, *_rest in char["music"]:
+                count += 1
+                where = f"{char['key']} / {album} / {title}"
+                if extra not in EXTRAS:
+                    p.error(f"[{mode}] 附加信息非法「{extra}」（{where}）")
+                if album not in albums:
+                    p.error(f"[{mode}] 专辑未注册「{album}」（{where}）")
+                if (album in pack_names) != (mode == "otomads"):
+                    p.error(f"[{mode}] 曲目不属于本模式（{where}）")
+                key = (char["key"], album, title)
+                if key in seen:
+                    p.error(f"[{mode}] 曲目重复：{where}")
+                seen.add(key)
+        stats[mode] = {
+            "characters": len(entries), "entries": count,
+            "distinctTracks": len({(a, t) for c in entries for a, t, *_r in c["music"]}),
+        }
+    by_mode = {mode: {c["key"]: c for c in entries} for mode, entries in datasets.items()}
+    for key in sorted(set(by_mode["originals"]) & set(by_mode["otomads"])):
+        left, right = by_mode["originals"][key], by_mode["otomads"][key]
+        for field in ("name", "order", "card", "searchNames"):
+            if left[field] != right[field]:
+                p.error(f"跨模式身份不一致：{key} 的 {field}（{left[field]!r} vs {right[field]!r}）")
+    # 并集（两份数据集按构造互斥：曲包专辑只进 otomads）
+    stats["union"] = {
+        "entries": stats["originals"]["entries"] + stats["otomads"]["entries"],
+        "distinctTracks": stats["originals"]["distinctTracks"] + stats["otomads"]["distinctTracks"],
+    }
+    return stats
+
+
 def check_packs(packs: list[dict], albums: list[dict], tracks: list[dict],
                 chars: list[dict], p: "Problems") -> dict:
     """曲包自身的完整性：id/专辑/角色/重复/附加信息。"""
@@ -460,7 +508,9 @@ def run() -> tuple["Problems", dict]:
     chars = load_characters(p)
     pack_album_names = {entry["name"] for entry in pack_albums}
     pack_stats = check_packs(pack_list, pack_albums, pack_tracks, chars, p)
-    chars = packs_mod.apply_tracks(chars, pack_tracks)
+    # 每模式数据集（含跨模式身份一致）；下面整套检查都跑在**原曲数据集**上 ——
+    # 它们是关于 THBWiki 派生数据（角色/别名/裁定表/面次）的，曲包曲目不参与
+    mode_stats = check_datasets(chars, pack_tracks, pack_albums, albums, p)
     char_stats = check_characters(chars, albums, p)
     # 曲包曲目不在镜像表里（只存在于本机），覆盖检查只看非曲包曲目
     mirror_referenced = {(a, t) for a, t in char_stats["referenced"]
@@ -483,6 +533,7 @@ def run() -> tuple["Problems", dict]:
         "digest": digest, "sources": source_stats, "stage_rows": stage_rows,
         "overrides": overrides, "source_registry": source_registry,
         "card_sets": card_sets, "track_additions": additions, "packs": pack_stats,
+        "modes": mode_stats,
         "titles": title_stats, **alias_stats,
         **{k: v for k, v in char_stats.items() if k != "referenced"},
     }
@@ -518,8 +569,12 @@ def main(argv: list[str] | None = None) -> int:
 
     lines = ["# 校验报告", "",
              f"- 角色：{stats['characters']}", f"- 专辑：{stats['albums']}",
-             f"- 曲目条目：{char_stats['entries']}",
-             f"- 去重曲目：{char_stats['distinct_tracks']}",
+             f"- 曲目条目：{stats['modes']['union']['entries']}"
+             f"（原曲 {stats['modes']['originals']['entries']} + 音MAD {stats['modes']['otomads']['entries']}）",
+             f"- 去重曲目：{stats['modes']['union']['distinctTracks']}"
+             f"（原曲 {stats['modes']['originals']['distinctTracks']} + 音MAD {stats['modes']['otomads']['distinctTracks']}）",
+             f"- 每模式数据集：原曲 {stats['modes']['originals']['characters']} 角色 / "
+             f"音MAD {stats['modes']['otomads']['characters']} 角色（互斥，音MAD 只含有曲目的角色）",
              f"- 秘封曲条目：{char_stats['hifuu_entries']}",
              f"- 跨角色共用曲目：{len(char_stats['shared'])}",
              f"- 待判定（占位）：{pending}", f"- 人工裁定条目：{stats['overrides']}",

@@ -20,15 +20,17 @@
 
 ```
 客户端 ── hello {name, isObserver, dataHash, protocol} ──▶ 主机
-   主机校验 protocol 是否相等、dataHash 前 12 位是否相等
+   主机校验 protocol 是否相等、dataHash 的**两个**前 12 位是否都相等
    ├─ 不等 → reject {reason: "protocol" | "data", detail}
    └─ 相等 → 分配下标（主机固定 0；客户端从 1 起，空缺复用）
               ── welcome {yourIndex, peers, state, seq, config, melee} ──▶ 该客户端
               ── peers {peers} ──▶ 广播给其余人
 ```
 
-- `dataHash` = `public/data/index.json` 的 `contentHash`，比较**前 12 位**（`dataHashMismatch`）。
-  数据不一致就**拒绝开局**，而不是等状态错位（上游是静默错位）。
+- `dataHash` = **两个模式各一个** `contentHash`（`{originals, otomads}`，来自 `public/data/index.json` 与
+  `public/data/otomads/index.json`），每个都比**前 12 位**（`dataHashMismatch`）。
+  任一模式的数据不一致就**拒绝开局** —— 包括"当前没在用的那个模式"，这样"一方缺 otomads 数据"
+  不会拖到切模式时才炸（契约 `docs/otomads-separation-v1.md` §6 C3）。
 - `melee` = 进房人数 > 2（1v1 还是混战）。
 - 没握手就发意图 → `goodbye {reason: "not welcomed"}`。
 
@@ -88,8 +90,9 @@ e2e 逐回合比对两端摘要 —— 不一致就说明协议或随机派生�
 
 | 版本 | 变更 |
 |---|---|
+| **4** | 数据按音乐模式分成两份数据集 ⇒ `dataHash` 变成 `{originals, otomads}`，两个都交换、都校验（契约 `otomads-separation-v1.md` §6 C3） |
+| 3 | `musicMode` 字段升级成 `SessionConfigWire`（多一个 `sessionSeed`）；新增 `rerollQueue` 意图（D104） |
 | 2 | `GameState` 加 `gameSeed`（开局洗牌 / 选曲种子） |
-| **3** | `musicMode` 字段升级成 `SessionConfigWire`（多一个 `sessionSeed`）；新增 `rerollQueue` 意图（D104） |
 
 改动流程：升 `PROTOCOL_VERSION` → 改本文件的表 → `docs/DECISIONS.md` 记一笔 → 跑
 `pnpm test`（`src/net/*.test.ts`：握手 / 快照 / 重连 / 配置下发）与 `pnpm e2e`

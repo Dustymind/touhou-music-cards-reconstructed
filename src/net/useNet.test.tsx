@@ -6,6 +6,11 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { DataBundle } from "../data/types";
 import { loadRealBundle } from "../test-utils";
 import { useGame } from "../game/useGame";
+
+/** 两端握手比的是两个模式各一个哈希（协议 v4 / 契约 §6 C3）。 */
+function dataHashes(): { originals: string; otomads: string } {
+  return (window as unknown as { __TMC_DATA_HASH__: { originals: string; otomads: string } }).__TMC_DATA_HASH__;
+}
 import * as rules from "../game/rules";
 import { emptyState } from "../game/types";
 import { GamePanel } from "../ui/panels/GamePanel";
@@ -40,7 +45,10 @@ describe("联机（React 层）", () => {
   beforeEach(async () => {
     localStorage.clear();
     bundle = await loadRealBundle();
-    (window as unknown as { __TMC_DATA_HASH__?: string }).__TMC_DATA_HASH__ = bundle.index.contentHash;
+    (window as unknown as { __TMC_DATA_HASH__?: { originals: string; otomads: string } }).__TMC_DATA_HASH__ = {
+      originals: bundle.datasets.originals.index.contentHash,
+      otomads: bundle.datasets.otomads.index.contentHash,
+    };
     __setTransportFactory((role) => __busHub().connect(role));
     // 联机栏只在"多人"模式下出现（用户要求），联机用例都从多人模式起
     useGame.setState({
@@ -78,7 +86,7 @@ describe("联机（React 层）", () => {
     const peer = __busHub().connect("client");
     const received: Message[] = [];
     peer.onMessage((_from, message) => received.push(message));
-    peer.sendToHost(helloIntent("Guest", false, bundle.index.contentHash));
+    peer.sendToHost(helloIntent("Guest", false, dataHashes()));
 
     const welcome = received.find((message) => message.kind === "welcome");
     expect(welcome).toBeDefined();
@@ -96,7 +104,7 @@ describe("联机（React 层）", () => {
     const peer = __busHub().connect("client");
     const received: Message[] = [];
     peer.onMessage((_from, message) => received.push(message));
-    peer.sendToHost(helloIntent("Guest", false, "another-hash-xxxx"));
+    peer.sendToHost(helloIntent("Guest", false, { originals: "another-hash-xxxx", otomads: "another-hash-yyyy" }));
 
     expect(received.some((message) => message.kind === "reject")).toBe(true);
     // 主机不把被拒绝的连接算进参与者
@@ -107,7 +115,7 @@ describe("联机（React 层）", () => {
     const container = await renderPanel();
     await click(container, "net-host");
     const peer = __busHub().connect("client");
-    peer.sendToHost(helloIntent("Guest", false, bundle.index.contentHash));
+    peer.sendToHost(helloIntent("Guest", false, dataHashes()));
 
     // 让主机处于回合中，并把当前角色的卡放在 1 号牌桌
     await act(async () => {
@@ -139,7 +147,7 @@ describe("联机（React 层）", () => {
     const peer = __busHub().connect("client");
     const received: Message[] = [];
     peer.onMessage((_from, message) => received.push(message));
-    peer.sendToHost(helloIntent("Guest", false, bundle.index.contentHash));
+    peer.sendToHost(helloIntent("Guest", false, dataHashes()));
 
     await act(async () => {
       peer.sendToHost({ kind: "chat", text: "hi host" });

@@ -1,4 +1,5 @@
 /** 运行时数据形状（对应 `tools` 生成的 `public/data/*.json`）。 */
+import type { MusicMode } from "../music/mode";
 
 export const EXTRAS = ["角色曲", "道中曲", "更多道中曲", "秘封曲"] as const;
 export type Extra = (typeof EXTRAS)[number];
@@ -52,11 +53,29 @@ export interface CardSetRecord {
 
 export interface DataIndex {
   schema: number;
+  /** 这份数据集属于哪个音乐模式（C：一个模式一份，见 docs/otomads-separation-v1.md） */
+  mode: MusicMode;
   contentHash: string;
   counts: {
     characters: number; albums: number; trackEntries: number; distinctTracks: number;
     sources?: number; cardSets?: number;
   };
+}
+
+/** 某个音乐模式的**完整数据集**：只含本模式的曲目与专辑，自己的 counts 与哈希。 */
+export interface ModeDataset {
+  mode: MusicMode;
+  index: DataIndex;
+  characters: CharacterRecord[];
+  albums: AlbumRecord[];
+  characterByKey: Map<string, CharacterRecord>;
+  albumByName: Map<string, AlbumRecord>;
+}
+
+/** 与模式无关的资源：音源表与卡面图集本来就是全站共享的，不进数据集。 */
+export interface SharedData {
+  sources: SourceRecord[];
+  cardSets: CardSetRecord[];
 }
 
 /** 内部曲目身份：`专辑\u0001曲目`（同步、持久化、查表都用它）。 */
@@ -75,11 +94,7 @@ export function displayTitle(title: string): string {
 }
 
 export interface DataBundle {
-  index: DataIndex;
-  characters: CharacterRecord[];
-  albums: AlbumRecord[];
-  sources: SourceRecord[];
-  cardSets: CardSetRecord[];
-  characterByKey: Map<string, CharacterRecord>;
-  albumByName: Map<string, AlbumRecord>;
+  shared: SharedData;
+  /** 按模式索引的数据集：`originals` 与 `otomads` 各一份（启动时都取，契约 §4 策略 A） */
+  datasets: Record<MusicMode, ModeDataset>;
 }

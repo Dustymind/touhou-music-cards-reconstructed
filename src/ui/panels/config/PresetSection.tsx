@@ -10,7 +10,7 @@ import { SectionPanel } from "./SectionCard";
 import { LazyRow } from "../../components/LazyRow";
 import { CATEGORY_KEYS, type Tri } from "../../../music/selection";
 import { groupAlbums, presetStats } from "../../../music/presetView";
-import type { MusicMode } from "../../../music/mode";
+import { useCurrentDataset } from "../../../data/useDataset";
 import { hifuuParentState, usePreset } from "../../../store/preset";
 import { NoFontFamily } from "../../../theme/theme";
 
@@ -63,11 +63,12 @@ function AlbumRows({
   );
 }
 
-function PresetSectionInner({ bundle, musicMode }: { bundle: DataBundle; musicMode: MusicMode }) {
+function PresetSectionInner({ bundle }: { bundle: DataBundle }) {
   const preset = usePreset();
-  const groups = groupAlbums(bundle.albums);
-  const stats = presetStats(preset, bundle.characters, bundle.albums, musicMode);
-  const hifuuState = hifuuParentState(preset, bundle.albums);
+  const dataset = useCurrentDataset(bundle);
+  const groups = groupAlbums(dataset.albums);
+  const stats = presetStats(preset, dataset.characters);
+  const hifuuState = hifuuParentState(preset, dataset.albums);
   const allAlbums = [...groups.cd, ...groups.game];
 
   const setAll = (values: readonly AlbumRecord[], value: boolean) => {
@@ -93,17 +94,17 @@ function PresetSectionInner({ bundle, musicMode }: { bundle: DataBundle; musicMo
           <Checkbox
             checked={hifuuState === "all"}
             indeterminate={hifuuState === "mixed"}
-            onChange={(event) => preset.setAllHifuu(bundle.albums, event.target.checked)}
+            onChange={(event) => preset.setAllHifuu(dataset.albums, event.target.checked)}
             inputProps={{ "aria-label": "hifuu-parent" }}
           />
         }
         label={<Typography variant="subtitle2">{t(Localization.ConfigTabPresetHifuu)}</Typography>}
       />
       <Stack direction="row" spacing={0.5} sx={{ ml: 4, mb: 1 }}>
-        <Button size="small" onClick={() => preset.setAllHifuu(bundle.albums, true)}>
+        <Button size="small" onClick={() => preset.setAllHifuu(dataset.albums, true)}>
           {t(Localization.ConfigTabPresetSelectAll)}
         </Button>
-        <Button size="small" onClick={() => preset.setAllHifuu(bundle.albums, false)}>
+        <Button size="small" onClick={() => preset.setAllHifuu(dataset.albums, false)}>
           {t(Localization.ConfigTabPresetSelectNone)}
         </Button>
         <Chip size="small" variant="outlined" label={`${groups.hifuu.length}`} />
@@ -185,7 +186,7 @@ function PresetSectionInner({ bundle, musicMode }: { bundle: DataBundle; musicMo
       />
 
       <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
-        {allAlbums.length} albums · {t(Localization.ShellDataHash)} {bundle.index.contentHash.slice(0, 8)}
+        {allAlbums.length} albums · {t(Localization.ShellDataHash)} {dataset.index.contentHash.slice(0, 8)}
       </Typography>
     </SectionPanel>
   );

@@ -9,6 +9,7 @@ import { Box, Divider, FormControlLabel, Radio, RadioGroup, Stack, Typography } 
 
 import type { DataBundle } from "../../../data/types";
 import { Localization, t } from "../../../i18n/localization";
+import { useCurrentDataset } from "../../../data/useDataset";
 import { useSession } from "../../../store/session";
 import { CharacterCard } from "../../components/CharacterCard";
 import { cardSetDescription } from "./cardSetDescriptions";
@@ -19,10 +20,11 @@ const EXAMPLE_COUNT = 3;
 const EXAMPLE_WIDTH = 64;
 
 function CardSetSectionInner({ bundle }: { bundle: DataBundle }) {
+  const dataset = useCurrentDataset(bundle);
   const { cardCollection, setCardCollection } = useSession();
 
   /** 示例卡：取前三名角色的第一张卡面（文件名与图集无关，目录由所选图集决定）。 */
-  const examples = bundle.characters
+  const examples = dataset.characters
     .filter((character) => (character.card[0] ?? "") !== "")
     .slice(0, EXAMPLE_COUNT)
     .map((character) => ({ key: character.key, file: character.card[0]! }));
@@ -43,7 +45,7 @@ function CardSetSectionInner({ bundle }: { bundle: DataBundle }) {
         }}
       >
         <Stack divider={<Divider flexItem />} spacing={2}>
-          {bundle.cardSets.map((set) => (
+          {bundle.shared.cardSets.map((set) => (
             <FormControlLabel
               key={set.id}
               value={set.id}

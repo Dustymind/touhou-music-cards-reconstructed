@@ -14,7 +14,7 @@ import { ephemeralIntBelow, randomToken } from "../rng";
 import type { MatchMode } from "../game/types";
 import { createClientEngine, createHostEngine, helloIntent, type HostEngine } from "./engines";
 import { PeerTransport } from "./peer";
-import { stateDigest, type ClientIntent, type PeerInfo, type SessionConfigWire } from "./protocol";
+import { stateDigest, type ClientIntent, type DataHashes, type PeerInfo, type SessionConfigWire } from "./protocol";
 import { BroadcastChannelTransport, BusHub, supportsBroadcastChannel, type Role, type Transport } from "./transport";
 
 type NetStatus = "offline" | "hosting" | "connected" | "error";
@@ -138,8 +138,10 @@ function adoptHostConfig(config: SessionConfigWire): void {
 export const useNet = create<NetApi>((set, get) => {
   const pushChat = (line: ChatLine) => set((state) => ({ chat: [...state.chat, line].slice(-200) }));
 
-  const dataHash = (): string =>
-    (window as unknown as { __TMC_DATA_HASH__?: string }).__TMC_DATA_HASH__ ?? "";
+  /** 两个模式的数据哈希（由 `AppShell` 挂到 window，契约 §6 C3） */
+  const dataHash = (): DataHashes =>
+    (window as unknown as { __TMC_DATA_HASH__?: DataHashes }).__TMC_DATA_HASH__
+    ?? { originals: "", otomads: "" };
 
   return {
     status: "offline",
