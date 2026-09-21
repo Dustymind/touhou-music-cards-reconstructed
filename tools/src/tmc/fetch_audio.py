@@ -218,7 +218,7 @@ def main(argv: list[str] | None = None) -> int:
 
     config = local_source.load_config(repo.ROOT / "local-source.toml")
     library = pathlib.Path(config["root"])
-    pack_list, _albums, tracks = packs.load_packs()
+    pack_list, _albums, tracks, _cards = packs.load_packs()
     needle = args.track.strip().lower()
     if needle:
         tracks = [track for track in tracks

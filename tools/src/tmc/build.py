@@ -61,23 +61,28 @@ def load_albums() -> list[dict]:
     return albums
 
 
-def build_characters(mode: str, chars: list[dict], pack_tracks: list[dict]) -> dict:
+def build_characters(mode: str, chars: list[dict], pack_tracks: list[dict],
+                     pack_cards: dict[str, list[str]] | None = None) -> dict:
     """某模式的角色表：**只带本模式的曲目**。
 
     * ``originals``：全部 121 个角色，各自原本的曲目（曲包曲目**不再**并进来）；
     * ``otomads``：只有"有音MAD 曲目"的角色，曲目就是那些曲包曲目（顺序沿用曲包文件顺序）。
 
-    身份字段（``name``/``order``/``card``/``searchNames``）来自**同一份真源**（契约 §5 S1），
-    两份生成物里各存一份，跨模式一致性由 ``tmc.validate`` 守。
+    身份字段（``name``/``order``/``searchNames``）来自**同一份真源**（契约 §5 S1），两份生成物里各存一份，
+    跨模式一致性由 ``tmc.validate`` 守；**卡面是例外**：音MAD 侧可以在曲包的角色文件里用
+    ``card = [...]`` 覆盖（写法同 ``data/characters/*.toml``），缺省才沿用共享身份。
     """
     by_key = {char["key"]: char for char in chars}
     if mode == "originals":
         chosen = [dict(char, music=[list(entry) for entry in char["music"]]) for char in chars]
     else:
         chosen = []
+        cards = pack_cards or {}
         for key, entries in _pack_music(pack_tracks).items():
             char = by_key[key]
-            chosen.append(dict(char, music=[list(entry) for entry in entries]))
+            face = cards.get(key)
+            chosen.append(dict(char, music=[list(entry) for entry in entries],
+                               **({"card": list(face)} if face else {})))
         order = {char["key"]: char["order"] for char in chars}
         chosen.sort(key=lambda c: order[c["key"]])
     return {"schema": SCHEMA_VERSION, "characters": chosen}
@@ -141,13 +146,17 @@ def build_card_sets() -> dict:
         data = tomllib.load(fh)
     sets = []
     for entry in data.get("card_set", []):
-        sets.append({
+        record = {
             "id": entry["id"],
             "dir": entry["dir"],
             "label": {"en": entry["label_en"], "zh": entry["label_zh"]},
             "localPrefix": entry.get("local_prefix", "./"),
-            "origins": list(entry["origins"]),
-        })
+            "origins": list(entry.get("origins", [])),
+        }
+        # 本地图集（素材由用户自己放进 public/<dir>/）：没有远程 origin，前端只用 localPrefix
+        if entry.get("local_only"):
+            record["localOnly"] = True
+        sets.append(record)
     if not sets:
         raise SystemExit("data/card-sets.toml 里没有任何 [[card_set]]")
     return {"schema": SCHEMA_VERSION, "default": data.get("default", sets[0]["id"]), "cardSets": sets}
@@ -188,14 +197,14 @@ def dataset_dir(mode: str):
 
 def build_outputs() -> tuple[dict, dict[str, dict[str, str]]]:
     """生成全部文件 → ``(摘要, {模式: {相对路径: 文本}})``。"""
-    packs, pack_albums, pack_tracks = pack_mod.load_packs()
+    packs, pack_albums, pack_tracks, pack_cards = pack_mod.load_packs()
     chars = load_characters()
     pack_audio = pack_mod.audio_descriptors(pack_tracks)
 
     outputs: dict[str, str] = {}
     indices: dict[str, dict] = {}
     for mode in MODES:
-        characters = build_characters(mode, chars, pack_tracks)
+        characters = build_characters(mode, chars, pack_tracks, pack_cards)
         albums = build_albums(mode, pack_albums)
         digest = content_hash(characters, albums, pack_audio if mode == "otomads" else [])
         index = build_index(mode, characters, albums, digest)

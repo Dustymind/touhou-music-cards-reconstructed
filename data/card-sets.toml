@@ -83,3 +83,14 @@ origins = [
   "https://cdn.jsdelivr.net/gh/lightbulb128/touhou-card-player-v3@main/public/",
   "https://raw.githubusercontent.com/lightbulb128/touhou-card-player-v3/main/public/",
 ]
+
+# 音MAD 专用图集：**素材不随仓库分发**，由用户自己放进 public/cards-otomads/（local_only = true）。
+# 曲包角色文件里的 `card = [...]` 写的就是这套图集里的文件名（写法同 data/characters/*.toml）。
+[[card_set]]
+id = "otomads"
+dir = "cards-otomads"
+label_en = "Otomads (local art)"
+label_zh = "音MAD（本地图集）"
+local_prefix = "./"
+local_only = true
+origins = []

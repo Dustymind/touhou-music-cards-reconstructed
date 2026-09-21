@@ -106,7 +106,7 @@ start_time = "00:00:10.000"
 stop_time = "00:00:20.000"
 """)
     monkeypatch.setattr(packs.repo, "DATA", tmp_path)
-    _packs, _albums, tracks = packs.load_packs()
+    _packs, _albums, tracks, _cards = packs.load_packs()
     assert tracks[0]["character"] == "cirno"                 # 角色由文件的 key 决定
     assert tracks[0]["source"] == "https://example.com/a"
     assert tracks[0]["start_time"] == "00:00:10.000"
@@ -130,8 +130,36 @@ def test_load_packs_rejects_bad_keys(tmp_path, monkeypatch, line, message):
 def test_load_packs_allows_stop_only(tmp_path, monkeypatch):
     write_pack(tmp_path, '[[track]]\nalbum = "demo"\ntitle = "标题"\nstop_time = "00:00:10.000"\n')
     monkeypatch.setattr(packs.repo, "DATA", tmp_path)
-    _packs, _albums, tracks = packs.load_packs()
+    _packs, _albums, tracks, _cards = packs.load_packs()
     assert packs.trim_seconds(tracks[0]) == (0.0, 10.0)      # 只给 stop ⇒ 从开头裁到 10s
+
+
+def test_load_packs_reads_character_cards(tmp_path, monkeypatch):
+    """角色文件可以写 `card`（音MAD 侧自己的卡面，写法同 data/characters/*.toml）。"""
+    packs_dir = tmp_path / "packs"
+    (packs_dir / "demo").mkdir(parents=True, exist_ok=True)
+    (packs_dir / "demo.toml").write_text('[pack]\nid = "demo"\n', encoding="utf-8")
+    (packs_dir / "demo" / "cirno.toml").write_text(
+        'key = "cirno"\ncard = ["チルノ-mad.png", "チルノ-mad2.png"]\n\n'
+        '[[track]]\nalbum = "demo"\ntitle = "标题"\n', encoding="utf-8")
+    monkeypatch.setattr(packs.repo, "DATA", tmp_path)
+    _packs, _albums, tracks, cards = packs.load_packs()
+    assert cards == {"cirno": ["チルノ-mad.png", "チルノ-mad2.png"]}
+    assert tracks[0]["character"] == "cirno"
+    # 没写 card 的角色不进这张表（缺省沿用共享身份的卡面）
+    assert set(cards) == {"cirno"}
+
+
+@pytest.mark.parametrize("line", ['card = []', 'card = "x.png"', 'card = [""]'])
+def test_load_packs_rejects_bad_card(tmp_path, monkeypatch, line):
+    packs_dir = tmp_path / "packs"
+    (packs_dir / "demo").mkdir(parents=True, exist_ok=True)
+    (packs_dir / "demo.toml").write_text('[pack]\nid = "demo"\n', encoding="utf-8")
+    (packs_dir / "demo" / "cirno.toml").write_text(f'key = "cirno"\n{line}\n', encoding="utf-8")
+    monkeypatch.setattr(packs.repo, "DATA", tmp_path)
+    with pytest.raises(SystemExit, match="card 必须是"):
+        packs.load_packs()
+
 
 
 @pytest.mark.parametrize(("manifest", "character", "body", "message"), [

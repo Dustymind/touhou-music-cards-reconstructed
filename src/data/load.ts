@@ -102,7 +102,10 @@ function validateCardSets(raw: unknown): CardSetRecord[] {
     assert(typeof set.id === "string" && set.id.length > 0, "图集缺 id");
     assert(!ids.has(set.id), `图集 id 重复：${set.id}`);
     ids.add(set.id);
-    assert(Array.isArray(set.origins) && set.origins.length > 0, `图集 ${set.id} 没有 origin`);
+    // 本地图集（localOnly）没有远程 origin：素材由用户放进 public/<dir>/，只用 localPrefix
+    assert(Array.isArray(set.origins), `图集 ${set.id} 的 origins 不是数组`);
+    assert(set.localOnly ? true : set.origins.length > 0,
+      `图集 ${set.id} 没有 origin（本地图集请标 localOnly）`);
     assert(typeof set.dir === "string" && set.dir.length > 0, `图集 ${set.id} 缺目录`);
   }
   assert(typeof payload.default === "string" && ids.has(payload.default),

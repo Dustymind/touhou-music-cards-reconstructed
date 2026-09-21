@@ -91,6 +91,17 @@
     "https://cdn.jsdelivr.net/gh/lightbulb128/touhou-card-player-v3@main/public/",
     "https://raw.githubusercontent.com/lightbulb128/touhou-card-player-v3/main/public/"
    ]
+  },
+  {
+   "id": "otomads",
+   "dir": "cards-otomads",
+   "label": {
+    "en": "Otomads (local art)",
+    "zh": "音MAD（本地图集）"
+   },
+   "localPrefix": "./",
+   "origins": [],
+   "localOnly": true
   }
  ]
 }

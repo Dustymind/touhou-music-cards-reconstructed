@@ -15,6 +15,20 @@ data/packs/otomads/kirisame-marisa.toml  # 角色文件：`key` 加若干 [[trac
 两条硬规矩（写了直接报错，不猜）：清单里**不许**写 `[[track]]`；`[[track]]` 里**不许**写 `character`
 —— 角色由文件的 `key` 决定，且**文件名必须等于 `key`**。加载与校验在 `tools/src/tmc/packs.py`。
 
+### 角色文件的 `card`（可选）：音MAD 侧自己的卡面
+
+写法与 `data/characters/*.toml` 一致，**缺省沿用共享身份的卡面**：
+
+```toml
+key = "cirno"
+card = ["チルノ-mad.png"]        # 可选：这套图集目录里的文件名
+```
+
+- 文件名要在**用户选中的卡面图集**里存在 —— 音MAD 专用卡面请配套用 `id = "otomads"` 那套
+  （`data/card-sets.toml`，`local_only`：素材自己放进 `public/cards-otomads/`）。
+- 卡面是"跨模式身份一致"的**唯一例外**（`tmc.validate` 的 `check_datasets` 只管
+  `name`/`order`/`searchNames`；没写 `card` 的角色仍要求与共享身份一致）。
+
 当前只有 `otomads`（音MAD，`kind = "local"`）：**86 首 / 35 个角色**，音频地址来自本地曲库助手
 （`tmc.local_source` 的 `/manifest.json`，起法见根 `README.md`）。
 

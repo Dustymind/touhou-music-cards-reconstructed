@@ -39,9 +39,9 @@ cd tools && UV_CACHE_DIR=.uv/cache uv run python -m tmc.fetch_audio --track 岁�
 
 ## 现状
 
-数据由 `pnpm data:check` 守住：**121 个角色 / 40 张专辑 / 464 条角色曲目条目（454 首去重曲目）/ 6 套卡面**；
+数据由 `pnpm data:check` 守住：**121 个角色 / 40 张专辑 / 464 条角色曲目条目（454 首去重曲目）/ **7 套卡面**（6 套上游 + 1 套音MAD 本地图集）**；
 另有**音MAD 曲包 86 首（35 个角色）**，音频走本地曲库助手。
-测试基线：`pnpm test` **550 passed**（275 条 × chromium + firefox，两个引擎都跑）、`uv run pytest` **84 条**、e2e **76 条通过 + 1 条跳过**。
+测试基线：`pnpm test` **550 passed**（275 条 × chromium + firefox，两个引擎都跑）、`uv run pytest` **89 条**、e2e **76 条通过 + 1 条跳过**。
 完整的现状表（含每一项的复现命令）与文档索引见 [`docs/README.md`](docs/README.md)。
 
 ## 怎么玩
@@ -74,7 +74,7 @@ cd tools && UV_CACHE_DIR=.uv/cache uv run python -m tmc.fetch_audio --track 岁�
 | `pnpm e2e:chromium` / `pnpm e2e:firefox` / `pnpm e2e:mobile` | 只跑其中一端（调试用） |
 | `pnpm e2e:perf` | 单独跑「点击长任务」性能守卫（对机器负载敏感，不进全量） |
 | `pnpm data:check` | 数据生成物是否漂移（`tools/` 是 Python，用 `uv` 管环境） |
-| `cd tools && UV_CACHE_DIR=.uv/cache uv run pytest` | 数据管线的 Python 测试（84 条） |
+| `cd tools && UV_CACHE_DIR=.uv/cache uv run pytest` | 数据管线的 Python 测试（89 条） |
 
 **e2e 有个前置条件**：音MAD 相关用例会取同源的 `/manifest.json`（开发服务器代理到本地曲库助手），
 所以要先起助手再跑，否则那几条会红 —— 这是环境问题，不是代码问题。

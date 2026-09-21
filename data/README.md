@@ -3,7 +3,7 @@
 
 - `characters/` 一角色一 TOML（**121** 个；`music` 条目的第三项 `附加信息` 由 THBWiki 标签判定）
 - `albums.toml` 专辑注册表（显示名 / 类别 / pack / 顺序 / 是否秘封；**40** 张）
-- `card-sets.toml` 卡面图集登记（图集 → 多个远程 origin，启动时逐个健康检查）
+- `card-sets.toml` 卡面图集登记（**7 套**：6 套上游走远程 origin、1 套音MAD 为 `local_only`，素材自己放进 `public/cards-otomads/`）
 - `meta/character-tracks.tsv` 角色 × 专辑 × 曲目覆盖表（人工补配，每行带依据与来源）
 - `meta/character-aliases.tsv` 人工补充的搜索别名（`key → 别名…`）
 - `meta/composite-characters.tsv` 合并（composite）角色条目表

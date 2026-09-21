@@ -88,14 +88,15 @@ describe("ConfigPanel", () => {
     await expand(container, "cardset");
 
     const rows = [...container.querySelectorAll('[data-testid^="cardset-row-"]')];
-    expect(rows.length).toBe(6);
+    // 6 套上游图集 + 1 套本项目自己的音MAD 本地图集（素材用户自己放，见 card-sets.toml）
+    expect(rows.length).toBe(7);
 
     // 每套一个单选按钮，当前图集选中（MD2 用 radio 表达"多选一"）
     // data-testid 落在 Radio 的根 span 上（MUI 的转发规则），真正的 input 在它内部
     const radios = [...container.querySelectorAll('[data-testid^="cardset-radio-"]')]
       .map((element) => element.querySelector<HTMLInputElement>('input[type="radio"]'))
       .filter((element): element is HTMLInputElement => element !== null);
-    expect(radios.length).toBe(6);
+    expect(radios.length).toBe(7);
     const current = container.querySelector<HTMLInputElement>('[data-testid="cardset-radio-dairi-sd"] input')!;
     expect(current.checked).toBe(true);
     const other = container.querySelector<HTMLInputElement>('[data-testid="cardset-radio-zun"] input')!;

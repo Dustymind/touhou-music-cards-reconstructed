@@ -135,11 +135,16 @@ def check_card_sets(p: Problems) -> int:
         ids.add(entry["id"])
         if not entry.get("dir"):
             p.error(f"图集 {entry['id']} 缺 dir")
-        for origin in entry.get("origins", []):
+        origins = entry.get("origins", [])
+        for origin in origins:
             if not origin.startswith("https://"):
                 p.error(f"图集 {entry['id']} 的 origin 不是 https：{origin}")
-        if not entry.get("origins"):
-            p.error(f"图集 {entry['id']} 没有 origin")
+        if entry.get("local_only"):
+            # 本地图集：素材由用户自己放进 public/<dir>/（不随仓库分发），所以没有远程 origin
+            if origins:
+                p.error(f"图集 {entry['id']} 标了 local_only 却还写了 origins")
+        elif not origins:
+            p.error(f"图集 {entry['id']} 没有 origin（本地图集请显式写 local_only = true）")
     default = data.get("default")
     if default not in ids:
         p.error(f"图集默认值非法：{default}")
@@ -431,15 +436,18 @@ def check_pending(chars: list[dict], p: Problems):
 
 
 def check_datasets(chars: list[dict], pack_tracks: list[dict], pack_albums: list[dict],
-                   albums: dict[str, dict], p: "Problems") -> dict:
+                   pack_cards: dict[str, list[str]], albums: dict[str, dict], p: "Problems") -> dict:
     """每模式数据集（契约 `docs/otomads-separation-v1.md` §2/§3）。
 
     查三件事：① 每份数据集**只含本模式的曲目**；② 各自的 `(角色, 专辑, 曲目)` 不重复、专辑已注册、
-    附加信息合法；③ **跨模式身份一致** —— 同一个角色 key 的 `name`/`order`/`card`/`searchNames`
-    必须一样，否则界面上会出现"同一个角色两个名字"（契约 §5 S1）。
+    附加信息合法；③ **跨模式身份一致** —— 同一个角色 key 的 `name`/`order`/`searchNames` 必须一样
+    （否则界面上会出现"同一个角色两个名字"，契约 §5 S1）。
+
+    **卡面是这条规则的例外**：音MAD 侧可以在曲包角色文件里用 `card = [...]` 覆盖自己的卡面
+    （写法同 `data/characters/*.toml`）；只有**没覆盖**的角色才要求与共享身份一致。
     """
     pack_names = {entry["name"] for entry in pack_albums}
-    datasets = {mode: build_mod.build_characters(mode, chars, pack_tracks)["characters"]
+    datasets = {mode: build_mod.build_characters(mode, chars, pack_tracks, pack_cards)["characters"]
                 for mode in build_mod.MODES}
     stats: dict = {}
     for mode, entries in datasets.items():
@@ -466,9 +474,21 @@ def check_datasets(chars: list[dict], pack_tracks: list[dict], pack_albums: list
     by_mode = {mode: {c["key"]: c for c in entries} for mode, entries in datasets.items()}
     for key in sorted(set(by_mode["originals"]) & set(by_mode["otomads"])):
         left, right = by_mode["originals"][key], by_mode["otomads"][key]
-        for field in ("name", "order", "card", "searchNames"):
+        for field in ("name", "order", "searchNames"):
             if left[field] != right[field]:
                 p.error(f"跨模式身份不一致：{key} 的 {field}（{left[field]!r} vs {right[field]!r}）")
+        # 卡面：覆盖过的角色本来就该不同，只有**没覆盖**的才要求一致
+        if key in pack_cards:
+            if right["card"] != list(pack_cards[key]):
+                p.error(f"音MAD 卡面覆盖没生效：{key}（{right['card']!r} vs {pack_cards[key]!r}）")
+        elif left["card"] != right["card"]:
+            p.error(f"跨模式卡面不一致（未在曲包里覆盖）：{key}")
+    for key in sorted(pack_cards):
+        if key not in by_mode["originals"]:
+            p.error(f"曲包里的卡面覆盖指向未知角色：{key}")
+        face = pack_cards[key]
+        if not face or not all(isinstance(item, str) and item for item in face):
+            p.error(f"曲包里的卡面覆盖非法（{key}）：{face!r}")
     # 并集（两份数据集按构造互斥：曲包专辑只进 otomads）
     stats["union"] = {
         "entries": stats["originals"]["entries"] + stats["otomads"]["entries"],
@@ -533,7 +553,7 @@ def check_packs(packs: list[dict], albums: list[dict], tracks: list[dict],
 def run() -> tuple["Problems", dict]:
     """跑全部不变量校验，返回 (问题集合, 统计)。供 CLI 与测试复用。"""
     p = Problems()
-    pack_list, pack_albums, pack_tracks = packs_mod.load_packs()
+    pack_list, pack_albums, pack_tracks, pack_cards = packs_mod.load_packs()
     albums = load_albums(p)
     for entry in pack_albums:
         if entry["name"] in albums:
@@ -544,7 +564,7 @@ def run() -> tuple["Problems", dict]:
     pack_stats = check_packs(pack_list, pack_albums, pack_tracks, chars, p)
     # 每模式数据集（含跨模式身份一致）；下面整套检查都跑在**原曲数据集**上 ——
     # 它们是关于 THBWiki 派生数据（角色/别名/裁定表/面次）的，曲包曲目不参与
-    mode_stats = check_datasets(chars, pack_tracks, pack_albums, albums, p)
+    mode_stats = check_datasets(chars, pack_tracks, pack_albums, pack_cards, albums, p)
     char_stats = check_characters(chars, albums, p)
     # 曲包曲目不在镜像表里（只存在于本机），覆盖检查只看非曲包曲目
     mirror_referenced = {(a, t) for a, t in char_stats["referenced"]
@@ -567,7 +587,7 @@ def run() -> tuple["Problems", dict]:
         "digest": digest, "sources": source_stats, "stage_rows": stage_rows,
         "overrides": overrides, "source_registry": source_registry,
         "card_sets": card_sets, "track_additions": additions, "packs": pack_stats,
-        "modes": mode_stats,
+        "modes": mode_stats, "pack_cards": len(pack_cards),
         "titles": title_stats, **alias_stats,
         **{k: v for k, v in char_stats.items() if k != "referenced"},
     }

@@ -114,3 +114,33 @@ def test_every_extra_is_one_of_four():
             seen.add(extra)
     assert seen <= {"角色曲", "道中曲", "更多道中曲", "秘封曲"}
     assert "秘封曲" in seen
+
+
+def test_card_override_is_allowed_for_otomads_only():
+    """卡面是"跨模式身份一致"的**唯一例外**：音MAD 可以在曲包角色文件里覆盖自己的卡面。
+
+    其余身份字段（name / order / searchNames）仍必须一致；没覆盖的角色连 card 也要一致。
+    """
+    chars = [{"key": "a", "name": "A", "order": 1, "card": ["a.png"], "searchNames": ["a"],
+              "music": [["原曲盘", "t", "角色曲"]]}]
+    pack_albums = [{"key": "otomads", "name": "otomads", "kind": "other", "pack": "otomads", "order": 1}]
+    pack_tracks = [{"character": "a", "album": "otomads", "title": "t2", "extra": "角色曲", "pack": "otomads"}]
+    albums = {"原曲盘": {}, "otomads": {}}
+
+    # ① 覆盖卡面：合法
+    problems = validate.Problems()
+    validate.check_datasets(chars, pack_tracks, pack_albums, {"a": ["a-mad.png"]}, albums, problems)
+    assert problems.errors == [], problems.errors
+
+    # ② 没覆盖：两份数据集的 card 必须一致（这里本来就一致）
+    problems = validate.Problems()
+    validate.check_datasets(chars, pack_tracks, pack_albums, {}, albums, problems)
+    assert problems.errors == [], problems.errors
+
+    # ③ 覆盖指向未知角色 → 报错
+    problems = validate.Problems()
+    validate.check_datasets(chars, pack_tracks, pack_albums, {"nope": ["x.png"]}, albums, problems)
+    assert any("未知角色" in error for error in problems.errors)
+
+    # （校验里还有一条"覆盖了却没生效"的守卫：数据集是 build 出来的，正常路径下不会触发，
+    #   它防的是将来有人改 build_characters 绕过覆盖 —— 所以这里没有可构造的反例。）

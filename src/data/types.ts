@@ -42,6 +42,8 @@ export interface SourceRecord {
 }
 
 export interface CardSetRecord {
+  /** 本地图集：素材由用户自己放进 `public/<dir>/`，**没有远程 origin**（origins 为空） */
+  localOnly?: boolean;
   id: string;
   dir: string;
   label: { en: string; zh: string };

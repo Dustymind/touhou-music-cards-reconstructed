@@ -67,12 +67,15 @@ function CharacterCardInner({
   cardSet, file, width = "100%", state = "normal", preferLocal = false, glitch = false,
   raised = false, bare = false, onClick, sx, ...rest
 }: CharacterCardProps) {
-  const origins = preferLocal ? [cardSet.localPrefix, ...cardSet.origins] : cardSet.origins;
+  // 本地图集（无远程 origin）只用 localPrefix；其余图集在"本地优先"时把 localPrefix 排在最前
+  const origins = cardSet.localOnly || preferLocal
+    ? [cardSet.localPrefix, ...cardSet.origins]
+    : cardSet.origins;
   const [originIndex, setOriginIndex] = useState(0);
   useEffect(() => setOriginIndex(0), [cardSet.id, file, preferLocal]);
 
   const isPlaceholder = state === "placeholder" || !file;
-  const origin = origins[Math.min(originIndex, origins.length - 1)] ?? cardSet.origins[0]!;
+  const origin = origins[Math.min(originIndex, origins.length - 1)] ?? cardSet.localPrefix;
   // `bare` 的 normal 态就是一张白底卡（用户要求：卡牌只保留一层白色背景）
   const background = isCheat()
     ? randomColor(0.5, 1)

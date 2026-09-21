@@ -620,21 +620,22 @@ test("卡面图集设置对游戏页生效（选卡菜单 + 牌桌，用户反�
       radioCount: document.querySelectorAll('[data-testid^="cardset-radio-"] input[type="radio"]').length,
       currentChecked: radioOf("dairi-sd")?.checked,
       otherChecked: radioOf("zun")?.checked,
-      ids: ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"].map((id) =>
+      ids: ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun", "otomads"].map((id) =>
         document.querySelector(`[data-testid="cardset-title-${id}"]`)?.textContent?.trim() ?? ""),
     };
   });
-  expect(menu.rows).toBe(6);
-  expect(menu.examples).toEqual([3, 3, 3, 3, 3, 3]);
-  expect(menu.radioCount).toBe(6);                       // MD2：多选一用单选组
-  expect(menu.ids).toEqual(["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]);
+  // 6 套上游图集 + 1 套本项目自己的音MAD 本地图集（素材用户自己放）
+  expect(menu.rows).toBe(7);
+  expect(menu.examples).toEqual([3, 3, 3, 3, 3, 3, 3]);
+  expect(menu.radioCount).toBe(7);                       // MD2：多选一用单选组
+  expect(menu.ids).toEqual(["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun", "otomads"]);
   expect(menu.description).toContain("Free super-deformed tachies from dairi Twitter");
   expect(menu.currentChecked).toBe(true);
   expect(menu.otherChecked).toBe(false);
 
   // 示例卡强制右对齐（每行最后一图的右边缘 = 整行右边缘），文字位置保持不变
   const alignment = await page.evaluate(() => {
-    const ids = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"];
+    const ids = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun", "otomads"];
     return ids.map((id) => {
       const row = document.querySelector(`[data-testid="cardset-row-${id}"]`)!;
       const description = document.querySelector(`[data-testid="cardset-description-${id}"]`)!;

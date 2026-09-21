@@ -33,6 +33,7 @@
 角色文件（``data/packs/<曲包 id>/<角色 key>.toml``）::
 
     key = "kirisame-marisa"   # 必须与文件名一致；文件的曲目都算这个角色
+    card = ["魔理沙-mad.png"]  # 可选：本模式的卡面（缺省沿用共享身份的卡面）
 
     [[track]]
     album = "otomads"
@@ -67,8 +68,8 @@ PACK_KEYS = {"id", "label_en", "label_zh", "kind", "order"}
 ALBUM_KEYS = {"key", "name", "kind", "pack", "order", "show_album_name"}
 #: 角色文件里 `[[track]]` 的键 —— **没有** `character`：角色由文件的 `key` 决定
 TRACK_KEYS = {"album", "author", "title", "extra", "source", "start_time", "stop_time"}
-#: 角色文件的顶层键（`track` 之外）
-CHARACTER_KEYS = {"key"}
+#: 角色文件的顶层键（`track` 之外）：`card` 是**可选**的卡面覆盖（写法同 `data/characters/*.toml`）
+CHARACTER_KEYS = {"key", "card"}
 
 
 #: 裁剪时间的格式：`HH:MM:SS.mmm`（时:分:秒.毫秒）
@@ -124,11 +125,15 @@ def source_key(source: str) -> str:
     return hashlib.sha1(source.strip().encode("utf-8")).hexdigest()[:16]
 
 
-def load_packs() -> tuple[list[dict], list[dict], list[dict]]:
-    """读 ``data/packs/*.toml`` → ``(packs, albums, tracks)``（都按文件名排序，结果稳定）。"""
+def load_packs() -> tuple[list[dict], list[dict], list[dict], dict[str, list[str]]]:
+    """读 ``data/packs/`` → ``(packs, albums, tracks, cards)``。
+
+    ``cards`` 是"音MAD 侧自己的卡面覆盖"：``{角色 key: [卡面文件名, …]}``（只有写了 `card` 的角色才在里面）。
+    """
     packs: list[dict] = []
     albums: list[dict] = []
     tracks: list[dict] = []
+    cards: dict[str, list[str]] = {}
     directory = repo.DATA / "packs"
     for path in sorted(directory.glob("*.toml")):
         with open(path, "rb") as fh:
@@ -160,17 +165,20 @@ def load_packs() -> tuple[list[dict], list[dict], list[dict]]:
         if data.get("track"):
             raise SystemExit(f"{path.name}: 曲目要写进 data/packs/{pack_id}/<角色 key>.toml（一角色一份），"
                              f"清单只放 [pack] 与 [[album]]")
-        tracks.extend(_character_tracks(directory / pack_id, path.name))
+        tracks.extend(_character_tracks(directory / pack_id, path.name, cards))
     packs.sort(key=lambda item: item["order"])
-    return packs, albums, tracks
+    return packs, albums, tracks, cards
 
 
-def _character_tracks(pack_dir: pathlib.Path, manifest: str) -> list[dict]:
+def _character_tracks(pack_dir: pathlib.Path, manifest: str,
+                      cards: dict[str, list[str]]) -> list[dict]:
     """读 ``data/packs/<曲包 id>/*.toml`` → 曲目列表（文件按名排序，文件内保持原顺序）。
 
     角色由文件的 ``key`` 决定，**文件名必须与它一致**：曲包里的 key 写错曾一次性丢掉 3 条曲目
     （`apply_tracks` 记过），所以这里错了直接报；报错文案带包内相对路径，
     否则 35 个 `cirno.toml` 分不清是哪个包。
+
+    ``cards`` 是出参：文件里写了 ``card`` 就记一笔（音MAD 侧自己的卡面，写法见 ``data/packs/README.md``）。
     """
     if not pack_dir.is_dir():
         return []
@@ -187,6 +195,11 @@ def _character_tracks(pack_dir: pathlib.Path, manifest: str) -> list[dict]:
             raise SystemExit(f"{where}: 缺少 key（= 角色 key）")
         if path.stem != key:
             raise SystemExit(f"{where}: 文件名与 key 不一致（{path.stem} vs {key}）")
+        if "card" in data:
+            face = data["card"]
+            if not isinstance(face, list) or not face or not all(isinstance(f, str) and f for f in face):
+                raise SystemExit(f"{where}: card 必须是至少一项的字符串数组（写成 data/characters/*.toml 那样）")
+            cards[key] = list(face)
         for entry in data.get("track", []):
             _reject_unknown(f"{where} 的 [[track]]", entry, TRACK_KEYS)
             track = {
@@ -201,7 +214,6 @@ def _character_tracks(pack_dir: pathlib.Path, manifest: str) -> list[dict]:
             _read_audio_keys(entry, track, f"{where} / {track['title']}")
             out.append(track)
     return out
-
 
 
 def _read_audio_keys(entry: dict, track: dict, where: str) -> None:

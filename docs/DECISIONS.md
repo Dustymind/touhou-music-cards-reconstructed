@@ -3448,6 +3448,41 @@ e2e mobile **9 passed** ✓；"压暗但保留配色"另用 Playwright 截图 + 
 
 ---
 
+## D114 音MAD 侧可以有自己的卡面（角色文件加可选 `card` + 一套本地图集）
+
+**需求**（用户）：音MAD 模式也加卡面选项，**参考 `characters.toml`**。用户裁定：做 **A**（音MAD 角色自带的
+`card` 字段）+ **B**（新增一套音MAD 图集），素材**先不管**、先把结构做通。
+
+**做法**：
+
+| 位置 | 改动 |
+|---|---|
+| `data/packs/otomads/<key>.toml` | 新增**可选** `card = ["<文件名>", …]`，写法与 `data/characters/*.toml` 完全一致；缺省沿用共享身份的卡面 |
+| `tools/src/tmc/packs.py` | 角色文件允许的顶层键加 `card`；`load_packs()` 返回四元组 `(packs, albums, tracks, cards)`；`card` 非"至少一项的字符串数组"直接报错 |
+| `tools/src/tmc/build.py` | `build_characters(mode, …, pack_cards)`：音MAD 侧用覆盖值（**只有写了 `card` 的角色**才变），原曲侧不变 |
+| `tools/src/tmc/validate.py` | `check_datasets()` 的"跨模式身份一致"**只管 `name`/`order`/`searchNames``**；卡面是唯一例外：覆盖过的角色本来就该不同，没覆盖的仍要求一致；另加"覆盖没生效""覆盖指向未知角色"两条守卫。`check_card_sets()` 允许 `local_only = true` 的本地图集（没有远程 origin，但**不许**又写 origins） |
+| `data/card-sets.toml` | 新增第 **7** 套：`id = "otomads"`、`dir = "cards-otomads"`、`local_only = true`、`origins = []` |
+| `src/data/{types,load}.ts` | `CardSetRecord.localOnly`；校验放行"本地图集没有 origin" |
+| `src/ui/components/CharacterCard.tsx` | 本地图集只用 `localPrefix`（否则 origins 为空会取不到 URL）；其余图集行为不变 |
+| `src/ui/panels/config/` | 图集菜单多一行（含本地图集的说明文案：素材自己放进 `public/cards-otomads/`，文件名与曲包里的 `card = […]` 一致） |
+
+**为什么卡面可以例外而其它身份字段不行**：卡面是**呈现**（同一角色换一套图），
+而 `name`/`order`/`searchNames` 是**身份**（两处不一致会出现"同一个角色两个名字/两个顺序"）。
+`card` 走的是"数据集内的字段"，所以覆盖只影响音MAD 那一份生成物，不触碰共享真源。
+
+**素材还没放**：真实数据里**暂时没有任何角色声明 `card`**（那会让卡面指向不存在的文件），
+所以这次是"结构就绪"：加载、构建、校验、URL 解析、菜单都已跑通，由 tools 测试守着；
+将来把音MAD 卡面放进 `public/cards-otomads/` 并在对应角色文件里写 `card = [...]` 即可。
+**没做**的还有"图集选择按模式分键"（用户当时没选）：目前仍是全局一个 `cardCollection`，
+所以音MAD 图集要靠用户在设置页手动选中（另一条路是把音MAD 的默认图集指到它，另立条目）。
+
+**验证**：`pnpm data:check` 无漂移 ✓、`pnpm data:validate` 通过 ✓、`uv run pytest` **89 passed**（+5：
+角色文件 `card` 的读取与三类非法形态、`check_datasets` 的卡面例外）✓、`pnpm typecheck` ✓、
+`pnpm test` **550 passed**（275 条 × chromium + firefox）✓、
+`pnpm e2e`（图集菜单 6 → **7** 套的断言在两个引擎上都跑）✓。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |
