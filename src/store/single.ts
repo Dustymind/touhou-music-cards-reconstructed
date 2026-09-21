@@ -13,6 +13,7 @@ import { EXTRAS } from "../data/types";
 import { defineStore, isRecord, pickBoolean, type StoreSpec } from "../persist";
 import type { MusicMode } from "../music/mode";
 import { useMusicMode } from "./modeScope";
+import { useSession } from "./session";
 
 interface SingleTrackState {
   enabled: boolean;
@@ -75,6 +76,16 @@ interface SingleTrackSlice extends SingleTrackState {
   prune: (knownKeys: readonly string[]) => void;
 }
 
+/** 设置页动了某个角色 → 清掉它那条列表页点播。
+ *
+ * 点播是"我现在要听这一首"的临时覆盖，压在手选之上；一旦用户在设置页明确重新配置**同一个角色**
+ * （手选或禁用），这条旧请求就该让位 —— 否则它会一直盖住刚做的配置（B2）。
+ * 只清这一个角色：动别的角色时把点播一起清掉，会把正在播的那一首换掉。
+ */
+function dropEntryRequest(key: string): void {
+  useSession.getState().clearEntryRequest(key);
+}
+
 /** 造"某个音乐模式的单曲模式状态"这把 store。 */
 function makeSlice(mode: MusicMode) {
   const handle = defineStore(singleTrackSpec(mode));
@@ -103,6 +114,7 @@ function makeSlice(mode: MusicMode) {
       if (entry) delete disabledCharacters[key];
       set({ pins, disabledCharacters });
       persist({ ...pick(get()), pins, disabledCharacters });
+      dropEntryRequest(key);
     },
 
     toggleCharacter(key) {
@@ -111,6 +123,7 @@ function makeSlice(mode: MusicMode) {
       else disabledCharacters[key] = true;
       set({ disabledCharacters });
       persist({ ...pick(get()), disabledCharacters });
+      dropEntryRequest(key);
     },
 
     prune(knownKeys) {

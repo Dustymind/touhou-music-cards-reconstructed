@@ -27,7 +27,7 @@ const FRESH_QUEUE = { order: [], temporaryDisabled: {}, currentKey: null };
 
 beforeEach(() => {
   localStorage.clear();
-  useSession.setState({ musicMode: "originals" });
+  useSession.setState({ musicMode: "originals", entryRequest: null });
   preset.originals.setState(FRESH_PRESET as never);
   preset.otomads.setState(FRESH_PRESET as never);
   single.originals.setState(FRESH_SINGLE as never);
@@ -88,6 +88,24 @@ describe("两模式互不干扰", () => {
 
     expect(single.originals.getState().pins.cirno?.[1]).toBe("おてんば恋娘");
     expect(single.otomads.getState().pins.cirno?.[1]).toBe("音MAD 一首");
+  });
+});
+
+describe("列表页点播（entryRequest）不跨模式", () => {
+  const OTOMAD: MusicEntry = ["音MAD 专辑", "音MAD 一首", "角色曲"];
+
+  it("切音乐模式时清掉点播：旧请求指向另一个数据集的曲目，留着会把播放器带进死路", () => {
+    useSession.getState().setEntryRequest({ key: "cirno", entry: PIN });
+    expect(useSession.getState().entryRequest).toEqual({ key: "cirno", entry: PIN });
+
+    useSession.getState().setMusicMode("otomads");
+    expect(useSession.getState().entryRequest).toBeNull();
+  });
+
+  it("同一模式内重新设模式（值没变）不动点播：那是用户刚点的那一首", () => {
+    useSession.getState().setEntryRequest({ key: "cirno", entry: OTOMAD });
+    useSession.getState().setMusicMode("originals");
+    expect(useSession.getState().entryRequest).toEqual({ key: "cirno", entry: OTOMAD });
   });
 });
 

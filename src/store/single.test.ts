@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import type { MusicEntry } from "../data/types";
 import { defineStore } from "../persist";
 import { singleStoreFor, singleTrackSpec } from "./single";
+import { useSession } from "./session";
 
 const fresh = { enabled: false, pins: {}, disabledCharacters: {} };
 
@@ -13,6 +14,7 @@ describe("single track store", () => {
   beforeEach(() => {
     localStorage.clear();
     useSingleTrack.setState(fresh);
+    useSession.setState({ entryRequest: null });
   });
 
   it("开关落盘并可读回", () => {
@@ -58,6 +60,26 @@ describe("single track store", () => {
 
     // 刷新（重新读档）后仍然完整：作者留着，播放页那一行才显示得出作者
     expect(defineStore(singleTrackSpec("otomads")).load().pins.cirno).toEqual(pin);
+  });
+
+  it("手选/禁用同一角色时清掉列表页那条旧点播（否则手选被它盖住）", () => {
+    const requested: MusicEntry = ["紅魔郷", "おてんば恋娘", "角色曲"];
+    const repicked: MusicEntry = ["紅魔郷", "ルーミアのテーマ", "角色曲"];
+
+    // 设置页手选：用户明确改的就是这个角色 → 旧点播必须让位，否则播放器还按旧的那首解析
+    useSession.setState({ entryRequest: { key: "cirno", entry: requested } });
+    useSingleTrack.getState().setPin("cirno", repicked);
+    expect(useSession.getState().entryRequest).toBeNull();
+
+    // 禁用同一个角色也一样（点播绕过"预设允许"这条判断，留着它就还会继续按点播解析）
+    useSession.setState({ entryRequest: { key: "cirno", entry: requested } });
+    useSingleTrack.getState().toggleCharacter("cirno");
+    expect(useSession.getState().entryRequest).toBeNull();
+
+    // 动的是别的角色：不碰这条点播（清掉会把正在播的那一首换掉）
+    useSession.setState({ entryRequest: { key: "cirno", entry: requested } });
+    useSingleTrack.getState().setPin("rumia", repicked);
+    expect(useSession.getState().entryRequest).toEqual({ key: "cirno", entry: requested });
   });
 
   it("损坏的存档逐项丢弃，合法项保留", () => {

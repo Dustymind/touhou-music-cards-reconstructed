@@ -19,7 +19,12 @@ interface SessionState {
   cardCollection: string;
   musicMode: MusicMode;
   localMusicUrl: string;
-  /** 列表页点了某一首曲目 → 播放器改播这一首（**不落盘**：一次性的点播意图） */
+  /**
+   * 列表页点了某一首曲目 → 播放器改播这一首（**不落盘**）。
+   * 它是一条**一直生效**的覆盖（播放器每次都拿它算 entry），直到两个时机之一把它清掉：
+   * 切音乐模式（请求指向的是**另一个数据集**的曲目）或用户在设置页重新配置了**这个角色**
+   * （手选 / 禁用，见 `single.ts`）。少了这两处，它就会跨模式泄漏、并长期盖住后来的手选。
+   */
   entryRequest: { key: string; entry: MusicEntry } | null;
   setLocale: (locale: Locale) => void;
   setTab: (tab: TabId) => void;
@@ -30,6 +35,8 @@ interface SessionState {
   setLocalMusicUrl: (url: string) => void;
   /** 列表页点播：指定角色 + 曲目（角色变了就换角色） */
   setEntryRequest: (request: { key: string; entry: MusicEntry } | null) => void;
+  /** 清掉列表页点播（`key` 省略 = 无条件清）。切模式与设置页改动都走它。 */
+  clearEntryRequest: (key?: string) => void;
 }
 
 const LOCALES = ["en", "zh"] as const;
@@ -90,11 +97,18 @@ export const useSession = create<SessionState>((set, get) => ({
     sessionStore.save({ ...pickSession(get()), cardCollection });
   },
   setMusicMode(musicMode) {
-    set({ musicMode });
+    // 切模式 = 换数据集：留着上一条点播，播放器会拿**原曲**的条目去音MAD 的音源里找，
+    // 结果是"所有已启用的音源都取不到"，该角色在这个模式下等于哑的（B2 的跨模式泄漏）
+    const entryRequest = musicMode === get().musicMode ? get().entryRequest : null;
+    set({ musicMode, entryRequest });
     sessionStore.save({ ...pickSession(get()), musicMode });
   },
   setEntryRequest(entryRequest) {
     set({ entryRequest });
+  },
+  clearEntryRequest(key) {
+    const current = get().entryRequest;
+    if (current && (key === undefined || current.key === key)) set({ entryRequest: null });
   },
   setLocalMusicUrl(localMusicUrl) {
     set({ localMusicUrl });
