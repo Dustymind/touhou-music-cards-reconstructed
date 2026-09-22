@@ -31,25 +31,34 @@ describe("音乐模式（原曲 / 音MAD）", () => {
       .not.toBe(datasetFor(bundle, "otomads").index.contentHash);
   });
 
-  it("原曲数据集：121 个角色，一条音MAD 曲目都没有", () => {
+  it("原曲数据集：只含原曲曲目，且与 index 的自述一致", () => {
     const originals = datasetFor(bundle, "originals");
-    expect(originals.characters).toHaveLength(121);
-    expect(originals.albums).toHaveLength(39);          // 39 张原曲专辑（不含曲包那张）
+    // 不写死数量：角色表与专辑表会继续增长，只与 index.json 的自述互证（D97）
+    expect(originals.characters).toHaveLength(originals.index.counts.characters);
+    expect(originals.albums).toHaveLength(originals.index.counts.albums);
     expect(originals.albums.every((album) => album.pack !== "otomads")).toBe(true);
     const entries = originals.characters.flatMap((character) => character.music);
-    expect(entries.length).toBeGreaterThan(300);
+    expect(entries.length).toBe(originals.index.counts.trackEntries);
+    expect(new Set(entries.map((entry) => `${entry[0]}\u0001${entry[1]}`)).size)
+      .toBe(originals.index.counts.distinctTracks);
     expect(entries.every((entry) => entry[0] !== "otomads")).toBe(true);
   });
 
   it("音MAD 数据集：只含有曲目的角色，且每条曲目都属于曲包专辑", () => {
+    const originals = datasetFor(bundle, "originals");
     const otomads = datasetFor(bundle, "otomads");
     // 不写死数量：曲包会继续增长，只断言"覆盖多个角色、条目与角色自洽"
     expect(otomads.characters.length).toBeGreaterThan(10);
-    expect(otomads.characters.length).toBeLessThan(121);
+    expect(otomads.characters.length).toBeLessThan(originals.characters.length);
     expect(otomads.albums.map((album) => album.name)).toEqual(["otomads"]);
     for (const character of otomads.characters) {
       expect(character.music.length).toBeGreaterThan(0);        // 空角色不进这份数据集
       expect(character.music.every((entry) => entry[0] === "otomads")).toBe(true);
+    }
+    // S1：音MAD 这份是共享身份的投影 —— 每个角色都得在原曲那份里有出处
+    const originalKeys = new Set(originals.characters.map((character) => character.key));
+    for (const character of otomads.characters) {
+      expect(originalKeys.has(character.key)).toBe(true);
     }
     expect(otomads.index.counts.characters).toBe(otomads.characters.length);
     expect(otomads.index.counts.trackEntries)
