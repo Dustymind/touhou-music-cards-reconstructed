@@ -141,6 +141,23 @@ describe("联机（React 层）", () => {
     expect(useGame.getState().game.turnWinner).toBe(1);
   });
 
+  it("客户端的 `confirmStart` 意图让主机开赛，新快照照常广播", async () => {
+    const container = await renderPanel();
+    await click(container, "net-host");
+    const peer = __busHub().connect("client");
+    const received: Message[] = [];
+    peer.onMessage((_from, message) => received.push(message));
+    peer.sendToHost(helloIntent("Guest", false, dataHashes()));
+    received.length = 0;
+
+    await act(async () => {
+      peer.sendToHost({ kind: "confirmStart" });
+    });
+    // 广播靠 `start()` 自己写 store（订阅在 useNet 里），不是靠那句多余的 setState
+    expect(received.some((message) => message.kind === "snapshot")).toBe(true);
+    expect(useGame.getState().game.state).toBe("countdown");
+  });
+
   it("聊天双向可达", async () => {
     const container = await renderPanel();
     await click(container, "net-host");

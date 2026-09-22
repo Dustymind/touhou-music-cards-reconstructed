@@ -9,6 +9,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { defineStore } from "../persist";
 import { renderHook } from "../test-utils";
 import type { MusicEntry } from "../data/types";
+import type { PresetState } from "../music/selection";
 import { presetSpec, presetStoreFor, usePreset } from "./preset";
 import { queueSpec, queueStoreFor } from "./queue";
 import { singleStoreFor, singleTrackSpec } from "./single";
@@ -21,19 +22,21 @@ const preset = { originals: presetStoreFor("originals"), otomads: presetStoreFor
 const single = { originals: singleStoreFor("originals"), otomads: singleStoreFor("otomads") };
 const queue = { originals: queueStoreFor("originals"), otomads: queueStoreFor("otomads") };
 
-const FRESH_PRESET = { albums: {}, hifuu: {}, category: { 角色曲: "unset", 道中曲: "unset", 更多道中曲: "unset" } };
+const FRESH_PRESET: PresetState = {
+  albums: {}, hifuu: {}, category: { 角色曲: "unset", 道中曲: "unset", 更多道中曲: "unset" },
+};
 const FRESH_SINGLE = { enabled: false, pins: {}, disabledCharacters: {} };
 const FRESH_QUEUE = { order: [], temporaryDisabled: {}, currentKey: null };
 
 beforeEach(() => {
   localStorage.clear();
   useSession.setState({ musicMode: "originals", entryRequest: null });
-  preset.originals.setState(FRESH_PRESET as never);
-  preset.otomads.setState(FRESH_PRESET as never);
-  single.originals.setState(FRESH_SINGLE as never);
-  single.otomads.setState(FRESH_SINGLE as never);
-  queue.originals.setState(FRESH_QUEUE as never);
-  queue.otomads.setState(FRESH_QUEUE as never);
+  preset.originals.setState(FRESH_PRESET);
+  preset.otomads.setState(FRESH_PRESET);
+  single.originals.setState(FRESH_SINGLE);
+  single.otomads.setState(FRESH_SINGLE);
+  queue.originals.setState(FRESH_QUEUE);
+  queue.otomads.setState(FRESH_QUEUE);
 });
 
 describe("老存档迁移（单键 → .originals）", () => {

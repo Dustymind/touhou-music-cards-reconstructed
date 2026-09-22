@@ -17,13 +17,14 @@ export function useSources(
   localManifestUrl = "",
 ): SourcesState {
   const [state, setState] = useState<SourcesState>({ tables: {}, order: [], status: "loading" });
+  // 依赖用覆盖表的 **JSON 签名**（对象每次渲染都可能换身份），但 effect 里用的是**这份对象本身**：
+  // 签名与内容一一对应，没必要再 parse 回来一份（R7②）
   const overrideKey = JSON.stringify(overrides);
 
   useEffect(() => {
     let cancelled = false;
     setState((current) => ({ ...current, status: "loading" }));
-    loadSourceTables(applyLocalManifestUrl(sources, localManifestUrl),
-      JSON.parse(overrideKey) as typeof overrides)
+    loadSourceTables(applyLocalManifestUrl(sources, localManifestUrl), overrides)
       .then((result) => {
         if (!cancelled) setState({ ...result, status: "ready" });
       })
@@ -33,6 +34,7 @@ export function useSources(
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sources, overrideKey, localManifestUrl]);
 
   return state;

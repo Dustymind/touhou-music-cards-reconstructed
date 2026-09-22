@@ -1,7 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
-  DataLoadError, groupByExtra, validateAlbums, validateCharacters, validateIndex, validateSources,
+  DataLoadError, groupByExtra, loadDataBundle, validateAlbums, validateCharacters, validateIndex,
+  validateSources,
 } from "./load";
 import { displayTitle, splitTrackId, trackId, type CharacterRecord } from "./types";
 
@@ -50,6 +51,24 @@ describe("data validators", () => {
       { id: "a", order: 1 }, { id: "b", order: 1 },
     ] })).toThrow(/order 重复/);
     expect(validateSources({ sources: [{ id: "a", order: 1 }] })).toHaveLength(1);
+  });
+});
+
+describe("loadDataBundle", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("缺一份数据集就报错，不会静默少一份", async () => {
+    // C 之后两套数据集一起取（契约 §4 策略 A）；少一份必须是**可读的失败**，
+    // 而不是"少了一份照样开" —— 缺的就是 index.json，错误里要指出是哪个 URL
+    const realFetch = globalThis.fetch.bind(globalThis);
+    vi.stubGlobal("fetch", (async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).includes("otomads/index.json")) return new Response("missing", { status: 404 });
+      return realFetch(input as RequestInfo, init);
+    }) as typeof fetch);
+
+    await expect(loadDataBundle("./data")).rejects.toThrow(/otomads\/index\.json/);
   });
 });
 

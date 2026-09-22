@@ -28,12 +28,12 @@ class Endpoint {
     this.seed = seed;
   }
 
+  /** 两端**共用**的那部分依赖：客户端引擎只拿得到这些（R4：`getConfig` 不属于它）。 */
   deps() {
     return {
       getState: () => this.state,
       applyState: (state: GameState) => { this.state = state; },
       applyIntent: (intent: ClientIntent, from: number) => { this.apply(intent, from); },
-      getConfig: (): SessionConfigWire => ({ musicMode: "originals", sessionSeed: this.seed }),
       applyConfig: (config: SessionConfigWire) => {
         this.config = config;
         this.seed = config.sessionSeed;      // 客户端采用主机种子
@@ -43,6 +43,14 @@ class Endpoint {
       onChat: (_from: number, text: string) => this.chat.push(text),
       onError: (message: string) => this.errors.push(message),
       onPeers: (peers: PeerInfo[]) => { this.peers = peers; },
+    };
+  }
+
+  /** 主机引擎：多一项"读会话配置"（快照带着它下发，D104）。 */
+  hostDeps() {
+    return {
+      ...this.deps(),
+      getConfig: (): SessionConfigWire => ({ musicMode: "originals", sessionSeed: this.seed }),
     };
   }
 
@@ -83,7 +91,7 @@ function connect(hub: BusHub) {
 
   const hostTransport = hub.connect("host");
   const clientTransport = hub.connect("client");
-  const host = createHostEngine(hostTransport, hostEndpoint.deps());
+  const host = createHostEngine(hostTransport, hostEndpoint.hostDeps());
   const client = createClientEngine(clientTransport, clientEndpoint.deps());
   return { hostEndpoint, clientEndpoint, hostTransport, clientTransport, host, client };
 }

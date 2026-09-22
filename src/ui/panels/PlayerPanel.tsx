@@ -6,11 +6,10 @@
  * - 当前角色的多张卡面**叠放**（上游 `CharacterCardStacked`）；
  * - 切歌时整块卡面滑入（上游是整条 `translateX` 轮播，这里用同长的 0.3s 滑入动画，见 DECISIONS D21）。
  */
-import { useEffect, useState } from "react";
-import { memo } from "react";
+import { memo, useEffect, useState } from "react";
 import { Alert, Box, Button, Card, CardContent, Divider, Stack, Switch, TextField, Typography } from "@mui/material";
 import { keyframes } from "@emotion/react";
-import { UpcomingFan } from "../player/UpcomingFan";
+import { UpcomingFan, fanCardWidth } from "../player/UpcomingFan";
 
 import type { AlbumRecord, DataBundle, MusicEntry } from "../../data/types";
 import { useCurrentDataset } from "../../data/useDataset";
@@ -19,7 +18,6 @@ import { Localization, t } from "../../i18n/localization";
 import type { PlayerApi } from "../../audio/usePlayer";
 import type { TableMap } from "../../music/sources";
 import { fadeInSx, NoFontFamily } from "../../theme/theme";
-import { fanCardWidth } from "../player/UpcomingFan";
 import { CharacterCard } from "../components/CharacterCard";
 import { glitchEnabled, preferLocalCards } from "../../runtime";
 import { PlayerControl } from "../components/PlayerControl";
@@ -29,8 +27,6 @@ const slideIn = keyframes`
   from { opacity: 0; transform: translateX(12%); }
   to { opacity: 1; transform: translateX(0); }
 `;
-
-
 
 interface PlayerPanelProps {
   bundle: DataBundle;
@@ -44,7 +40,6 @@ interface PlayerPanelProps {
   onSort: () => void;
   onToggleTemporary: (key: string) => void;
   cardCollection: string;
-  /** 音乐模式（原曲 / 音MAD）：只影响"接下来能选哪些曲目" */
 }
 
 /** 卡面 = 卡牌选择器卡宽 × 该倍率（用户指定 120%）。 */
@@ -69,10 +64,9 @@ function PlayerPanelInner(props: PlayerPanelProps) {
   const cardSet = bundle.shared.cardSets.find((set) => set.id === props.cardCollection) ?? bundle.shared.cardSets[0]!;
   const character = dataset.characters.find((item) => item.key === currentKey) ?? null;
 
-  // 卡面尺寸 = **卡牌选择器的 120%**（卡牌选择器 = 牌桌/轮播用的同一个卡宽比例）。
-  // 用 ResizeObserver 跟着卡片宽度走，窄屏宽屏同一套算法（用户要求两端统一布局）。
-  // 卡面 = **卡牌选择器（"接下来"卡条）的卡宽 × 120%** —— 直接用选择器自己的尺寸函数，
-  // 保证两边永远同一个口径（选择器 = `min(窗口宽×20%, 150)`，见 UpcomingFan.fanCardWidth）。
+  // 卡面尺寸 = **卡牌选择器（"接下来"卡条）的卡宽 × 120%** —— 直接用选择器自己的尺寸函数，
+  // 保证两边永远同一个口径（选择器 = `min(窗口宽×20%, 150)`，见 UpcomingFan.fanCardWidth）；
+  // 用 resize 监听跟着卡片宽度走，窄屏宽屏同一套算法（用户要求两端统一布局）。
   const credit = creditLine(player.entry, dataset.albums);
   const [coverWidth, setCoverWidth] = useState(() =>
     Math.round(fanCardWidth(typeof window === "undefined" ? 1280 : window.innerWidth) * COVER_SCALE));

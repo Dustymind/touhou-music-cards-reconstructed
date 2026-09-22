@@ -14,7 +14,7 @@ import {
   type ModeDataset,
   type SourceRecord,
 } from "./types";
-import { MUSIC_MODES, type MusicMode } from "../music/mode";
+import { type MusicMode } from "../music/mode";
 
 export class DataLoadError extends Error {
   constructor(message: string, readonly cause?: unknown) {
@@ -113,7 +113,6 @@ function validateCardSets(raw: unknown): CardSetRecord[] {
   return sets;
 }
 
-/** 载入全部运行时数据；`base` 默认相对当前页面（部署到子目录也可用）。 */
 /** 载入**某个模式**的数据集（`base` 是该数据集所在目录：原曲 `./data`，音MAD `./data/otomads`）。 */
 async function loadDataset(base: string, expected: MusicMode): Promise<ModeDataset> {
   const url = (name: string) => `${base.replace(/\/$/, "")}/${name}`;
@@ -140,21 +139,16 @@ async function loadDataset(base: string, expected: MusicMode): Promise<ModeDatas
  */
 export async function loadDataBundle(base = "./data"): Promise<DataBundle> {
   const url = (name: string) => `${base.replace(/\/$/, "")}/${name}`;
+  // 两个模式都要有：各份都由 `loadDataset` 自己取 `index.json`，缺一份就在那里抛
+  // `DataLoadError`（`xxx/index.json → HTTP 404`）—— 所以这里不必再补一遍"存在性"断言
   const [originals, otomads, rawCardSets] = await Promise.all([
     loadDataset(url(""), "originals"),
     loadDataset(url("otomads"), "otomads"),
     fetchJson(url("cardsets.json")),
   ]);
   const cardSets = validateCardSets(rawCardSets);
-
-  const datasets = { originals, otomads } as Record<MusicMode, ModeDataset>;
-  // 两个模式都要有：缺一个就说明生成物没同步（部署漏了目录也会在这里红）
-  for (const mode of MUSIC_MODES) {
-    assert(datasets[mode] !== undefined, `缺少 ${mode} 数据集`);
-  }
-  return { shared: { cardSets }, datasets };
+  return { shared: { cardSets }, datasets: { originals, otomads } };
 }
-
 
 /** 某角色的曲目按附加信息分组（预设 UI 与统计用）。 */
 export function groupByExtra(character: CharacterRecord): Record<Extra, number> {

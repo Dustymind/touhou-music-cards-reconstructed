@@ -218,7 +218,7 @@ export const useNet = create<NetApi>((set, get) => {
           useGame.setState({ game: state });
           set({ digest: stateDigest(state) });
         },
-        getConfig: hostConfig,
+        // 客户端只**采用**主机下发的配置（`getConfig` 是主机引擎那一侧的依赖）
         applyConfig: adoptHostConfig,
         dataHash: dataHash(),
         selfName: name,
@@ -263,7 +263,8 @@ export function applyIntentLocally(intent: ClientIntent, from: number): void {
       return;
     }
     case "confirmStart": {
-      useGame.setState({ game: useGame.getState().game });
+      // `start()` 自己会写 store → 上面那条订阅广播新快照；这里不需要再 setState 一次
+      //（同一引用既不重渲染也不改摘要，只多一次通知）
       game.start();
       return;
     }

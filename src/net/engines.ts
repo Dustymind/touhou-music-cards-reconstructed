@@ -14,8 +14,7 @@ interface EngineDeps {
   /** 主机：读取/覆盖本地权威状态；客户端：只覆盖 */
   getState: () => GameState;
   applyState: (state: GameState) => void;
-  /** 会话配置（音乐模式 + 会话种子）：主机读取下发，客户端采用（D104） */
-  getConfig?: () => SessionConfigWire;
+  /** 客户端：采用主机下发的会话配置（D104） */
   applyConfig?: (config: SessionConfigWire) => void;
   /** 主机：把客户端意图落到本地 store（复用 UI 用的那些动作） */
   applyIntent?: (intent: ClientIntent, from: number) => void;
@@ -25,6 +24,15 @@ interface EngineDeps {
   onChat?: (from: number, text: string, isSystem: boolean) => void;
   onError?: (message: string) => void;
   onPeers?: (peers: PeerInfo[]) => void;
+}
+
+/** 主机引擎的依赖：比客户端多一项"**读**会话配置" —— 快照要带着它下发（音乐模式 + 会话种子，D104）。
+ *
+ * 配置的流向是**主机读、客户端采用**，所以 `getConfig` 只属于这里：
+ * 客户端引擎拿不到（也不该拿到）它，写错了就是编译错误 ✓。
+ */
+export interface HostEngineDeps extends EngineDeps {
+  getConfig: () => SessionConfigWire;
 }
 
 export interface HostEngine {
@@ -45,7 +53,7 @@ function nextFreeIndex(used: Set<number>): number {
   return index;
 }
 
-export function createHostEngine(transport: Transport, deps: EngineDeps): HostEngine {
+export function createHostEngine(transport: Transport, deps: HostEngineDeps): HostEngine {
   const indexByFrom = new Map<number, number>();
   const infoByFrom = new Map<number, PeerInfo>();
   let seq = 0;
@@ -67,7 +75,7 @@ export function createHostEngine(transport: Transport, deps: EngineDeps): HostEn
     seq += 1;
     // 会话配置随快照下发：音乐模式两端不同 → "当前模式下可用"的判定分叉；
     // 会话种子两端不同 → 派生出来的曲目/CPU 决策分叉（D104）
-    transport.broadcast({ kind: "snapshot", state: deps.getState(), seq, config: deps.getConfig?.() });
+    transport.broadcast({ kind: "snapshot", state: deps.getState(), seq, config: deps.getConfig() });
   };
 
   const off = transport.onMessage((from, message) => {
@@ -95,7 +103,7 @@ export function createHostEngine(transport: Transport, deps: EngineDeps): HostEn
           peers: peerList(),
           state: deps.getState(),
           seq,
-          config: deps.getConfig?.(),
+          config: deps.getConfig(),
           melee: infoByFrom.size + 1 > 2,
         });
         deps.onChat?.(index, `${intent.name} connected`, true);
@@ -109,7 +117,7 @@ export function createHostEngine(transport: Transport, deps: EngineDeps): HostEn
         return;
       }
       case "requestSync": {
-        transport.sendTo(from, { kind: "snapshot", state: deps.getState(), seq, config: deps.getConfig?.() });
+        transport.sendTo(from, { kind: "snapshot", state: deps.getState(), seq, config: deps.getConfig() });
         return;
       }
       default: {

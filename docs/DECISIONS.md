@@ -3598,6 +3598,36 @@ C 把两模式的数据集拆开之后（D112）后果①从"看不见"变成"�
 
 ---
 
+## D118 Web 侧：删掉审查点名的死代码、空转依赖与无效 `setState`（R2–R5 / R7①②⑤）
+
+**来源**：同一条审查的第二节 R2–R5 与第七节 R7① / R7② / R7⑤（用户裁定"修"）。
+与 D117 是同一轮，本条是前端那半边（R2 / R3 / R7① / R7② / R7⑤ 在同一批文件里，一并落下）。
+
+| # | 位置 | 现象 → 做法 |
+|---|---|---|
+| R2 | `src/data/load.ts` | "缺数据集"的断言循环**永不触发** ✗（`Promise.all` 解构时缺一份就已经抛了）→ 删 ✓；随之空出来的 `MUSIC_MODES` import 也删 ✓ |
+| R3 | `load.ts` / `PlayerPanel.tsx` | `loadDataset` 上方**两行重复 JSDoc**（旧的"载入全部运行时数据"）✗ 与指向已删字段的**悬空注释** ✗ → 删 ✓；同一文件里另外三处同类残留一并并好 ✓（两条 react import 拆成两行 ✗、`UpcomingFan` 引两次 ✗、卡面尺寸注释重复一遍 ✗ —— 顺带把注释里的 `ResizeObserver` 改成实际用的 `resize` 监听 ✓） |
+| R4 | `src/net/useNet.ts` + `engines.ts` | `join()` 给**客户端**引擎传 `getConfig`，而 `createClientEngine` 从不读它 ✗ → 删参数 ✓；并把依赖**类型**分成 `EngineDeps` / `HostEngineDeps` ✓（`getConfig` 只属于主机 ✓）—— 再写错就是编译错误 ✓ |
+| R5 | `src/net/useNet.ts` | `confirmStart` 里的 `useGame.setState({ game: useGame.getState().game })` 是**同一引用** ✗（不重渲染、不改摘要，只多一次通知 ✗）→ 删 ✓；广播本来就由 `game.start()` 写 store 触发 ✓ |
+| R7① | `src/ui/shell/AppShell.tsx` | `join("|") / split("|")` 造依赖签名 ✗ → `JSON.stringify` ✓，effect 里直接用那份 memo 出来的数组 ✓ |
+| R7② | `src/music/useSources.ts` | `JSON.stringify → JSON.parse` 往返只为稳定依赖 ✗ → 依赖仍用内容签名 ✓，effect 里直接用那份对象 ✓ |
+| R7⑤ | `src/store/modeScope.test.ts` | 7 处 `as never` 重置状态 ✗ → fixture 上类型（`PresetState`，本来就从 `music/selection` 导出 ✓），`as never` 全删 ✓ |
+
+**测试**（仓库原有的 vitest **浏览器模式**，chromium + firefox ✓）——都是"先加用例"：
+
+- `src/data/load.test.ts` +1：缺 `otomads/index.json` → `DataLoadError` 指名那个 URL ✓
+  （R2 删掉的循环想守的就是这件事 ✓，现在由**真会走到**的那条路径守 ✓）；
+- `src/net/useNet.test.tsx` +1：客户端发 `confirmStart` → 主机开赛（`countdown` ✓）且**新快照照常广播** ✓
+  （R5 删掉那句之后广播仍在 ✓）；
+- 新增 `src/music/useSources.test.ts` 1 条：覆盖表内容变了才重新载入 ✓、
+  换一个**同内容的新对象不空转** ✓（R7② 的依赖签名语义 ✓）。
+
+**验证**：`pnpm typecheck` ✓、`pnpm test` **564 passed**（282 条 × chromium + firefox ✓，比 D116 的 558 多 6 = 新增 3 条 × 两引擎 ✓）、
+`pnpm e2e` **76 passed + 1 skipped** ✓（chromium / firefox / mobile ✓；跑前起了本地曲库助手 8011 ✓，跑完已停掉 ✓）、
+`uv run pytest` **93 passed** ✓（同轮的工具侧改动见 D117 ✓）。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |

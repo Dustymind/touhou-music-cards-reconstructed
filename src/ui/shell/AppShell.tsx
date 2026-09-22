@@ -109,10 +109,11 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
     [activePreset, dataset.characters, single.disabledCharacters],
   );
 
-  // 队列跟着"可用角色集合"走：新增角色追加到末尾，消失的剔除，保留用户顺序
-  const usableKeySignature = usableKeys.join("|");
+  // 队列跟着"可用角色集合"走：新增角色追加到末尾，消失的剔除，保留用户顺序。
+  // 依赖用 **JSON 签名**：`usableKeys` 是数组，直接进依赖会跟着它的身份空转（R7①）
+  const usableKeySignature = JSON.stringify(usableKeys);
   useEffect(() => {
-    queue.syncKeys(usableKeySignature ? usableKeySignature.split("|") : []);
+    queue.syncKeys(usableKeys);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [usableKeySignature]);
 
