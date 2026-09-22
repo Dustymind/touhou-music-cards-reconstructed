@@ -10,7 +10,7 @@
 | 专辑 | 40 | 同上 |
 | 角色曲目条目 / 去重曲目 | 464 / 454（**两份数据集**：原曲 121 角色 378 条 + 音MAD 35 角色 86 条，互斥） | 同上（各份 `index.json` 的 `counts`） |
 | 卡面集 / 注册音源 | 7 / 4（含 1 套音MAD **本地图集**：素材用户自己放进 `public/cards-otomads/`） | 同上 |
-| 音MAD 曲包 | 1 包：86 首 / 35 个角色；**84 条带 `source`**（可自动抓取）、0 条带裁剪区间 | 清单 `data/packs/otomads.toml` + 一角色一份 `data/packs/otomads/*.toml`；`cd tools && UV_CACHE_DIR=.uv/cache uv run python -m tmc.fetch_audio --dry-run` |
+| 音MAD 曲包 | 1 包：86 首 / 35 个角色；**84 条带 `source`**（可自动抓取）、**16 条带裁剪区间**（前导静音已裁） | 清单 `data/packs/otomads.toml` + 一角色一份 `data/packs/otomads/*.toml`；`cd tools && UV_CACHE_DIR=.uv/cache uv run python -m tmc.fetch_audio --dry-run` |
 | 前端单测 | **628 passed**（314 条 × chromium + firefox；真实浏览器，vitest 浏览器模式） | `pnpm test` |
 | 数据管线测试 | **93 passed** | `cd tools && uv run pytest` |
 | 端到端 | 预期 **84 passed + 1 skipped**（chromium 38 / firefox 37+1 / mobile 9；比 D124 多 4 = PeerJS 开关守卫 + 对局音频淡入淡出守卫，各 × 两个桌面引擎）；本机实测 `smoke.spec.ts` 两引擎 **60 passed**（含两条新守卫）、`multiplayer.spec.ts` 两引擎 9 passed + 1 skipped ✓；更早的全量跑出过 78 + 2 failed + 1 skipped —— 联机那条是负载抖动（单跑 ✓），`mobile.spec.ts` 播放页居中那条 **HEAD 上就先红**（偏 9px > 8px 容差，见 D124） | `pnpm e2e` |
