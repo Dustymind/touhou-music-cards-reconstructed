@@ -4012,6 +4012,40 @@ ring 仍会顶掉上一次 ✓、stop 打断回调且不触发 + dispose 关上�
 
 ---
 
+## D127 对局音频的短淡入短淡出（回合切换不再硬切）
+
+**需求**（用户）："为游戏模式音频增加短淡入短淡出"。
+
+**先量后做**：听感问题没有"改前数值"可测，所以**先写守卫**：e2e 每帧采样 `audio.volume` —— 改前（AppShell 仍硬切）
+红在 `expected < 0.5, received 1`（起播一步到目标音量 ✗），改后绿 ✓。
+
+**做法**
+
+| 位置 | 改动 |
+|---|---|
+| 新增 `src/audio/fade.ts` | `rampGain(from, to, ms, onStep)`：**时间基**线性包络（按 `Date.now()` 算进度，不数步数）；`GAME_FADE_MS = 200`、`FADE_STEP_MS = 16`。时间基是为后台标签页：定时器被节流成 1s 一跳时，数步数会卡在半路（音量停在中间、淡出永不结束 ✗），按时间算则一跳到位 ✓ |
+| `src/audio/usePlayer.ts` | 包络值 `fadeGainRef` **乘在**"用户音量 × 逐曲响度"之上（那条线一行没动 ✓）；目标音量收进 `targetVolume()` 一处算；`playImmediate({ fadeMs })` 支持短淡入；新增 `fadeOutPause({ fadeMs })` = 短淡出后再 `pause()`；`pause()`（用户按暂停）保持立即 ✓ |
+| `src/ui/shell/AppShell.tsx` | 对局路径：`turnStart` → `playImmediate({ fadeMs: GAME_FADE_MS })`；`countdown` / `off` → `fadeOutPause()`。列表点播与用户播放/暂停**不传** `fadeMs`，行为不变 ✓ |
+
+**为什么不用 Web Audio 的 `GainNode`**：那得把 `<audio>` 接进 `MediaElementSource` —— 远程音源没有 CORS 头会被
+**静音** ✗，现有那条"用户音量 × 逐曲响度"也得搬进音频图里。需求只是"别硬切"，所以用 `HTMLMediaElement.volume`
+上的线性包络就够，而且对所有音源一视同仁 ✓（铃/滴答本来就自带包络，不参与 ✓）。
+
+**语义**：淡出期间界面**立刻**显示"已停"（`playback = "stopped"`）—— 界面不必等这 200ms ✓；
+淡出没走完就又起播（令牌变了）**不许按停**，否则会把新回合的曲子按掉 ✗；停完包络**复位**，下一次起播不会是哑的 ✓。
+
+**测试**：新增 `src/audio/fade.test.ts` **3 条**（起点/终点/单调 ✓、取消后不再回调 ✓、`ms<=0` 与起止相同只回调一次 ✓）；
+`usePlayer.test.tsx` **+4**（起播淡入、点播仍硬起 ✓；停播淡出后才暂停、停完复位 ✓；淡出未走完又起播不被按停 ✓；
+用户按暂停仍立即 ✓）；`e2e/smoke.spec.ts` **+1**（真浏览器每帧采样：起播第一帧不到目标的一半、有一串上升中间值 ✓；
+暂停前有一串下降值且已近静音、停完复位 ✓）。
+
+**验证**（全部实测）：`pnpm typecheck` 无诊断 ✓；`pnpm test` **628 passed**（314 条 × chromium + firefox ✓，
+比 D126 的 614 多 14 = 新增 7 条 × 两引擎 ✓）；`e2e/smoke.spec.ts` 全文件 chromium + firefox **60 passed** ✓
+（30 条 × 两引擎，5.7min）。
+**反向对照**：把 `src/ui/shell/AppShell.tsx` 单独退回 HEAD（仍硬切）→ 新守卫红在 `expected < 0.5, received 1` ✓。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |

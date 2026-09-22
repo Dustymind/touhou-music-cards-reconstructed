@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { createBell, type BellHandle } from "./bell";
+import { FADE_STEP_MS, GAME_FADE_MS, rampGain } from "./fade";
 import type { ModeDataset, MusicEntry } from "../data/types";
 import { displayTitle, trackId } from "../data/types";
 import { pickWithSeed, randomStartPosition } from "../rng";
@@ -65,13 +66,17 @@ export interface PlayerApi {
   setVolume: (value: number) => void;
   seek: (seconds: number) => void;
   play: () => void;
-  /** 立刻起播这一首（不响铃）；曲目若还在解析，解析完自动起播。对局里用。 */
-  playImmediate: () => void;
+  /** 立刻起播这一首（不响铃）；曲目若还在解析，解析完自动起播。
+   *  `fadeMs` > 0 时从 0 音量短淡入 —— **对局回合开始**用它（D127）；点播不传 = 原样硬起 ✓。 */
+  playImmediate: (options?: { fadeMs?: number }) => void;
   /** 只响一声倒计时铃（会先停掉正曲）。对局倒计时用。 */
   ringBell: () => void;
   /** 倒计时用的短促一声（三声响用） */
   tick: () => void;
+  /** 立刻暂停（用户按暂停的语义：马上、可预期）。 */
   pause: () => void;
+  /** 短淡出后再暂停 —— **对局停播**用它（倒计时开始 / 停局 / 终局），音乐不是被硬切掉的（D127）。 */
+  fadeOutPause: (options?: { fadeMs?: number }) => void;
   next: () => void;
   previous: () => void;
   setSetting: (patch: Partial<PlaybackSetting>) => void;
@@ -102,6 +107,12 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
   const [version, setVersion] = useState(0);
   /** `error` 事件里要用来记"哪个源的哪首失败了" */
   const nowPlayingRef = useRef<{ sourceId: string; trackKey: string } | null>(null);
+  /** 正在跑的淡入/淡出包络的取消函数（D127） */
+  const fadeStopRef = useRef<(() => void) | null>(null);
+  /** 当前包络值（0..1）：乘在"用户音量 × 逐曲响度"之上 ✓ */
+  const fadeGainRef = useRef(1);
+  /** 这次"待起播"要不要淡入（曲目还在解析时，起播发生在加载 effect 里，得把意图带过去） */
+  const pendingFadeMsRef = useRef(0);
 
   const [playback, setPlayback] = useState<PlaybackState>("stopped");
   const [currentTime, setCurrentTime] = useState(0);
@@ -193,9 +204,40 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
     };
   }, []);
 
+  // ---- 淡入淡出（D127）：包络**乘在**"用户音量 × 逐曲响度"之上，那条线一行没动 ✓ ----
+  /** 目标音量：用户音量 × 逐曲响度系数（只衰减不放大 ✓）。 */
+  const targetVolume = Math.min(1, volume * gainOf(entry));
+  /** 目标音量的镜像：包络回调用它算"此刻该多大声"，于是回调不必闭包捕获旧音量 ✓。 */
+  const targetVolumeRef = useRef(targetVolume);
+
+  /** 落一次包络值：写进 `<audio>.volume`（0 = 静音但**不**暂停，暂停由调用方决定 ✓）。
+   *  依赖全走 ref ⇒ 它恒定，起播/停播那几处闭包永远拿到最新音量与包络 ✓ */
+  const applyFade = useCallback((gain: number): void => {
+    fadeGainRef.current = gain;
+    if (audioRef.current) audioRef.current.volume = targetVolumeRef.current * gain;
+  }, []);
+
+  const cancelFade = useCallback((): void => {
+    fadeStopRef.current?.();
+    fadeStopRef.current = null;
+  }, []);
+
+  /** 从 0 淡入到目标音量（对局回合开始用）。 */
+  const fadeIn = useCallback((ms: number): void => {
+    cancelFade();
+    fadeStopRef.current = rampGain(0, 1, ms, applyFade);
+  }, [applyFade, cancelFade]);
+
+  /** 不淡入，直接回到目标音量（点播 / 用户起播用：原样硬起 ✓）。 */
+  const fadeNone = useCallback((): void => {
+    cancelFade();
+    applyFade(1);
+  }, [applyFade, cancelFade]);
+
   useEffect(() => {
-    if (audioRef.current) audioRef.current.volume = Math.min(1, volume * gainOf(entry));
-  }, [volume, entry, gainOf]);
+    targetVolumeRef.current = targetVolume;
+    if (audioRef.current) audioRef.current.volume = targetVolume * fadeGainRef.current;
+  }, [targetVolume]);
 
   // ---- 换歌：解析 URL ----
   // 调用方（React 组件）常常每次渲染都传新的数组/对象，所以这里只在**值真的变了**时更新 state，
@@ -238,6 +280,9 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
     if (pendingPlayRef.current) {
       // 曲目在解析中就点了播放/对局进入回合：等这一首挂上再起播
       const token = playTokenRef.current;
+      // 对局的"待起播"要淡入（D127）：意图由 playImmediate 带过来，这里才真正起播 ✓
+      if (pendingFadeMsRef.current > 0) fadeIn(pendingFadeMsRef.current);
+      else fadeNone();
       void audio.play().then(() => {
         if (playTokenRef.current === token) setPlayback("playing");
       }).catch(() => setPlayback("stopped"));
@@ -284,6 +329,8 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
     if (!audio) return;
     const token = (playTokenRef.current += 1);
     pendingPlayRef.current = true;
+    pendingFadeMsRef.current = 0;      // 用户起播：不淡入（铃）✓
+    fadeNone();
     if (!resolved) return; // 解析完由加载 effect 起播
     const startMusic = () => {
       if (playTokenRef.current !== token) return; // 期间被暂停/卸载
@@ -295,20 +342,25 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
       return;
     }
     startMusic();
-  }, [resolved, setting.countdown]);
+  }, [fadeNone, resolved, setting.countdown]);
 
-  /** 立刻起播（不响铃）。对局回合开始用：倒计时铃在 countdown 阶段已经响过。 */
-  const playImmediate = useCallback(() => {
+  /** 立刻起播（不响铃）。对局回合开始用：倒计时铃在 countdown 阶段已经响过。
+   *  `fadeMs` > 0 = 从 0 短淡入（D127）：回合切换很频繁，硬起会"啪"一下 ✗。 */
+  const playImmediate = useCallback((options?: { fadeMs?: number }) => {
     const audio = audioRef.current;
     if (!audio) return;
     const token = (playTokenRef.current += 1);
     pendingPlayRef.current = true;
+    const fadeMs = options?.fadeMs ?? 0;
+    pendingFadeMsRef.current = fadeMs;     // 曲目还在解析时，起播发生在加载 effect 里 ✓
+    if (fadeMs > 0) fadeIn(fadeMs);
+    else fadeNone();
     if (!resolved) return;
     setPlayback("playing");
     void audio.play().then(() => {
       if (playTokenRef.current === token) setPlayback("playing");
     }).catch(() => setPlayback("stopped"));
-  }, [resolved]);
+  }, [fadeIn, fadeNone, resolved]);
 
   /** 倒计时滴答：比换歌铃短，**只发声** —— 不占用"响铃结束再起播"那条时序（D125）。
    *  以前这里走 `ring()`，会把 `play()` 排好的 `startMusic` 回调一起 `clearTimer` 掉 ✗：
@@ -326,13 +378,47 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
     bellRef.current?.ring();
   }, []);
 
+  /** 立刻暂停（用户按暂停）：不淡出 —— 用户要的是"马上停" ✓。 */
   const pause = useCallback(() => {
     playTokenRef.current += 1;
     pendingPlayRef.current = false;
+    pendingFadeMsRef.current = 0;
+    cancelFade();
     bellRef.current?.stop();
     audioRef.current?.pause();
+    applyFade(1);      // 先停再复位包络：停的瞬间音量不跳，下一次起播也不会是哑的 ✓
     setPlayback("stopped");
-  }, []);
+  }, [applyFade, cancelFade]);
+
+  /** 短淡出后再暂停（对局停播：倒计时开始 / 停局 / 终局）。D127
+   *
+   *  `setPlayback("stopped")` 立刻落地（界面不需要等这 200ms ✓），真正 `pause()` 在包络走完之后 ——
+   *  期间若又起播（令牌变了）就**不按停**，否则会把新回合的曲子按掉 ✗。 */
+  const fadeOutPause = useCallback((options?: { fadeMs?: number }) => {
+    const audio = audioRef.current;
+    const token = (playTokenRef.current += 1);
+    pendingPlayRef.current = false;
+    pendingFadeMsRef.current = 0;
+    bellRef.current?.stop();
+    setPlayback("stopped");
+    if (!audio) return;
+    const ms = options?.fadeMs ?? GAME_FADE_MS;
+    if (ms <= 0) {
+      cancelFade();
+      audio.pause();
+      applyFade(1);
+      return;
+    }
+    cancelFade();
+    fadeStopRef.current = rampGain(fadeGainRef.current, 0, ms, applyFade);
+    window.setTimeout(() => {
+      if (playTokenRef.current !== token) return;   // 期间又起播了：别把它按停
+      cancelFade();
+      applyFade(0);      // 兜底：节流/丢帧也保证"停之前已经静音"（不然会"啪"一下 ✗）
+      audio.pause();
+      applyFade(1);      // 包络复位：下一次起播（用户暂停后按播放）不会是哑的 ✓
+    }, ms + FADE_STEP_MS);
+  }, [applyFade, cancelFade]);
 
   const next = useCallback(() => {
     const key = inputs.step(1);
@@ -383,6 +469,7 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
     ringBell,
     tick,
     pause,
+    fadeOutPause,
     next,
     previous,
     setSetting,

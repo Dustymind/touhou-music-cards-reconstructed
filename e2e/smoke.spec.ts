@@ -109,6 +109,66 @@ test("对战页：随机补满 → 开局 → 倒计时后进入回合 → 下�
   await expect(page.getByText(/turn #2 ·/)).toBeVisible({ timeout: 15_000 });
 });
 
+test("对局音频：回合起播带短淡入、倒计时停播带短淡出（真浏览器采样音量）", async ({ page }) => {
+  await captureAudio(page);
+  /** 每帧记一次"在播那个元素"的音量：音量包络只有真浏览器看得出来（单测在假 Audio 上跑）。 */
+  await page.addInitScript(() => {
+    const samples: { t: number; volume: number; paused: boolean }[] = [];
+    (window as unknown as { __volumes: typeof samples }).__volumes = samples;
+    const started = performance.now();
+    const tick = (): void => {
+      const list = (window as unknown as { __audios?: HTMLAudioElement[] }).__audios ?? [];
+      // dev 下 StrictMode 会造两个元素：优先取"没暂停"的那个（缓冲期 currentTime 还是 0，
+      // 按 currentTime 排序会挑到已经废掉的那个 ✗）
+      const audio = list.find((item) => !item.paused)
+        ?? [...list].sort((a, b) => b.currentTime - a.currentTime)[0];
+      if (audio) {
+        samples.push({
+          t: Math.round(performance.now() - started),
+          volume: Number(audio.volume.toFixed(3)),
+          paused: audio.paused,
+        });
+      }
+      if (performance.now() - started < 25_000) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  });
+
+  await page.goto("/");
+  await page.getByRole("tab", { name: "Match", exact: true }).click();
+  await page.getByTestId("random-fill").click();
+  await page.getByTestId("start-game").click();
+  await expect(page.getByText(/turn #1 · turnStart/)).toBeVisible({ timeout: 20_000 });
+  await waitForPlaying(page);                       // 回合开始：音乐起播
+
+  // 让这一回合播一会儿，再推进到下一回合的倒计时（音乐被停下 → 该淡出）
+  await page.getByTestId("deck-you-card-0").click();
+  await page.getByTestId("next-turn").click();
+  await expect(page.getByText(/turn #2 ·/)).toBeVisible({ timeout: 20_000 });
+  await page.waitForTimeout(500);                   // 留出淡出 + 暂停的时间
+
+  const samples = await page.evaluate(() =>
+    (window as unknown as { __volumes: { t: number; volume: number; paused: boolean }[] }).__volumes);
+  const target = Math.max(...samples.map((sample) => sample.volume));   // 目标音量（音量 × 响度系数）
+
+  // 淡入：起播那一刻明显低于目标，之后有一串中间值逐步升上去（硬切就会一步到目标 ✗）
+  const playStart = samples.findIndex((sample) => !sample.paused);
+  expect(playStart).toBeGreaterThan(0);
+  expect(samples[playStart]!.volume).toBeLessThan(target * 0.5);
+  const rising = samples.slice(playStart, playStart + 40)
+    .filter((sample) => !sample.paused && sample.volume > 0 && sample.volume < target);
+  expect(rising.length).toBeGreaterThan(1);
+
+  // 淡出：播过一段之后进入倒计时 —— 暂停之前先"越来越小"，停完包络复位（下次起播不是哑的）
+  const pauseAfter = samples.findIndex((sample, index) => index > playStart && sample.paused);
+  expect(pauseAfter).toBeGreaterThan(playStart);
+  const falling = samples.slice(Math.max(playStart, pauseAfter - 25), pauseAfter)
+    .filter((sample) => sample.volume > 0 && sample.volume < target);
+  expect(falling.length).toBeGreaterThan(1);
+  expect(samples[pauseAfter - 1]!.volume).toBeLessThan(target * 0.3);
+  expect(samples.slice(pauseAfter, pauseAfter + 6).some((sample) => sample.volume === target)).toBe(true);
+});
+
 test("中文界面：游戏页（含联机大厅）全部是中文，不留英文标签", async ({ page }) => {
   await page.goto("/?locale=zh");
   await page.getByRole("tab", { name: "游戏", exact: true }).click();

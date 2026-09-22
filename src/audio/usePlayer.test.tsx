@@ -5,6 +5,7 @@ import type { AlbumRecord, CharacterRecord, ModeDataset } from "../data/types";
 import { defaultPreset } from "../music/selection";
 import { buildEntries, type TableMap } from "../music/sources";
 import { BELL_DURATION_MS } from "./bell";
+import { GAME_FADE_MS } from "./fade";
 import { gainKeyOf } from "./usePlayer";
 import { fakeTables, installFakeAudio, loadRealBundle, renderHook, type FakeAudio } from "../test-utils";
 import { usePlayer, type PlayerInputs } from "./usePlayer";
@@ -187,6 +188,86 @@ describe("usePlayer", () => {
     await hook.rerender();
     expect(audios[0]!.paused).toBe(false);                 // 铃响完照样起播
     expect(hook.result.current.playback).toBe("playing");
+  });
+
+  it("对局起播：短淡入（0 → 目标音量）；点播不传 fadeMs 就是硬起", async () => {
+    vi.useFakeTimers();
+    const hook = await renderHook(() => usePlayer(inputs()));
+    await vi.waitFor(() => expect(hook.result.current.url).not.toBeNull());
+    hook.result.current.setVolume(0.5);
+    await hook.rerender();
+    expect(audios[0]!.volume).toBe(0.5);                 // 目标音量 = 用户音量 × 逐曲响度
+
+    hook.result.current.playImmediate({ fadeMs: GAME_FADE_MS });
+    await hook.rerender();
+    expect(audios[0]!.volume).toBe(0);                   // 淡入的起点：静音起播（不"啪"一下）
+    await vi.advanceTimersByTimeAsync(GAME_FADE_MS / 2);
+    expect(audios[0]!.volume).toBeGreaterThan(0);
+    expect(audios[0]!.volume).toBeLessThan(0.5);
+    await vi.advanceTimersByTimeAsync(GAME_FADE_MS);
+    expect(audios[0]!.volume).toBeCloseTo(0.5, 5);       // 走到目标音量
+    expect(audios[0]!.paused).toBe(false);
+
+    hook.result.current.pause();
+    await hook.rerender();
+    hook.result.current.playImmediate();                 // 点播：不淡入
+    await hook.rerender();
+    expect(audios[0]!.volume).toBe(0.5);                 // 直接就是目标音量
+    expect(audios[0]!.paused).toBe(false);
+  });
+
+  it("对局停播：短淡出之后才暂停，停完包络复位（下次起播不是哑的）", async () => {
+    vi.useFakeTimers();
+    const hook = await renderHook(() => usePlayer(inputs()));
+    await vi.waitFor(() => expect(hook.result.current.url).not.toBeNull());
+    hook.result.current.playImmediate({ fadeMs: GAME_FADE_MS });
+    await vi.advanceTimersByTimeAsync(GAME_FADE_MS + 30);
+    await hook.rerender();
+    expect(audios[0]!.volume).toBe(1);
+
+    hook.result.current.fadeOutPause();
+    await hook.rerender();
+    expect(hook.result.current.playback).toBe("stopped");   // 界面立刻是"停了"
+    expect(audios[0]!.paused).toBe(false);                  // 但声音还在淡出，没有硬切
+    await vi.advanceTimersByTimeAsync(GAME_FADE_MS / 2);
+    expect(audios[0]!.volume).toBeLessThan(1);
+    expect(audios[0]!.volume).toBeGreaterThan(0);
+    await vi.advanceTimersByTimeAsync(GAME_FADE_MS);
+    expect(audios[0]!.paused).toBe(true);                   // 淡完才真的停
+    expect(audios[0]!.volume).toBe(1);                      // 包络复位
+
+    hook.result.current.playImmediate();
+    await hook.rerender();
+    expect(audios[0]!.volume).toBe(1);                      // 下次起播音量是满的
+    expect(audios[0]!.paused).toBe(false);
+  });
+
+  it("淡出还没走完就又起播：不会被按停（回合切换不打架）", async () => {
+    vi.useFakeTimers();
+    const hook = await renderHook(() => usePlayer(inputs()));
+    await vi.waitFor(() => expect(hook.result.current.url).not.toBeNull());
+    hook.result.current.playImmediate({ fadeMs: GAME_FADE_MS });
+    await vi.advanceTimersByTimeAsync(GAME_FADE_MS + 30);
+
+    hook.result.current.fadeOutPause();
+    await vi.advanceTimersByTimeAsync(GAME_FADE_MS / 2);
+    hook.result.current.playImmediate({ fadeMs: GAME_FADE_MS });   // 又进回合了
+    await vi.advanceTimersByTimeAsync(GAME_FADE_MS * 3);
+    await hook.rerender();
+    expect(audios[0]!.paused).toBe(false);                  // 淡出的定时器不许把新回合按掉
+    expect(audios[0]!.volume).toBe(1);
+  });
+
+  it("用户按暂停仍是立即停（不淡出、不延迟）", async () => {
+    const hook = await renderHook(() => usePlayer(inputs()));
+    await vi.waitFor(() => expect(hook.result.current.url).not.toBeNull());
+    hook.result.current.playImmediate({ fadeMs: GAME_FADE_MS });
+    await hook.rerender();
+    hook.result.current.pause();
+    await hook.rerender();
+    expect(audios[0]!.paused).toBe(true);                   // 马上停
+    expect(hook.result.current.playback).toBe("stopped");
+    expect(audios[0]!.volume).toBe(1);                      // 包络复位
   });
 
   it("切歌时保留播放意愿：正在播就接着播，暂停状态切歌保持暂停", async () => {

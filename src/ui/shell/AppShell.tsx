@@ -16,6 +16,7 @@ import { selectSessionSeed, useSeeds } from "../../store/seeds";
 import { useSources } from "../../music/useSources";
 import { sourceStoreFor, useSourceOverrides } from "../../store/sources";
 import { usePlayer } from "../../audio/usePlayer";
+import { GAME_FADE_MS } from "../../audio/fade";
 import { allowedTracks, mergeWithDefaults } from "../../music/selection";
 import { useCurrentDataset } from "../../data/useDataset";
 import { effectivePin } from "../../music/presetView";
@@ -207,7 +208,7 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
     previousPhase.current = phase;
     if (before === phase) return;
     if (phase === "countdown") {
-      player.pause();                       // 先停掉上一回合的曲子
+      player.fadeOutPause();                // 先停掉上一回合的曲子（短淡出，不硬切 ✓ D127）
       // 3 秒倒计时 = **三声**（每秒一声，用户要求；原来只响一声）
       const startedAt = Date.now();
       player.tick();
@@ -217,8 +218,9 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
       }, offset));
       return () => ticks.forEach((id) => window.clearTimeout(id));
     }
-    if (phase === "turnStart") player.playImmediate();
-    if (phase === "off") player.pause();
+    // 对局音频的起播短淡入、停播短淡出（D127）：回合切换频繁，硬切会"啪"一下 ✗
+    if (phase === "turnStart") player.playImmediate({ fadeMs: GAME_FADE_MS });
+    if (phase === "off") player.fadeOutPause();
     // player 每次渲染都是新对象，只按阶段变化触发
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
