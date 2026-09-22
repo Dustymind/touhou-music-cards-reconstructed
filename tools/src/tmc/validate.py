@@ -159,8 +159,6 @@ def check_source_registry(p: Problems) -> dict:
     3. `originals` **不得**含 `kind = "local"`（本地曲库只服务音MAD）；
     4. 两份注册表的 `id` 不得冲突。
     """
-    import tomllib as _tomllib
-
     by_mode: dict[str, list[dict]] = {}
     for mode in build_mod.MODES:
         path = repo.DATA / "sources" / f"{mode}.toml"
@@ -168,8 +166,7 @@ def check_source_registry(p: Problems) -> dict:
             p.error(f"缺少音源注册表：data/sources/{mode}.toml")
             by_mode[mode] = []
             continue
-        with open(path, "rb") as fh:
-            by_mode[mode] = _tomllib.load(fh)["source"]
+        by_mode[mode] = build_mod.load_registry(mode)
 
     for mode, entries in by_mode.items():
         ids, orders = set(), set()
@@ -208,11 +205,26 @@ def check_source_registry(p: Problems) -> dict:
     }
 
 
+def _read_mirror(source_id: str) -> list[list[str]] | None:
+    """读一张镜像表（``data/sources/<id>.json``）；**文件不存在**返回 None。
+
+    缺表这件事由 `check_source_registry()` 报（它比这里更懂注册表）。这里不再抛：
+    镜像 id 是派生出来的（`build.mirror_source_ids`），注册表里写错一个 `table_url`
+    不该让整套校验以 traceback 收场。
+    """
+    path = repo.DATA / "sources" / f"{source_id}.json"
+    if not path.exists():
+        return None
+    with open(path, encoding="utf-8") as fh:
+        return json.load(fh)
+
+
 def check_sources(referenced: set[tuple[str, str]], p: Problems):
     stats = {}
-    for source_id in ("netease163", "cloudflare_r2", "thbwiki"):
-        path = repo.DATA / "sources" / f"{source_id}.json"
-        entries = json.loads(path.read_text(encoding="utf-8"))
+    for source_id in build_mod.mirror_source_ids():
+        entries = _read_mirror(source_id)
+        if entries is None:
+            continue
         table = {(a, t): url for a, t, url in entries}
         if len(table) != len(entries):
             p.error(f"{source_id}: 存在重复的 (专辑,曲目) 键")
@@ -339,9 +351,11 @@ def check_track_additions(chars: list[dict], p: Problems) -> int:
     if not path.exists():
         return 0
     tables = {}
-    for source_id in ("netease163", "cloudflare_r2", "thbwiki"):
-        with open(repo.DATA / "sources" / f"{source_id}.json", encoding="utf-8") as fh:
-            tables[source_id] = {(a, t) for a, t, _u in json.load(fh)}
+    for source_id in build_mod.mirror_source_ids():
+        entries = _read_mirror(source_id)
+        if entries is None:
+            continue
+        tables[source_id] = {(a, t) for a, t, _u in entries}
     by_key = {c["key"]: c for c in chars}
     count = 0
     for line in path.read_text(encoding="utf-8").splitlines()[1:]:
@@ -390,10 +404,9 @@ def check_title_uniqueness(chars: list[dict], p: Problems) -> dict[str, object]:
 
     # 依据来自**源表全集**（不只是被引用的那部分）：同名同专辑的两首曲子只有靠序号区分
     all_titles: dict[str, set[str]] = {}
-    for source_id in ("netease163", "cloudflare_r2", "thbwiki"):
-        with open(repo.DATA / "sources" / f"{source_id}.json", encoding="utf-8") as fh:
-            for album, title, _url in json.load(fh):
-                all_titles.setdefault(album, set()).add(title)
+    for source_id in build_mod.mirror_source_ids():
+        for album, title, _url in _read_mirror(source_id) or []:
+            all_titles.setdefault(album, set()).add(title)
 
     numbered: dict[str, list[str]] = {}
     for album, titles in all_titles.items():
@@ -504,7 +517,6 @@ def check_packs(packs: list[dict], albums: list[dict], tracks: list[dict],
     for pack_id in sorted({i for i in ids if ids.count(i) > 1}):
         p.error(f"曲包 id 重复：{pack_id}")
     album_names = {album["name"] for album in albums}
-    album_packs = {album["pack"] for album in albums}
     for pack in packs:
         if pack["kind"] not in packs_mod.PACK_KINDS:
             p.error(f"曲包 kind 非法：{pack['id']} → {pack['kind']}")
@@ -542,8 +554,10 @@ def check_packs(packs: list[dict], albums: list[dict], tracks: list[dict],
         if key in seen:
             p.error(f"曲包曲目重复：{track['character']} / {track['album']} / {track['title']}")
         seen.add(key)
+    # `albums` 就是**曲包自带的**那些专辑（run() 传的是 pack_albums）：
+    # 它们的 `pack` 字段默认就是自己的曲包 id，写错成别的才是问题
     for album in albums:
-        if album["pack"] in album_packs and album["pack"] not in ids and album["pack"] != "originals":
+        if album["pack"] not in ids and album["pack"] != "originals":
             p.error(f"专辑引用了未注册的曲包：{album['name']} → {album['pack']}")
     return {"packs": len(packs), "albums": len(albums), "tracks": len(tracks),
             "with_source": sum(1 for track in tracks if track.get("source")),

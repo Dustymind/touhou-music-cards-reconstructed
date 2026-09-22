@@ -25,11 +25,13 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+from . import build
 from . import repo
 
 UA = ("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) "
       "Chrome/126.0.0.0 Safari/537.36")
-SOURCES = ("netease163", "cloudflare_r2", "thbwiki")
+#: 镜像清单从注册表派生（review R7④）：加一个镜像只改 data/sources/originals.toml
+SOURCES = build.mirror_source_ids()
 CHUNK = 4096
 
 

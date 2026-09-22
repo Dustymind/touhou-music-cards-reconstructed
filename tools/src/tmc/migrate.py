@@ -192,6 +192,8 @@ def migrate_albums() -> None:
     (repo.DATA / "albums.toml").write_text("\n".join(lines), encoding="utf-8")
 
 
+#: 迁移用到的三张表 —— **历史**清单，故意不跟注册表走（`LEGACY_SOURCES` 指的是上游旧文件名）；
+#: 运行时的镜像清单在 `build.mirror_source_ids()`（review R7④）
 SOURCES = ("netease163", "cloudflare_r2", "thbwiki")
 
 #: 源表 URL 的规范化重写（实测依据见注释）。

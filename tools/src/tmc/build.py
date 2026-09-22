@@ -2,7 +2,7 @@
 
 布局（音MAD 与原曲分离契约 v1，见 ``docs/otomads-separation-v1.md``）：
 
-* **共享项**（与模式无关）写一份：``sources.json`` / ``cardsets.json`` / ``packs.json`` / ``sources/*.json``；
+* **共享项**（与模式无关）写一份：``cardsets.json`` / ``sources/*.json``；
 * **每模式一份数据集**：``index.json`` / ``characters.json`` / ``albums.json``，
   音MAD 那套在 ``public/data/otomads/`` —— 各自只含本模式的曲目、各自一个 ``contentHash``。
 
@@ -89,7 +89,7 @@ def build_characters(mode: str, chars: list[dict], pack_tracks: list[dict],
 
 
 def _pack_music(pack_tracks: list[dict]) -> dict[str, list[list]]:
-    """曲包曲目 → ``{角色 key: [music 条目, …]}``（``apply_tracks`` 的替代：只并进 otomads 数据集）。"""
+    """曲包曲目 → ``{角色 key: [music 条目, …]}``（**只有** otomads 数据集会用它，D112）。"""
     music: dict[str, list[list]] = {}
     for track in pack_tracks:
         entry = [track["album"], track["title"], track["extra"]]
@@ -111,20 +111,29 @@ def build_albums(mode: str, pack_albums: list[dict]) -> dict:
     return {"schema": SCHEMA_VERSION, "albums": albums}
 
 
-def build_packs(packs: list[dict]) -> dict:
-    """曲包注册表 → 运行时 JSON（共享：它只描述"有哪些包"，与当前模式无关）。"""
-    return {"schema": SCHEMA_VERSION, "packs": packs}
+def load_registry(mode: str) -> list[dict]:
+    """读某个模式的音源注册表（``data/sources/<mode>.toml``）。"""
+    with open(repo.DATA / "sources" / f"{mode}.toml", "rb") as fh:
+        return tomllib.load(fh)["source"]
+
+
+def mirror_source_ids() -> tuple[str, ...]:
+    """**镜像表**的音源 id = 原曲注册表里 ``kind = "remote"`` 的那些。
+
+    镜像清单只有注册表一处真源（review R7④）：构建（把表拷进 ``public/data/sources/``）、
+    `tmc.validate` 的三处检查、`tmc.check_urls` 的抽查都从这里取 —— 加一个镜像只改 TOML。
+    远程镜像全在原曲注册表里（音MAD 侧只有一个本地源，契约 `docs/sources-separation-v1.md`）。
+    """
+    return tuple(entry["id"] for entry in load_registry("originals") if entry["kind"] == "remote")
 
 
 def build_sources(mode: str) -> dict:
     """**某个模式**的音乐源注册表 → 运行时 JSON（契约 `docs/sources-separation-v1.md` §2）。
 
-    一个模式一份：原曲 = 三个远程镜像；音MAD = 本地曲库助手。前端只读这一份，不在代码里硬编码音源。
+    一个模式一份：原曲 = 远程镜像；音MAD = 本地曲库助手。前端只读这一份，不在代码里硬编码音源。
     """
-    with open(repo.DATA / "sources" / f"{mode}.toml", "rb") as fh:
-        data = tomllib.load(fh)
     sources = []
-    for entry in data["source"]:
+    for entry in load_registry(mode):
         sources.append({
             "id": entry["id"],
             "label": {"en": entry["label_en"], "zh": entry["label_zh"]},
@@ -197,7 +206,7 @@ def dataset_dir(mode: str):
 
 def build_outputs() -> tuple[dict, dict[str, dict[str, str]]]:
     """生成全部文件 → ``(摘要, {模式: {相对路径: 文本}})``。"""
-    packs, pack_albums, pack_tracks, pack_cards = pack_mod.load_packs()
+    _packs, pack_albums, pack_tracks, pack_cards = pack_mod.load_packs()
     chars = load_characters()
     pack_audio = pack_mod.audio_descriptors(pack_tracks)
 
@@ -218,8 +227,7 @@ def build_outputs() -> tuple[dict, dict[str, dict[str, str]]]:
 
     # 共享项：与模式无关，只写一份
     outputs[repo.PUBLIC_DATA / "cardsets.json"] = _dumps(build_card_sets())
-    outputs[repo.PUBLIC_DATA / "packs.json"] = _dumps(build_packs(packs))
-    for source_id in ("netease163", "cloudflare_r2", "thbwiki"):
+    for source_id in mirror_source_ids():
         outputs[repo.PUBLIC_DATA / "sources" / f"{source_id}.json"] = (
             repo.DATA / "sources" / f"{source_id}.json").read_text(encoding="utf-8")
     return indices, outputs

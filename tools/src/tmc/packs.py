@@ -175,7 +175,7 @@ def _character_tracks(pack_dir: pathlib.Path, manifest: str,
     """读 ``data/packs/<曲包 id>/*.toml`` → 曲目列表（文件按名排序，文件内保持原顺序）。
 
     角色由文件的 ``key`` 决定，**文件名必须与它一致**：曲包里的 key 写错曾一次性丢掉 3 条曲目
-    （`apply_tracks` 记过），所以这里错了直接报；报错文案带包内相对路径，
+    （2026-09 那次 `reisen-udongein` 少写 `-inaba`），所以这里错了直接报；报错文案带包内相对路径，
     否则 35 个 `cirno.toml` 分不清是哪个包。
 
     ``cards`` 是出参：文件里写了 ``card`` 就记一笔（音MAD 侧自己的卡面，写法见 ``data/packs/README.md``）。
@@ -238,29 +238,6 @@ def _read_audio_keys(entry: dict, track: dict, where: str) -> None:
         trim_seconds(track)          # 只给一侧也合法；两侧都给时校验先后
     except ValueError as error:
         raise SystemExit(f"{where}：{error}") from None
-
-
-def apply_tracks(chars: list[dict], tracks: list[dict]) -> list[dict]:
-    """把曲包曲目并进角色表（返回新的角色列表；曲目追加在原有条目之后）。
-
-    角色 key 不存在时**直接报错**（曲包文件里写错一个 key，条目会被静默丢掉 ✗ ——
-    2026-09 那批音MAD 就因为 `reisen-udongein` 少写了 `-inaba` 一次性丢了 3 条 ✓）。
-    """
-    merged = [dict(char, music=[list(entry) for entry in char["music"]]) for char in chars]
-    by_key = {char["key"]: char for char in merged}
-    unknown: list[str] = []
-    for track in tracks:
-        char = by_key.get(track["character"])
-        if char is None:
-            unknown.append(f'{track["character"]}（{track["title"][:24]}）')
-            continue
-        entry = [track["album"], track["title"], track["extra"]]
-        if track.get("author"):
-            entry.append(track["author"])   # 可选第 4 位：作者（有就显示作者，没有则看专辑的 showAlbumName）
-        char["music"].append(entry)
-    if unknown:
-        raise SystemExit("曲包里出现了角色表里没有的 key：\n  " + "\n  ".join(unknown))
-    return merged
 
 
 def audio_descriptors(tracks: list[dict]) -> list[list[str]]:

@@ -3558,6 +3558,46 @@ C 把两模式的数据集拆开之后（D112）后果①从"看不见"变成"�
 
 ---
 
+## D117 工具侧：删掉审查点名的死代码与三处硬编码（R1 / R6 / R7③ / R7④）
+
+**来源**：仓库外的 `REVIEW-enhanced-otomad-mode.md` 第二节（R1 / R6）与第七节（R7③ / R7④）。
+用户裁定"修"，工具侧这四条一次落地（仓库外文件不在版本库里，本条是它的落地记录）。
+
+| # | 现象 | 做法 |
+|---|---|---|
+| R1 | `packs.apply_tracks()` **零调用** ✗（`dd9e419` 起生成物改走 `build._pack_music`），而 `dd9e419` 的提交信息与 D112 都写着"删 `apply_tracks()`" —— 代码与记录矛盾 ✗ | 删掉整个函数 ✓；`packs.py` / `build.py` 里还在提它的两处注释一并改掉 ✓ |
+| R6 | `public/data/packs.json` **零消费** ✗（`src/` / `e2e/` 里没有任何地方 fetch 它） | **停生成**：删 `build_packs()` 与那行 outputs ✓，并把已提交的 `public/data/packs.json` 从库里删掉 ✓ |
+| R7③ | `check_packs()` 的 `album["pack"] in album_packs` **恒真** ✗（`albums` 参数本来就是 `pack_albums`） | 去掉恒真的那一半 ✓，留下真正会红的那条"曲包专辑指向未注册的曲包" ✓ |
+| R7④ | 三个镜像 id 在 `build.py` 与 `validate.py` 的**三处**硬编码 ✗（新加镜像要改三处） | 新增 `build.mirror_source_ids()`：从 `data/sources/originals.toml` 的 `kind = "remote"` 派生 ✓；构建 / 校验（3 处）/ 抽查四处读取点全部改用它 ✓ |
+
+**为什么 R6 选"停生成"而不是"文档注明仅信息用途"**：它既没有消费者、也没有对外承诺
+（README、契约、部署脚本里都没有它的用途 ✗），留一份"仅供观看"的生成物等于把死输出固化进仓库 ✗。
+曲包信息本身还在真源 `data/packs/otomads.toml` 与 `otomads/albums.json` 里（`pack` 字段逐条都在 ✓），
+前端需要的部分一条没少 ✓。`docs/otomads-separation-v1.md` §2 把它列进共享项是当时的记录，
+按本条裁定不再生成 ✓ —— 那份文件是契约草案的历史记录，不回改 ✓。
+
+**R7④ 顺带收掉的三件事**：
+
+1. `check_source_registry()` 原来自己 `import tomllib` 再读一遍注册表 ✗ → 改用 `build.load_registry()` ✓
+   （注册表只剩一个读者 ✓）；
+2. 镜像 id 变成派生之后，注册表里一个写错的 `table_url` 会让 `check_sources()` 撞上不存在的文件、
+   整套校验以 traceback 收场 ✗ → 新增 `_read_mirror()`：**缺表返回 None 并跳过** ✓
+   （缺表这件事由 `check_source_registry()` 正常报错 ✓）；
+3. `tmc.check_urls` 的抽查清单也从这个函数取 ✓；`tmc.migrate` 的 `SOURCES` **故意不动** ✓ ——
+   它是迁移期的历史清单（配 `LEGACY_SOURCES` 指上游旧文件名），跟着注册表走反而错 ✓，就地加了注释 ✓。
+
+**测试**（`uv run pytest`，仓库原有框架）：新增 `tools/tests/test_build.py` 3 条 ——
+生成物清单**逐项**等于契约（R6 改前会红 ✓：`packs.json` 在里面 ✗）、
+曲包曲目只进 otomads 数据集（R1 的守卫 ✓）、镜像 id 跟着注册表走 ✓
+（合成注册表里加一个 `kind = "remote"`，派生结果就多一个 id ✓ —— 写死的清单不会 ✓）；
+`test_rules_and_data.py` 新增 1 条守住 R7③ 剩下的那条检查 ✓（合法通过 ✓、一个字母之差报错 ✓）。
+
+**验证**：`uv run pytest` **93 passed** ✓（89 → +4 ✓）、`pnpm data:check` 无漂移 ✓
+（生成物只少一份 `packs.json` ✓）、`pnpm data:validate` 校验通过 ✓ ——
+派生出来的仍是那三张表、各 **651** 条 ✓，报告的指纹与改动前一致 ✓。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |

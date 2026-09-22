@@ -116,6 +116,25 @@ def test_every_extra_is_one_of_four():
     assert "秘封曲" in seen
 
 
+def test_pack_album_must_name_a_registered_pack():
+    """曲包自带专辑的 `pack` 必须指向一个**已注册**的曲包 id。
+
+    （R7③：这里原来还挂着一句 `album["pack"] in album_packs` —— 可 `albums` 参数就是曲包自己的
+    专辑列表，那句**恒真** ✓；去掉之后剩下的这条才是真正会红的那条 ✓。）
+    """
+    packs = [{"id": "otomads", "kind": "local"}]
+    registered = [{"name": "otomads", "pack": "otomads", "kind": "other"}]
+    typo = [{"name": "otomads", "pack": "otomaads", "kind": "other"}]
+
+    problems = validate.Problems()
+    validate.check_packs(packs, registered, [], [], problems)
+    assert problems.errors == [], problems.errors
+
+    problems = validate.Problems()
+    validate.check_packs(packs, typo, [], [], problems)
+    assert any("未注册的曲包" in error for error in problems.errors), problems.errors
+
+
 def test_card_override_is_allowed_for_otomads_only():
     """卡面是"跨模式身份一致"的**唯一例外**：音MAD 可以在曲包角色文件里覆盖自己的卡面。
 
