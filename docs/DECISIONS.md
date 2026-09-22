@@ -3628,6 +3628,56 @@ C 把两模式的数据集拆开之后（D112）后果①从"看不见"变成"�
 
 ---
 
+## D119 联机时音乐模式由主机决定（客户端单选禁用；**不退房还原**）
+
+**现象**：加入房间之后，设置页的音乐模式单选**仍然可点** ✗，但主机每份快照都会重下发 config（D104）⇒
+客户端手切之后过一会儿就被改回去，看着像"点了没反应" ✗。（仓库外的 `REVIEW-enhanced-otomad-mode.md` O1。）
+
+**根因**：`adoptHostConfig()` 一律采用主机的 `musicMode` ✓（D104 刻意的），可**界面没跟着这条规矩** ✗ ——
+权威端只有一个（主机），客户端那边却留着一个可写的控件 ✗。
+
+**做法**（纯 UI + i18n 三处小改，`session.ts` / `useNet.ts` **一行没动** ✓）：
+
+| 位置 | 改动 |
+|---|---|
+| `SourceSection.tsx` | `const ownedByHost = useNet((slice) => slice.role === "client")` ✓ —— 用**选择器**而不是 `useNet()` 整个 store ✓（组件 `memo` 过：聊天 / 参与者一变不该重渲染 ✓） |
+| 同上（两个单选） | `Radio disabled={ownedByHost}` ✓；`RadioGroup` 的 `onChange` 再加一句 guard ✓（双保险 ✓） |
+| 同上（提示行） | 房内客户端把 `MusicModeHint` 换成新文案 `MusicModeHostControlled` ✓ + `data-testid="music-mode-host-controlled"` ✓；正常态给 `music-mode-hint` ✓（两个状态各有一个可断言的落点 ✓） |
+| `i18n/localization.ts` | 新增 `MusicModeHostControlled`：en「Set by the host while you are in a room.」/ zh「联机时由主机决定（当前房间使用主机的音乐模式）。」✓ |
+
+**为什么"禁用"而不是"只提示"**（审查给的两个选项）：只提示的话控件仍可点 ✗，点完仍会被改回去 ✗ ——
+那个"点了没反应"的观感恰恰是这条要修的东西 ✓。**主机自己那页照旧可点** ✓（模式由权威端定，客户端跟着走 ✓）。
+
+**为什么不退房还原**（用户裁定"没必要" ✗）：`adoptHostConfig` 走 `setMusicMode` ⇒ 主机的模式**会落盘**成本机默认 ✗，
+退房后仍留在主机那个模式 ✓。要做"跟随但不落盘"就得给 session 再加一层 `followMusicMode` 之类的东西 ✗，
+用户不接受这份复杂度 ✓ —— 这条代价（本机默认模式被主机的模式覆盖）**已知且接受** ✓，沿用 D104 的"一律采用" ✓。
+`leave()` 保持原样 ✓（不还原模式 ✓）。
+
+**测试**（仓库原有的 vitest **浏览器模式**，chromium + firefox ✓；先写用例后改实现 ✓）：
+`src/ui/panels/config/ConfigPanel.test.tsx` **+2** —— ①"房内客户端"：进房**前**可点 ✓ → 进房后两个单选
+`disabled` ✓、提示换成主机口径 ✓，并分别验两道防线（点 label 不落到 input ✓；把 `disabled` 摘掉之后
+`onChange` 里那句 guard 仍拦得住 ✓）；②"没进房或自己是主机"：仍可点 ✓、点得动（模式真的切过去 ✓）、
+提示回到 `MusicModeHint` ✓。另 `e2e/multiplayer.spec.ts` **+1**：真实房间（同浏览器双标签页 + 本地传输）里
+主机那页可点 ✓、访客那页两个单选 `disabled` ✓ 且主机口径的提示可见 ✓。
+
+**改前实测**：两条新用例 **4 failed**（2 条 × chromium + firefox ✓）——失败点就是 `expected false to be true`
+（`disabled` 还没加 ✗）与"找不到 `music-mode-hint`" ✗；再把 `onChange` 里那句 guard 临时停掉复跑 →
+"房内客户端"这条 **2 failed** ✓（`expected 'otomads' to be 'originals'` ✓），说明**第二道防线真的被测到** ✓。
+
+**踩到的坑（已修）**：`setMusicMode` 是**落盘**的 ✗，而浏览器模式下各测试文件**共用同一个 localStorage** ✗ ——
+新用例切到音MAD 之后不还原，后面的 `App.test.tsx` 冒烟就从音MAD 起步 → **3 failed** ✗
+（列表里没有霧雨魔理沙、预设统计不对、曲子解析不出地址 ✓）。该文件本来就以 `localStorage.clear()` 起步 ✓，
+这次补一个 `afterEach(() => localStorage.clear())` ✓，跑完还原成"空存档" ✓（实测两个文件连跑 **14 passed** ✓）。
+
+**验证**：`pnpm typecheck` ✓、
+`pnpm test` **568 passed**（284 条 × chromium + firefox ✓，比 D118 的 564 多 4 = 新增 2 条 × 两引擎 ✓）、
+`pnpm e2e` **78 passed + 1 skipped** ✓（chromium / firefox / mobile ✓，比 D118 的 76 多 2 = 新增 1 条 × 两个桌面引擎 ✓
+—— mobile project 只跑 `mobile.spec.ts` ✓；跑前起了本地曲库助手 8011 ✓、跑完已停掉 ✓；新用例单独复跑 **2 passed** ✓）、
+`pnpm data:check` 无漂移 ✓（不碰数据与生成物 ✓）、
+`uv run pytest` **93 passed** ✓（tools 一个字没动 ✓）。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |

@@ -1,12 +1,13 @@
 /** 配置页交互：秘封父复选框是批量控制、三态开关、单曲模式（真实数据 + 真实 store）。 */
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import type { DataBundle } from "../../../data/types";
 import { loadRealBundle, renderHook } from "../../../test-utils";
 import { presetStoreFor } from "../../../store/preset";
 import { useSession } from "../../../store/session";
+import { useNet } from "../../../net/useNet";
 
 /** 面板测试固定在**原曲**模式下跑（B：这三把 store 按音乐模式分键）。 */
 const usePreset = presetStoreFor("originals");
@@ -41,6 +42,13 @@ function input(container: HTMLElement, label: string): HTMLInputElement {
   return element;
 }
 
+/** MUI 把 `data-testid` 落在 Radio 的根 span 上，真正的 input 在它内部（与图集那几条用例同款）。 */
+function modeRadio(container: HTMLElement, mode: "originals" | "otomads"): HTMLInputElement {
+  const element = container.querySelector<HTMLInputElement>(`[data-testid="music-mode-${mode}"] input`);
+  if (!element) throw new Error(`找不到音乐模式单选：${mode}`);
+  return element;
+}
+
 async function click(element: Element): Promise<void> {
   await act(async () => {
     element.dispatchEvent(new MouseEvent("click", { bubbles: true }));
@@ -63,8 +71,16 @@ describe("ConfigPanel", () => {
     });
     useSingleTrack.setState({ enabled: false, pins: {}, disabledCharacters: {} });
     sourceStoreFor("originals").setState({ overrides: {} });
-    useSession.setState({ locale: "en", tab: "config", cardCollection: "dairi-sd" });
+    useSession.setState({ locale: "en", tab: "config", cardCollection: "dairi-sd", musicMode: "originals" });
+    useNet.getState().leave();
     usePreset.getState().sync(bundle.datasets.originals.albums);
+  });
+
+  /** 切音乐模式是**落盘**的（`setMusicMode` 走 session 的持久化），而浏览器模式下各测试文件
+   *  共用同一个 localStorage ⇒ 留在音MAD 会让后面的 App 冒烟从音MAD 起步 ✗（实测：3 条红）。
+   *  这个文件本来就从"空存档"起步（上面的 `localStorage.clear()`），跑完也还原成空存档 ✓。 */
+  afterEach(() => {
+    localStorage.clear();
   });
 
   it("设置分区默认折叠，展开后才挂载内容（MD2 扩展面板）", async () => {
@@ -203,5 +219,43 @@ describe("ConfigPanel", () => {
     expect(hook.result.current.cirno).toBe(true);
     await click(container.querySelector('[data-testid="single-disable-cirno"]')!);
     expect(hook.result.current.cirno).toBeUndefined();
+  });
+
+  it("房内客户端：音乐模式单选禁用，提示改成「由主机决定」", async () => {
+    const { container } = await renderPanel();
+    await expand(container, "source");
+    expect(modeRadio(container, "otomads").disabled).toBe(false);        // 还没进房
+
+    await act(async () => { useNet.setState({ role: "client" }); });     // 进房 → 本机是客户端
+
+    expect(modeRadio(container, "originals").disabled).toBe(true);
+    expect(modeRadio(container, "otomads").disabled).toBe(true);
+    expect(container.querySelector('[data-testid="music-mode-hint"]')).toBeNull();
+    expect(container.querySelector('[data-testid="music-mode-host-controlled"]')?.textContent)
+      .toContain("Set by the host while you are in a room.");
+
+    // 第一道：disabled 让 label 的点击不落到 input 上
+    await click(container.querySelector('[data-testid="music-mode-otomads"]')!.closest("label")!);
+    expect(useSession.getState().musicMode).toBe("originals");
+
+    // 第二道：把 disabled 摘掉，单独验 onChange 里那句 guard（双保险里的后一道）
+    const radio = modeRadio(container, "otomads");
+    radio.disabled = false;
+    await toggle(radio);
+    expect(useSession.getState().musicMode).toBe("originals");
+  });
+
+  it("没进房或自己是主机：音乐模式照旧可点，提示回到原来的口径", async () => {
+    useNet.setState({ role: "host" });                                   // 主机是权威端，模式由它定
+    const { container } = await renderPanel();
+    await expand(container, "source");
+
+    expect(container.querySelector('[data-testid="music-mode-host-controlled"]')).toBeNull();
+    expect(container.querySelector('[data-testid="music-mode-hint"]')?.textContent)
+      .toContain("Originals uses the mirrors below");
+    expect(modeRadio(container, "otomads").disabled).toBe(false);
+
+    await click(container.querySelector('[data-testid="music-mode-otomads"]')!.closest("label")!);
+    expect(useSession.getState().musicMode).toBe("otomads");
   });
 });

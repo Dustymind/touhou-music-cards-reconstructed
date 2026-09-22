@@ -28,6 +28,13 @@ async function joinRoom(page: Page, code: string, name = "Guest"): Promise<void>
   await page.getByTestId("net-join").click();
 }
 
+/** 打开设置页的音乐源分区（已经是展开状态就别再点，点了会收起来）。 */
+async function openMusicSource(page: Page): Promise<void> {
+  await page.getByRole("tab", { name: "Config", exact: true }).click();
+  const summary = page.getByTestId("section-source-summary");
+  if ((await summary.getAttribute("aria-expanded")) !== "true") await summary.click();
+}
+
 /** 完整状态摘要（界面上只显示前 24 字符，这里读 `data-digest`） */
 async function digest(page: Page): Promise<string> {
   return (await page.getByTestId("net-digest").getAttribute("data-digest")) ?? "";
@@ -80,6 +87,31 @@ test("联机：主机发种子、客户端采用；客户端「重新抽选」�
   await host.getByRole("button", { name: "Shuffle" }).click();
   await expect.poll(async () => (await seeds(guest)).adoptedSeed, { timeout: 20_000 })
     .toBe((await seeds(host)).ownSeed);
+
+  await context.close();
+});
+
+test("访客页的音乐模式由主机决定：单选禁用，提示换成主机口径（D119）", async ({ browser }) => {
+  const context = await browser.newContext();
+  const host = await context.newPage();
+  const guest = await context.newPage();
+  await openGame(host, "/");
+  await openGame(guest, "/");
+
+  const code = await hostRoom(host);
+  await joinRoom(guest, code);
+  await expect(guest.getByTestId("net-status")).toContainText(/已连接|connected/, { timeout: 20_000 });
+
+  // 主机是权威端：它自己那页照旧可点，提示也还是原来那条
+  await openMusicSource(host);
+  await expect(host.locator('[data-testid="music-mode-otomads"] input')).toBeEnabled();
+  await expect(host.getByTestId("music-mode-host-controlled")).toHaveCount(0);
+
+  // 访客：两个单选都禁用 + 提示「由主机决定」（手切会被下发的 config 改回去，D104 / D119）
+  await openMusicSource(guest);
+  await expect(guest.locator('[data-testid="music-mode-originals"] input')).toBeDisabled();
+  await expect(guest.locator('[data-testid="music-mode-otomads"] input')).toBeDisabled();
+  await expect(guest.getByTestId("music-mode-host-controlled")).toBeVisible();
 
   await context.close();
 });

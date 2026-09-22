@@ -10,6 +10,7 @@ import { memo, useMemo, useState } from "react";
 import { SectionPanel } from "./SectionCard";
 import type { DataBundle } from "../../../data/types";
 import { Localization, localized, t } from "../../../i18n/localization";
+import { useNet } from "../../../net/useNet";
 import { useSession } from "../../../store/session";
 import { effectiveOrder, useSourceOverrides } from "../../../store/sources";
 import { useCurrentDataset } from "../../../data/useDataset";
@@ -20,6 +21,9 @@ function SourceSectionInner({ bundle, tables }: { bundle: DataBundle; tables: Ta
   const {
     locale, musicMode, setMusicMode, localMusicUrl, setLocalMusicUrl,
   } = useSession();
+  /** 房内客户端不能自己切模式（D119）：主机每份快照都会重下发 config，手切过一会儿就会被改回去。
+   *  用选择器而不是 `useNet()` 整个 store —— 这个组件 memo 过，聊天 / 参与者一变不该重渲染。 */
+  const ownedByHost = useNet((slice) => slice.role === "client");
   const { overrides: sourceOverrides, toggle: toggleSource, move: moveSource } = useSourceOverrides();
   /** 音源也按模式分（契约 sources-separation-v1.md）：配置页列的永远是**当前数据集**的源 */
   const dataset = useCurrentDataset(bundle);
@@ -54,20 +58,27 @@ function SourceSectionInner({ bundle, tables }: { bundle: DataBundle; tables: Ta
         <RadioGroup
           row
           value={musicMode}
-          onChange={(_event, value) => setMusicMode(value as typeof musicMode)}
+          onChange={(_event, value) => {
+            if (ownedByHost) return;                       // 双保险：disabled 之外再拦一道
+            setMusicMode(value as typeof musicMode);
+          }}
           aria-label={t(Localization.MusicMode)}
         >
           {MUSIC_MODES.map((mode) => (
             <FormControlLabel
               key={mode}
               value={mode}
-              control={<Radio size="small" data-testid={`music-mode-${mode}`} />}
+              control={<Radio size="small" disabled={ownedByHost} data-testid={`music-mode-${mode}`} />}
               label={t(mode === "originals" ? Localization.MusicModeOriginals : Localization.MusicModeOtomads)}
             />
           ))}
         </RadioGroup>
-        <Typography variant="caption" color="text.secondary">
-          {t(Localization.MusicModeHint)}
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          data-testid={ownedByHost ? "music-mode-host-controlled" : "music-mode-hint"}
+        >
+          {t(ownedByHost ? Localization.MusicModeHostControlled : Localization.MusicModeHint)}
         </Typography>
         {musicMode === "otomads" && (
           <Typography variant="caption" color="text.secondary" data-testid="music-mode-local-hint">

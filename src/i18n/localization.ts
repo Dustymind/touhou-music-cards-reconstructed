@@ -39,6 +39,9 @@ export const Localization = {
   MusicModeHint: u(
     "Originals uses the mirrors below; Otomads uses the local album source only. It only filters what you can pick next - the track playing right now is not interrupted.",
     "「原曲」只用下面选中的镜像；「音MAD」只用本地专辑源。它只过滤你接下来能选哪些曲目，不会打断正在播放的这一首。"),
+  MusicModeHostControlled: u(
+    "Set by the host while you are in a room.",
+    "联机时由主机决定（当前房间使用主机的音乐模式）。"),
   MusicModeLocalHint: u(
     "Otomads tracks live on this machine only, served by the local library helper; the local source below is used automatically in this mode.",
     "音MAD 曲目只存在于本机（由本地曲库助手提供）；这个模式下会自动使用下面的「本地曲库」。"),
