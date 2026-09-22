@@ -28,6 +28,15 @@ export const gameRadioLabelSx = {
   "& .MuiFormControlLabel-label": { fontSize: "0.875rem", letterSpacing: "1.25px" },
 } as const;
 
+/** MD2 开关（开关 + 文本标签）：与同组按钮同高（36dp）、垂直居中。
+ *  `ml: 0` 抵消 MUI 默认的 -11px —— 否则组内 8dp 间距被涟漪补偿吃掉、开关会压到前一个按钮上。 */
+export const gameSwitchLabelSx = {
+  height: MD2.button.medium,
+  ml: 0,
+  mr: 0,
+  "& .MuiFormControlLabel-label": { fontSize: "0.875rem" },
+} as const;
+
 /** 一组"标题 + 控件"的横向容器：标题与控件之间的间距固定。 */
 export const gameGroupSx = {
   display: "inline-flex",

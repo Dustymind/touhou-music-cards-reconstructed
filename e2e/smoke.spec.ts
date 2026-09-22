@@ -922,10 +922,11 @@ test("游戏页按钮尺寸、内边距与图标间距统一", async ({ page }) 
   }, ids);
 
   // 电脑卡组按键只在电脑模式、联机按钮只在多人模式：分两批量
+  // （"按卡组筛选"现在是 MD2 开关，不是按钮 —— 它单独有开关规格断言，见下一条用例）
   await page.getByTestId("mode-cpu").click();
   const gameMetrics = await readMetrics(["start-game", "stop-game", "card-smaller", "card-larger",
     "random-fill", "shuffle-deck", "clear-deck", "fill-cpu-deck", "shuffle-cpu-deck", "clear-cpu-deck",
-    "next-turn", "give-cards", "filter-by-deck"]);
+    "next-turn", "give-cards"]);
   await page.getByTestId("mode-multi").click();
   const lobbyMetrics = await readMetrics(["net-host", "net-join"]);
   const metrics = [...gameMetrics, ...lobbyMetrics];
@@ -1106,23 +1107,61 @@ test("游戏页分组标题与按钮的间距、垂直对齐统一", async ({ pa
       return Math.round(y.left - x.right);
     };
     for (const [a, b] of [["random-fill", "shuffle-deck"], ["shuffle-deck", "clear-deck"],
-      ["fill-cpu-deck", "shuffle-cpu-deck"], ["next-turn", "give-cards"], ["start-game", "stop-game"]]) {
+      ["fill-cpu-deck", "shuffle-cpu-deck"], ["next-turn", "give-cards"], ["give-cards", "filter-by-deck"],
+      ["start-game", "stop-game"]]) {
       buttonGaps.push(gapBetween(a, b));
     }
+    // MD2 开关（开关 + 文本标签）：与同组按钮同高、垂直居中（MUI 默认 -11px 边距已被抵消）
+    const switchLabel = document.querySelector('[data-testid="filter-by-deck"]')!;
+    const switchInput = switchLabel.querySelector("input")!;
+    const s = switchLabel.getBoundingClientRect();
+    const g = document.querySelector('[data-testid="give-cards"]')!.getBoundingClientRect();
     return {
       labelGaps: [...new Set(labelGaps)],
       centerOffsets: [...new Set(centerOffsets)],
       buttonHeights: [...new Set(buttonHeights)],
       buttonGaps: [...new Set(buttonGaps)],
       chipHeight: Math.round(document.querySelector('[data-testid="deck-size"]')!.getBoundingClientRect().height),
+      switchHeight: Math.round(s.height),
+      switchCenterOffset: Math.round((s.top + s.height / 2) - (g.top + g.height / 2)),
+      switchLabelFont: getComputedStyle(switchLabel.querySelector(".MuiFormControlLabel-label")!).fontSize,
+      switchRole: switchInput.getAttribute("role"),
+      switchChecked: (switchInput as HTMLInputElement).checked,
     };
   });
 
   expect(measured.labelGaps).toEqual([8]);      // 标题与它后面那组按钮：统一 8px
   expect(measured.centerOffsets).toEqual([0]);  // 标题与按钮垂直居中对齐
   expect(measured.buttonHeights).toEqual([36]); // 高度统一（MD2 36dp）
-  expect(measured.buttonGaps).toEqual([8]);     // 同组按钮之间：MD2 8dp
+  expect(measured.buttonGaps).toEqual([8]);     // 同组按钮/开关之间：MD2 8dp
   expect(measured.chipHeight).toBe(36);         // chip 与按钮同高
+  expect(measured.switchHeight).toBe(36);       // 开关行与按钮同高（MD2 36dp）
+  expect(measured.switchCenterOffset).toBe(0);  // 开关与按钮垂直居中对齐
+  expect(measured.switchLabelFont).toBe("14px"); // MD2 标签 14sp
+  expect(measured.switchRole).toBe("switch");   // 真的是开关，不是按钮
+  expect(measured.switchChecked).toBe(false);   // 默认关
+});
+
+test("按卡组筛选开关：开=轮播收窄到卡槽角色，关=恢复完整轮播", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("tab", { name: "Match", exact: true }).click();
+  await page.getByTestId("deck-setup").waitFor();
+
+  const rotationText = async (): Promise<string> =>
+    (await page.getByTestId("rotation-count").textContent()) ?? "";
+  const before = await rotationText();
+  await page.getByTestId("random-fill").click();
+
+  // 打开开关：轮播只剩卡槽里还有牌的角色（数量变小）
+  await page.getByLabel("filter-by-deck").check();
+  await expect(page.getByLabel("filter-by-deck")).toBeChecked();
+  const narrowed = await rotationText();
+  expect(narrowed).not.toBe(before);
+
+  // 关掉开关：临时禁用清空，轮播恢复完整
+  await page.getByLabel("filter-by-deck").uncheck();
+  await expect(page.getByLabel("filter-by-deck")).not.toBeChecked();
+  await expect(page.getByTestId("rotation-count")).toHaveText(before);
 });
 
 test("两个界面的选卡滑块样式与对齐方式一致（同一份实现，不许漂移）", async ({ page }) => {

@@ -16,7 +16,7 @@ function freshGame(): void {
       ],
       deckRows: 1, deckColumns: 2, traditional: true, melee: false, order: ["a", "b"],
     playedTracks: [],
-      reshuffledAtTurn: 0, gameSeed: 0,
+      reshuffledAtTurn: 0, gameSeed: 0, filterByDeck: false,
       temporaryDisabled: {}, currentKey: null, turnSeq: 0, state: "selecting",
       turnStartTimestamp: 0, pickEvents: [], turnWinner: null, givesLeft: 0, winner: null,
     },
@@ -128,7 +128,7 @@ describe("useGame store", () => {
     expect(useGame.getState().game.state).toBe("selecting");
   });
 
-  it("filterByDeck 把不在场上的角色标为临时禁用", () => {
+  it("setFilterByDeck 开=把不在场上的角色标为临时禁用，关=恢复完整轮播", () => {
     useGame.setState((slice) => ({
       game: { ...slice.game, order: ["a", "b", "c", "d"] },
     }));
@@ -139,9 +139,15 @@ describe("useGame store", () => {
       }));
       return { game: { ...slice.game, players } };
     });
-    useGame.getState().filterByDeck();
+    useGame.getState().setFilterByDeck(true);
     // 新口径：单人/电脑只按**自己这一方**卡槽筛（c 只在对手卡槽里 → 应被禁用 ✓）
+    expect(useGame.getState().game.filterByDeck).toBe(true);
     expect(useGame.getState().game.temporaryDisabled).toEqual({ b: true, c: true, d: true });
+
+    // 关掉：临时禁用清空，开关位落回 false（轮播恢复完整）
+    useGame.getState().setFilterByDeck(false);
+    expect(useGame.getState().game.filterByDeck).toBe(false);
+    expect(useGame.getState().game.temporaryDisabled).toEqual({});
   });
 
   it("init 灌入曲目互斥表：addCard 与 fill 都按它挡掉重复曲目（D108）", () => {

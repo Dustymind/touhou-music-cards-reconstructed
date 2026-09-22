@@ -3833,6 +3833,40 @@ store 用 `xxxStoreFor(musicMode).getState()` 取" ✓ 后正常 ✓。
 
 ---
 
+## D123 游戏页「按卡组筛选音乐」从按钮改成 MD2 开关（联机同步 + 布局守卫）
+
+**需求**（用户）：把游戏界面「按卡组筛选音乐」从一次性按钮改成 MD2 开关格式，注意 Material Design 2 规范与间距。
+
+**做法**：
+
+| 位置 | 改动 |
+|---|---|
+| `src/game/types.ts` | `GameState` 增 `filterByDeck: boolean`（默认 false ✓，`emptyState` 同步补上 ✓）—— 开关的显示态，随快照同步 ✓，联机两端开关外观一致 ✓ |
+| `src/game/useGame.ts` | `filterByDeck()`（一次性动作 ✗）换成 `setFilterByDeck(enabled)` ✓：开 → 复用 `rules.filterMusicByDeck`（单人/电脑只看自己一方卡槽 ✓、多人看双方 ✓）+ 置 true ✓；关 → `temporaryDisabled: {}` + 置 false ✓；`reshuffleIfWrapped` 兜底触发时同时置 true ✓ |
+| `src/net/protocol.ts` | 意图 `filterMusicByDeck` 增 `enabled: boolean` ✓；`stateDigest` 增 `filter=` 位 ✓（主机本地拨开关时，订阅式广播靠摘要变化触发 —— 旧摘要不含 filter/temporaryDisabled ✗，主机自己的筛选会改不到客户端 ✗） |
+| `src/net/useNet.ts` | `applyIntentLocally` 改调 `game.setFilterByDeck(intent.enabled ?? true)` ✓（旧客户端只有"点一下=应用"的按钮语义 ✗，缺省按 true，跨版本主机不被新字段卡住 ✓） |
+| `src/ui/panels/GamePanel.tsx` | 按钮换成 `FormControlLabel + Switch size="small"` ✓（checked 来自 `game.filterByDeck` ✓，客户端发意图、主机/单机本地落地 ✓），`data-testid="filter-by-deck"` 落在 FormControlLabel ✓、input 有 `aria-label` ✓；轮播 Chip 加 `data-testid="rotation-count"` ✓ |
+| `src/ui/game/GameButton.tsx` | 新增 `gameSwitchLabelSx` ✓：height = `MD2.button.medium`（36）、`ml: 0 / mr: 0`（抵消 MUI 默认 -11px ✗）、标签 14sp |
+| `src/i18n/localization.ts` | EN 文案改句首大写 `Filter music by deck` ✓（MD2 开关标签句首大写，不是按钮的全大写 ✓），zh 不变 ✓ |
+
+**语义**：开 = 轮播只留卡槽里还有牌的角色（筛选写进 `temporaryDisabled` ✓）；关 = 清掉临时禁用、恢复完整轮播 ✓ —— 旧按钮只有"点一下=应用" ✗，这是开关给它补上的、此前不存在的撤销路径 ✓。`reshuffleIfWrapped` 兜底触发时同时把开关位置 true ✓：兜底确实把轮播收窄了，开关要如实显示，否则界面会撒谎 ✗。
+
+**MD2 与间距**：开关行高 36dp，与同组按钮一致（`MD2.button.medium` = 36 ✓）；组内间距仍是 8dp 栅格 ✓（give-cards 与开关之间 ✓）；标签 14sp 句首大写 ✓；`ml: 0` 抵消 MUI `FormControlLabel` 默认的 -11px margin（否则组内 8dp 间距被涟漪补偿吃掉、开关压到前一个按钮上 ✗）—— 与 D38 单选组同款处理 ✓。
+
+**联机**：意图带 `enabled` ✓；旧客户端缺省按 true ✓（跨版本主机不被卡住 ✓）；`stateDigest` 加 `filter=` 位 ✓ —— 主机本地拨开关时，订阅式广播靠摘要变化触发 ✓。协议版本**没有**升 ✓：意图字段是加性变更 ✓，握手只校验版本与哈希，`PROTOCOL_VERSION` 仍为 4 ✓。
+
+**测试**（布局守卫 + 功能用例，都进 `e2e/smoke.spec.ts` ✓）：按钮尺寸守卫把 `filter-by-deck` 移出按钮清单 ✓（它现在是开关不是按钮 ✓）；分组间距守卫新增开关的六条断言 —— 行高 36 ✓、与按钮垂直居中偏差 0 ✓、与 give-cards 间距 8 ✓、标签 14px ✓、`role="switch"` ✓、默认未勾选 ✓；新增功能用例「开=轮播收窄到卡槽角色，关=恢复完整轮播」✓（读 `rotation-count`，两个桌面引擎都跑 ✓）。单测数量**不变** ✓：改的是存量用例 —— `useGame.test.ts` / `GamePanel.test.tsx` 各一条从"点一下"改成"开/关两段 + 断言 `filterByDeck` 位" ✓，三个文件的 fixture 补 `filterByDeck: false` ✓（总数不变 ✓）。
+
+**验证**（全部实测）：`pnpm typecheck` 无诊断 ✓、
+`pnpm test` **592 passed**（296 条 × chromium + firefox ✓，与改前持平 ✓ —— 改的是存量用例 + 2 处断言，没有新增单测 ✓）、
+`uv run pytest` **93 passed** ✓（tools 未动 ✓）、
+`pnpm e2e` **80 passed + 1 skipped** ✓（chromium 36 / firefox 35+1 / mobile 9 ✓；比基线 78+1 多 2 = 新用例 × 两个桌面引擎 ✓）、
+`pnpm data:check` 无漂移 ✓、`pnpm data:validate` 通过 ✓（不碰数据与生成物 ✓）。
+
+**坑（值得留一笔）** ✗：① 旧按钮语义是"点一下=应用" ✗，开关补上了"关=恢复完整轮播"这个此前不存在的撤销路径 ✓ —— 所以 `temporaryDisabled` 的清理只有"关"这一条路，兜底路径必须同步把开关置 true，否则开关显示与轮播实际状态会分叉 ✗；② `reshuffleIfWrapped` 兜底与开关的交互：兜底触发即置 true ✓，防止界面显示与实际行为不符 ✗。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |

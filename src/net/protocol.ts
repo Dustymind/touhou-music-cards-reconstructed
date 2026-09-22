@@ -55,7 +55,8 @@ export type ClientIntent =
   | { kind: "adjustDeckSize"; rows: number; columns: number }
   | { kind: "setMode"; mode: MatchMode }
   | { kind: "setTraditional"; traditional: boolean }
-  | { kind: "filterMusicByDeck" }
+  /** 「按卡组筛选音乐」开关：开 = 轮播只留卡槽里还有牌的角色；关 = 恢复完整轮播 */
+  | { kind: "filterMusicByDeck"; enabled: boolean }
   /** 重新抽选轮播：换种子是主机的事，客户端只能请求（D104） */
   | { kind: "rerollQueue" }
   | { kind: "requestSync" };
@@ -88,6 +89,7 @@ export function stateDigest(state: GameState): string {
     `winner=${state.winner ?? "-"}`,
     `mode=${state.mode}`,
     `seed=${state.gameSeed}`,
+    `filter=${state.filterByDeck ? 1 : 0}`,
     `rows=${state.deckRows}x${state.deckColumns}`,
   ];
   state.players.forEach((player, index) => {

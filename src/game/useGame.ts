@@ -69,7 +69,8 @@ interface GameSlice {
   /** 交牌 + 推进到下一回合 */
   next: () => void;
   give: () => void;
-  filterByDeck: () => void;
+  /** 「按卡组筛选音乐」开关：开 = 轮播只留卡槽里还有牌的角色；关 = 恢复完整轮播（清掉临时禁用）。 */
+  setFilterByDeck: (enabled: boolean) => void;
   markPlayed: (trackId: string) => void;
 }
 
@@ -223,11 +224,16 @@ export const useGame = create<GameSlice>((set, get) => ({
     set({ game: { ...game, playedTracks: [...game.playedTracks, trackId] } });
   },
 
-  filterByDeck() {
+  setFilterByDeck(enabled) {
     const { game, myIndex } = get();
-    // 单人/电脑：只看自己这一方的卡槽；多人：双方都算（用户口径）
-    const viewpoint = game.mode === "multi" ? null : myIndex;
-    set({ game: rules.filterMusicByDeck(game, viewpoint) });
+    if (enabled) {
+      // 单人/电脑：只看自己这一方的卡槽；多人：双方都算（用户口径，见 rules.filterMusicByDeck）
+      const viewpoint = game.mode === "multi" ? null : myIndex;
+      set({ game: { ...rules.filterMusicByDeck(game, viewpoint), filterByDeck: true } });
+      return;
+    }
+    // 关掉 = 恢复完整轮播：清掉筛选写下的临时禁用，开关位落回 false
+    set({ game: { ...game, temporaryDisabled: {}, filterByDeck: false } });
   },
 }));
 
@@ -239,12 +245,13 @@ if (import.meta.env.DEV && typeof window !== "undefined") {
 export { slotCount };
 
 /** 兜底（用户指出的 bug）：轮播转满一圈但**卡槽里还有牌** ✗ → 把轮播重设成"剩余卡牌的角色" ✓。
- *  语义与"按卡组筛选"一致（单人/电脑只看自己一方 ✓，多人看双方 ✓），两端同源 ✓ */
+ *  语义与"按卡组筛选"一致（单人/电脑只看自己一方 ✓，多人看双方 ✓），两端同源 ✓。
+ *  这里同时把 `filterByDeck` 置 true：兜底确实把轮播收窄了，开关要如实显示，否则界面会撒谎。 */
 function reshuffleIfWrapped(state: GameState, viewpoint: PlayerIndex): GameState {
   // "又转满一圈" = 从上次重设到现在走过的回合数 ≥ 当前轮播长度（turnSeq 只增不减 ✓）
   const wrapped = state.turnSeq - state.reshuffledAtTurn >= Math.max(1, state.order.length);
   const cardsLeft = state.players.some((player) => player.deck.some((card) => card !== null));
   if (!wrapped || !cardsLeft || state.state === "finished") return state;
   const reshuffled = rules.filterMusicByDeck(state, state.mode === "multi" ? null : viewpoint);
-  return { ...reshuffled, reshuffledAtTurn: state.turnSeq };
+  return { ...reshuffled, reshuffledAtTurn: state.turnSeq, filterByDeck: true };
 }

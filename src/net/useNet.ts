@@ -288,8 +288,10 @@ export function applyIntentLocally(intent: ClientIntent, from: number): void {
       game.setTraditional(intent.traditional);
       return;
     }
+    // 「按卡组筛选音乐」开关：带目标状态；旧客户端只有"点一下=应用筛选"的按钮语义，
+    // 缺省按 true（应用）处理，保证跨版本主机不被新开关字段卡住
     case "filterMusicByDeck": {
-      game.filterByDeck();
+      game.setFilterByDeck(intent.enabled ?? true);
       return;
     }
     // 重新抽选：换种子是**主机**的事，客户端的请求落到这里（换完随快照把新配置发下去）

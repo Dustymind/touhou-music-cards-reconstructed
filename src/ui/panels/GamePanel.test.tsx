@@ -68,7 +68,8 @@ describe("GamePanel", () => {
         deckRows: 3, deckColumns: 8, traditional: true, melee: false,
         order: [],
     playedTracks: [],
-      reshuffledAtTurn: 0, gameSeed: 0, temporaryDisabled: {}, currentKey: null, turnSeq: 0, state: "selecting",
+      reshuffledAtTurn: 0, gameSeed: 0, filterByDeck: false, temporaryDisabled: {}, currentKey: null,
+        turnSeq: 0, state: "selecting",
         turnStartTimestamp: 0, pickEvents: [], turnWinner: null, givesLeft: 0, winner: null,
       },
     });
@@ -521,12 +522,25 @@ describe("GamePanel", () => {
 
   });
 
-  it("按卡组筛选音乐：不在场上的角色被临时禁用", async () => {
+  it("按卡组筛选开关：开=不在场上的角色被临时禁用，关=恢复完整轮播", async () => {
     const container = await render();
+    const filter = (): HTMLInputElement =>
+      container.querySelector<HTMLInputElement>('input[aria-label="filter-by-deck"]')!;
     await click(container, "random-fill");
-    await click(container, "filter-by-deck");
-    const disabled = useGame.getState().game.temporaryDisabled;
-    expect(Object.values(disabled).filter(Boolean).length).toBeGreaterThan(0);
+
+    // 默认关：开关未勾选、没有临时禁用
+    expect(filter().checked).toBe(false);
+    expect(useGame.getState().game.filterByDeck).toBe(false);
+
+    // 打开：不在场上的角色被临时禁用，开关位落 true
+    await act(async () => { filter().click(); });
+    expect(useGame.getState().game.filterByDeck).toBe(true);
+    expect(Object.values(useGame.getState().game.temporaryDisabled).filter(Boolean).length).toBeGreaterThan(0);
+
+    // 关掉：临时禁用清空，轮播恢复完整
+    await act(async () => { filter().click(); });
+    expect(useGame.getState().game.filterByDeck).toBe(false);
+    expect(useGame.getState().game.temporaryDisabled).toEqual({});
   });
 
   it("曲目互斥：共用一首曲子的角色只能选一次，另一张压暗且点不动（D108）", async () => {

@@ -1,7 +1,8 @@
 /** 对战页：模式/规则设置 + 双方牌库 + 收集数 + 计时器 + 回合操作。 */
 import { memo } from "react";
 import {
-  Alert, Box, Card, CardContent, CardHeader, Chip, Divider, RadioGroup, Stack, TextField, Typography,
+  Alert, Box, Card, CardContent, CardHeader, Chip, Divider, FormControlLabel, RadioGroup, Stack,
+  Switch, TextField, Typography,
 } from "@mui/material";
 import { useEffect, useMemo, useRef, useState } from "react";
 import AddRounded from "@mui/icons-material/AddRounded";
@@ -9,7 +10,6 @@ import CardGiftcardRounded from "@mui/icons-material/CardGiftcardRounded";
 import ClassRounded from "@mui/icons-material/ClassRounded";
 import CasinoRounded from "@mui/icons-material/CasinoRounded";
 import ClearRounded from "@mui/icons-material/ClearRounded";
-import FilterAltRounded from "@mui/icons-material/FilterAltRounded";
 import PlayArrowRounded from "@mui/icons-material/PlayArrowRounded";
 import RemoveRounded from "@mui/icons-material/RemoveRounded";
 import ShuffleRounded from "@mui/icons-material/ShuffleRounded";
@@ -42,7 +42,7 @@ import { buildSongConflicts } from "../../music/songConflicts";
 import { DECK_LIMITS } from "../../game/gameSetting";
 import { MD2 } from "../../theme/theme";
 import {
-  gameButtonsSx, gameGroupSx, gameLabelSx, gameRowSx, GameButton,
+  gameButtonsSx, gameGroupSx, gameLabelSx, gameRowSx, gameSwitchLabelSx, GameButton,
 } from "../game/GameButton";
 import { LobbyPanel } from "../game/LobbyPanel";
 import { useNet } from "../../net/useNet";
@@ -79,7 +79,7 @@ function GamePanelInner({ bundle }: { bundle: DataBundle }) {
   const cpu = useGame((slice) => slice.cpu);
   const {
     init, setMode, setTraditional, setCpu, resize, fill, clear, shuffle, start, stop,
-    pick, next, give, filterByDeck, setOrder, addCard, removeCard,
+    pick, next, give, setFilterByDeck, setOrder, addCard, removeCard,
     moveDeckCard, giveCard,
   } = useGame.getState();
 
@@ -134,9 +134,9 @@ function GamePanelInner({ bundle }: { bundle: DataBundle }) {
       if (isClient) net.intent({ kind: "setTraditional", traditional });
       else setTraditional(traditional);
     },
-    filterByDeck: () => {
-      if (isClient) net.intent({ kind: "filterMusicByDeck" });
-      else filterByDeck();
+    filterByDeck: (enabled: boolean) => {
+      if (isClient) net.intent({ kind: "filterMusicByDeck", enabled });
+      else setFilterByDeck(enabled);
     },
     /** 牌组编辑：主机直接落地，客户端发意图（主机侧只允许客户端动自己那一份） */
     fill: (player: number) => {
@@ -189,7 +189,7 @@ function GamePanelInner({ bundle }: { bundle: DataBundle }) {
       if (isClient) net.intent({ kind: "give" });
       else give();
     },
-  }), [isClient, net, myIndex, pick, resize, setMode, setTraditional, filterByDeck, fill, clear, shuffle,
+  }), [isClient, net, myIndex, pick, resize, setMode, setTraditional, setFilterByDeck, fill, clear, shuffle,
     addCard, removeCard, moveDeckCard, giveCard, start, stop, next, give, game.turnStartTimestamp]);
 
   const dataset = useCurrentDataset(bundle);
@@ -713,16 +713,27 @@ function GamePanelInner({ bundle }: { bundle: DataBundle }) {
             disabled={game.givesLeft === 0} data-testid="give-cards">
             {t(Localization.GameGiveRandomly)}
           </GameButton>
-          <GameButton size="small" startIcon={<FilterAltRounded />} onClick={act.filterByDeck}
-            data-testid="filter-by-deck">
-            {t(Localization.GameFilterByDeck)}
-          </GameButton>
+          {/* MD2 开关 + 文本标签：与同组按钮同高（36dp）、垂直居中，组内间距仍是 8dp 栅格 */}
+          <FormControlLabel
+            data-testid="filter-by-deck"
+            control={
+              <Switch
+                size="small"
+                checked={game.filterByDeck}
+                onChange={(event) => act.filterByDeck(event.target.checked)}
+                slotProps={{ input: { "aria-label": "filter-by-deck" } }}
+              />
+            }
+            label={t(Localization.GameFilterByDeck)}
+            sx={gameSwitchLabelSx}
+          />
           </Stack>
           </Stack>
           <Box sx={{ flex: 1 }} />
           <Chip size="small" variant="outlined" sx={{ height: MD2.button.medium }}
             label={t(Localization.GamePoolCount, { count: String(pool.length) })} />
           <Chip size="small" variant="outlined" sx={{ height: MD2.button.medium }}
+            data-testid="rotation-count"
             label={t(Localization.GameRotationCount, { count: String(rotation) })} />
         </Stack>
       </CardContent></Card>

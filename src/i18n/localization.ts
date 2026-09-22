@@ -86,7 +86,8 @@ export const Localization = {
   ConfigTabSingleNoTracks: u("No tracks under this preset", "该预设下无可用曲目"),
   ConfigTabSingleMode: u("Single track mode", "仅单曲模式"),
 
-  GameFilterByDeck: u("Filter Music by Deck", "按卡组筛选音乐"),
+  // MD2 开关标签用句首大写（不是按钮的全大写）
+  GameFilterByDeck: u("Filter music by deck", "按卡组筛选音乐"),
   ChatMessageHint: u("Type a message to chat...", "输入消息以聊天..."),
   GameUpcoming: u("Turn", "回合"),
 

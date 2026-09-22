@@ -65,6 +65,9 @@ export interface GameState {
   reshuffledAtTurn: number;
   /** 本局的开局随机种子（主机抽、随快照同步）：决定洗牌结果与每回合选哪首 */
   gameSeed: number;
+  /** 「按卡组筛选音乐」开关：开 = 轮播只留卡槽里还有牌的角色（temporaryDisabled 生效）；
+   *  关 = 恢复完整轮播。它是开关的显示态，随快照同步（联机两端开关外观一致）。 */
+  filterByDeck: boolean;
   temporaryDisabled: Record<string, boolean>;
   currentKey: string | null;
   /** 回合序号：联机时作为事件幂等键与快照标识 */
@@ -90,6 +93,7 @@ export function emptyState(overrides: Partial<GameState> = {}): GameState {
     playedTracks: [],
     reshuffledAtTurn: 0,
     gameSeed: 0,
+    filterByDeck: false,
     temporaryDisabled: {},
     currentKey: null,
     turnSeq: 0,
