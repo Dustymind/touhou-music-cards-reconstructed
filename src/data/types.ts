@@ -79,6 +79,9 @@ export interface ModeDataset {
 /** 与模式无关的资源：卡面图集是全站共享的（素材只有一套）。 */
 export interface SharedData {
   cardSets: CardSetRecord[];
+  /** 逐曲音量均衡的系数表地址：与数据集**同一个 `base`**（`<base>/loudness.json` ✓）。
+   *  播放层按它取表，不再自己写死 `./data/loudness.json`（那是按**文档地址**解析的 ✗）。 */
+  loudnessUrl: string;
 }
 
 /** 内部曲目身份：`专辑\u0001曲目`（同步、持久化、查表都用它）。 */

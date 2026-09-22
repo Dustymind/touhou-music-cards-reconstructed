@@ -34,6 +34,8 @@ const DEFAULT_PLAYBACK_SETTING: PlaybackSetting = {
 export interface PlayerInputs {
   /** 当前模式的**数据集**（C：只含本模式的角色与曲目，不再按模式过滤） */
   dataset: ModeDataset;
+  /** 逐曲音量均衡的系数表地址：与数据集同一个 `base`（`SharedData.loudnessUrl` ✓） */
+  loudnessUrl: string;
   tables: TableMap;
   sourceOrder: readonly string[];
   preset: PresetState;
@@ -115,19 +117,21 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
   );
 
   /** 当前角色在本预设下选中的曲目：多首时按种子取一首（联机同种子 → 同曲目）。 */
-  /** 逐曲音量均衡：`public/data/loudness.json` 里是"文件名 → 衰减系数"（见 tools/measure_loudness.py）。
+  /** 逐曲音量均衡：`<base>/loudness.json` 里是"文件名 → 衰减系数"（见 tools/measure_loudness.py）。
+   *  地址由输入给（`loudnessUrl` = 数据集那一份 `base` ✓）—— 原来是写死的 `./data/loudness.json`，
+   *  按**文档地址**解析 ✗，base 一变（子目录部署 / 文档比应用根深）就取不到表、静默按 1 播 ✗。
    *  只衰减不放大 ✓ —— 让每首听感一样响，抢答才公平 ✓。表拿到之前系数按 1 处理 ✓。 */
   const [gains, setGains] = useState<{ targetDb?: number; gains: Record<string, number> }>({ gains: {} });
   useEffect(() => {
     let cancelled = false;
-    fetch("./data/loudness.json")
+    fetch(inputs.loudnessUrl, { cache: "no-cache" })
       .then((response) => (response.ok ? response.json() : null))
       .then((payload) => {
         if (!cancelled && payload && typeof payload.gains === "object") setGains(payload);
       })
       .catch(() => undefined);            // 没有这张表（例如没跑过测量脚本）就按原音量播 ✓
     return () => { cancelled = true; };
-  }, []);
+  }, [inputs.loudnessUrl]);
 
   /** 只对**本地曲库**（音MAD 那批）生效 ✓ —— 别的镜像源没有这张表，也不该被改音量 ✓ */
   const gainOf = useCallback((target: MusicEntry | null): number => {

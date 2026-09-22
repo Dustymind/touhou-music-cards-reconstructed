@@ -3678,6 +3678,48 @@ C 把两模式的数据集拆开之后（D112）后果①从"看不见"变成"�
 
 ---
 
+## D120 逐曲响度表跟着同一份数据根（O3）
+
+**现象**：播放层按写死的 `./data/loudness.json` 取逐曲音量均衡表 ✗ —— 那是**相对文档地址**解析的 ✗，
+而所有数据集都走 `loadDataBundle(base)` ✓。默认 `base` 下两者恰好等价 ✓，所以一直没露馅 ✗；
+一旦 base 不是默认值（子目录部署、文档路径比应用根深），表取不到 ✗ → `catch` 把每个系数吞成 1 ✗，
+音MAD 侧响度不均、而且是**静默**降级 ✗。（仓库外的 `REVIEW-enhanced-otomad-mode.md` O3。）
+
+**根因**：数据放在哪儿有**两个真源** ✗ —— loader 一个答案、播放层另一个 ✗。
+
+**做法**：
+
+| 位置 | 改动 |
+|---|---|
+| `data/types.ts` | `SharedData` 增 `loudnessUrl: string` ✓（注释写明"与数据集**同一个** base"✓） |
+| `data/load.ts` | `{ cardSets, loudnessUrl: url("loudness.json") }` ✓ —— 用的是**同一个** `url()` ✓ |
+| `audio/usePlayer.ts` | `PlayerInputs` 增必填 `loudnessUrl` ✓；effect 改成 `fetch(inputs.loudnessUrl, { cache: "no-cache" })` ✓、依赖带上它 ✓（根变了会重新取 ✓） |
+| `ui/shell/AppShell.tsx` | 调用点传 `bundle.shared.loudnessUrl` ✓（**只加 2 行** ✓，为同轮 O4 在同一个文件另一处改动的区域让路 ✓） |
+| `ui/panels/ListPanel.test.tsx` | 手搓 bundle 的 `shared: { sources: [], cardSets: [] }` ✗ → `{ cardSets: [], loudnessUrl: "/data/loudness.json" }` ✓（过期的 `sources` 键顺手清掉 ✓） |
+| **保留** | 取不到表时的 `catch` ✓ —— 没跑过测量脚本的项目本来就该按原音量播 ✓ |
+
+**测试**（仓库原有的 vitest **浏览器模式** chromium + firefox ✓；先写用例后改实现 ✓）：
+`data/load.test.ts` +1（`loadDataBundle("/sub/dir")` → `shared.loudnessUrl === "/sub/dir/loudness.json"` ✓，
+顺带钉住结尾斜杠归一化成同一个地址 ✓）；`audio/usePlayer.test.tsx` +1（把表放到 `/sub/dir` 下，
+断言播放层**正好**取这个地址 ✓、且系数真的落到 `audio.volume` ✓ —— 原来的用例只读表、不渲染 hook ✗，
+证不了"播放层真的用了这个地址" ✗）；原来那条"真表键形状"的用例改成按 `bundle.shared.loudnessUrl` 取表 ✓，
+标题也订正成它真正断言的事 ✓。
+
+**改前 / 改后实测**：先加用例、不改实现（chromium）→ **3 failed | 25 passed** ✓
+（`expected undefined to be '/sub/dir/loudness.json'` ✓ / `expected 1 to be 0.5` ✓ /
+`Cannot convert undefined or null to object` ✓）→ 改后同三个文件 **62 passed**（31 × 两引擎 ✓，基线 58 ✓）；
+`src/App.test.tsx` 另跑 **8 passed** ✓（这条路径经过 `AppShell` ✓）。
+
+**验证**：`npx tsc --noEmit` 无诊断 ✓、
+`pnpm test` **572 passed**（286 条 × chromium + firefox ✓，比 D119 的 568 多 4 = 新增 2 条 × 两引擎 ✓）、
+`pnpm data:check` 无漂移 ✓（不碰数据与生成物 ✓）、`uv run pytest` **93 passed** ✓（tools 一个字没动 ✓）。
+**没跑 e2e** ✓：§6.6 对 O3 只要求 typecheck + 单测 ✓（改的是取数地址，界面 / 联机都没碰 ✓）。
+
+**坑（记一笔）**：`ListPanel.test.tsx` 那份手搓 bundle 是 `as unknown as DataBundle` ✗ ——
+`tsc` **抓不到**它缺新字段 ✗，只能按"全仓库有几处手搓 `shared`"逐个 grep 核对 ✓（只有这一处 ✓）。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |

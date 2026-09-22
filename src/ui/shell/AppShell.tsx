@@ -130,6 +130,8 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
 
   const player = usePlayer({
     dataset,
+    // 系数表与数据集用**同一份** base（原来播放层自己写死 `./data/loudness.json` ✗，见 REVIEW §6.4）
+    loudnessUrl: bundle.shared.loudnessUrl,
     tables: sources.tables,
     sourceOrder: sources.order,
     preset: activePreset,

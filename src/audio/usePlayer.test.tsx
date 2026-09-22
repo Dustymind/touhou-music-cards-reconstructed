@@ -6,7 +6,7 @@ import { defaultPreset } from "../music/selection";
 import { buildEntries, type TableMap } from "../music/sources";
 import { BELL_DURATION_MS } from "./bell";
 import { gainKeyOf } from "./usePlayer";
-import { fakeTables, installFakeAudio, renderHook, type FakeAudio } from "../test-utils";
+import { fakeTables, installFakeAudio, loadRealBundle, renderHook, type FakeAudio } from "../test-utils";
 import { usePlayer, type PlayerInputs } from "./usePlayer";
 /** C：播放器现在收"当前模式的数据集"（只含本模式曲目），测试自己拼一份最小数据集。 */
 function fakeDataset(characters: CharacterRecord[], albums: AlbumRecord[]): ModeDataset {
@@ -37,6 +37,8 @@ function inputs(overrides: Partial<PlayerInputs> = {}): PlayerInputs {
     dataset: fakeDataset([cirno, marisa], albums),
     tables: fakeTables([[["紅魔郷", "おてんば恋娘"], ["紅魔郷", "恋色マスタースパーク"], ["紅魔郷", "オリエンタルダークフライト"]]]),
     sourceOrder: ["fake"],
+    // 系数表的地址由调用方给（AppShell 传 `bundle.shared.loudnessUrl` ✓）：单测里就指真实那张表
+    loudnessUrl: "/data/loudness.json",
     preset: defaultPreset(albums),
     pinned: {},
     currentKey: "cirno",
@@ -245,16 +247,60 @@ describe("usePlayer", () => {
 });
 
 describe("逐曲音量均衡（方案 A，只对本地音MAD 生效）", () => {
+  let audios: FakeAudio[];
+  beforeEach(() => {
+    audios = installFakeAudio();
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
   it("曲包曲目用「作者 - 曲名」查系数（= 磁盘文件名），其它源用曲名", () => {
     expect(gainKeyOf(["otomads", "普通肥猫魔法使", "角色曲", "川先僧"])).toBe("川先僧 - 普通肥猫魔法使");
     expect(gainKeyOf(["東方永夜抄 ～ Imperishable Night", "恋色マスタースパーク", "角色曲"])).toBe("恋色マスタースパーク");
     expect(gainKeyOf(null)).toBeNull();
   });
 
-  it("只有本地曲库的曲目会查系数（其它镜像源一律 1）", async () => {
+  it("系数表按输入里的地址取，只落在本地曲库那首的 volume 上", async () => {
+    // 表在**数据集的 base** 下（§6.4）：播放层拿表的地址只能来自 `loudnessUrl` 这个输入，
+    // 原来写死的 `./data/loudness.json` 是按文档地址解析的 —— base 一变就取不到表（静默按 1 播 ✗）
+    const asked: string[] = [];
+    const realFetch = globalThis.fetch.bind(globalThis);
+    vi.stubGlobal("fetch", (async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (!url.includes("loudness")) return realFetch(input as RequestInfo, init);
+      asked.push(url);
+      if (url !== "/sub/dir/loudness.json") return new Response("missing", { status: 404 });
+      return new Response(JSON.stringify({ targetDb: -14, gains: { "川先僧 - 普通肥猫魔法使": 0.5 } }), {
+        status: 200, headers: { "Content-Type": "application/json" },
+      });
+    }) as typeof fetch);
+
+    const otomadAlbum: AlbumRecord[] = [{ key: "otomads", name: "otomads", kind: "other", pack: "otomads", order: 100 }];
+    const otomad: CharacterRecord = {
+      key: "cirno", name: "チルノ", order: 1, card: ["c.png"], searchNames: ["チルノ"],
+      music: [["otomads", "普通肥猫魔法使", "角色曲", "川先僧"]],
+    };
+    const localTables = {
+      local: { id: "local", status: "ready" as const, entries: buildEntries([["otomads", "普通肥猫魔法使", "https://fake/otomad.mp3"]]) },
+    };
+    const hook = await renderHook(() => usePlayer(inputs({
+      dataset: fakeDataset([otomad], otomadAlbum),
+      tables: localTables,
+      sourceOrder: ["local"],
+      preset: defaultPreset(otomadAlbum),
+      loudnessUrl: "/sub/dir/loudness.json",
+    })));
+
+    await vi.waitFor(() => expect(audios[0]!.volume).toBe(0.5));
+    expect(asked).toEqual(["/sub/dir/loudness.json"]);
+    expect(hook.result.current.sourceId).toBe("local");
+  });
+
+  it("真表的键形状与系数范围（地址取 bundle 里那一份）", async () => {
     // 用真实的 loudness.json 校验键的形状：键都是「作者 - 曲名」
     // （浏览器模式下 `public/` 由 Vite 服务，直接取，不读盘）
-    const table = (await (await fetch("/data/loudness.json")).json()) as { gains: Record<string, number> };
+    // 地址从 bundle 来：与数据集同一个 base，播放层拿到的就是它 ✓
+    const bundle = await loadRealBundle();
+    const table = (await (await fetch(bundle.shared.loudnessUrl)).json()) as { gains: Record<string, number> };
     const keys = Object.keys(table.gains);
     expect(keys.length).toBeGreaterThan(50);
     // 键就是磁盘文件名：多数是「作者 - 曲名」✓，但也有本来就只写曲名的 ✓，所以不强求分隔符

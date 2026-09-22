@@ -70,6 +70,24 @@ describe("loadDataBundle", () => {
 
     await expect(loadDataBundle("./data")).rejects.toThrow(/otomads\/index\.json/);
   });
+
+  it("响度表与数据集共用同一份 base", async () => {
+    // 播放层的系数表原来写死 `./data/loudness.json`（按**文档地址**解析 ✗），数据集却走 `base`
+    // ⇒ 子目录部署 / 文档比应用根深时，表取不到、还静默降级成系数 1（音MAD 侧响度不均 ✗）。
+    // 这里把 `/sub/dir` 映射回真实生成物：数据集能从别的 base 载入，系数表也落在同一个目录 ✓
+    const realFetch = globalThis.fetch.bind(globalThis);
+    vi.stubGlobal("fetch", (async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = new URL(String(input), globalThis.location.origin);
+      url.pathname = url.pathname.replace(/^\/sub\/dir/, "/data");
+      return realFetch(url, init);
+    }) as typeof fetch);
+
+    const bundle = await loadDataBundle("/sub/dir");
+    expect(bundle.shared.loudnessUrl).toBe("/sub/dir/loudness.json");
+    // 同一个 `url()`：带尾斜杠的 base 归一化之后还是同一个地址（不该出现 `//`）
+    const trailing = await loadDataBundle("/sub/dir/");
+    expect(trailing.shared.loudnessUrl).toBe("/sub/dir/loudness.json");
+  });
 });
 
 describe("track helpers", () => {
