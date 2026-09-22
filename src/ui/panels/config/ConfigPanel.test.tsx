@@ -9,7 +9,8 @@ import { presetStoreFor } from "../../../store/preset";
 import { useSession } from "../../../store/session";
 import { useNet } from "../../../net/useNet";
 
-/** 面板测试固定在**原曲**模式下跑（B：这三把 store 按音乐模式分键）。 */
+/** 面板测试固定在**原曲**模式下跑（B：这三把 store 按音乐模式分键）；
+ *  只有"本地曲库地址"那几条要临时切到音MAD —— 原曲注册表里没有本地源，那个输入框不挂载。 */
 const usePreset = presetStoreFor("originals");
 const useSingleTrack = singleStoreFor("originals");
 import { singleStoreFor } from "../../../store/single";
@@ -61,6 +62,24 @@ async function toggle(element: HTMLInputElement): Promise<void> {
   });
 }
 
+/** 往受控输入里打字：React 在 input 上装了 value 追踪，直接赋 `element.value` 不会触发 onChange ✗
+ *  —— 得走原型上的 setter，再派发一个真的 input 事件（与真人打字同一条路径）。 */
+async function type(element: HTMLInputElement, value: string): Promise<void> {
+  await act(async () => {
+    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!;
+    setter.call(element, value);
+    element.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+}
+
+/** 本地曲库地址栏只在**音MAD**（注册表里有本地源）挂载：切模式 → 渲染 → 展开音源分区。 */
+async function openLocalMusicUrl(): Promise<{ container: HTMLElement }> {
+  useSession.setState({ musicMode: "otomads" });
+  const { container } = await renderPanel();
+  await expand(container, "source");
+  return { container };
+}
+
 describe("ConfigPanel", () => {
   beforeEach(async () => {
     localStorage.clear();
@@ -71,7 +90,7 @@ describe("ConfigPanel", () => {
     });
     useSingleTrack.setState({ enabled: false, pins: {}, disabledCharacters: {} });
     sourceStoreFor("originals").setState({ overrides: {} });
-    useSession.setState({ locale: "en", tab: "config", cardCollection: "dairi-sd", musicMode: "originals" });
+    useSession.setState({ locale: "en", tab: "config", cardCollection: "dairi-sd", musicMode: "originals", localMusicUrl: "" });
     useNet.getState().leave();
     usePreset.getState().sync(bundle.datasets.originals.albums);
   });
@@ -257,5 +276,44 @@ describe("ConfigPanel", () => {
 
     await click(container.querySelector('[data-testid="music-mode-otomads"]')!.closest("label")!);
     expect(useSession.getState().musicMode).toBe("otomads");
+  });
+
+  it("本地曲库地址：输入 → 应用后输入框与 store 一致，并继续跟着 store 走", async () => {
+    const { container } = await openLocalMusicUrl();
+
+    await type(input(container, "local-music-url"), "  127.0.0.1:9000  ");
+    await click(container.querySelector('[data-testid="local-music-apply"]')!);
+
+    // 应用写回的是 trim 过的值；输入框显示的必须是它，而不是留在编辑区里的原样（旧实现留着草稿 ✗）
+    expect(useSession.getState().localMusicUrl).toBe("127.0.0.1:9000");
+    expect(input(container, "local-music-url").value).toBe("127.0.0.1:9000");
+
+    // 应用之后回到"没在编辑"：别处写 store，输入框跟着变（旧实现里草稿还在，会一直显示旧值 ✗）
+    await act(async () => { useSession.getState().setLocalMusicUrl("127.0.0.1:9999"); });
+    expect(input(container, "local-music-url").value).toBe("127.0.0.1:9999");
+  });
+
+  it("本地曲库地址：输入框回显 store 的真值（挂载时与别处写入都是）", async () => {
+    // 挂载前就在 store 里的值（`?localmusic=` 只在 store 初始化时读一次）→ 输入框直接显示它
+    await act(async () => { useSession.getState().setLocalMusicUrl("127.0.0.1:8080"); });
+    const { container } = await openLocalMusicUrl();
+    expect(input(container, "local-music-url").value).toBe("127.0.0.1:8080");
+
+    // 别处再写 store → 输入框跟着变（旧实现停在挂载时复制的那一份上 ✗）
+    await act(async () => { useSession.getState().setLocalMusicUrl("127.0.0.1:9000"); });
+    expect(input(container, "local-music-url").value).toBe("127.0.0.1:9000");
+    // 只是回显：store 没有被输入框反写
+    expect(useSession.getState().localMusicUrl).toBe("127.0.0.1:9000");
+  });
+
+  it("本地曲库地址：正在输入时外部变更不吞掉还没应用的内容", async () => {
+    const { container } = await openLocalMusicUrl();
+
+    await type(input(container, "local-music-url"), "127.0.0.1:9000");   // 没点应用 = 还在编辑
+    await act(async () => { useSession.getState().setLocalMusicUrl("127.0.0.1:9999"); });
+
+    // 编辑中的内容不被外部变更冲掉（"渲染期同步草稿"那种写法会在这里翻车）
+    expect(input(container, "local-music-url").value).toBe("127.0.0.1:9000");
+    expect(useSession.getState().localMusicUrl).toBe("127.0.0.1:9999");
   });
 });

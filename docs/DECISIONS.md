@@ -3720,6 +3720,55 @@ C 把两模式的数据集拆开之后（D112）后果①从"看不见"变成"�
 
 ---
 
+## D121 本地曲库地址输入框不再复制一份真值（O2）
+
+**现象**：设置页"本地曲库地址"输入框显示的是**挂载时复制的那一份** ✗，按"应用"又把**那一份**写回 store ✗ ——
+只要别处改了 `localMusicUrl`，输入框就停在旧值上 ✗，点"应用"还会把用户没打过的值写回去 ✗。
+（今天能触发的路径很窄 ✓ —— 同一标签页内只有这个输入框会写 ✓、`?localmusic=` 只在 store 初始化时读一次 ✓ ——
+所以这是**防御性**修复 ✓。仓库外的 `REVIEW-enhanced-otomad-mode.md` O2；本条与 D120 / D122 是同轮
+"三个 worktree 并行实现、主会话串行落库"里的第二条 ✓，分工见该文件 §五。）
+
+**根因**：一个值有**两份真值 / 两个写者** ✗ —— store 一份、组件挂载时复制一份 ✗。
+
+**做法**（§6.3 的推荐方案：草稿只为"正在编辑"而存在 ✓）：
+
+| 位置 | 改动 |
+|---|---|
+| `SourceSection.tsx` | `useState(localMusicUrl)` ✗ → `useState<string \| null>(null)` ✓（`null` = 没在编辑）；`const urlValue = draftUrl ?? localMusicUrl` ✓（没编辑时永远跟着 store 走 ✓） |
+| 同上 | 输入框 `value={urlValue}` ✓；`onChange` 仍只写草稿 ✓（一输入就 dirty ✓） |
+| 同上 | "应用" = `setLocalMusicUrl(urlValue.trim())` + `setDraftUrl(null)` ✓（写完回到"跟随 store" ✓；**结构上不可能再漂移** ✓） |
+| **不采用**（§6.3 的备选）✗ | `useEffect` / 渲染期同步草稿 —— 外部变更会**吞掉正在输入的内容** ✗ |
+
+**测试**（仓库原有的 vitest **浏览器模式** chromium + firefox ✓；先写用例后改实现 ✓）：
+`src/ui/panels/config/ConfigPanel.test.tsx` **+3**（并入该文件，§6.3 给的二选一 ✓，复用它的
+`expand` / `click` / `toggle` ✓）—— ①输入（带空格）→ 应用 → 输入框 = store（trim 后 ✓）且**继续跟随** store ✓；
+②**挂载前** store 里就有值（`?localmusic=` 的形态 ✓）→ 直接回显 ✓、之后外部写入也跟上 ✓；
+③**正在输入时**外部写 store → 编辑中的内容不被吞 ✓、store 也没被输入框反写 ✓（这条守的正是**被否掉的备选方案** ✓）。
+顺带两处 fixture/helper：`localMusicUrl: ""` 补进 `beforeEach` ✓（`useSession` 是**模块级** store、文件内用例共享 ✗ ——
+不补会让红测报出误导性的 `expected '127.0.0.1:9000' to be ''` ✗）；新增 `type()` ✓（走 `HTMLInputElement.prototype`
+的 value setter + 派发真 `input` 事件 ✓ —— React 追踪 value，直接赋 `element.value` **不触发** `onChange` ✗，
+仓库原来没有这个 helper ✗）。
+
+**改前 / 改后实测**：把实现退回 `9b9a280`、只留最终版用例（chromium）→ **2 failed | 11 passed** ✓
+（`expected '  127.0.0.1:9000  ' to be '127.0.0.1:9000'` ✓ —— 点完"应用"输入框还显示没 trim 的草稿 ✗；
+`expected '127.0.0.1:8080' to be '127.0.0.1:9000'` ✓ —— 外部写入被忽略 ✗）→ 改后该文件 chromium **13 passed** ✓、
+两引擎 **26 passed** ✓（13 × 2 ✓）。**反证** ✓：把"应用后清草稿"换成"留一份等值草稿"→ 用例①的**后半段**单独红 ✓
+（`expected '127.0.0.1:9000' to be '127.0.0.1:9999'` ✓，1 failed | 12 passed ✓）—— 修复的两半各自承重 ✓。
+
+**验证**：`npx tsc --noEmit` 无诊断 ✓、
+`pnpm test` **578 passed**（289 条 × chromium + firefox ✓，比 D120 的 572 多 6 = 新增 3 条 × 两引擎 ✓）、
+`pnpm e2e` **78 passed + 1 skipped** ✓（chromium / firefox / mobile ✓，与 D119 的 78 + 1 持平 ✓ ——
+本条**没有**新增 e2e 用例 ✓；跑前起了本地曲库助手 8011 ✓、跑完已停掉 ✓）、
+`pnpm data:check` 无漂移 ✓（不碰数据与生成物 ✓）、`uv run pytest` **93 passed** ✓（tools 一个字没动 ✓）。
+
+**明确没做** ✗（§6.3 划的范围）：`e2e/smoke.spec.ts` 那条 `local-music-url` 用例**一个字没改** ✓ ——
+它两条路径按构造仍成立 ✓（默认同源 → store 为 `""` → 输入框空、只显示 placeholder ✓；
+`?localmusic=127.0.0.1:8011` → store 在挂载前就被 query 初始化 → 直接回显 ✓，这条挂载路径现在也有用例②钉着 ✓）。
+另有一处**非回归**的行为没动 ✗：打了字没应用就切模式（输入框卸载）再切回来，草稿会重新出现 ✓ ——
+改前也是同样行为 ✓，不属本条范围 ✓。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |

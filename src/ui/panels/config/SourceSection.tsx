@@ -27,7 +27,12 @@ function SourceSectionInner({ bundle, tables }: { bundle: DataBundle; tables: Ta
   const { overrides: sourceOverrides, toggle: toggleSource, move: moveSource } = useSourceOverrides();
   /** 音源也按模式分（契约 sources-separation-v1.md）：配置页列的永远是**当前数据集**的源 */
   const dataset = useCurrentDataset(bundle);
-  const [draftUrl, setDraftUrl] = useState(localMusicUrl);
+  /** 本地曲库地址的草稿**只在编辑中存在**（`null` = 没在编辑）：不再复制一份真值。
+   *  没编辑时输入框直接显示 store 的值 ⇒ 别处写 `localMusicUrl` 天然跟上 ✓，
+   *  正在输入的内容也不会被外部变更冲掉 ✓（"渲染期同步草稿"那种写法会吞掉输入 ✗）。 */
+  const [draftUrl, setDraftUrl] = useState<string | null>(null);
+  /** 输入框显示的永远是"编辑中的内容，否则 store 的真值"。 */
+  const urlValue = draftUrl ?? localMusicUrl;
   const ids = dataset.sources.map((source) => source.id);
   const order = effectiveOrder(sourceOverrides, ids);
   /** 按 id 查源（原来在 labelOf/isEnabled/渲染里各做一次线性查找）。 */
@@ -95,7 +100,7 @@ function SourceSectionInner({ bundle, tables }: { bundle: DataBundle; tables: Ta
           fullWidth
           label={t(Localization.LocalMusicUrl)}
           placeholder={localSource?.tableUrl ?? "/manifest.json"}
-          value={draftUrl}
+          value={urlValue}
           onChange={(event) => setDraftUrl(event.target.value)}
           slotProps={{ htmlInput: { "aria-label": "local-music-url" } }}
         />
@@ -104,7 +109,8 @@ function SourceSectionInner({ bundle, tables }: { bundle: DataBundle; tables: Ta
           variant="outlined"
           sx={{ flexShrink: 0 }}
           data-testid="local-music-apply"
-          onClick={() => setLocalMusicUrl(draftUrl.trim())}
+          // 应用后清掉草稿 → 输入框回到"跟着 store 走"（写的也必须是 store 将要持有的那个值）
+          onClick={() => { setLocalMusicUrl(urlValue.trim()); setDraftUrl(null); }}
         >
           {t(Localization.LocalMusicApply)}
         </Button>
