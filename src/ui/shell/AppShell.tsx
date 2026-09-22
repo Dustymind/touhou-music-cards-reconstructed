@@ -14,12 +14,12 @@ import { usePreset } from "../../store/preset";
 import { currentQueue, useQueue } from "../../store/queue";
 import { selectSessionSeed, useSeeds } from "../../store/seeds";
 import { useSources } from "../../music/useSources";
-import { useSourceOverrides } from "../../store/sources";
+import { sourceStoreFor, useSourceOverrides } from "../../store/sources";
 import { usePlayer } from "../../audio/usePlayer";
 import { allowedTracks, mergeWithDefaults } from "../../music/selection";
 import { useCurrentDataset } from "../../data/useDataset";
 import { effectivePin } from "../../music/presetView";
-import { useSingleTrack } from "../../store/single";
+import { singleStoreFor, useSingleTrack } from "../../store/single";
 import { useGame } from "../../game/useGame";
 import { turnSeed } from "../../game/rules";
 import { useNet } from "../../net/useNet";
@@ -120,6 +120,24 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
   // 音源也按模式分：注册表随数据集走，开关/顺序用当前模式那把存档（契约 sources-separation-v1.md）
   const { overrides: sourceOverrides } = useSourceOverrides();
   const sources = useSources(dataset.sources, sourceOverrides, localMusicUrl);
+
+  // 数据更新后清理存档里的死条目：注册表里没有的音源 id、数据集里没有的角色 key。
+  // 两把 store 都按音乐模式分键，两处都取**当前模式**那一把，所以不会误删另一模式。
+  // 依赖只放数据侧（`dataset` 换模式即换一份新对象）：store 句柄每次渲染都是新的，进了依赖会自转。
+  useEffect(() => {
+    const characterKeys = dataset.characters.map((character) => character.key);
+    singleStoreFor(musicMode).getState().prune(characterKeys);
+
+    // 点播请求存的是**角色 key**：那个角色已经不在数据集里了，请求就该让位（B2 的同一条原则）。
+    // 按角色判，不要按音源 id 判 —— 音源注册表里永远没有角色 key，那样写会误清掉还在的角色。
+    // 点播本身也要进依赖：请求是渲染之后才写进 session 的，只看数据集会拿旧闭包判（漏清）。
+    const requested = entryRequest?.key;
+    if (requested !== undefined && !characterKeys.includes(requested)) {
+      useSession.getState().clearEntryRequest(requested);
+    }
+    sourceStoreFor(musicMode).getState().prune(dataset.sources.map((source) => source.id));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataset, entryRequest?.key]);
 
   // 列表页点播：把"选中的那一首"并进 pinned（播放器本来就有"角色 → 指定曲目"的机制），
   // 于是 entry 的解析结果就是用户点的那一首；单曲模式的 pin 仍然生效，点播优先。

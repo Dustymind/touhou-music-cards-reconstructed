@@ -129,9 +129,19 @@ function makeSlice(mode: MusicMode) {
     prune(knownKeys) {
       const known = new Set(knownKeys);
       const pins: Record<string, MusicEntry> = {};
-      for (const [key, value] of Object.entries(get().pins)) if (known.has(key)) pins[key] = value;
       const disabledCharacters: Record<string, boolean> = {};
-      for (const key of Object.keys(get().disabledCharacters)) if (known.has(key)) disabledCharacters[key] = true;
+      let dropped = false;
+      for (const [key, value] of Object.entries(get().pins)) {
+        if (known.has(key)) pins[key] = value;
+        else dropped = true;
+      }
+      for (const key of Object.keys(get().disabledCharacters)) {
+        if (known.has(key)) disabledCharacters[key] = true;
+        else dropped = true;
+      }
+      // 没有死条目：不动 store、不写盘（与 `sources.prune` 同一口径）—— Shell 里那个 effect
+      // 每次换模式 / 每次列表点播都会调它，白写一遍盘还会把这两个对象的引用换掉。
+      if (!dropped) return;
       set({ pins, disabledCharacters });
       persist({ ...pick(get()), pins, disabledCharacters });
     },

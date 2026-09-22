@@ -69,6 +69,79 @@ describe("音乐源顺序与开关（用户反馈后的回归）", () => {
     expect(originals.getState().overrides.thbwiki!.order).toBe(before);
   });
 
+  it("清理注册表里已经没有的源，留着的那几项开关与顺序原样保留", () => {
+    // 用户排过序（thbwiki 最前）+ 关掉一个源，之后注册表里去掉了 cloudflare_r2
+    const { move, toggle, prune } = originals.getState();
+    move("thbwiki", -1, ids, defaults);
+    move("thbwiki", -1, ids, defaults);
+    toggle("cloudflare_r2", false, ids);
+    const before = originals.getState().overrides;
+    expect(before.thbwiki!.order).toBe(1);
+    expect(before.cloudflare_r2!.enabled).toBe(false);
+
+    // 数据集里的注册表只剩两个源（音MAD 那份只有本地源 —— 与本条无关，用的是当前数据集的 id）
+    const remaining = ["thbwiki", "netease163"];
+    prune(remaining);
+    const after = originals.getState().overrides;
+    expect(Object.keys(after).sort()).toEqual([...remaining].sort());   // 只剩还在注册表里的
+    expect(after.thbwiki).toEqual(before.thbwiki);          // 顺序原样
+    expect(after.netease163).toEqual(before.netease163);    // 开关原样
+  });
+
+  it("清理只动当前模式那一把：音MAD 侧的存档不受影响", () => {
+    const localOnly = { tmc_local: { enabled: true, order: 1 } };
+    otomads.setState({ overrides: localOnly });
+    originals.getState().toggle("netease163", false, ids);
+
+    // 原曲那把按它的注册表清（没有音MAD 的本地源 —— 这正是"按注册表 id 清"的用法）
+    originals.getState().prune(["thbwiki", "netease163"]);
+    expect(otomads.getState().overrides).toEqual(localOnly);   // 另一模式原样
+    expect(localStorage.getItem("tmc.v1.sources.otomads")).toBeNull();   // 也没被顺手写盘
+  });
+
+  it("没有死条目时不写盘（别的操作留下的存档不被无谓改写）", () => {
+    const { toggle, prune } = originals.getState();
+    toggle("netease163", false, ids);
+    const saved = localStorage.getItem("tmc.v1.sources.originals");
+    prune(ids);                                   // 注册表里全都在：无事可做
+    expect(localStorage.getItem("tmc.v1.sources.originals")).toBe(saved);
+  });
+
+  it("清理落盘：死条目不再留在 localStorage 里", () => {
+    const { toggle, prune } = originals.getState();
+    toggle("netease163", false, ids);
+    // 原样写一条"注册表里已经没有"的源：老存档从上一个数据版本带过来的那种
+    const stale = { ...originals.getState().overrides, gone: { enabled: false, order: 9 } };
+    originals.setState({ overrides: stale });
+    defineStore(sourceSpec("originals")).save(stale);
+    expect(localStorage.getItem("tmc.v1.sources.originals")).toContain("gone");
+
+    prune(ids);
+    expect(originals.getState().overrides.gone).toBeUndefined();
+    // 落盘的那份也清了（下次启动 load() 读回来的就是干净的）—— 死条目不会复活
+    const saved = JSON.parse(localStorage.getItem("tmc.v1.sources.originals")!) as
+      { data: Record<string, unknown> };
+    expect(saved.data.gone).toBeUndefined();
+    expect(saved.data.netease163).toEqual({ enabled: false, order: 1 });
+  });
+
+  it("音源被移出注册表不会让 UI 编号跳号：编号只跟着注册表走", () => {
+    // 订正 §四 那句"UI 编号跳号"：effectiveOrder 只遍历 allIds（= 注册表 id），
+    // 覆盖表里多余的死条目既进不了顺序、也占不到编号
+    const stale = {
+      netease163: { enabled: true, order: 1 },
+      cloudflare_r2: { enabled: true, order: 2 },
+      gone: { enabled: false, order: 3 },
+    };
+    const remaining = ["netease163", "cloudflare_r2"];
+    expect(effectiveOrder(stale, remaining)).toEqual(remaining);
+    // 界面编号就是这个下标 + 1（SourceSection 的 order.map((id, index) => index + 1)）
+    expect(effectiveOrder(stale, remaining).map((_id, index) => index + 1)).toEqual([1, 2]);
+    // 排序同值也不跳号（死条目的 order 与在场项撞车时不会顶掉谁）
+    const collided = { ...stale, gone: { enabled: false, order: 1 } };
+    expect(effectiveOrder(collided, remaining)).toEqual(remaining);
+  });
+
   it("两模式各记各的：原曲侧关掉一个源，音MAD 侧不受影响", () => {
     originals.getState().toggle("netease163", false, ids);
     expect(originals.getState().overrides.netease163!.enabled).toBe(false);

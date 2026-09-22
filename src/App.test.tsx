@@ -8,6 +8,9 @@ import { aliceLabel } from "./ui/shell/AppShell";
 import { installDataFetchStub, installFakeAudio } from "./test-utils";
 import { TURN_COUNTDOWN_MS } from "./game/useGameLoop";
 import { useGame } from "./game/useGame";
+import { useSession } from "./store/session";
+import { singleStoreFor } from "./store/single";
+import { sourceStoreFor } from "./store/sources";
 
 async function renderApp(): Promise<{ container: HTMLElement; root: Root }> {
   const container = document.createElement("div");
@@ -115,6 +118,49 @@ describe("App 冒烟（真实数据）", () => {
     expect(character).toBe(true);
     expect(audios[0]!.src).not.toBe("");
     expect(audios[0]!.paused).toBe(false);
+  });
+
+  it("数据更新后清理存档里的死条目（single.prune 真的被调到）", async () => {
+    localStorage.clear();
+    // 上一个数据版本留下的：一个数据集里没有的角色 + 一个注册表里没有的音源
+    const single = singleStoreFor("originals");
+    const sources = sourceStoreFor("originals");
+    await act(async () => {
+      useSession.setState({ musicMode: "originals" });
+      single.setState({ ...single.getState(), pins: { "gone-key": ["专辑", "曲目", "角色曲"] } });
+      sources.setState({ overrides: { gone: { enabled: false, order: 9 } } });
+    });
+
+    installDataFetchStub();
+    await renderApp();
+    // 数据集就位 → 两把存档按**当前数据集**的 id 各清一次
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    });
+    expect(single.getState().pins["gone-key"]).toBeUndefined();
+    expect(sources.getState().overrides.gone).toBeUndefined();
+    // 清理落盘：下次启动 load() 读回来的是干净的
+    expect(localStorage.getItem("tmc.v1.single-track.originals")).not.toContain("gone-key");
+    expect(localStorage.getItem("tmc.v1.sources.originals")).not.toContain("gone");
+
+    // 点播清的是"没有的角色"，不是"没有的音源 id"：从真实数据集里取一个还在的角色。
+    // （点播请求存的就是**角色 key**；拿音源注册表去比对会把它误清掉）
+    const characters = (await (await fetch("/data/characters.json")).json()) as {
+      characters: { key: string }[];
+    };
+    const liveKey = characters.characters[0]!.key;
+    const request = async (key: string): Promise<void> => {
+      await act(async () => {
+        useSession.setState({ entryRequest: { key, entry: ["专辑", "曲目", "角色曲"] } });
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      });
+    };
+
+    await request("gone-key");
+    expect(useSession.getState().entryRequest).toBeNull();   // 没有的角色：请求让位（B2 的同一条原则）
+
+    await request(liveKey);
+    expect(useSession.getState().entryRequest?.key).toBe(liveKey);
   });
 
   it("数据缺失时给出可读错误而不是白屏", async () => {

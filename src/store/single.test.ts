@@ -47,6 +47,20 @@ describe("single track store", () => {
     expect(useSingleTrack.getState().pins.cirno).toBeDefined();
   });
 
+  it("prune 没有死条目时不动 store、不写盘（与 sources.prune 同一口径）", () => {
+    useSingleTrack.getState().setPin("cirno", ["紅魔郷", "おてんば恋娘", "角色曲"]);
+    const pins = useSingleTrack.getState().pins;
+    const disabled = useSingleTrack.getState().disabledCharacters;
+    const saved = localStorage.getItem("tmc.v1.single-track.originals");
+
+    // Shell 里那个 effect 每次换模式 / 每次列表点播都会调它 ⇒ 无事可做时不该换引用、也不该写盘
+    useSingleTrack.getState().prune(["cirno", "reimu"]);
+
+    expect(useSingleTrack.getState().pins).toBe(pins);                    // 同一引用 = 没 set
+    expect(useSingleTrack.getState().disabledCharacters).toBe(disabled);
+    expect(localStorage.getItem("tmc.v1.single-track.originals")).toBe(saved);
+  });
+
   it("带作者的 4 元手选落盘后可完整读回（音MAD 侧手选刷新即丢的那条）", () => {
     // 音MAD 那批曲目基本都带作者（真数据 86 条里 85 条是 4 元），手选存进去的就是 4 元组
     const pin: MusicEntry = ["音MAD", "音MAD 一首", "角色曲", "作者"];

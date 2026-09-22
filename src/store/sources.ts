@@ -62,6 +62,8 @@ interface SourceSlice {
   toggle: (id: string, enabled: boolean, allIds: string[]) => void;
   /** 上移/下移：交换相邻两个源的位置，其它源（含"默认关闭"的）保持原状。 */
   move: (id: string, direction: -1 | 1, allIds: string[], defaultEnabled: Record<string, boolean>) => void;
+  /** 清理注册表里已经没有的源（数据更新后调用）。 */
+  prune: (knownIds: readonly string[]) => void;
 }
 
 /** 造"某个模式的音源开关表"这把 store。 */
@@ -101,6 +103,26 @@ function makeSlice(mode: MusicMode) {
           order: position + 1,
         };
       }
+      set({ overrides: next });
+      handle.save(next);
+    },
+
+    /** 只留注册表里还有的 id。
+     *
+     * 死条目不会让界面跳号（`effectiveOrder` 只遍历注册表 id），但它会**永久留在 localStorage**：
+     * 那个 id 将来回到注册表时，会带着旧开关 / 旧顺序复活。`move()` 本来就会把死条目顺手丢掉，
+     * `toggle()` 却用展开把它续下来 —— 两条路径行为不一致，这里补一条明确的清理路径。
+     */
+    prune(knownIds) {
+      const known = new Set(knownIds);
+      const overrides = get().overrides;
+      const next: Overrides = {};
+      let dropped = false;
+      for (const [id, override] of Object.entries(overrides)) {
+        if (known.has(id)) next[id] = override;
+        else dropped = true;
+      }
+      if (!dropped) return;                    // 没有死条目：不动 store、不写盘
       set({ overrides: next });
       handle.save(next);
     },

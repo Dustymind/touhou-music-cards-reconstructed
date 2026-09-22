@@ -3769,6 +3769,70 @@ C 把两模式的数据集拆开之后（D112）后果①从"看不见"变成"�
 
 ---
 
+## D122 数据缩水时清理音源覆盖与单曲手选（O4）
+
+**现象**：用户自己的音源开关 / 重排会**比它所属的源活得更久** ✗ —— 把某个镜像从注册表里拿掉，
+它的条目**永久留在 localStorage** ✗；那个 id 将来回到注册表，会**带着旧开关 / 旧位置悄悄复活** ✗，
+像用户刚亲手设过一样 ✗。而且**两条路径行为不一致** ✗：`move()` 重写整张表、顺手丢掉死条目 ✓，
+`toggle()` 却用展开把死 id 续下来 ✗。单曲那半边同样 ✗：`single.prune()` **写过、测过，却全仓库零调用** ✗
+—— 角色从数据集里消失后，它的手选 / 禁用状态留在盘上 ✗。
+（仓库外的 `REVIEW-enhanced-otomad-mode.md` O4；本条是本轮"三个 worktree 并行实现、主会话串行落库"的第三条 ✓。）
+
+**订正审查里的一句描述** ✗：§四 说"UI 编号可能跳号"**不成立** ✓ —— `effectiveOrder()` **只遍历注册表 id** ✓，
+死条目既占不到编号、也挤不掉别人 ✓。新用例把这条观察**钉成回归** ✓，它在改前也是绿的 ✓（正是订正的证据 ✓）。
+
+**做法**（按 §6.5 ✓）：
+
+| 位置 | 改动 |
+|---|---|
+| `store/sources.ts` | 增 `prune(knownIds)` ✓（照 `single.prune` 的写法：只留注册表里还有的 id ✓，`set` + `handle.save` ✓）；`SourceSlice` 接口同步加一行 ✓ |
+| `ui/shell/AppShell.tsx` | 数据集就位处加一个 effect ✓：`singleStoreFor(musicMode).prune(角色 key)` ✓ + `sourceStoreFor(musicMode).prune(注册表 id)` ✓（两把 store 都**按模式分键** ✓，两处取的都是**当前模式**那一把 ⇒ 不会误删另一模式 ✓） |
+| 同上 | 被清掉的角色若正是 `entryRequest.key` → `clearEntryRequest(key)` ✓（与 B2 / D116 的"角色没了就别留着请求"一致 ✓） |
+| 存档版本号 | **不升** ✓（运行时清理即可，老存档照旧能读 ✓） |
+
+**子代理在实现里改对的两处口径** ✓：
+
+1. **`clearEntryRequest` 按角色 key 判** ✓ —— §6.5 写的是"被清掉的 id 若正是 `entryRequest.key`" ✗，
+   可 `entryRequest.key` 存的是**角色 key** ✓，而"被清掉的 id"里还混着**音源 id** ✓ ——
+   照字面拿它去比音源注册表**永远不命中** ✗，反而会把**每一条还活着的点播**在下一轮渲染清掉 ✗
+   （等于废掉列表页点播 ✗）。实现按角色 key 判 ✓。
+2. **`entryRequest?.key` 进依赖数组** ✓ —— 只依赖 `dataset` 时 effect 的闭包拿的是**旧** `entryRequest`
+   （请求是渲染之后才写进 session 的 ✗），"死角色的请求要被清掉"实测**失败** ✓
+   （`expected { key: 'gone-key', …(1) } to be null` ✗），加上后成立 ✓ 且不自转 ✓。
+
+**落库时主会话补的一处对称性** ✓：`sources.prune` 有"无事早返回" ✓，而 `single.prune` 原来**每次都
+`set` + 写盘** ✗ —— 这个 effect 每次换模式 / 每次列表点播都会跑 ✓，白写一遍盘还会把 `pins` /
+`disabledCharacters` 两个对象的引用换掉 ✓。两边改成同一口径 ✓，并补一条守卫用例 ✓
+（改前红 ✓：`expected { cirno: [ … ] } to be { cirno: [ … ] }` ✓，两引擎 ✓）。
+
+**测试**（仓库原有的 vitest **浏览器模式** chromium + firefox ✓；先写用例后改实现 ✓）：
+`store/sources.test.ts` **+5** ✓（死 id 被清 ✓、留下的开关与顺序**原样保留** ✓、**无事可做不写盘** ✓、
+**另一模式的表不受影响** ✓，以及把 §四"编号不跳号"钉成回归的那条 ✓）；
+`src/App.test.tsx` **+1** ✓（真数据驱动 Shell：先种一个死手选 + 一个死音源覆盖 ✓，跑完两把 store 都干净 ✓、
+点播规则的两侧都验 ✓）；`store/single.test.ts` **+1** ✓（无事早返回 ✓，落库时补 ✓）。
+
+**改前 / 改后实测**：实现 stash 掉、只留新用例（两引擎）→ **10 failed | 38 passed** ✓
+（chromium 5 / firefox 5 ✓：`TypeError: prune is not a function` ×4 ✓ +
+App 那条 `expected [ '专辑', '曲目', '角色曲' ] to be undefined` ✓ —— `single.prune` 从没被调用 ✓）
+→ 改后同三个文件 **50 passed**（25 × 两引擎 ✓，基线 36 ✓）。**订正守卫**（"编号不跳号"）改前也绿 ✓
+（两引擎 ✓）—— 正是订正口径的证据 ✓。
+
+**验证**：`npx tsc --noEmit` 无诊断 ✓、
+`pnpm test` **592 passed**（296 条 × chromium + firefox ✓，比 D121 的 578 多 14 = 新增 7 条 × 两引擎 ✓）、
+`pnpm e2e` **78 passed + 1 skipped** ✓（chromium / firefox / mobile ✓，与 D121 持平 ✓ —— 本条**没有**新增
+e2e 用例 ✓，但列表页点播那几条 e2e 仍全绿 ✓，说明 `entryRequest` 的清理**没有误伤** ✓；
+跑前起了本地曲库助手 8011 ✓、跑完已停掉 ✓）、
+`pnpm data:check` 无漂移 ✓（不碰数据与生成物 ✓）、`uv run pytest` **93 passed** ✓（tools 一个字没动 ✓）。
+
+**坑（子代理记的，值得留一笔）** ✗：effect 的依赖里放 zustand 的**整个 state 对象**
+（`useSingleTrack()` / `useSourceOverrides()` 不带选择器时**每次渲染返回新对象** ✗）会**自转** ✗ ——
+实测 `Maximum update depth exceeded` ✓、`App.test.tsx` 5 条全红 ✗；改成"只依赖 `dataset`、
+store 用 `xxxStoreFor(musicMode).getState()` 取" ✓ 后正常 ✓。
+另有：`sources.test.ts` 的"清理落盘"用例会把键留在**共享的 localStorage** 里 ✗、污染**下一个测试文件**
+（实测炸的是 `App.test.tsx` ✗）✓ —— 新用例自己 `localStorage.clear()` 起步 ✓。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |
