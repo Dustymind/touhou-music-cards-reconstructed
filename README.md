@@ -115,6 +115,27 @@ pnpm audio:fetch --track 岁月 --dry-run              # 只看计划：标题�
 （站点地区限制、是否需要登录、站点改版）。原件留在 `<曲库>/.raw/`、状态在 `<曲库>/.state/`，
 成品是 `<曲库>/<专辑>/<作者> - <标题>.mp3` —— 语义与流程见 [`docs/packs-audio-v1.md`](docs/packs-audio-v1.md)。
 
+**强制 / 覆盖重拉**：默认只在"状态、原件、成品 hash 三者都对得上"时跳过，所以下面这些场景各有对应做法：
+
+| 想要什么 | 命令 | 说明 |
+|---|---|---|
+| 覆盖重拉**全部**（重下 + 重裁） | `pnpm audio:fetch --force` | 忽略状态：原件与成品都重新产出（不含 `--track` 时就是整包覆盖） |
+| 只覆盖重拉**一部分** | `pnpm audio:fetch --track 岁月 --force` | `--track` 按**标题或作者**的子串筛；先加 `--dry-run` 看命中哪些 |
+| 只在**改裁剪**后重裁（不重下） | 改 `start_time` / `stop_time` 后直接 `pnpm audio:fetch` | 原件是按 `source` 存 `.raw/` 的：原件在且来源没变就**复用原件重裁**，不联网 ✓ |
+| **连原件一起丢掉**重来 | `rm -rf <曲库>/.raw <曲库>/.state && pnpm audio:fetch` | 原件没了就得重新下载（适合怀疑原件本身坏了/被裁过） |
+| 换掉了 `source`（换源） | 改数据后直接 `pnpm audio:fetch` | 工具检测到来源变了会**自动重下**，不用手动 `--force` |
+| 只想确认要做什么 | 任意命令加 `--dry-run` | 打印"下载 / 下载 + 裁剪 / 裁剪（原件已在） / 落成品（原件已在）"而不落地 |
+
+汇总行里的状态：`skip` = 已是目标状态（没动）、`fetched` = 新下载（整首）、`trimmed` = 用原件裁出来、
+`linked` = 同来源同区间的第二条复用了硬链接、`missing` = 没有 `source` 且库里也没有（要手工放或补 `source`）、
+`failed` = 这一条失败（其余照抓）。
+
+> ⚠️ `--dry-run` 的预览**不体现 `--force`**（它只看原件在不在）：`--force --dry-run` 仍会打印"原件已在"，
+> 但真正跑起来是**重下重裁**。想看"哪些命中"，用 `--track <子串> --dry-run` 筛就够了。
+
+`--force` 会重下全部命中项，跑完还会**重量一遍响度表**（`public/data/loudness.json`）—— 那份是提交进仓库的生成物，
+记得一起提交。
+
 ### 5. 构建与部署
 
 ```bash
@@ -157,6 +178,7 @@ pnpm preview    # 本地预览 dist/
 | https 页面报"连接不完全安全" | 混合内容：最外层反代要转发 `X-Forwarded-Proto`；或 `PROTO=https node deploy/single-port-proxy.mjs`、助手 `--public-base`（详见 `deploy/README.md`） |
 | `tmc.fetch_audio` 一启动就退出 | yt-dlp 的升级检查需要联网（连不上 PyPI 就中止，可加 `--offline-ok`）；ffmpeg 缺失也在这里报错 |
 | 抓取个别曲目失败 | 站点限制 / 需登录 / 已下架：单条失败只跳过并计入汇总，其余照抓 |
+| 改了数据/换了裁剪，但音频还是老的 | 成品是按状态跳过的：`pnpm audio:fetch`（只改裁剪会复用原件重裁）；要**覆盖重拉**就加 `--force`，可配 `--track <子串>` 只重拉一部分（§4） |
 | 曲目计数突然变多 | 曲库里放了非点目录的原始件（第一层目录名 = 专辑名）→ 原件放 `<曲库>/.raw/` |
 | `fnm use` 报找不到版本文件 | 用 `fnm use 24`（仓库没有 `.node-version` 之类文件） |
 
