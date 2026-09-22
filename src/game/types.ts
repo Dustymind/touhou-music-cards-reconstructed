@@ -66,7 +66,10 @@ export interface GameState {
   /** 本局的开局随机种子（主机抽、随快照同步）：决定洗牌结果与每回合选哪首 */
   gameSeed: number;
   /** 「按卡组筛选音乐」开关：开 = 轮播只留卡槽里还有牌的角色（temporaryDisabled 生效）；
-   *  关 = 恢复完整轮播。它是开关的显示态，随快照同步（联机两端开关外观一致）。 */
+   *  关 = 恢复完整轮播。它是开关的显示态，随快照同步（联机两端开关外观一致）。
+   *
+   *  **开着的口径是"按当前卡槽"**（D124）：选牌阶段卡组一变就重筛、开局重洗后也立刻重筛；
+   *  开局之后轮播是本局的**快照**（抢牌 / 交牌不自动重筛，只有转满一圈的兜底会重筛）。 */
   filterByDeck: boolean;
   temporaryDisabled: Record<string, boolean>;
   currentKey: string | null;

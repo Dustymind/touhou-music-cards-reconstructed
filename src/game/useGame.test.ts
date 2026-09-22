@@ -150,6 +150,82 @@ describe("useGame store", () => {
     expect(useGame.getState().game.temporaryDisabled).toEqual({});
   });
 
+  /** 开关视角下的"轮播"：`order` 里没被临时禁用的角色（与界面 `rotation-count` 同一算法） */
+  const rotation = (): string[] => {
+    const { order, temporaryDisabled } = useGame.getState().game;
+    return order.filter((key) => !temporaryDisabled[key]);
+  };
+
+  /** 摆一副"轮播四个角色、自己卡槽里只有 a、对手卡槽里只有 c"的局面（开关的典型用法） */
+  const deckWithA = (): void => {
+    useGame.setState((slice) => {
+      const slots = slice.game.deckRows * slice.game.deckColumns;
+      return {
+        game: {
+          ...slice.game,
+          order: ["a", "b", "c", "d"],
+          players: slice.game.players.map((player, index) => ({
+            ...player,
+            // 牌库长度跟着槽位数走（留出空位，addCard 才有地方放）
+            deck: Array.from({ length: slots }, (_unused, slot) => {
+              if (index === 0 && slot === 0) return card("a");
+              if (index === 1 && slot === 1) return card("c");
+              return null;
+            }),
+          })),
+        },
+      };
+    });
+  };
+
+  it("开局保留开关：开关开着时开局重洗后立即按当前卡槽重筛（D124）", () => {
+    deckWithA();
+    useGame.getState().setFilterByDeck(true);
+    expect(rotation()).toEqual(["a"]);
+
+    useGame.getState().start();
+    const started = useGame.getState().game;
+    expect(started.state).toBe("countdown");
+    expect(started.order).toHaveLength(4);          // 开局确实重洗了轮播（D19）
+    expect(started.filterByDeck).toBe(true);        // 开关没被"开局重置"丢掉
+    expect(rotation()).toEqual(["a"]);              // 重洗后仍是"卡槽里还有牌"的角色
+
+    // 第一回合的角色一定在卡槽里（否则开局白转一圈 —— 这正是开关开着开局的意义）
+    useGame.getState().advanceCountdown();
+    const firstTurn = useGame.getState().game;
+    expect(firstTurn.state).toBe("turnStart");
+    expect(rotation()).toContain(firstTurn.currentKey);
+
+    // 开局后关掉开关：撤销路径照旧（清空临时禁用 = 恢复完整轮播）
+    useGame.getState().setFilterByDeck(false);
+    expect(useGame.getState().game.temporaryDisabled).toEqual({});
+    expect(rotation()).toEqual(useGame.getState().game.order);
+  });
+
+  it("开关开着时选牌阶段改卡组会重筛：加卡收回角色、清空收窄、换模式换口径（D124）", () => {
+    deckWithA();
+    useGame.getState().setFilterByDeck(true);
+    // 单人：只看自己这一方的卡槽（对手卡槽里的角色照样禁用）
+    expect(rotation()).toEqual(["a"]);
+
+    useGame.getState().addCard(0, card("b"));
+    expect(rotation()).toEqual(["a", "b"]);         // 新放进来的角色立刻回到轮播
+
+    useGame.getState().removeCard(0, 0);            // 把 a 拿出来
+    expect(rotation()).toEqual(["b"]);
+
+    useGame.getState().setMode("multi");            // 多人：双方卡槽都算 → 对手的 c 也回来
+    expect(rotation()).toEqual(["b", "c"]);
+    useGame.getState().setMode("solo");
+    expect(rotation()).toEqual(["b"]);
+
+    useGame.getState().clear(0);                    // 卡槽空了 → 没有可播的角色
+    expect(rotation()).toEqual([]);
+
+    useGame.getState().setFilterByDeck(false);      // 关掉 → 完整轮播
+    expect(rotation()).toEqual(["a", "b", "c", "d"]);
+  });
+
   it("init 灌入曲目互斥表：addCard 与 fill 都按它挡掉重复曲目（D108）", () => {
     const conflicts = { a: ["b"], b: ["a"] };
     useGame.getState().init([card("a"), card("b"), card("c")], conflicts);

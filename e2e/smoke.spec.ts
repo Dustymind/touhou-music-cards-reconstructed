@@ -1158,6 +1158,14 @@ test("按卡组筛选开关：开=轮播收窄到卡槽角色，关=恢复完整
   const narrowed = await rotationText();
   expect(narrowed).not.toBe(before);
 
+  // 开局会重洗轮播并清空临时禁用 —— 开关还开着，就该立刻按当前卡槽重筛（D124）：
+  // 开关不变、轮播不回满（否则开关显示与实际轮播分叉）
+  await page.getByTestId("start-game").click();
+  await expect(page.getByText(/turn #0 · countdown/)).toBeVisible();
+  await expect(page.getByLabel("filter-by-deck")).toBeChecked();
+  await expect(page.getByTestId("rotation-count")).toHaveText(narrowed);
+  await page.getByTestId("stop-game").click();          // 回到选牌阶段，继续验"关=恢复完整"
+
   // 关掉开关：临时禁用清空，轮播恢复完整
   await page.getByLabel("filter-by-deck").uncheck();
   await expect(page.getByLabel("filter-by-deck")).not.toBeChecked();

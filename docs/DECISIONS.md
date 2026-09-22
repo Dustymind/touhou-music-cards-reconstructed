@@ -3867,6 +3867,65 @@ store 用 `xxxStoreFor(musicMode).getState()` 取" ✓ 后正常 ✓。
 
 ---
 
+## D124 开局重置轮播不再吃掉「按卡组筛选音乐」开关（开关 = 按当前卡槽）
+
+**需求**（用户）：游戏模式下「按卡组筛选音乐」开关的行为，与"开始游戏自动重置轮播列表"的行为冲突。
+
+**先量后做**（探针实测，`filterByDeck: true` + 卡槽里只有 `a`、轮播 `a/b/c/d`）：
+
+```
+开关开 + 未开局: { filterByDeck: true, temporaryDisabled: {b,c,d}, 轮播: ["a"] }
+开始游戏后:      { filterByDeck: true, temporaryDisabled: {},      轮播: 4 个, currentKey: "b" }
+```
+
+`rules.startGame` 按 D19 重洗 `order` 并清空 `temporaryDisabled`（= 轮播重置成完整列表 ✓），
+但 D123 新加的 `filterByDeck` 位**没跟着走** ✗ —— 于是三处症状：① 开关显示"开"、轮播却是完整列表（界面撒谎 ✗）；
+② 开局第一个回合落在一个**卡槽里没有牌**的角色上（白转一回合 ✗，开关开着开局本来就是为了避免这个）；
+③ 此时把开关拨到"关"看不出任何变化（临时禁用本来就是空的 ✗），得"关一下再开"才回来，白点一次。
+
+**裁定**（用户二选一，选 A）：**开关保留** —— 开局重洗后立刻按当前卡槽重筛；并且**选牌阶段改卡组也重筛**
+（同一类"开关显示与实际轮播不一致"，一起修）。
+
+**做法**（`src/game/useGame.ts`）：
+
+| 位置 | 改动 |
+|---|---|
+| 新增 `refilterByDeck(state, myIndex)` | 开关**开着** → 复用 `rules.filterMusicByDeck`（单人/电脑看自己一方 ✓、多人看双方 ✓）；**关着** → 原样返回（不产生新对象 ✓）。"开"的口径只有这一处 ✓ |
+| `start()` | `rules.startGame(...)` 之后过一遍 `refilterByDeck` —— 重洗 + 清空照旧发生 ✓，开关开着就把新轮播按当前卡槽收窄 ✓ |
+| 新增 `commitDeck(game)` | 改卡组的动作统一从它落地：**只在选牌阶段**重筛 —— `init` / `setMode`（口径随模式变 ✓）/ `resize`（缩小会丢卡 ✓）/ `fill` / `clear` / `shuffle` / `addCard` / `removeCard` / `moveCard` / `moveDeckCard` / `setOrder` ✓ |
+| `setFilterByDeck` / `reshuffleIfWrapped` | 改成复用同一个 helper（"开"的语义只写一次 ✓） |
+
+**语义**（写进 `GameState.filterByDeck` 的注释）：开关开着 = **按当前卡槽** —— 选牌阶段卡组一变就重筛、
+开局重洗后也立刻重筛；**开局之后**轮播是本局的**快照**（抢牌 / 交牌不自动重筛，只有"转满一圈但还有牌"的
+兜底会重筛 ✓）—— 否则场上牌一变轮播就跟着跳，回合节奏会不可预期 ✗。
+
+**联机**：重筛发生在**主机**的 store 动作里 ✓（客户端要么是发意图的一方、要么等快照 ✓），
+`stateDigest` 不用动 —— 改卡组的动作必然改动牌库那几段摘要 → 订阅式广播照旧触发 ✓（`filter=` 位 D123 已加 ✓）。
+协议版本仍是 4 ✓（没有新增字段 ✓）。
+
+**测试**：`useGame.test.ts` **+2** —— ① 开局保留开关：`order` 仍是 4 个（洗过但同批角色 ✓）、`filterByDeck` 仍为 true ✓、
+轮播仍是卡槽角色 ✓、倒计时结束后**第一回合的角色一定在卡槽里** ✓、开局后再关掉仍恢复完整轮播 ✓；
+② 开关开着时选牌阶段改卡组会重筛：加卡立刻收回该角色 ✓、拿掉卡就收窄 ✓、`setMode` 换口径（多人多回对手卡槽的角色）✓、
+清空收窄到 0 ✓、关掉回完整 ✓。`GamePanel.test.tsx` 的开关用例补一段"开局后开关仍勾选、`rotation-count` 不变" ✓；
+`e2e/smoke.spec.ts` 的开关用例补"开局 → 开关仍开 + 轮播数不变 → 中止 → 关掉 → 完整" ✓（两个桌面引擎都跑 ✓）。
+
+**验证**（全部实测）：`pnpm typecheck` 无诊断 ✓、`pnpm test` **596 passed**（298 条 × chromium + firefox ✓，
+比 D123 的 592 多 4 = 新增 2 条 × 两引擎 ✓）、`uv run pytest` **93 passed** ✓（tools 未动 ✓）、
+`pnpm e2e`：改过的开关用例两个桌面引擎都绿 ✓（单独复跑 **2 passed** ✓）；全量跑出 **78 passed + 2 failed + 1 skipped** ——
+其中"联机种子"那条是本机负载抖动 ✓（单独跑 `multiplayer.spec.ts` **5 passed** ✓），
+`mobile.spec.ts` 的"播放页窄屏居中"那条则 **在本机 HEAD 上就先红** ✗（`current-card` 偏 9px > 8px 容差；
+`git stash` 掉本轮全部改动复跑同样红 ✓ —— 与本轮无关，另立条目 ✓）；
+`pnpm data:check` 无漂移 ✓、`pnpm data:validate` 通过 ✓（不碰数据与生成物 ✓）。
+**反向对照**：把 `src/game/useGame.ts` 的改动 `git stash` 掉再跑新 e2e 用例 → 在
+`rotation-count` 那条断言上失败 ✓（说明这条守卫真的抓得住旧行为，不是空断言 ✓）。
+
+**坑（值得留一笔）** ✗：D123 只把"兜底收窄轮播 → 开关置 true"这一半补齐了 ✗，
+另一半"轮播被重置回完整 → 开关要跟着回 false（或按当前卡槽重新收窄）"漏了 ✗ ——
+**开关是"轮播状态的显示"，凡是轮播被改动的地方（重置 / 收窄 / 卡组变动）都得同步它**，
+不然界面就会撒谎（D123 的坑②同源）。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |

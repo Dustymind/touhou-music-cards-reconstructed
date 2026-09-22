@@ -526,6 +526,8 @@ describe("GamePanel", () => {
     const container = await render();
     const filter = (): HTMLInputElement =>
       container.querySelector<HTMLInputElement>('input[aria-label="filter-by-deck"]')!;
+    const rotation = (): string =>
+      container.querySelector<HTMLElement>('[data-testid="rotation-count"]')?.textContent ?? "";
     await click(container, "random-fill");
 
     // 默认关：开关未勾选、没有临时禁用
@@ -536,6 +538,13 @@ describe("GamePanel", () => {
     await act(async () => { filter().click(); });
     expect(useGame.getState().game.filterByDeck).toBe(true);
     expect(Object.values(useGame.getState().game.temporaryDisabled).filter(Boolean).length).toBeGreaterThan(0);
+
+    // 开局：轮播会被重洗、临时禁用会被清空 —— 开关还开着，就该立刻按当前卡槽重筛（D124）
+    const narrowed = rotation();
+    await click(container, "start-game");
+    expect(useGame.getState().game.state).toBe("countdown");
+    expect(filter().checked).toBe(true);          // 开关没有被"开局重置"悄悄改掉
+    expect(rotation()).toBe(narrowed);            // 轮播仍是卡槽里的角色，没回到完整列表
 
     // 关掉：临时禁用清空，轮播恢复完整
     await act(async () => { filter().click(); });

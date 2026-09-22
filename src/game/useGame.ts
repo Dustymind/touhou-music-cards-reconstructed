@@ -27,6 +27,15 @@ function derivedRng(label: SeedLabel, ...labels: SeedLabel[]): Rng {
   return createRng(useSeeds.getState().derive(label, ...labels));
 }
 
+/** 「按卡组筛选音乐」开关**开着**时，按**当前卡槽**重筛一遍（口径与 `setFilterByDeck` 同源：
+ *  单人/电脑看自己一方、多人看双方）；**关着**则原样返回（完整轮播）。
+ *
+ *  开关说"按卡组筛"，那卡组一变筛选就得跟着变 —— 否则开关显示与实际轮播分叉 ✗（见 D124）。 */
+function refilterByDeck(state: GameState, myIndex: PlayerIndex): GameState {
+  if (!state.filterByDeck) return state;
+  return rules.filterMusicByDeck(state, state.mode === "multi" ? null : myIndex);
+}
+
 interface GameSlice {
   game: GameState;
   /** 可入牌库的卡池（角色 × 卡面） */
@@ -74,168 +83,183 @@ interface GameSlice {
   markPlayed: (trackId: string) => void;
 }
 
-export const useGame = create<GameSlice>((set, get) => ({
-  game: emptyState(),
-  pool: [],
-  conflicts: {},
-  cpu: DEFAULT_CPU_SETTINGS,
-  myIndex: 0,
+export const useGame = create<GameSlice>((set, get) => {
+  /** 改卡组的动作统一从这两个 helper 落地：**选牌阶段**若开关开着，就按新卡槽重筛一遍
+   *  （`syncDeck` 只算新状态 —— 需要跟别的字段一起原子落地时用它；`commitDeck` 直接 set）。
+   *
+   *  开局之后**不**自动重筛 —— 那时轮播是本局的快照（抢牌 / 交牌都不重排），
+   *  只有"转满一圈但还有牌"的兜底（`reshuffleIfWrapped`）会重筛 ✓。 */
+  const syncDeck = (game: GameState): GameState =>
+    (game.state === "selecting" ? refilterByDeck(game, get().myIndex) : game);
+  const commitDeck = (game: GameState): void => set({ game: syncDeck(game) });
 
-  init(pool, conflicts = {}) {
-    const game = get().game;
-    const sized = rules.adjustDeckSize(game, game.deckRows, game.deckColumns);
-    const players = sized.players.map((player, index) => ({ ...player, name: index === 0 ? "You" : "Opponent" }));
-    set({ pool, conflicts, game: { ...sized, players } });
-  },
+  return {
+    game: emptyState(),
+    pool: [],
+    conflicts: {},
+    cpu: DEFAULT_CPU_SETTINGS,
+    myIndex: 0,
 
-  setMode(mode) {
-    set({ game: { ...get().game, mode } });
-  },
+    init(pool, conflicts = {}) {
+      const game = get().game;
+      const sized = rules.adjustDeckSize(game, game.deckRows, game.deckColumns);
+      const players = sized.players.map((player, index) => ({ ...player, name: index === 0 ? "You" : "Opponent" }));
+      set({ pool, conflicts, game: syncDeck({ ...sized, players }) });
+    },
 
-  setTraditional(traditional) {
-    set({ game: rules.switchTraditional(get().game, traditional) });
-  },
+    setMode(mode) {
+      // 开关的口径跟着模式走（单人/电脑看自己一方、多人看双方），所以换模式也要重筛
+      commitDeck({ ...get().game, mode });
+    },
 
-  setCpu(patch) {
-    set({ cpu: { ...get().cpu, ...patch } });
-  },
+    setTraditional(traditional) {
+      set({ game: rules.switchTraditional(get().game, traditional) });
+    },
 
-  resize(rows, columns) {
-    set({ game: rules.adjustDeckSize(get().game, rows, columns) });
-  },
+    setCpu(patch) {
+      set({ cpu: { ...get().cpu, ...patch } });
+    },
 
-  fill(player) {
-    const rng = authorityRng("fill", player);
-    if (!rng) return;
-    set({ game: rules.randomFill(get().game, player, get().pool, rng, get().conflicts) });
-  },
+    resize(rows, columns) {
+      // 缩小牌库会丢掉放不下的卡 → 也算"卡组变了"
+      commitDeck(rules.adjustDeckSize(get().game, rows, columns));
+    },
 
-  clear(player) {
-    set({ game: rules.clearDeck(get().game, player) });
-  },
+    fill(player) {
+      const rng = authorityRng("fill", player);
+      if (!rng) return;
+      commitDeck(rules.randomFill(get().game, player, get().pool, rng, get().conflicts));
+    },
 
-  shuffle(player) {
-    const rng = authorityRng("shuffle", player);
-    if (!rng) return;
-    set({ game: rules.shuffleDeck(get().game, player, rng) });
-  },
+    clear(player) {
+      commitDeck(rules.clearDeck(get().game, player));
+    },
 
-  addCard(player, card, slot) {
-    set({ game: rules.addCard(get().game, player, card, slot, get().conflicts) });
-  },
+    shuffle(player) {
+      const rng = authorityRng("shuffle", player);
+      if (!rng) return;
+      commitDeck(rules.shuffleDeck(get().game, player, rng));
+    },
 
-  removeCard(player, slot) {
-    set({ game: rules.removeCard(get().game, player, slot) });
-  },
+    addCard(player, card, slot) {
+      commitDeck(rules.addCard(get().game, player, card, slot, get().conflicts));
+    },
 
-  start() {
-    const rng = authorityRng("start");
-    if (!rng) return;
-    const { game } = get();
-    const ordered = game.order.length > 0 ? game.order : [];
-    set({ game: rules.startGame({ ...game, order: ordered }, rng) });
-  },
+    removeCard(player, slot) {
+      commitDeck(rules.removeCard(get().game, player, slot));
+    },
 
-  stop() {
-    set({ game: rules.stopGame(get().game) });
-  },
+    start() {
+      const rng = authorityRng("start");
+      if (!rng) return;
+      const { game, myIndex } = get();
+      const ordered = game.order.length > 0 ? game.order : [];
+      // 开局会重洗轮播并清掉临时禁用 —— 开关**还开着**就立刻按当前卡槽重筛一遍：
+      // 开关是玩家的设定，不能被"开局重置"悄悄丢掉（否则开关说谎、点一下还没反应 ✗，见 D124）
+      const started = rules.startGame({ ...game, order: ordered }, rng);
+      set({ game: refilterByDeck(started, myIndex) });
+    },
 
-  advanceCountdown() {
-    const game = get().game;
-    if (game.state !== "countdown") return;
-    set({ game: rules.countdownFinished(game) });
-  },
+    stop() {
+      set({ game: rules.stopGame(get().game) });
+    },
 
-  pick(player, side, slot, at) {
-    const game = get().game;
-    if (game.state !== "turnStart") return;
-    const card = game.players[side]?.deck[slot];
-    if (!card) return;
-    // 显式传入的时间戳（联机时由抢拍方给出）只允许落在这个回合内
-    const elapsed = Math.max(0, Date.now() - game.turnStartTimestamp);
-    const timestamp = at === undefined ? elapsed : Math.min(Math.max(0, at), elapsed);
-    const result = rules.notifyPickEvent(game, { timestamp, player, card, side, slot });
-    if (result.accepted) set({ game: result.state });
-  },
+    advanceCountdown() {
+      const game = get().game;
+      if (game.state !== "countdown") return;
+      set({ game: rules.countdownFinished(game) });
+    },
 
-  planCpu(cpuPlayer) {
-    // 同一回合 + 同一种子 → 同一套规划（不消耗 nonce，重复规划结果稳定）
-    return planCpuPick(get().game, cpuPlayer, get().cpu, derivedRng("cpu", get().game.turnSeq));
-  },
+    pick(player, side, slot, at) {
+      const game = get().game;
+      if (game.state !== "turnStart") return;
+      const card = game.players[side]?.deck[slot];
+      if (!card) return;
+      // 显式传入的时间戳（联机时由抢拍方给出）只允许落在这个回合内
+      const elapsed = Math.max(0, Date.now() - game.turnStartTimestamp);
+      const timestamp = at === undefined ? elapsed : Math.min(Math.max(0, at), elapsed);
+      const result = rules.notifyPickEvent(game, { timestamp, player, card, side, slot });
+      if (result.accepted) set({ game: result.state });
+    },
 
-  setOrder(order) {
-    set({ game: { ...get().game, order } });
-  },
+    planCpu(cpuPlayer) {
+      // 同一回合 + 同一种子 → 同一套规划（不消耗 nonce，重复规划结果稳定）
+      return planCpuPick(get().game, cpuPlayer, get().cpu, derivedRng("cpu", get().game.turnSeq));
+    },
 
-  moveCard(fromPlayer, fromSlot, toPlayer, toSlot) {
-    const game = get().game;
-    const card = game.players[fromPlayer]?.deck[fromSlot];
-    const target = game.players[toPlayer]?.deck[toSlot];
-    if (!card || target !== null) return;
-    const players = game.players.map((player) => ({ ...player, deck: player.deck.slice() }));
-    players[fromPlayer]!.deck[fromSlot] = null;
-    players[toPlayer]!.deck[toSlot] = card;
-    set({ game: { ...game, players } });
-  },
+    setOrder(order) {
+      // 轮播顺序换了，开关开着就按它重筛一遍（换数据集 / 换音乐模式时两者会一起变）
+      commitDeck({ ...get().game, order });
+    },
 
-  moveDeckCard(fromPlayer, fromSlot, toPlayer, toSlot) {
-    set({ game: rules.moveDeckCard(get().game, fromPlayer, fromSlot, toPlayer, toSlot) });
-  },
+    moveCard(fromPlayer, fromSlot, toPlayer, toSlot) {
+      const game = get().game;
+      const card = game.players[fromPlayer]?.deck[fromSlot];
+      const target = game.players[toPlayer]?.deck[toSlot];
+      if (!card || target !== null) return;
+      const players = game.players.map((player) => ({ ...player, deck: player.deck.slice() }));
+      players[fromPlayer]!.deck[fromSlot] = null;
+      players[toPlayer]!.deck[toSlot] = card;
+      commitDeck({ ...game, players });
+    },
 
-  giveCard(fromPlayer, fromSlot, toPlayer, toSlot) {
-    set({ game: rules.giveCard(get().game, fromPlayer, fromSlot, toPlayer, toSlot) });
-  },
+    moveDeckCard(fromPlayer, fromSlot, toPlayer, toSlot) {
+      commitDeck(rules.moveDeckCard(get().game, fromPlayer, fromSlot, toPlayer, toSlot));
+    },
 
-  next() {
-    let game = get().game;
-    if (game.state === "turnStart") {
-      // 超时：静默移除当前角色的卡并结算罚牌
-      const { state, advance } = rules.finishTurn(game);
-      if (advance) {
-        set({ game: rules.beginCountdown(state) });
+    giveCard(fromPlayer, fromSlot, toPlayer, toSlot) {
+      set({ game: rules.giveCard(get().game, fromPlayer, fromSlot, toPlayer, toSlot) });
+    },
+
+    next() {
+      let game = get().game;
+      if (game.state === "turnStart") {
+        // 超时：静默移除当前角色的卡并结算罚牌
+        const { state, advance } = rules.finishTurn(game);
+        if (advance) {
+          set({ game: rules.beginCountdown(state) });
+          return;
+        }
+        game = state;
+      }
+      if (game.state !== "turnWinner") return;
+      // 本地/CPU 模式由本机自动交牌（联机时由主机结算）
+      if (game.givesLeft !== 0) {
+        const rng = authorityRng("give", game.turnSeq);
+        if (!rng) return;                       // 副本端：等主机结算并下发快照
+        game = rules.giveCardsRandomly(game, rng);
+      }
+      set({ game: reshuffleIfWrapped(rules.beginCountdown(rules.detectFinish(game)), get().myIndex) });
+    },
+
+    give() {
+      const game = get().game;
+      if (game.givesLeft === 0) return;
+      const rng = authorityRng("give", game.turnSeq);
+      if (!rng) return;
+      set({ game: rules.giveCardsRandomly(game, rng) });
+    },
+
+    /** 记下本回合实际播出的曲目（两端各自按同一确定性结果追加 → 天然同步 ✓，见 D103） */
+    markPlayed(trackId: string) {
+      const game = get().game;
+      if (game.playedTracks.includes(trackId)) return;
+      set({ game: { ...game, playedTracks: [...game.playedTracks, trackId] } });
+    },
+
+    setFilterByDeck(enabled) {
+      const { game, myIndex } = get();
+      if (enabled) {
+        // 单人/电脑：只看自己这一方的卡槽；多人：双方都算（用户口径，见 rules.filterMusicByDeck）。
+        // 先落下开关位再交给同一个 helper 筛，保证"开"的口径只有一处（D124）
+        set({ game: refilterByDeck({ ...game, filterByDeck: true }, myIndex) });
         return;
       }
-      game = state;
-    }
-    if (game.state !== "turnWinner") return;
-    // 本地/CPU 模式由本机自动交牌（联机时由主机结算）
-    if (game.givesLeft !== 0) {
-      const rng = authorityRng("give", game.turnSeq);
-      if (!rng) return;                       // 副本端：等主机结算并下发快照
-      game = rules.giveCardsRandomly(game, rng);
-    }
-    set({ game: reshuffleIfWrapped(rules.beginCountdown(rules.detectFinish(game)), get().myIndex) });
-  },
-
-  give() {
-    const game = get().game;
-    if (game.givesLeft === 0) return;
-    const rng = authorityRng("give", game.turnSeq);
-    if (!rng) return;
-    set({ game: rules.giveCardsRandomly(game, rng) });
-  },
-
-  
-
-/** 记下本回合实际播出的曲目（两端各自按同一确定性结果追加 → 天然同步 ✓，见 D103） */
-  markPlayed(trackId: string) {
-    const game = get().game;
-    if (game.playedTracks.includes(trackId)) return;
-    set({ game: { ...game, playedTracks: [...game.playedTracks, trackId] } });
-  },
-
-  setFilterByDeck(enabled) {
-    const { game, myIndex } = get();
-    if (enabled) {
-      // 单人/电脑：只看自己这一方的卡槽；多人：双方都算（用户口径，见 rules.filterMusicByDeck）
-      const viewpoint = game.mode === "multi" ? null : myIndex;
-      set({ game: { ...rules.filterMusicByDeck(game, viewpoint), filterByDeck: true } });
-      return;
-    }
-    // 关掉 = 恢复完整轮播：清掉筛选写下的临时禁用，开关位落回 false
-    set({ game: { ...game, temporaryDisabled: {}, filterByDeck: false } });
-  },
-}));
+      // 关掉 = 恢复完整轮播：清掉筛选写下的临时禁用，开关位落回 false
+      set({ game: { ...game, temporaryDisabled: {}, filterByDeck: false } });
+    },
+  };
+});
 
 // 开发/E2E 调试钩子（仅 dev 构建挂到 window，生产构建里不存在）
 if (import.meta.env.DEV && typeof window !== "undefined") {
@@ -252,6 +276,7 @@ function reshuffleIfWrapped(state: GameState, viewpoint: PlayerIndex): GameState
   const wrapped = state.turnSeq - state.reshuffledAtTurn >= Math.max(1, state.order.length);
   const cardsLeft = state.players.some((player) => player.deck.some((card) => card !== null));
   if (!wrapped || !cardsLeft || state.state === "finished") return state;
-  const reshuffled = rules.filterMusicByDeck(state, state.mode === "multi" ? null : viewpoint);
-  return { ...reshuffled, reshuffledAtTurn: state.turnSeq, filterByDeck: true };
+  // 兜底确实把轮播收窄了 → 开关也要如实显示（先置位再走同一个筛选 helper）
+  const reshuffled = refilterByDeck({ ...state, filterByDeck: true }, viewpoint);
+  return { ...reshuffled, reshuffledAtTurn: state.turnSeq };
 }
