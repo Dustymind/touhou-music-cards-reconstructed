@@ -1142,6 +1142,46 @@ test("游戏页分组标题与按钮的间距、垂直对齐统一", async ({ pa
   expect(measured.switchChecked).toBe(false);   // 默认关
 });
 
+test("联机栏：PeerJS 开关按 MD2 规格对齐（8dp 栅格、不贴名称框）", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("tab", { name: "Match", exact: true }).click();
+  await page.getByTestId("mode-multi").click();
+  await expect(page.getByTestId("lobby")).toBeVisible();
+
+  const measured = await page.evaluate(() => {
+    const field = document.querySelector('input[aria-label="net-name"]')!.closest(".MuiFormControl-root")!;
+    const switchLabel = document.querySelector('input[aria-label="net-peer-mode"]')!.closest("label")!;
+    const fieldRect = field.getBoundingClientRect();
+    const switchRect = switchLabel.getBoundingClientRect();
+    const hostRect = document.querySelector('[data-testid="net-host"]')!.getBoundingClientRect();
+    // 标签写成 `label={字符串}` 时 MUI 会给它 `MuiFormControlLabel-label` 类；
+    // 直接塞一个 Typography 进去就没有那个类（样式 helper 也管不到它）—— 两种都量
+    const labelPart = switchLabel.querySelector(".MuiFormControlLabel-label") ?? switchLabel.lastElementChild!;
+    const textPart = labelPart.firstElementChild ?? labelPart;
+    return {
+      gapFromField: Math.round(switchRect.left - fieldRect.right),   // 名称框 → 开关行
+      gapToHost: Math.round(hostRect.left - switchRect.right),       // 开关行 → 建立房间
+      centerOffset: Math.round((switchRect.top + switchRect.height / 2) - (fieldRect.top + fieldRect.height / 2)),
+      switchHeight: Math.round(switchRect.height),
+      labelFont: getComputedStyle(labelPart).fontSize,
+      textFont: getComputedStyle(textPart).fontSize,
+      labelClass: labelPart.className,
+    };
+  });
+
+  // MUI 的 FormControlLabel 默认 margin-left: -11px（把涟漪对齐到文字）：
+  // 不抵消的话 8dp 栅格被吃掉，开关会**压到名称框上**（实测 -3px ✗）；右侧还默认留 16px → 24px ✗
+  expect(measured).toEqual({
+    gapFromField: 8,                                                // MD2 8dp 栅格
+    gapToHost: 8,                                                   // 右侧同样是 8dp
+    centerOffset: 0,                                                // 与名称框垂直居中对齐
+    switchHeight: 36,                                               // 开关行与同排按钮同高（MD2 36dp）
+    labelFont: "14px",                                              // MD2 标签 14sp
+    textFont: "14px",                                               // 标签文字本身也是 14sp（不是 caption 12sp）
+    labelClass: expect.stringContaining("MuiFormControlLabel-label"), // 标签得走 MUI 的标签节点
+  });
+});
+
 test("按卡组筛选开关：开=轮播收窄到卡槽角色，关=恢复完整轮播", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("tab", { name: "Match", exact: true }).click();

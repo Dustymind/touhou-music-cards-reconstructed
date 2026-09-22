@@ -3979,6 +3979,39 @@ ring 仍会顶掉上一次 ✓、stop 打断回调且不触发 + dispose 关上�
 
 ---
 
+## D126 联机栏的 PeerJS 开关按 MD2 对齐（不再贴到名称框上）
+
+**需求**（用户）："PeerJS 的开关对齐有问题，开关贴到名称框上了，参考 Material Design 2 修复"。
+
+**先量后做**（e2e 探针实测：先写守卫拿到"改前"那一列，再改）
+
+| 指标 | 改前 | 改后（MD2） |
+|---|---|---|
+| 名称框 → 开关行 | **-3px**（压住名称框 ✗） | **8px** ✓ |
+| 开关行 → "建立房间" | **24px**（疏 ✗） | **8px** ✓ |
+| 开关行与名称框垂直居中偏差 | 0 ✓ | 0 ✓ |
+| 开关行高度 | **24px**（比同排按钮矮一截 ✗） | **36px** ✓ |
+| 标签字号 / 标签节点 | **12px**（caption）且**没有** `MuiFormControlLabel-label` 类 ✗ | **14px** ✓ / 有该类 ✓ |
+
+**根因**（两条，同源）：① `FormControlLabel` 默认 `margin-left: -11px`（把涟漪对齐到标签文字）—— 大厅那一行
+**没套** `gameSwitchLabelSx`，8dp 栅格被吃掉成 -3px ✗，右侧还留着默认 `margin-right: 16px` → 24px ✗；
+② 标签写成 `label={<Typography variant="caption">…</Typography>}`：MUI 只把**字符串**标签包进自己的标签节点
+（`MuiFormControlLabel-label`）—— 直接塞元素进去等于把标签从 MUI 的标签体系里摘出来，字号 12px、helper 也管不到 ✗。
+
+**做法**（`src/ui/game/LobbyPanel.tsx`）：与游戏页"按卡组筛选"开关**同一份规格** —— `label={t(...)}` 传字符串 +
+`sx={gameSwitchLabelSx}`（`src/ui/game/GameButton.tsx` 里已有的 MD2 开关行样式：`ml: 0 / mr: 0`、
+`height: MD2.button.medium` = 36dp、标签 14sp）✓。没有新造样式：这类"开关 + 文本"行全仓库共用这一个 helper ✓。
+
+**测试**：`e2e/smoke.spec.ts` 新增 **1 条**（`联机栏：PeerJS 开关按 MD2 规格对齐（8dp 栅格、不贴名称框）`）：
+一次比对 7 个指标（左/右间距、居中偏差、行高、标签字号、标签文字字号、标签节点类名）✓ ——
+一条断言同时挡住"负边距回来了"与"标签又被塞成元素"两种退化 ✓。
+
+**验证**（全部实测）：`pnpm typecheck` 无诊断 ✓；新守卫**改前红、改后绿** ✓（红时打印的正是上表"改前"那一列 ——
+反向对照不需要动代码 ✓）；`e2e/smoke.spec.ts` 全文件 chromium + firefox **58 passed** ✓（29 条 × 两引擎，4.8min）；
+`e2e/multiplayer.spec.ts` chromium + firefox **9 passed + 1 skipped** ✓（大厅那条一行布局就是联机流程要用的 ✓）。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |

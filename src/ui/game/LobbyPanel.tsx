@@ -5,7 +5,7 @@ import {
 import { useState } from "react";
 
 import { Localization, t } from "../../i18n/localization";
-import { GameButton } from "./GameButton";
+import { GameButton, gameSwitchLabelSx } from "./GameButton";
 import { peerModeFromSearch, useNet } from "../../net/useNet";
 import { NoFontFamily } from "../../theme/theme";
 
@@ -45,6 +45,8 @@ export function LobbyPanel(_props: LobbyPanelProps) {
         />
         {!online && (
           <>
+            {/* MD2 开关（开关 + 文本标签）：与同排按钮同高 36dp、垂直居中，左右间距都是 8dp 栅格。
+                `gameSwitchLabelSx` 抵消 MUI 默认的 -11px / +16px 边距 —— 否则开关会压到名称框上（D126）。 */}
             <FormControlLabel
               control={
                 <Switch
@@ -54,7 +56,8 @@ export function LobbyPanel(_props: LobbyPanelProps) {
                   slotProps={{ input: { "aria-label": "net-peer-mode" } }}
                 />
               }
-              label={<Typography variant="caption">{t(Localization.GameConnectionPeerMode)}</Typography>}
+              label={t(Localization.GameConnectionPeerMode)}
+              sx={gameSwitchLabelSx}
             />
             <GameButton size="small" variant="contained" data-testid="net-host"
               onClick={() => void net.host({ name, peer: peerMode })}>
