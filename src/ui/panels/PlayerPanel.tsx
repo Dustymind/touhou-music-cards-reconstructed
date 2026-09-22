@@ -182,6 +182,7 @@ function PlayerPanelInner(props: PlayerPanelProps) {
               size="small"
               checked={player.setting.countdown}
               onChange={(event) => player.setSetting({ countdown: event.target.checked })}
+              slotProps={{ input: { "aria-label": "player-countdown" } }}
             />
             <Typography variant="body2">{t(Localization.PlayerTabCountdown)}</Typography>
           </Stack>

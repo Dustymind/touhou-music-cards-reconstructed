@@ -310,12 +310,14 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
     }).catch(() => setPlayback("stopped"));
   }, [resolved]);
 
-  /** 只响铃：先停掉正曲，再响一声（铃声结束时不做任何事，由调用方决定何时起播）。 */
-  /** 倒计时滴答：比换歌铃短，且不打断"响铃结束再起播"的时序（倒计时结束时才 ringBell） */
+  /** 倒计时滴答：比换歌铃短，**只发声** —— 不占用"响铃结束再起播"那条时序（D125）。
+   *  以前这里走 `ring()`，会把 `play()` 排好的 `startMusic` 回调一起 `clearTimer` 掉 ✗：
+   *  倒计时的滴答与"换歌前响铃"撞上时，正曲会永远卡在 `countingDown` 不起播。 */
   const tick = useCallback(() => {
-    bellRef.current?.ring(undefined, BELL_TICK_MS);
+    bellRef.current?.pulse(BELL_TICK_MS);
   }, []);
 
+  /** 只响铃：先停掉正曲，再响一声（铃声结束时不做任何事，由调用方决定何时起播）。 */
   const ringBell = useCallback(() => {
     playTokenRef.current += 1;
     pendingPlayRef.current = false;

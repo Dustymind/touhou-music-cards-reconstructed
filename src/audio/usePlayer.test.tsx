@@ -168,6 +168,27 @@ describe("usePlayer", () => {
     expect(audios[0]!.paused).toBe(false);
   });
 
+  it("tick 撞上「换歌前的铃」也不吞掉起播（回归：正曲曾永远卡在 countingDown）", async () => {
+    vi.useFakeTimers();
+    const hook = await renderHook(() => usePlayer(inputs()));
+    await vi.waitFor(() => expect(hook.result.current.url).not.toBeNull());
+    hook.result.current.setSetting({ countdown: true });   // 玩家开了"换歌前先响铃"
+    await hook.rerender();
+    hook.result.current.play();                            // ▶：排一条 1100ms 的铃，铃后起播
+    await hook.rerender();
+    expect(hook.result.current.playback).toBe("countingDown");
+
+    await vi.advanceTimersByTimeAsync(1000);
+    hook.result.current.tick();                            // 倒计时第 1 秒的滴答落进这条铃的窗口里
+    await hook.rerender();
+    expect(hook.result.current.playback).toBe("countingDown");   // 铃还没响完，正曲不抢跑
+
+    await vi.advanceTimersByTimeAsync(BELL_DURATION_MS - 1000 + 20);
+    await hook.rerender();
+    expect(audios[0]!.paused).toBe(false);                 // 铃响完照样起播
+    expect(hook.result.current.playback).toBe("playing");
+  });
+
   it("切歌时保留播放意愿：正在播就接着播，暂停状态切歌保持暂停", async () => {
     let current = "cirno";
     const step = vi.fn(() => "kirisame-marisa");

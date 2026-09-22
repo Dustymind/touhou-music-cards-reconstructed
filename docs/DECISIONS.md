@@ -3926,6 +3926,59 @@ store 用 `xxxStoreFor(musicMode).getState()` 取" ✓ 后正常 ✓。
 
 ---
 
+## D125 倒计时三声不再卡播放（滴答只发声；上下文没跑起来时不堆叠）
+
+**需求**（用户）："部分情况下倒计时三声音效会卡播放"，先只验证不修；验证完裁定 **修**。
+
+**先量后做**（探针实测：仓库外副本 + 真浏览器单测口径；两条都是**复现**，不是推测）
+
+| 现象 | 实测数字 |
+|---|---|
+| `play()`（"换歌前先响铃"开着）排好的"铃响完再起播"回调 | 响铃窗口内来一声 `tick()` → 回调被 `clearTimer()` 吞掉 → `{playback:"countingDown", audioPaused:true}`，界面还显示"在播" ✗；同一场景**没有** tick 时是 `{playback:"playing", audioPaused:false}` ✓ |
+| 真实 Web Audio 里三声滴答的调度 | 上下文建好后一直是 `suspended`、`currentTime` 冻在 0 → 12 个振荡器全部 `at=0 / start=0`（三声叠在同一时刻）✗ |
+| 叠在一起的可听后果（离线渲染真 PCM） | 单声峰值 **0.746**（0 个削波采样）✓；三声同刻叠加峰值 **2.239**、**215 个采样 > 1.0** ✗ |
+
+可达路径：对局中只锁**页签按钮**（`AppShell.tsx`），**已经停在播放页**的面板不卸载，它的 ▶ 照样能点 ——
+"客机停在播放页时主机开赛 → 倒计时 3 秒内按 ▶"就是那个"部分情况下" ✓。
+
+**根因**：① `bell.ring()` 一进来就 `clearTimer()`，而**滴答与"铃后起播"共用同一个铃** → 滴答把别人的回调一起清了 ✗；
+② 声音直接按 `context.currentTime` 排，而上下文没跑起来时这个时钟**不前进**，`resume()` 又是 `void` 掉不 await 的 →
+几声全排在同一个冻结时刻，等真正恢复的那一刻一起炸出来 ✗。
+
+**做法**
+
+| 位置 | 改动 |
+|---|---|
+| `src/audio/bell.ts` 新增 `pulse(durationMs)` | **只发声**：不排回调定时器、也不清别人的 —— 与 `ring()` 的唯一区别就是"会不会顶掉上一次的回调" ✓ |
+| `src/audio/bell.ts` 抽出 `sound(lengthMs)` | 上下文 `running` → 直接排 ✓；否则**先请 `resume()`，恢复了再补**，补的时候已过 `RESUME_CATCH_UP_MS`（150ms）就**丢掉**（宁可不响，也不在错的时间响 ✓）；且只有**最新**那一声（代数比对）允许补响，积压的几声不会一起放出来 ✓ |
+| `stop()` / `dispose()` | 顺带把"还在等 resume 的那一声"作废（代数 +1）✓ |
+| `src/audio/usePlayer.ts` | `tick()` 从 `ring(undefined, BELL_TICK_MS)` 改成 `pulse(BELL_TICK_MS)` —— 滴答从此不碰"铃后起播"那条时序 ✓ |
+| `src/ui/shell/AppShell.tsx` | 三声的偏移抽成 `COUNTDOWN_TICK_MS`，并记住倒计时起始时刻：定时器**迟到超过 `TICK_LATE_TOLERANCE_MS`（350ms）就跳过这一声**（后台标签页的节流会把几声挤在一起放 ✗）；判定拆成可测的 `tickDue(elapsedMs, offsetMs)` ✓ |
+| `src/ui/panels/PlayerPanel.tsx` | "换歌前先响铃"开关加 `aria-label="player-countdown"`（给回归用例一个稳定入口）✓ |
+
+**语义**：滴答是纯提示音，**永远不该决定正曲什么时候起播** —— 起播只由 `ring()` 的回调决定 ✓；
+上下文起不来时这几秒可以是**静音**的（听不见，好过听成一声爆音）✓。
+
+**测试**：新增 `src/audio/bell.test.ts` **5 条**（假 AudioContext）：pulse 不打断 ring 的回调 ✓、
+ring 仍会顶掉上一次 ✓、stop 打断回调且不触发 + dispose 关上下文 ✓、挂起时**一个振荡器都不排**且恢复后不补放积压的 ✓、
+很快恢复时该响的照样补上（不是一律静音）✓。`usePlayer.test.tsx` **+1**：铃的窗口里来一声 tick → 正曲照样起播 ✓。
+`App.test.tsx` **+3**：开局后正常时序**真的响三声**（数振荡器 = 4 泛音/声）✓、
+"倒计时期间在播放页按 ▶"这条路径端到端（铃响完正曲起播、不再卡在 `countingDown`）✓、`tickDue` 的迟到边界 ✓。
+
+**验证**（全部实测）：`pnpm typecheck` 无诊断 ✓；`pnpm test` **614 passed**（307 条 × chromium + firefox ✓，
+比 D124 的 596 多 18 = 新增 9 条 × 两引擎 ✓）；`playwright test --project=chromium -g 倒计时` **1 passed** ✓
+（改过的倒计时流程在真浏览器里端到端复跑 ✓，13s）。
+**反向对照**：把 `src/audio/usePlayer.ts` 单独退回 HEAD（`bell.pulse` 留着）再跑新用例 →
+**只有那两条回归用例红**（`expected true to be false` = 正曲仍停着 ✗），同批其余 26 条照旧绿 ✓ —— 守卫抓得住旧行为 ✓。
+
+**坑（值得留一笔）** ✗：① 单测里假定时器的队列时钟是**按点**触发的（sinon 会把时钟推到每个定时器自己的到期时刻再执行），
+所以"后台节流回来时一次全放"没法忠实复现 → 只把 `tickDue` 的判定钉住，App 层只覆盖正常时序的三声 ✓；
+② `App.test.tsx` 原先 `afterEach` 只清 DOM、**不卸载 React root**：旧实例还活着，它和当前用例共享同一个 `useGame`，
+开局时两个外壳各响一声（实测"三声"变成 2+2 ✗）—— 现已 `root.unmount()` + 每个用例把对局 store 复位到"选牌阶段" ✓
+（同一文件耗时也从 6.4s 降到 4.0s ✓）。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |

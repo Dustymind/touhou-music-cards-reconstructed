@@ -13,6 +13,9 @@ export interface BellHandle {
   /** 摇一次铃；铃声结束（或被 `stop` 打断）后回调一次。重复调用会打断上一次。
    *  `durationMs` 可覆盖时长：倒计时的三声"滴答"比换歌铃短。 */
   ring: (onDone?: () => void, durationMs?: number) => void;
+  /** 只发声，**不碰**"响铃结束再回调"那条时序（对局倒计时的三声滴答用它）。
+   *  与 `ring` 的唯一区别：`ring` 会把上一次排好的回调顶掉，`pulse` 不会（D125）。 */
+  pulse: (durationMs?: number) => void;
   /** 打断当前铃声（不触发回调）。 */
   stop: () => void;
   /** 释放 AudioContext。 */
@@ -39,6 +42,14 @@ const PARTIALS: ReadonlyArray<readonly [number, number, number]> = [
 ];
 
 const BASE_FREQUENCY = 1318.5; // E6，清脆但不刺耳
+
+/** 上下文"恢复后补响"的时间窗（毫秒）。
+ *
+ * 上下文没跑起来时（自动播放策略 / 切后台 / 设备被中断）`currentTime` **不前进**，照它排声音会把
+ * 好几声堆在同一个冻结时刻，等真正恢复的那一刻一起炸出来 —— 实测三声滴答叠成峰值 2.24 的削波爆音 ✗。
+ * 所以这里改成：先请 `resume()`，恢复了再排；补的时候已经过了这个窗就**丢掉** ——
+ * 宁可不响，也不在错的时间响（D125）。 */
+const RESUME_CATCH_UP_MS = 150;
 
 function synthesize(context: AudioContext, durationSeconds: number): void {
   const start = context.currentTime;
@@ -67,6 +78,8 @@ export function createBell(durationMs = BELL_DURATION_MS): BellHandle {
   let context: AudioContext | null = null;
   let timer: number | null = null;
   let pending: (() => void) | null = null;
+  /** 发声请求的代数：只有**最新**那一次请求才允许补响 —— 否则恢复时会把积压的几声一起放出来 ✗。 */
+  let generation = 0;
 
   const clearTimer = (): void => {
     if (timer !== null) {
@@ -74,6 +87,30 @@ export function createBell(durationMs = BELL_DURATION_MS): BellHandle {
       timer = null;
     }
     pending = null;
+  };
+
+  /** 发声（不管回调那一摊）：上下文跑着就直接排；没跑起来就等它跑起来再补，过期就丢。 */
+  const sound = (lengthMs: number): void => {
+    const Ctor = audioContextCtor();
+    if (Ctor === null) return; // 静音等待
+    const mine = (generation += 1);
+    try {
+      context ??= new Ctor();
+    } catch {
+      return; // 音频设备不可用等情况：保持静音，时序不变
+    }
+    const audio = context;
+    if (audio.state === "running") {
+      synthesize(audio, lengthMs / 1000);
+      return;
+    }
+    const askedAt = Date.now();
+    void audio.resume().then(() => {
+      if (mine !== generation) return;                       // 已经被更新的一声顶掉
+      if (audio.state !== "running") return;                 // 还是没跑起来
+      if (Date.now() - askedAt > RESUME_CATCH_UP_MS) return;  // 过期：不补响
+      synthesize(audio, lengthMs / 1000);
+    }).catch(() => undefined);
   };
 
   return {
@@ -86,22 +123,18 @@ export function createBell(durationMs = BELL_DURATION_MS): BellHandle {
         clearTimer();
         done?.();
       }, length);
-
-      const Ctor = audioContextCtor();
-      if (Ctor === null) return; // 静音等待
-      try {
-        context ??= new Ctor();
-        if (context.state === "suspended") void context.resume();
-        synthesize(context, length / 1000);
-      } catch {
-        // 音频设备不可用等情况：保持静音，时序不变
-      }
+      sound(length);
+    },
+    pulse(overrideMs) {
+      sound(Math.max(60, overrideMs ?? durationMs));
     },
     stop() {
       clearTimer();
+      generation += 1; // 还没发声（或在等 resume）的那一声也一并作废
     },
     dispose() {
       clearTimer();
+      generation += 1;
       const closing = context;
       context = null;
       if (closing !== null) void closing.close().catch(() => undefined);

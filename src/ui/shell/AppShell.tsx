@@ -42,6 +42,18 @@ export function aliceLabel(smallScreen: boolean): string {
   return ALICE_LABELS[stableHash("Alice") % ALICE_LABELS.length]!;
 }
 
+/** 倒计时三声的偏移（毫秒，相对进入 `countdown` 那一刻）—— 与 `useGameLoop` 的 3000ms 对齐。 */
+export const COUNTDOWN_TICK_MS = [0, 1000, 2000] as const;
+
+/** 迟到容忍（毫秒）：后台标签页会把定时器节流成"回来时一次全放"，几声挤在一起就是连成一串 ✗。
+ *  迟到超过这个量就跳过这一声 —— 宁缺毋滥，正常抖动（几十毫秒）不受影响（D125）。 */
+export const TICK_LATE_TOLERANCE_MS = 350;
+
+/** 这一声该不该响：`offsetMs` 是它本该响的时刻，`elapsedMs` 是进入倒计时后实际过了多久。 */
+export function tickDue(elapsedMs: number, offsetMs: number): boolean {
+  return elapsedMs - offsetMs <= TICK_LATE_TOLERANCE_MS;
+}
+
 /** 联机握手要比的**两个**数据哈希（一个模式一个，契约 `docs/otomads-separation-v1.md` §6 C3）。 */
 export function dataHashes(bundle: DataBundle): Record<string, string> {
   return {
@@ -197,9 +209,12 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
     if (phase === "countdown") {
       player.pause();                       // 先停掉上一回合的曲子
       // 3 秒倒计时 = **三声**（每秒一声，用户要求；原来只响一声）
+      const startedAt = Date.now();
       player.tick();
-      const ticks = [window.setTimeout(() => player.tick(), 1000),
-        window.setTimeout(() => player.tick(), 2000)];
+      const ticks = COUNTDOWN_TICK_MS.slice(1).map((offset) => window.setTimeout(() => {
+        // 被节流过的定时器会挤在一起放：迟到太多就跳过，不在错的时间补响（D125）
+        if (tickDue(Date.now() - startedAt, offset)) player.tick();
+      }, offset));
       return () => ticks.forEach((id) => window.clearTimeout(id));
     }
     if (phase === "turnStart") player.playImmediate();
