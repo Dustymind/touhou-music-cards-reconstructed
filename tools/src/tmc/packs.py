@@ -1,4 +1,4 @@
-"""附加曲包（``data/packs/*.toml``）的加载与校验。
+"""附加曲包（``data/packs/*.toml`` 等根目录）的加载与校验。
 
 曲包是"镜像表以外的曲目"：比如音MAD（otomads）那批只存在于本机（由
 ``tools/src/tmc/local_source.py`` 起的本地曲库助手提供）的曲目。它们不进
@@ -11,10 +11,14 @@
 布局：**一个曲包 = 一份清单 + 一角色一份曲目文件**（曲目文件与 ``data/characters/*.toml`` 同一风格，
 一角色一份、顶层 ``key``）::
 
-    data/packs/otomads.toml                    # 清单：只放 [pack] 与 [[album]]
-    data/packs/otomads/kirisame-marisa.toml    # 角色文件：该角色的若干 [[track]]
+    <根>/otomads.toml                    # 清单：只放 [pack] 与 [[album]]
+    <根>/otomads/kirisame-marisa.toml    # 角色文件：该角色的若干 [[track]]
 
-清单（``data/packs/<曲包 id>.toml``）::
+**根目录**（:func:`tmc.repo.pack_roots`）：主仓库 `data/packs/` + 音MAD 数据 submodule
+`data/otomads/packs/`。submodule 在开发时**可选** —— 没初始化时这里给一行提示并跳过它
+（契约 `docs/otomads-separation-v1.md`）。
+
+清单（`<根>/<曲包 id>.toml`）::
 
     [pack]
     id = "otomads"
@@ -30,7 +34,7 @@
     pack = "otomads"
     order = 100
 
-角色文件（``data/packs/<曲包 id>/<角色 key>.toml``）::
+角色文件（``<根>/<曲包 id>/<角色 key>.toml``）::
 
     key = "kirisame-marisa"   # 必须与文件名一致；文件的曲目都算这个角色
     card = ["魔理沙-mad.png"]  # 可选：本模式的卡面（缺省沿用共享身份的卡面）
@@ -55,6 +59,7 @@ from __future__ import annotations
 import hashlib
 import pathlib
 import re
+import sys
 import tomllib
 
 from . import repo
@@ -125,16 +130,39 @@ def source_key(source: str) -> str:
     return hashlib.sha1(source.strip().encode("utf-8")).hexdigest()[:16]
 
 
+def available() -> bool:
+    """曲包真源是否可用（音MAD 数据 submodule 初始化过）。
+
+    ``False`` 时 :func:`load_packs` 返回空、``tmc.build`` 不重新生成音MAD 数据集 ——
+    submodule 在开发时**可选**，用主仓库里已提交的生成物（见 ``data/README.md``）。
+    """
+    return any(root.is_dir() and any(root.glob("*.toml")) for root in repo.pack_roots())
+
+
 def load_packs() -> tuple[list[dict], list[dict], list[dict], dict[str, list[str]]]:
-    """读 ``data/packs/`` → ``(packs, albums, tracks, cards)``。
+    """读全部曲包根目录 → ``(packs, albums, tracks, cards)``。
 
     ``cards`` 是"音MAD 侧自己的卡面覆盖"：``{角色 key: [卡面文件名, …]}``（只有写了 `card` 的角色才在里面）。
+    根目录见 :func:`tmc.repo.pack_roots`；不存在的根（submodule 没初始化）**跳过并提示**。
     """
     packs: list[dict] = []
     albums: list[dict] = []
     tracks: list[dict] = []
     cards: dict[str, list[str]] = {}
-    directory = repo.DATA / "packs"
+    for directory in repo.pack_roots():
+        if not directory.is_dir():
+            print(f"[packs] 跳过不存在的曲包根目录 {repo.shown(directory)}"
+                  f"（音MAD 数据 submodule 没初始化？跑 `git submodule update --init data/otomads`）",
+                  file=sys.stderr)
+            continue
+        _load_root(directory, packs, albums, tracks, cards)
+    packs.sort(key=lambda item: item["order"])
+    return packs, albums, tracks, cards
+
+
+def _load_root(directory: pathlib.Path, packs: list[dict], albums: list[dict],
+               tracks: list[dict], cards: dict[str, list[str]]) -> None:
+    """读一个曲包根目录：``<id>.toml`` 清单 + ``<id>/`` 角色文件。"""
     for path in sorted(directory.glob("*.toml")):
         with open(path, "rb") as fh:
             data = tomllib.load(fh)
@@ -163,22 +191,21 @@ def load_packs() -> tuple[list[dict], list[dict], list[dict], dict[str, list[str
                 album["showAlbumName"] = bool(entry["show_album_name"])
             albums.append(album)
         if data.get("track"):
-            raise SystemExit(f"{path.name}: 曲目要写进 data/packs/{pack_id}/<角色 key>.toml（一角色一份），"
+            rel = repo.shown(directory)
+            raise SystemExit(f"{path.name}: 曲目要写进 {rel}/{pack_id}/<角色 key>.toml（一角色一份），"
                              f"清单只放 [pack] 与 [[album]]")
         tracks.extend(_character_tracks(directory / pack_id, path.name, cards))
-    packs.sort(key=lambda item: item["order"])
-    return packs, albums, tracks, cards
 
 
 def _character_tracks(pack_dir: pathlib.Path, manifest: str,
                       cards: dict[str, list[str]]) -> list[dict]:
-    """读 ``data/packs/<曲包 id>/*.toml`` → 曲目列表（文件按名排序，文件内保持原顺序）。
+    """读 ``<根>/<曲包 id>/*.toml`` → 曲目列表（文件按名排序，文件内保持原顺序）。
 
     角色由文件的 ``key`` 决定，**文件名必须与它一致**：曲包里的 key 写错曾一次性丢掉 3 条曲目
     （2026-09 那次 `reisen-udongein` 少写 `-inaba`），所以这里错了直接报；报错文案带包内相对路径，
     否则 35 个 `cirno.toml` 分不清是哪个包。
 
-    ``cards`` 是出参：文件里写了 ``card`` 就记一笔（音MAD 侧自己的卡面，写法见 ``data/packs/README.md``）。
+    ``cards`` 是出参：文件里写了 ``card`` 就记一笔（音MAD 侧自己的卡面，写法见曲包根目录的 ``README.md``）。
     """
     if not pack_dir.is_dir():
         return []

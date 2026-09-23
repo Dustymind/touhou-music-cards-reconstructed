@@ -1,6 +1,7 @@
-"""把解析好的录入行追加进**曲包的角色文件**（``data/packs/<曲包 id>/<角色 key>.toml``）。
+"""把解析好的录入行追加进**曲包的角色文件**（``<曲包根>/<曲包 id>/<角色 key>.toml``）。
 
-布局与口径见 ``data/packs/README.md`` 与 ``docs/packs-audio-v1.md``：
+布局与口径见曲包的 ``README.md``（主仓库 ``data/packs/README.md`` 或 submodule 的
+``data/otomads/README.md``）与 ``docs/packs-audio-v1.md``：
 一个曲包 = 一份清单（``[pack]`` + ``[[album]]``）+ 一角色一份曲目文件。这条命令只**写数据**，
 不跑 ``tmc.build`` / ``tmc.validate``（与仓库其余部分一致：那两个是独立命令）。
 
@@ -30,9 +31,9 @@ BILIBILI = "https://www.bilibili.com/video/{bv}/"
 #: `[[track]]` 的键序（固定，diff 才稳定）：与 `packs.TRACK_KEYS` 一致
 FIELD_ORDER = ("album", "author", "title", "extra", "source", "start_time", "stop_time")
 
-#: 角色文件的开头注释（新文件才有）
+#: 角色文件的开头注释（新文件才有）；路径按清单实际所在的根目录算
 FILE_HEADER = ("# 音MAD 曲包（{pack}）：`{character}` 的曲目。\n"
-               "# 清单与口径见 `data/packs/{pack}.toml` 与 `data/packs/README.md`。\n")
+               "# 清单与口径见 `{manifest}` 与 `{readme}`。\n")
 
 
 def toml_str(value: str) -> str:
@@ -74,11 +75,26 @@ def existing_titles(path: pathlib.Path) -> set[tuple[str, str]]:
     return {(track["album"], track["title"]) for track in data.get("track", [])}
 
 
+def pack_manifest(pack: str) -> pathlib.Path:
+    """曲包清单的路径：主仓库 ``data/packs/`` 或音MAD 数据 submodule ``data/otomads/packs/``。"""
+    path = repo.find_pack_manifest(pack)
+    if path is None:
+        searched = "、".join(repo.shown(root) for root in repo.pack_roots())
+        raise SystemExit(f"找不到曲包清单：{pack}.toml（找过：{searched}）")
+    return path
+
+
+def contract_doc(manifest: pathlib.Path) -> pathlib.Path:
+    """曲包契约文档：清单旁边或 submodule 根上的 ``README.md``（新文件的注释指向它）。"""
+    for candidate in (manifest.parent / "README.md", manifest.parent.parent / "README.md"):
+        if candidate.exists():
+            return candidate
+    return manifest.parent / "README.md"
+
+
 def default_album(pack: str) -> str:
     """清单里只声明了一张专辑 → 用它；否则必须显式 ``--album``。"""
-    path = repo.DATA / "packs" / f"{pack}.toml"
-    if not path.exists():
-        raise SystemExit(f"找不到曲包清单：data/packs/{pack}.toml")
+    path = pack_manifest(pack)
     albums = tomllib.loads(path.read_text(encoding="utf-8")).get("album", [])
     names = [entry["name"] for entry in albums]
     if len(names) != 1:
@@ -88,13 +104,14 @@ def default_album(pack: str) -> str:
 
 def append_rows(pack: str, rows: list[dict], album: str | None = None,
                 dry_run: bool = False) -> dict[str, dict[str, int]]:
-    """按角色把行追加进 ``data/packs/<pack>/<角色 key>.toml``；返回每个角色的统计。
+    """按角色把行追加进 ``<曲包根>/<pack>/<角色 key>.toml``；返回每个角色的统计。
 
     只追加、不改写已有内容（保住人工写的注释与顺序）；重复的 ``(专辑, 曲名)`` 跳过。
     """
     known = character_keys()
+    manifest = pack_manifest(pack)
     target_album = album or default_album(pack)
-    directory = repo.DATA / "packs" / pack
+    directory = manifest.parent / pack
     summary: dict[str, dict[str, int]] = {}
 
     for row in rows:
@@ -127,7 +144,9 @@ def append_rows(pack: str, rows: list[dict], album: str | None = None,
             body = path.read_text(encoding="utf-8").rstrip("\n")
             path.write_text(f"{body}\n\n{block}\n", encoding="utf-8")
         else:
-            header = FILE_HEADER.format(pack=pack, character=character)
+            header = FILE_HEADER.format(pack=pack, character=character,
+                                        manifest=repo.shown(manifest),
+                                        readme=repo.shown(contract_doc(manifest)))
             path.write_text(f"{header}\nkey = {toml_str(character)}\n\n{block}\n", encoding="utf-8")
         counts["added"] += 1
     return summary
@@ -143,8 +162,8 @@ def load_rows(path: pathlib.Path) -> list[dict]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="把录入行追加进曲包的角色文件（data/packs/<id>/<key>.toml）")
-    parser.add_argument("--pack", required=True, help="曲包 id（= data/packs/<id>.toml 的文件名）")
+    parser = argparse.ArgumentParser(description="把录入行追加进曲包的角色文件（<曲包根>/<id>/<key>.toml）")
+    parser.add_argument("--pack", required=True, help="曲包 id（= 清单 <id>.toml 的文件名）")
     parser.add_argument("--rows", required=True, type=pathlib.Path, help="parse_ingest_rows.py 产出的 JSON")
     parser.add_argument("--album", help="专辑名（清单只声明一张时可不填）")
     parser.add_argument("--dry-run", action="store_true", help="只打印将要写什么")
@@ -152,13 +171,14 @@ def main(argv: list[str] | None = None) -> int:
 
     rows = load_rows(args.rows)
     summary = append_rows(args.pack, rows, args.album, args.dry_run)
+    pack_dir = pack_manifest(args.pack).parent / args.pack
     added = sum(count["added"] for count in summary.values())
     skipped = sum(count["skipped"] for count in summary.values())
     for character in sorted(summary):
         count = summary[character]
         print(f"  {character:<26} +{count['added']}  跳过 {count['skipped']}")
     verb = "将写入" if args.dry_run else "已写入"
-    print(f"{verb} {added} 条 / 跳过重复 {skipped} 条 → data/packs/{args.pack}/"
+    print(f"{verb} {added} 条 / 跳过重复 {skipped} 条 → {repo.shown(pack_dir)}/"
           f"（接着跑 tmc.build 与 tmc.validate）")
     return 0
 

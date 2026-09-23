@@ -112,8 +112,12 @@ def build_albums(mode: str, pack_albums: list[dict]) -> dict:
 
 
 def load_registry(mode: str) -> list[dict]:
-    """读某个模式的音源注册表（``data/sources/<mode>.toml``）。"""
-    with open(repo.DATA / "sources" / f"{mode}.toml", "rb") as fh:
+    """读某个模式的音源注册表（主仓库 ``data/sources/<mode>.toml`` 或 submodule 里的同名文件）。"""
+    path = repo.find_source_registry(mode)
+    if path is None:
+        searched = "、".join(repo.shown(root) for root in repo.source_roots())
+        raise SystemExit(f"找不到音源注册表 {mode}.toml（找过：{searched}）")
+    with open(path, "rb") as fh:
         return tomllib.load(fh)["source"]
 
 
@@ -205,14 +209,18 @@ def dataset_dir(mode: str):
 
 
 def build_outputs() -> tuple[dict, dict[str, dict[str, str]]]:
-    """生成全部文件 → ``(摘要, {模式: {相对路径: 文本}})``。"""
+    """生成全部文件 → ``(摘要, {模式: {相对路径: 文本}})``。
+
+    音MAD 数据集依赖曲包真源（submodule）：**没初始化就跳过它**，不拿空数据覆盖已提交的生成物
+    （submodule 在开发时可选，见 ``data/README.md``）。
+    """
     _packs, pack_albums, pack_tracks, pack_cards = pack_mod.load_packs()
     chars = load_characters()
     pack_audio = pack_mod.audio_descriptors(pack_tracks)
 
     outputs: dict[str, str] = {}
     indices: dict[str, dict] = {}
-    for mode in MODES:
+    for mode in MODES if pack_mod.available() else ("originals",):
         characters = build_characters(mode, chars, pack_tracks, pack_cards)
         albums = build_albums(mode, pack_albums)
         digest = content_hash(characters, albums, pack_audio if mode == "otomads" else [])
@@ -239,6 +247,9 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
 
     indices, outputs = build_outputs()
+    if "otomads" not in indices:
+        print("⚠️  跳过音MAD 数据集（曲包真源 submodule 未初始化）："
+              "保留已提交的 public/data/otomads/*.json", file=sys.stderr)
 
     if args.check:
         drift = [str(p.relative_to(repo.ROOT)) for p, text in outputs.items()
@@ -255,7 +266,7 @@ def main(argv: list[str] | None = None) -> int:
     summary = " / ".join(
         f"{mode} {indices[mode]['counts']['characters']} 角色 "
         f"{indices[mode]['counts']['distinctTracks']} 曲（{indices[mode]['contentHash'][:12]}）"
-        for mode in MODES)
+        for mode in MODES if mode in indices)
     print(f"写出 {len(outputs)} 个文件 → public/data/：{summary}")
     return 0
 

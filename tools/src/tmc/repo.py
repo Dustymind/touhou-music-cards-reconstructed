@@ -11,6 +11,50 @@ THBWIKI_DIR = ROOT / ".ref" / "thbwiki"
 DATA = ROOT / "data"
 PUBLIC_DATA = ROOT / "public" / "data"
 
+
+def shown(path: pathlib.Path) -> str:
+    """路径尽量相对仓库根显示（测试会把 ``DATA`` 指到临时目录，那时只能给绝对路径）。"""
+    try:
+        return str(path.relative_to(ROOT))
+    except ValueError:
+        return str(path)
+
+#: 音MAD 曲包真源 submodule 的目录名（挂在 `data/` 下）。**开发时可选**：没初始化时
+#: 下面的查找函数找不到东西，`tmc.packs` 会跳过、`tmc.build` 不重新生成音MAD 数据集
+#: （用主仓库里已提交的 `public/data/otomads/*.json`）。
+OTOMADS_DATA = "otomads"
+
+
+def pack_roots() -> tuple[pathlib.Path, ...]:
+    """曲包真源的根目录：主仓库 `data/packs/` + submodule `data/otomads/packs/`。
+
+    用函数而不是常量：测试会 monkeypatch `repo.DATA`（见 `tools/tests/`）。
+    """
+    return (DATA / "packs", DATA / OTOMADS_DATA / "packs")
+
+
+def source_roots() -> tuple[pathlib.Path, ...]:
+    """音源注册表的根目录：主仓库 `data/sources/` + submodule `data/otomads/sources/`。"""
+    return (DATA / "sources", DATA / OTOMADS_DATA / "sources")
+
+
+def find_pack_manifest(pack_id: str) -> pathlib.Path | None:
+    """按 :func:`pack_roots` 找曲包清单 `<id>.toml`；找不到返回 `None`。"""
+    for root in pack_roots():
+        path = root / f"{pack_id}.toml"
+        if path.exists():
+            return path
+    return None
+
+
+def find_source_registry(mode: str) -> pathlib.Path | None:
+    """按 :func:`source_roots` 找音源注册表 `<mode>.toml`；找不到返回 `None`。"""
+    for root in source_roots():
+        path = root / f"{mode}.toml"
+        if path.exists():
+            return path
+    return None
+
 # ---------------------------------------------------------------- 路径 → (专辑, 曲目)
 
 #: 曲目键里被当作"作者段"的前缀（上游 getMusicInfo 的同一份白名单）

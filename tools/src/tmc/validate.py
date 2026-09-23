@@ -161,10 +161,14 @@ def check_source_registry(p: Problems) -> dict:
     """
     by_mode: dict[str, list[dict]] = {}
     for mode in build_mod.MODES:
-        path = repo.DATA / "sources" / f"{mode}.toml"
-        if not path.exists():
-            p.error(f"缺少音源注册表：data/sources/{mode}.toml")
-            by_mode[mode] = []
+        path = repo.find_source_registry(mode)
+        if path is None:
+            # 音MAD 的注册表在数据 submodule 里：没初始化就整个模式跳过（可选，见 D128）
+            if mode == "otomads":
+                p.note("音MAD 数据 submodule 未初始化：跳过 otomads 音源注册表检查")
+            else:
+                p.error(f"缺少音源注册表：data/sources/{mode}.toml")
+                by_mode[mode] = []
             continue
         by_mode[mode] = build_mod.load_registry(mode)
 
@@ -568,6 +572,8 @@ def run() -> tuple["Problems", dict]:
     """跑全部不变量校验，返回 (问题集合, 统计)。供 CLI 与测试复用。"""
     p = Problems()
     pack_list, pack_albums, pack_tracks, pack_cards = packs_mod.load_packs()
+    if not packs_mod.available():
+        p.note("曲包真源 submodule 未初始化（data/otomads）：跳过曲包相关校验，音MAD 数据集按空处理")
     albums = load_albums(p)
     for entry in pack_albums:
         if entry["name"] in albums:
