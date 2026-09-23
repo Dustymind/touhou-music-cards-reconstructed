@@ -1,6 +1,7 @@
 """`附加信息` 判定的黄金样例（docs/rules-classification-v1.md §4）与数据不变量。"""
 import pytest
 
+from tmc import packs as pack_mod
 from tmc import validate
 from tmc.roles import RoleIndex, classify
 
@@ -63,6 +64,7 @@ def test_manual_overrides_win_and_are_traceable():
     assert verdict.extra == "角色曲" and verdict.rule == "R-OVR"
 
 
+@pytest.mark.skipif(not pack_mod.available(), reason="音MAD 曲包 submodule 未初始化")
 def test_data_invariants_hold():
     # 下面几个数字是**当前数据的快照**（曲包增长时要一起更新；含义见 docs/DECISIONS.md D52/D97/D112）
     problems, stats = validate.run()

@@ -5,11 +5,17 @@ R6（停生成没人读的 `packs.json`）、R7④（镜像 id 从注册表派�
 """
 from __future__ import annotations
 
+import pytest
+
 from tmc import build
 from tmc import packs as pack_mod
 from tmc import repo
 
+#: 音MAD 曲包真源在 submodule 里，开发时**可选**；没初始化时跳过依赖它的用例
+needs_otomads = pytest.mark.skipif(not pack_mod.available(), reason="音MAD 曲包 submodule 未初始化")
 
+
+@needs_otomads
 def test_generated_outputs_are_exactly_the_contract():
     """生成物清单本身就是契约：多一份**没有消费者**的（R6 的 `packs.json` 就是这么留下的 ✗）
     或少一份都由这条守住 ✓。
@@ -26,6 +32,7 @@ def test_generated_outputs_are_exactly_the_contract():
     assert paths == expected
 
 
+@needs_otomads
 def test_pack_tracks_land_only_in_the_otomads_set():
     """曲包曲目**只**进 otomads 数据集（D112）：原曲那份必须与真源逐条一致。
 
