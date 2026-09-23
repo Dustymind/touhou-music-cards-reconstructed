@@ -19,6 +19,7 @@ from pathlib import Path
 from . import build as build_mod
 from . import packs as packs_mod
 from . import repo
+from . import roster as roster_mod
 
 EXTRAS = ("角色曲", "道中曲", "更多道中曲", "秘封曲")
 KINDS = ("game", "fighting", "hifuu", "other")
@@ -568,12 +569,26 @@ def check_packs(packs: list[dict], albums: list[dict], tracks: list[dict],
             "trimmed": sum(1 for track in tracks if track.get("start_time") or track.get("stop_time"))}
 
 
+def check_roster(p: "Problems") -> int:
+    """数据仓库的角色清单（`data/otomads/characters.toml`）必须与主仓库真源一致（D130）。
+
+    submodule 未初始化时给 note 跳过（音MAD 数据在开发时可选，见 D128）。
+    """
+    if not roster_mod.ROSTER.exists():
+        p.note("音MAD 数据 submodule 未初始化：跳过角色清单检查")
+        return 0
+    for problem in roster_mod.diff():
+        p.error(f"[roster] {problem}")
+    return len(roster_mod.read_roster())
+
+
 def run() -> tuple["Problems", dict]:
     """跑全部不变量校验，返回 (问题集合, 统计)。供 CLI 与测试复用。"""
     p = Problems()
     pack_list, pack_albums, pack_tracks, pack_cards = packs_mod.load_packs()
     if not packs_mod.available():
         p.note("曲包真源 submodule 未初始化（data/otomads）：跳过曲包相关校验，音MAD 数据集按空处理")
+    roster_count = check_roster(p)
     albums = load_albums(p)
     for entry in pack_albums:
         if entry["name"] in albums:
@@ -607,6 +622,7 @@ def run() -> tuple["Problems", dict]:
         "digest": digest, "sources": source_stats, "stage_rows": stage_rows,
         "overrides": overrides, "source_registry": source_registry,
         "card_sets": card_sets, "track_additions": additions, "packs": pack_stats,
+        "roster": roster_count,
         "modes": mode_stats, "pack_cards": len(pack_cards),
         "titles": title_stats, **alias_stats,
         **{k: v for k, v in char_stats.items() if k != "referenced"},

@@ -165,3 +165,37 @@ def test_card_override_is_allowed_for_otomads_only():
 
     # （校验里还有一条"覆盖了却没生效"的守卫：数据集是 build 出来的，正常路径下不会触发，
     #   它防的是将来有人改 build_characters 绕过覆盖 —— 所以这里没有可构造的反例。）
+
+
+# ------------------------------------------------------------------ 曲包校验（写入侧已搬到数据仓库，D130）
+
+PACKS = [{"id": "demo", "label": {"en": "Demo", "zh": "演示"}, "kind": "local", "order": 100}]
+ALBUMS = [{"key": "demo", "name": "demo", "kind": "other", "pack": "demo", "order": 100}]
+CHARS = [{"key": "cirno", "music": []}]
+
+
+def make_pack_track(**overrides) -> dict:
+    track = {"character": "cirno", "album": "demo", "title": "曲目", "extra": "角色曲", "pack": "demo"}
+    track.update(overrides)
+    return track
+
+
+def test_check_packs_flags_bad_source_and_trim():
+    problems = validate.Problems()
+    tracks = [
+        make_pack_track(title="一", source="ftp://example.com/a"),
+        make_pack_track(title="二", start_time="00:00:20.000", stop_time="00:00:10.000"),
+    ]
+    stats = validate.check_packs(PACKS, ALBUMS, tracks, CHARS, problems)
+    assert stats == {"packs": 1, "albums": 1, "tracks": 2, "with_source": 1, "trimmed": 1}
+    assert any("http(s)" in error for error in problems.errors)
+    assert any("必须晚于" in error for error in problems.errors)
+
+
+def test_check_packs_notes_shared_source():
+    problems = validate.Problems()
+    shared = "https://example.com/same"
+    validate.check_packs(PACKS, ALBUMS, [make_pack_track(title="一", source=shared),
+                                         make_pack_track(title="二", source=shared)], CHARS, problems)
+    assert not problems.errors
+    assert any("共用同一个 source" in note for note in problems.notes)
