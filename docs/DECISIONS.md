@@ -4054,7 +4054,7 @@ ring 仍会顶掉上一次 ✓、stop 打断回调且不触发 + dispose 关上�
 
 | 项 | 值 |
 |---|---|
-| 数据仓库 | [`Dustymind/touhou-music-cards-otomads-data`](https://github.com/Dustymind/touhou-music-cards-otomads-data)（public；一个初始提交 = 不保留历史） |
+| 数据仓库 | [`Dustymind/touhou-music-cards-otomads-data`](https://github.com/Dustymind/touhou-music-cards-otomads-data)（public；拆分时是一个初始提交，**历史迁移见 D129**） |
 | tag | `th09.5` —— 主仓库的 submodule pin 在它上面 |
 | submodule 内容 | `packs/otomads.toml` + `packs/otomads/*.toml`（35 份 / 86 首）+ `sources/otomads.toml` |
 | 留在主仓库 | 生成物 `public/data/otomads/*.json` 与 `loudness.json`、`data/card-sets.toml` 的 `otomads` 图集块、全部工具链、协议 v4 |
@@ -4081,6 +4081,31 @@ ring 仍会顶掉上一次 ✓、stop 打断回调且不触发 + dispose 关上�
 **之后要做的事**（写进了 `data/otomads/README.md`）：音MAD 若要引入**原曲没有的角色**或自己的身份，
 要么主仓库先加同名 key，要么另立 S2 契约（`docs/otomads-separation-v1.md` §5）——
 submodule 只是给了第二份名单落脚点，跨库一致性仍要新约定。
+
+## D129 音MAD 数据的提交历史迁到数据仓库（重写 tag `th09.5`）
+
+**需求**（用户）："能否将 commit 记录搬过去" —— D128 当时按"不保留历史"执行，这一轮改成迁移。
+
+**做法**（在主仓库的临时克隆上跑 `git-filter-repo`；单文件脚本从上游 raw 取，不进依赖）：
+
+```bash
+git branch pack-history 16f5e07        # 拆分前最后一个碰曲包数据的提交
+git filter-repo --refs refs/heads/pack-history \
+  --path data/packs/otomads.toml --path data/packs/otomads/ --path data/sources/otomads.toml \
+  --path-rename data/packs/:packs/ --path-rename data/sources/otomads.toml:sources/otomads.toml
+```
+
+- 结果：**13 条提交**（2026-09-17 `feat: port the otomads music mode` → 2026-09-23
+  `data: start the marisa track one second earlier`），作者与日期保留，路径已按新布局重写。
+- `5dfde1e`（"从主仓库删除"那条）**不在**其中：`pack-history` 停在 `16f5e07`，它的后代都不参与过滤。
+  （第一次用 `--refs <hash>` 直接过滤没有重写分支 —— 必须先建一个指向该提交的分支。）
+- 迁移后的 36 个文件头部注释仍指向主仓库路径，补两条提交收尾：
+  `docs: point the pack comments at this repository` + `docs: add the repository readme`（README 里加了"沿革"）。
+
+**收尾与校验**：数据仓库 `main` 与 tag `th09.5` force-push 到重写后的历史（`00ae748`，共 **15** 条）；
+主仓库 submodule 更新 gitlink（仍 pin tag `th09.5`）并提交 `data: pin the otomads submodule to its migrated history`。
+迁移前后逐文件核对：37 个数据文件 blob 哈希**逐一相同** ✓；主仓库 `pnpm data:check` 无漂移 ✓。
+**注意**：克隆过旧历史（`d02b5d6`）的人要重新克隆或 `git fetch --force`；数据仓库刚建，没有别的克隆。
 
 ---
 
