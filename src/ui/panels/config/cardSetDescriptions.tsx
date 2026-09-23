@@ -47,7 +47,7 @@ const CARD_SET_DESCRIPTIONS: Record<string, ReactNode> = {
   "otomads": (
     <>
       Local art for the otomad pack: drop your files into <code>public/cards-otomads/</code>, named as the
-      <code>card = […]</code> lists in <code>data/packs/otomads/*.toml</code> say.
+      <code>card = […]</code> lists in <code>data/otomads/packs/otomads/*.toml</code> say.
     </>
   ),
 };

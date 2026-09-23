@@ -10,9 +10,12 @@
 - `meta/extra-overrides.tsv` 人工裁定表：`(专辑, 曲目) → (附加信息, 依据, 来源)`
 - `meta/unowned-tracks.tsv` 显式"不归属任何角色"清单 + 理由
 - `meta/stage-cast.tsv` 作品 × 面次 × 登场角色参照表（`tmc.validate` 导出，供离线复核）
-- `packs/` 附加曲包；当前是 `otomads.toml`（清单）+ `otomads/*.toml`（一角色一份，35 份；音MAD：本地专辑，**86 首 / 35 个角色**，见 `packs/README.md`）
+- `packs/` 附加曲包的**通用根目录**（当前只剩 `README.md`：未来的第二个包放这里，契约见它）；音MAD 的真源在
+  **submodule** `otomads/` —— 清单 `otomads/packs/otomads.toml` + 一角色一份 `otomads/packs/otomads/*.toml`（35 份；
+  本地专辑，**86 首 / 35 个角色**，见 `otomads/README.md`）。submodule 未初始化时它整个不存在，构建会跳过音MAD 数据集
 - `sources/*.json` 音乐源表，数组形式 `[[专辑, 曲目, URL], …]`（三份镜像：netease163 / cloudflare_r2 / thbwiki）
-- `sources/originals.toml` / `sources/otomads.toml` **各模式一份源注册表**（原曲 = 三个远程镜像；音MAD = 本地曲库助手，其同源路径 `/manifest.json`）
+- `sources/originals.toml` **原曲**的源注册表（三个远程镜像）；音MAD 那份在 submodule 里
+  （`otomads/sources/otomads.toml` = 本地曲库助手，其同源路径 `/manifest.json`）
 
 规则见 `docs/rules-classification-v1.md`。曲目归属的标签来源是 THBWiki 抓取快照
 `.ref/thbwiki/rows.json`（`tmc.fetch_roles` 产出，`tmc.roles` 读取），人工例外只写在 `extra-overrides.tsv`。

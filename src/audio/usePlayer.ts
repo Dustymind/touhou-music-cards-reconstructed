@@ -92,7 +92,7 @@ export function gainKeyOf(entry: MusicEntry | null): string | null {
   return entry[3] ? `${entry[3]} - ${entry[1]}` : entry[1];
 }
 
-/** 本地曲库的源 id（`data/sources/otomads.toml` 里那条 `kind = "local"`，契约 sources-separation-v1.md） */
+/** 本地曲库的源 id（`data/otomads/sources/otomads.toml` 里那条 `kind = "local"`，契约 sources-separation-v1.md） */
 const LOCAL_SOURCE_ID = "local";
 
 export function usePlayer(inputs: PlayerInputs): PlayerApi {

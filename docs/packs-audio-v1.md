@@ -2,7 +2,7 @@
 
 **状态：已实现**（D107）。字段与流程按用户 11 条答复定（见 §7）；实现结果与偏差见 §12。
 
-对象：曲包**角色文件**（`data/packs/<曲包 id>/<角色 key>.toml`，一角色一份；清单只放 `[pack]` / `[[album]]`）
+对象：曲包**角色文件**（`<曲包根>/<曲包 id>/<角色 key>.toml`，一角色一份；清单只放 `[pack]` / `[[album]]`。音MAD 的根是数据 submodule `data/otomads/packs/`，见 D128）
 的 `[[track]]` 新增三个键 —— `source`（抓取）、`start_time` / `stop_time`（裁剪）。
 目的：音MAD 这类曲包曲目不必再手工下载、手工剪，改成"数据里写清来源与裁剪区间，一条命令产出可播放的音频"。
 
@@ -22,7 +22,7 @@
   否则 TOML 里写了也等于没写。
 
 ```toml
-# data/packs/otomads/cirno.toml（文件名必须等于 key；曲目的角色由它决定）
+# data/otomads/packs/otomads/cirno.toml（文件名必须等于 key；曲目的角色由它决定）
 key = "cirno"
 
 [[track]]

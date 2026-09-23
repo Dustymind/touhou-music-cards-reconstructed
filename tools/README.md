@@ -2,7 +2,8 @@
 
 ```bash
 UV_CACHE_DIR=.uv/cache uv sync          # 建立 tools/.venv
-UV_CACHE_DIR=.uv/cache uv run pytest    # 跑数据/规则测试（当前 84 条）
+UV_CACHE_DIR=.uv/cache uv run pytest    # 跑数据/规则测试（当前 93 条）
+git -C .. submodule update --init data/otomads   # 音MAD 曲包真源（可选；没有它 3 条曲包用例会 skip）
 ```
 
 当前模块：
@@ -14,7 +15,7 @@ UV_CACHE_DIR=.uv/cache uv run pytest    # 跑数据/规则测试（当前 84 条
 | `tmc.stages` | 抓取并解析作品页 BOSS 表 → 面次 × 登场角色参照表 |
 | `tmc.roles` | 标签索引、`附加信息` 判定（R-OVR/R0–R6）、人工裁定表 |
 | `tmc.migrate` | 上游 v3 JSON → TOML / 专辑注册表 / 数组化源表 + 报告 |
-| `tmc.packs` | 曲包的加载与校验：清单 `data/packs/<id>.toml` + 角色文件 `data/packs/<id>/<角色 key>.toml`（镜像表以外的曲目，如音MAD） |
+| `tmc.packs` | 曲包的加载与校验：清单 `<根>/<id>.toml` + 角色文件 `<根>/<id>/<角色 key>.toml`（根 = 主仓库 `data/packs/` + 音MAD 数据 submodule `data/otomads/packs/`；submodule **可选**，缺了只跳过音MAD 数据集，见 D128） |
 | `tmc.ingest_pack` | 把 `parse_ingest_rows.py` 的行按角色追加进角色文件（幂等，`--dry-run`） |
 | `tmc.validate` | 不变量校验、面次核对、覆盖表一致性 |
 | `tmc.build` | 生成 `public/data/*.json`（`--check` 做漂移守卫；`contentHash` 含曲包音频口径） |

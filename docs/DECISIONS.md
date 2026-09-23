@@ -4044,6 +4044,44 @@ ring 仍会顶掉上一次 ✓、stop 打断回调且不触发 + dispose 关上�
 （30 条 × 两引擎，5.7min）。
 **反向对照**：把 `src/ui/shell/AppShell.tsx` 单独退回 HEAD（仍硬切）→ 新守卫红在 `expected < 0.5, received 1` ✓。
 
+## D128 音MAD 曲包真源拆到独立数据仓库（submodule `data/otomads`）
+
+**需求**（用户）：先评估"音MAD 数据单独放一个新仓库是否可行"，再按 **方案 A** 执行。五条裁定：
+目的是**仓库整洁**；otomads 在主仓库里**可选**；新仓库暂不管音频与卡面（之后音MAD 可能带自己的卡面覆盖
+或原曲没有的角色）；版本用 **tag** 锁；**不保留** `data/packs/otomads` 的 git 历史。
+
+**形状**
+
+| 项 | 值 |
+|---|---|
+| 数据仓库 | [`Dustymind/touhou-music-cards-otomads-data`](https://github.com/Dustymind/touhou-music-cards-otomads-data)（public；一个初始提交 = 不保留历史） |
+| tag | `th09.5` —— 主仓库的 submodule pin 在它上面 |
+| submodule 内容 | `packs/otomads.toml` + `packs/otomads/*.toml`（35 份 / 86 首）+ `sources/otomads.toml` |
+| 留在主仓库 | 生成物 `public/data/otomads/*.json` 与 `loudness.json`、`data/card-sets.toml` 的 `otomads` 图集块、全部工具链、协议 v4 |
+
+**为什么生成物不跟着搬**：`src/data/load.ts` 启动同时取两份数据集（契约 §4 策略 A），协议 v4 在
+**握手期**交换两个哈希（D112 C3）。生成物留在主仓库 ⇒ 应用与协议**零改动**；数据仓库只承载真源。
+
+**代码**（根目录从"一个"变成"主仓库 + submodule"两组；submodule 缺失就跳过）：
+
+| 位置 | 改动 |
+|---|---|
+| `tmc/repo.py` | `pack_roots()` / `source_roots()`（**函数**：测试会 monkeypatch `DATA`）、`find_pack_manifest()` / `find_source_registry()`、`shown()`（临时目录下 relative_to 会抛，兜底绝对路径） |
+| `tmc/packs.py` | `load_packs()` 遍历全部根目录，不存在的根提示后跳过；新增 `available()`；`_load_root()` 拆出 |
+| `tmc/build.py` | 注册表走 `find_source_registry`；曲包不可用时**只生成 originals + 共享项**，不拿空数据覆盖已提交的 `public/data/otomads/*.json`（`--check` 打印跳过提示） |
+| `tmc/validate.py` | otomads 注册表缺失给 note（不报错）；曲包不可用时 note 并跳过曲包校验 |
+| `tmc/ingest_pack.py` | 清单按根目录查找；新文件的注释写**实际路径**（`data/otomads/packs/...`） |
+| `tools/tests/*` | 依赖真实曲包的 3 条（`test_generated_outputs_...` / `test_pack_tracks_land_only_...` / `test_data_invariants_hold`）加 `skipif(not packs.available())` |
+
+**验证**（全部实测）：`pnpm data:build` 写出 12 个文件（otomads 35 角色 86 曲，哈希 `4c2ae0dee354` 与分离前一致 ✓）；
+`pnpm data:check` 无漂移 ✓；`pnpm data:validate` 通过 ✓；`cd tools && uv run pytest` **93 passed** ✓；
+`pnpm typecheck` ✓；`pnpm test` **628 passed**（314 条 × chromium + firefox ✓）；`pnpm e2e` **84 passed + 1 skipped**（chromium + firefox + mobile，8.3min ✓）。
+**"可选"实测**：把 `data/otomads` 临时移走 → `pnpm data:check` 只保原曲+共享项并给提示、`pytest` 按预期 **skip 3 条** ✓（跑完已复位）。
+
+**之后要做的事**（写进了 `data/otomads/README.md`）：音MAD 若要引入**原曲没有的角色**或自己的身份，
+要么主仓库先加同名 key，要么另立 S2 契约（`docs/otomads-separation-v1.md` §5）——
+submodule 只是给了第二份名单落脚点，跨库一致性仍要新约定。
+
 ---
 
 ## 用户裁定汇总（两轮）

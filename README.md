@@ -36,6 +36,7 @@ pnpm dev                     # http://127.0.0.1:5173/?locale=zh
 ```bash
 fnm use 24
 pnpm install                                         # 前端
+git submodule update --init data/otomads              # 音MAD 曲包真源（可选；不拉也能跑原曲模式）
 cd tools && UV_CACHE_DIR=.uv/cache uv sync && cd ..   # 数据管线 + 曲库助手（建 tools/.venv）
 # 只为跑测试 / e2e（浏览器落在仓库内，已 gitignore）
 PLAYWRIGHT_BROWSERS_PATH="$PWD/.playwright-browsers" pnpm exec playwright install chromium firefox
@@ -102,8 +103,8 @@ cd tools && UV_CACHE_DIR=.uv/cache uv run python -m tmc.local_source
 
 ### 4. 曲包音频的抓取与裁剪（可选）
 
-`data/packs/otomads/*.toml`（一角色一份）里写了 `source` 的曲目可以自动抓，并按 `start_time` / `stop_time`
-裁掉前摇：
+音MAD 曲包的真源在主仓库外的数据 submodule（`data/otomads/packs/otomads/*.toml`，一角色一份，见 D128）：
+写了 `source` 的曲目可以自动抓，并按 `start_time` / `stop_time` 裁掉前摇：
 
 ```bash
 pnpm audio:fetch                                    # 抓全部缺的 / 重裁（幂等：已就绪的会 skip）

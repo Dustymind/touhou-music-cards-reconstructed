@@ -7,7 +7,7 @@
 目的：**音源层也跟数据层一个口径** —— 每个模式用自己那份源表，不需要"切模式时偷偷把某个源打开"。
 
 **用户已裁定**（2026-09）：
-1. 注册表拆成 `data/sources/originals.toml` + `data/sources/otomads.toml`；
+1. 注册表拆成 `data/sources/originals.toml` + `data/otomads/sources/otomads.toml`（后者自 D128 起在数据 submodule 里）；
 2. 用户的开关/顺序存档 `tmc.v1.sources` **按模式分键**（要迁移）；
 3. `effectiveSourceOverrides()` 的解释已给出 ⇒ 建议**删掉**，用构建期校验替代（见 §5）。
 
@@ -34,7 +34,7 @@
 
 ```
 data/sources/originals.toml        # 三个镜像（netease163 / cloudflare_r2 / thbwiki）
-data/sources/otomads.toml          # 只有 local 源，且 enabled = true
+data/otomads/sources/otomads.toml  # 只有 local 源，且 enabled = true（D128：在 submodule 里）
 data/sources/netease163.json       # 三份镜像表：**不拆**（内容是纯原曲，音MAD 一条都没有）
 data/sources/cloudflare_r2.json
 data/sources/thbwiki.json
@@ -118,7 +118,7 @@ public/data/sources/*.json         # 三份镜像表原样复制（它们本来�
 | 文件 | 内容 |
 |---|---|
 | `data/sources/originals.toml` | 三个远程镜像（netease163 / cloudflare_r2 / thbwiki），**不含**本地源 |
-| `data/sources/otomads.toml` | 只有本地曲库源，`order = 1`、`enabled = true`（本模式唯一来源） |
+| `data/otomads/sources/otomads.toml` | 只有本地曲库源，`order = 1`、`enabled = true`（本模式唯一来源；D128 起在 submodule 里） |
 | `public/data/sources.json` / `public/data/otomads/sources.json` | 各自的生成物（`build_sources(mode)`） |
 | `public/data/sources/{netease163,cloudflare_r2,thbwiki}.json` | **不挪**（契约 §2） |
 

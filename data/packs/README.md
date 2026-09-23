@@ -4,13 +4,18 @@
 一角色一份、顶层 `key`）：
 
 ```
-data/packs/otomads.toml                  # 清单：只放 [pack] 与 [[album]]
-data/packs/otomads/kirisame-marisa.toml  # 角色文件：`key` 加若干 [[track]]
+<根>/otomads.toml                  # 清单：只放 [pack] 与 [[album]]
+<根>/otomads/kirisame-marisa.toml  # 角色文件：`key` 加若干 [[track]]
 ```
+
+**根目录**（`tmc.repo.pack_roots`）：主仓库 `data/packs/`（未来的曲包放这里）+ 音MAD 数据
+submodule `data/otomads/packs/`（真源在独立仓库，见 D128）。submodule 在开发时**可选**：
+没初始化时 `data/packs/` 里没有包，构建会跳过音MAD 数据集、用已提交的
+`public/data/otomads/*.json`。
 
 曲目带上 `pack` 归属后，界面按曲包过滤，"当前音乐模式可用"的判定也只算上它们里的曲目。
 曲包曲目**不进** `data/sources/*.json`（地址由曲包的 `kind` 决定），所以 `tmc.validate` 会跳过
-"必须在镜像表里"这一条，其余检查照旧（专辑注册、角色存在、重复、`附加信息` 合法）。
+"必须在镜像表里"这一条，其余检查照旧（专辑注册、角色存在、重复、附加信息合法）。
 
 两条硬规矩（写了直接报错，不猜）：清单里**不许**写 `[[track]]`；`[[track]]` 里**不许**写 `character`
 —— 角色由文件的 `key` 决定，且**文件名必须等于 `key`**。加载与校验在 `tools/src/tmc/packs.py`。
@@ -28,9 +33,12 @@ card = ["チルノ-mad.png"]        # 可选：这套图集目录里的文件名
   （`data/card-sets.toml`，`local_only`：素材自己放进 `public/cards-otomads/`）。
 - 卡面是"跨模式身份一致"的**唯一例外**（`tmc.validate` 的 `check_datasets` 只管
   `name`/`order`/`searchNames`；没写 `card` 的角色仍要求与共享身份一致）。
+- 之后若要让音MAD 有**原曲没有的角色**，得先决定角色 key 从哪来（主仓库加同名 key，或另立一份
+  "音MAD 自己的身份"契约）—— 见 `docs/otomads-separation-v1.md` §5。
 
-当前只有 `otomads`（音MAD，`kind = "local"`）：**86 首 / 35 个角色**，音频地址来自本地曲库助手
-（`tmc.local_source` 的 `/manifest.json`，起法见根 `README.md`）。
+当前唯一的曲包是 `otomads`（音MAD，`kind = "local"`）：**86 首 / 35 个角色**，真源在数据 submodule
+`data/otomads/packs/`（独立仓库，见 D128），音频地址来自本地曲库助手（`tmc.local_source` 的
+`/manifest.json`，起法见根 `README.md`）。音MAD 的录入流程写在 submodule 自己的 `README.md` 里。
 
 ## 录一条新曲目
 
@@ -47,6 +55,8 @@ cd .. && pnpm data:build && pnpm data:validate   # ④ 生成 + 校验
 `--dry-run` 只打印不落盘；角色 key 不在 `data/characters/*.toml` 里直接报错
 （写错一个 key 会让曲目被静默错挂）。
 
+> 真源在 submodule 里时，③ 写进的是 submodule 的工作区：要在**数据仓库**里提交、打新 tag，
+> 主仓库切到该 tag 后再跑 ④（见 `data/otomads/README.md`）。
 
 ## `[[track]]` 的三个音频键（可选）
 
@@ -68,4 +78,5 @@ cd tools && UV_CACHE_DIR=.uv/cache uv run python -m tmc.fetch_audio [--track 子
 `public/data/loudness.json`（裁剪过的曲目会先失效缓存）。完整语义、依赖与失败模式见
 [`docs/packs-audio-v1.md`](../../docs/packs-audio-v1.md)。
 
-形状与来龙去脉见 `docs/DECISIONS.md`（D52 定曲包形状，D96–D100 分批导入，D107 加音频键与抓取命令）。
+形状与来龙去脉见 `docs/DECISIONS.md`（D52 定曲包形状，D96–D100 分批导入，D107 加音频键与抓取命令，
+D128 把真源拆到独立数据仓库）。

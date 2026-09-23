@@ -120,6 +120,9 @@ interface DataBundle {
 覆盖卡面（写法同 `data/characters/*.toml`，缺省沿用共享身份），并新增一套 `local_only` 的
 `id = "otomads"` 图集；**角色身份**（`name`/`order`/`searchNames`）仍是单一真源。
 
+**后续（D128）**：真源已拆到独立数据仓库（主仓库 submodule `data/otomads/`），S2 若要做，第二份名单有了自己的落脚点；
+但"与原曲同名 key 的身份一致"仍由主仓库 `tmc.validate.check_datasets` 守，跨库后要先约定角色 key 的来源。
+
 ---
 
 ## 6. 哈希与协议（待裁定，§10 Q4 —— C 最尖锐的取舍）
@@ -137,7 +140,7 @@ C3 的形状（示意）：
 dataHash: { originals: string; otomads: string };
 ```
 
-**"要求两端都部署两份数据"是不是问题**：是 —— 今天 otomads 数据在**仓库里**（`data/packs` + 生成物），
+**"要求两端都部署两份数据"是不是问题**：是 —— otomads 数据在**主仓库里**（生成物 `public/data/otomads/*`；真源自 D128 起在独立数据仓库的 submodule `data/otomads/`），
 不是"只有本机才有"（只有**音频**是本机的：本地曲库助手）。所以两端都部署两份数据是正常状态，
 C3 不会把"单机模式"变成联机障碍。
 
