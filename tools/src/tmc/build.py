@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import pathlib
 import json
 import sys
 import tomllib
@@ -138,7 +139,7 @@ def build_sources(mode: str) -> dict:
     """
     sources = []
     for entry in load_registry(mode):
-        sources.append({
+        record = {
             "id": entry["id"],
             "label": {"en": entry["label_en"], "zh": entry["label_zh"]},
             "tableUrl": entry["table_url"],
@@ -148,7 +149,11 @@ def build_sources(mode: str) -> dict:
             "proxyable": entry.get("proxyable", False),
             "description": {"en": entry.get("description_en", ""),
                             "zh": entry.get("description_zh", "")},
-        })
+        }
+        # 每个源自己的响度表（D130）：路径相对数据集目录，前端按解析到的 sourceId 取表
+        if entry.get("loudness"):
+            record["loudnessUrl"] = entry["loudness"]
+        sources.append(record)
     sources.sort(key=lambda s: s["order"])
     return {"schema": SCHEMA_VERSION, "sources": sources}
 
@@ -208,6 +213,20 @@ def dataset_dir(mode: str):
     return repo.PUBLIC_DATA if mode == "originals" else repo.PUBLIC_DATA / mode
 
 
+def loudness_tables(mode: str) -> list[tuple[pathlib.Path, pathlib.Path]]:
+    """某模式各源声明的响度表 → ``[(源文件, 目标文件)]``（D130）。
+
+    ``loudness`` 路径写在各源的注册表里、相对**注册表所在仓库的根**；表由源的所有者生成
+    （音MAD 的表在数据仓库），主仓库只负责把它拷进 ``public/data/<mode>/``（生成物随仓库提交）。
+    """
+    path = repo.find_source_registry(mode)
+    if path is None:
+        return []
+    base = path.parent.parent                  # data/otomads/sources/otomads.toml → data/otomads
+    return [(base / entry["loudness"], dataset_dir(mode) / entry["loudness"])
+            for entry in load_registry(mode) if entry.get("loudness")]
+
+
 def build_outputs() -> tuple[dict, dict[str, dict[str, str]]]:
     """生成全部文件 → ``(摘要, {模式: {相对路径: 文本}})``。
 
@@ -218,9 +237,10 @@ def build_outputs() -> tuple[dict, dict[str, dict[str, str]]]:
     chars = load_characters()
     pack_audio = pack_mod.audio_descriptors(pack_tracks)
 
+    modes = MODES if pack_mod.available() else ("originals",)
     outputs: dict[str, str] = {}
     indices: dict[str, dict] = {}
-    for mode in MODES if pack_mod.available() else ("originals",):
+    for mode in modes:
         characters = build_characters(mode, chars, pack_tracks, pack_cards)
         albums = build_albums(mode, pack_albums)
         digest = content_hash(characters, albums, pack_audio if mode == "otomads" else [])
@@ -232,6 +252,15 @@ def build_outputs() -> tuple[dict, dict[str, dict[str, str]]]:
         outputs[base / "index.json"] = _dumps(index)
         # 源表随数据集走（音源层也按模式分，见 sources-separation-v1.md）
         outputs[base / "sources.json"] = _dumps(build_sources(mode))
+
+    # 各源的响度表（D130）：表在源的所有者那边，这里只按注册表声明的路径拷过来
+    for mode in modes:
+        for origin, target in loudness_tables(mode):
+            if not origin.exists():
+                raise SystemExit(
+                    f"响度表不存在：{repo.shown(origin)}"
+                    f"（在数据仓库跑 `uv run --project tools python -m otomads.measure_loudness`）")
+            outputs[target] = origin.read_text(encoding="utf-8")
 
     # 共享项：与模式无关，只写一份
     outputs[repo.PUBLIC_DATA / "cardsets.json"] = _dumps(build_card_sets())

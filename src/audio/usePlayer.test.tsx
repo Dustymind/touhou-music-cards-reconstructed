@@ -39,7 +39,7 @@ function inputs(overrides: Partial<PlayerInputs> = {}): PlayerInputs {
     tables: fakeTables([[["紅魔郷", "おてんば恋娘"], ["紅魔郷", "恋色マスタースパーク"], ["紅魔郷", "オリエンタルダークフライト"]]]),
     sourceOrder: ["fake"],
     // 系数表的地址由调用方给（AppShell 传 `bundle.shared.loudnessUrl` ✓）：单测里就指真实那张表
-    loudnessUrl: "/data/loudness.json",
+    loudnessUrls: { fake: "/data/otomads/loudness/otomads.json" },
     preset: defaultPreset(albums),
     pinned: {},
     currentKey: "cirno",
@@ -362,15 +362,15 @@ describe("逐曲音量均衡（方案 A，只对本地音MAD 生效）", () => {
   });
 
   it("系数表按输入里的地址取，只落在本地曲库那首的 volume 上", async () => {
-    // 表在**数据集的 base** 下（§6.4）：播放层拿表的地址只能来自 `loudnessUrl` 这个输入，
-    // 原来写死的 `./data/loudness.json` 是按文档地址解析的 —— base 一变就取不到表（静默按 1 播 ✗）
+    // 表按**数据集 base** 解析（D130）：播放层只认输入里的 `loudnessUrls`（sourceId → 地址），
+    // 地址解析错了就取不到表、静默按 1 播 ✗
     const asked: string[] = [];
     const realFetch = globalThis.fetch.bind(globalThis);
     vi.stubGlobal("fetch", (async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
       if (!url.includes("loudness")) return realFetch(input as RequestInfo, init);
       asked.push(url);
-      if (url !== "/sub/dir/loudness.json") return new Response("missing", { status: 404 });
+      if (url !== "/sub/dir/otomads/loudness/otomads.json") return new Response("missing", { status: 404 });
       return new Response(JSON.stringify({ targetDb: -14, gains: { "川先僧 - 普通肥猫魔法使": 0.5 } }), {
         status: 200, headers: { "Content-Type": "application/json" },
       });
@@ -389,20 +389,22 @@ describe("逐曲音量均衡（方案 A，只对本地音MAD 生效）", () => {
       tables: localTables,
       sourceOrder: ["local"],
       preset: defaultPreset(otomadAlbum),
-      loudnessUrl: "/sub/dir/loudness.json",
+      loudnessUrls: { local: "/sub/dir/otomads/loudness/otomads.json" },
     })));
 
     await vi.waitFor(() => expect(audios[0]!.volume).toBe(0.5));
-    expect(asked).toEqual(["/sub/dir/loudness.json"]);
+    expect(asked).toEqual(["/sub/dir/otomads/loudness/otomads.json"]);
     expect(hook.result.current.sourceId).toBe("local");
   });
 
   it("真表的键形状与系数范围（地址取 bundle 里那一份）", async () => {
     // 用真实的 loudness.json 校验键的形状：键都是「作者 - 曲名」
     // （浏览器模式下 `public/` 由 Vite 服务，直接取，不读盘）
-    // 地址从 bundle 来：与数据集同一个 base，播放层拿到的就是它 ✓
+    // 地址从 bundle 的源注册表来（按数据集 base 解析 ✓）
     const bundle = await loadRealBundle();
-    const table = (await (await fetch(bundle.shared.loudnessUrl)).json()) as { gains: Record<string, number> };
+    const tableUrl = bundle.datasets.otomads.sources.find((source) => source.loudnessUrl)?.loudnessUrl;
+    expect(tableUrl).toBeTruthy();
+    const table = (await (await fetch(tableUrl!)).json()) as { gains: Record<string, number> };
     const keys = Object.keys(table.gains);
     expect(keys.length).toBeGreaterThan(50);
     // 键就是磁盘文件名：多数是「作者 - 曲名」✓，但也有本来就只写曲名的 ✓，所以不强求分隔符

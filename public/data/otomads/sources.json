@@ -15,7 +15,8 @@
    "description": {
     "en": "Tracks served by the local helper (tools/src/tmc/local_source.py).",
     "zh": "由本机助手提供的曲目（tools/src/tmc/local_source.py）。"
-   }
+   },
+   "loudnessUrl": "loudness/otomads.json"
   }
  ]
 }

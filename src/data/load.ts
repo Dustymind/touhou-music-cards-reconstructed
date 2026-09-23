@@ -124,7 +124,11 @@ async function loadDataset(base: string, expected: MusicMode): Promise<ModeDatas
   ]);
   const characters = validateCharacters(rawCharacters, index.counts.characters);
   const albums = validateAlbums(rawAlbums);
-  const sources = validateSources(rawSources);
+  // 每个源自己的响度表：注册表里的 `loudnessUrl` 相对**数据集目录**解析（契约 D130）
+  const sources = validateSources(rawSources).map((source) => ({
+    ...source,
+    loudnessUrl: source.loudnessUrl ? url(source.loudnessUrl) : undefined,
+  }));
   const characterByKey = new Map(characters.map((character) => [character.key, character]));
   const albumByName = new Map(albums.map((album) => [album.name, album]));
   for (const album of albums) {
@@ -147,8 +151,7 @@ export async function loadDataBundle(base = "./data"): Promise<DataBundle> {
     fetchJson(url("cardsets.json")),
   ]);
   const cardSets = validateCardSets(rawCardSets);
-  // 系数表也在同一个 `url()` 下 ✓ —— 播放层照这份地址取表（原来它自己写死 `./data/loudness.json` ✗）
-  return { shared: { cardSets, loudnessUrl: url("loudness.json") }, datasets: { originals, otomads } };
+  return { shared: { cardSets }, datasets: { originals, otomads } };
 }
 
 /** 某角色的曲目按附加信息分组（预设 UI 与统计用）。 */

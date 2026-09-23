@@ -27,6 +27,7 @@ def test_generated_outputs_are_exactly_the_contract():
         "index.json", "characters.json", "albums.json", "sources.json",            # 原曲
         "otomads/index.json", "otomads/characters.json",
         "otomads/albums.json", "otomads/sources.json",     # 音MAD
+        "otomads/loudness/otomads.json",                   # 音MAD 的响度表（源自己生成，D130）
         *(f"sources/{source_id}.json" for source_id in build.mirror_source_ids()),  # 镜像表
     }
     assert paths == expected

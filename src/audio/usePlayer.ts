@@ -35,8 +35,8 @@ const DEFAULT_PLAYBACK_SETTING: PlaybackSetting = {
 export interface PlayerInputs {
   /** 当前模式的**数据集**（C：只含本模式的角色与曲目，不再按模式过滤） */
   dataset: ModeDataset;
-  /** 逐曲音量均衡的系数表地址：与数据集同一个 `base`（`SharedData.loudnessUrl` ✓） */
-  loudnessUrl: string;
+  /** 每个源自己的响度表：sourceId → 表地址。没声明表的源不在里面（系数按 1 ✓，契约 D130） */
+  loudnessUrls: Readonly<Record<string, string>>;
   tables: TableMap;
   sourceOrder: readonly string[];
   preset: PresetState;
@@ -92,9 +92,6 @@ export function gainKeyOf(entry: MusicEntry | null): string | null {
   return entry[3] ? `${entry[3]} - ${entry[1]}` : entry[1];
 }
 
-/** 本地曲库的源 id（`data/otomads/sources/otomads.toml` 里那条 `kind = "local"`，契约 sources-separation-v1.md） */
-const LOCAL_SOURCE_ID = "local";
-
 export function usePlayer(inputs: PlayerInputs): PlayerApi {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const bellRef = useRef<BellHandle | null>(null);
@@ -128,28 +125,46 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
   );
 
   /** 当前角色在本预设下选中的曲目：多首时按种子取一首（联机同种子 → 同曲目）。 */
-  /** 逐曲音量均衡：`<base>/loudness.json` 里是"文件名 → 衰减系数"（见 tools/measure_loudness.py）。
-   *  地址由输入给（`loudnessUrl` = 数据集那一份 `base` ✓）—— 原来是写死的 `./data/loudness.json`，
-   *  按**文档地址**解析 ✗，base 一变（子目录部署 / 文档比应用根深）就取不到表、静默按 1 播 ✗。
-   *  只衰减不放大 ✓ —— 让每首听感一样响，抢答才公平 ✓。表拿到之前系数按 1 处理 ✓。 */
-  const [gains, setGains] = useState<{ targetDb?: number; gains: Record<string, number> }>({ gains: {} });
+  /** 逐曲音量均衡：每个源自己的表里是"文件名 → 衰减系数"（表由源的所有者生成，见数据仓库 tools/）。
+   *  地址由输入给（`loudnessUrls`：AppShell 从当前数据集的 sources 里取 ✓）—— 只衰减不放大，
+   *  让每首听感一样响，抢答才公平 ✓。表没拿到 / 源没有表 ⇒ 系数按 1 ✓（契约 D130）。 */
+  const [gains, setGains] = useState<Record<string, { targetDb?: number; gains: Record<string, number> }>>({});
+  /** 表地址的**内容**指纹：调用方每次渲染都新建对象也能稳住 effect（否则会反复重取、状态打转 ✗） */
+  const loudnessUrlsRef = useRef(inputs.loudnessUrls);
+  loudnessUrlsRef.current = inputs.loudnessUrls;
+  const loudnessKey = JSON.stringify(inputs.loudnessUrls);
   useEffect(() => {
     let cancelled = false;
-    fetch(inputs.loudnessUrl, { cache: "no-cache" })
-      .then((response) => (response.ok ? response.json() : null))
-      .then((payload) => {
-        if (!cancelled && payload && typeof payload.gains === "object") setGains(payload);
-      })
-      .catch(() => undefined);            // 没有这张表（例如没跑过测量脚本）就按原音量播 ✓
+    const entries = Object.entries(loudnessUrlsRef.current);
+    if (!entries.length) {
+      setGains({});
+      return () => { cancelled = true; };
+    }
+    Promise.all(entries.map(async ([sourceId, url]) => {
+      try {
+        const response = await fetch(url, { cache: "no-cache" });
+        if (!response.ok) return [sourceId, null] as const;
+        const payload = await response.json();
+        return [sourceId, payload && typeof payload.gains === "object" ? payload : null] as const;
+      } catch {
+        return [sourceId, null] as const;   // 没有这张表（例如还没量过响度）就按原音量播 ✓
+      }
+    })).then((rows) => {
+      if (cancelled) return;
+      const next: Record<string, { targetDb?: number; gains: Record<string, number> }> = {};
+      for (const [sourceId, payload] of rows) if (payload) next[sourceId] = payload;
+      setGains(next);
+    });
     return () => { cancelled = true; };
-  }, [inputs.loudnessUrl]);
+  }, [loudnessKey]);
 
-  /** 只对**本地曲库**（音MAD 那批）生效 ✓ —— 别的镜像源没有这张表，也不该被改音量 ✓ */
+  /** 按**解析到的那个源**自己的表衰减 ✓ —— 没表的源（三个镜像）保持原音量 ✓ */
   const gainOf = useCallback((target: MusicEntry | null): number => {
-    if (resolved?.sourceId !== LOCAL_SOURCE_ID) return 1;
+    const table = resolved ? gains[resolved.sourceId] : undefined;
+    if (!table) return 1;
     const key = gainKeyOf(target);
-    return (key && gains.gains[key]) || 1;
-  }, [gains, resolved?.sourceId]);
+    return (key && table.gains[key]) || 1;
+  }, [gains, resolved]);
 
   const entry = useMemo<MusicEntry | null>(() => {
     if (!character) return null;

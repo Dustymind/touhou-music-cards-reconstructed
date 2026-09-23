@@ -159,10 +159,18 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
     return { ...pinned, [entryRequest.key]: entryRequest.entry };
   }, [pinned, entryRequest]);
 
+  // 每个源自己的响度表（D130）：源没声明就没有表，播放层按 1 处理
+  const loudnessUrls = useMemo(() => {
+    const out: Record<string, string> = {};
+    for (const source of dataset.sources) {
+      if (source.loudnessUrl) out[source.id] = source.loudnessUrl;
+    }
+    return out;
+  }, [dataset.sources]);
+
   const player = usePlayer({
     dataset,
-    // 系数表与数据集用**同一份** base（原来播放层自己写死 `./data/loudness.json` ✗，见 REVIEW §6.4）
-    loudnessUrl: bundle.shared.loudnessUrl,
+    loudnessUrls,
     tables: sources.tables,
     sourceOrder: sources.order,
     preset: activePreset,

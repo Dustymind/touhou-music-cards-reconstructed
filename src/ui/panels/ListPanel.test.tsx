@@ -43,7 +43,7 @@ function dataset(mode: "originals" | "otomads", characters: CharacterRecord[], a
 }
 
 const bundle = {
-  shared: { cardSets: [], loudnessUrl: "/data/loudness.json" },
+  shared: { cardSets: [] },
   datasets: {
     originals: dataset("originals", [cirnoOriginals, reimu], [ORIGINALS_ALBUM]),
     otomads: dataset("otomads", [cirnoOtomads], [OTOMADS_ALBUM]),
