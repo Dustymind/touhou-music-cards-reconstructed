@@ -1,9 +1,10 @@
-数据管线与本地音乐源助手（Python + uv）。
+数据管线（Python + uv）。本地音乐源助手、抓取/裁剪、响度与录入工具自 D130 起在
+**数据仓库**（`data/otomads/tools/`，见那里的 `README.md`）；主仓库这里只留数据生成与校验。
 
 ```bash
-UV_CACHE_DIR=.uv/cache uv sync          # 建立 tools/.venv
-UV_CACHE_DIR=.uv/cache uv run pytest    # 跑数据/规则测试（当前 93 条）
-git -C .. submodule update --init data/otomads   # 音MAD 曲包真源（可选；没有它 3 条曲包用例会 skip）
+UV_CACHE_DIR=.uv/cache uv sync          # 建立 tools/.venv（已不再依赖 yt-dlp）
+UV_CACHE_DIR=.uv/cache uv run pytest    # 数据/规则测试（当前 34 条）
+git -C .. submodule update --init data/otomads   # 音MAD 数据（可选；没有它曲包相关用例会 skip）
 ```
 
 当前模块：
@@ -15,18 +16,15 @@ git -C .. submodule update --init data/otomads   # 音MAD 曲包真源（可选�
 | `tmc.stages` | 抓取并解析作品页 BOSS 表 → 面次 × 登场角色参照表 |
 | `tmc.roles` | 标签索引、`附加信息` 判定（R-OVR/R0–R6）、人工裁定表 |
 | `tmc.migrate` | 上游 v3 JSON → TOML / 专辑注册表 / 数组化源表 + 报告 |
-| `tmc.packs` | 曲包的加载与校验：清单 `<根>/<id>.toml` + 角色文件 `<根>/<id>/<角色 key>.toml`（根 = 主仓库 `data/packs/` + 音MAD 数据 submodule `data/otomads/packs/`；submodule **可选**，缺了只跳过音MAD 数据集，见 D128） |
-| `tmc.ingest_pack` | 把 `parse_ingest_rows.py` 的行按角色追加进角色文件（幂等，`--dry-run`） |
-| `tmc.validate` | 不变量校验、面次核对、覆盖表一致性 |
-| `tmc.build` | 生成 `public/data/*.json`（`--check` 做漂移守卫；`contentHash` 含曲包音频口径） |
-| `tmc.fetch_audio` | 抓取（yt-dlp）+ 裁剪（ffmpeg `-c copy`）曲包音频，顺带刷新响度表 |
-| `tmc.loudness` | 逐曲响度 → `public/data/loudness.json`（入口仍是 `measure_loudness.py`） |
-| `tmc.local_source` | 本地曲库助手：`/manifest.json` + `/media/...`（Range/CORS、端口回退） |
+| `tmc.packs` | 曲包的**只读**加载与校验：清单 `<根>/<id>.toml` + 角色文件 `<根>/<id>/<角色 key>.toml`（根 = 主仓库 `data/packs/` + submodule `data/otomads/packs/`；写入侧已搬去数据仓库） |
+| `tmc.roster` | 从 `data/characters/*.toml` 生成数据仓库的角色清单 `characters.toml`（`pnpm data:roster`） |
+| `tmc.validate` | 不变量校验、面次核对、覆盖表一致性、角色清单守卫 |
+| `tmc.build` | 生成 `public/data/*.json`（`--check` 漂移守卫；`contentHash` 含曲包音频口径；按源注册表的 `loudness` 把响度表拷进数据集目录） |
 | `tmc.check_urls` | 远程音源实链抽查（Range 请求 + 音频嗅探） |
 
-运行时依赖：`yt-dlp`（抓取，见 `pyproject.toml`）+ **系统 ffmpeg**（裁剪与量响度）。
-`tmc.fetch_audio` 会在跑之前检查 yt-dlp 更新：有新版本就自动升级并继续，升级失败则中止（`--offline-ok` 可跳过检查）。
-
-
+**不在这里**（数据仓库 `data/otomads/tools/`，自带 uv 工程、与主仓库零 import / 零 path 依赖）：
+`otomads.local_source`（本地曲库助手）、`otomads.fetch_audio` / `loudness` / `measure_loudness`（抓取、裁剪、响度）、
+`otomads.ingest_pack` / `parse_ingest_rows` / `ingest_otomads` / `ingest_local_audio`（录入）、`otomads.packformat`（格式层）。
+主仓库的 `pnpm local` / `pnpm audio:fetch` / `pnpm audio:measure` 只是**纯路径包装**（D130）。
 
 > 本机沙箱下 `$HOME/.cache` 只读，因此必须给 `uv` 指定仓库内的缓存目录（`UV_CACHE_DIR=.uv/cache`，已在 `.gitignore` 中忽略）。

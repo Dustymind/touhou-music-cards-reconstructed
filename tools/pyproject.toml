@@ -1,14 +1,9 @@
 [project]
 name = "tmc-tools"
 version = "0.1.0"
-description = "东方歌牌重构版：数据迁移 / 校验 / 生成 / 分类工具与本地音乐源服务器"
+description = "东方歌牌重构版：数据迁移 / 校验 / 生成 / 分类工具（抓取与本地源助手在数据仓库 tools/，D130）"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = [
-    # 曲包音频抓取（`tmc.fetch_audio`）。站点改版频繁，所以抓取前会检查并升级到最新版
-    # （见 docs/packs-audio-v1.md §4）；升级会改动 uv.lock，属预期。
-    "yt-dlp>=2025.1.1",
-]
 
 [dependency-groups]
 dev = ["pytest>=8.0"]

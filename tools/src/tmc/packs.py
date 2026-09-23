@@ -1,7 +1,7 @@
 """附加曲包（``data/packs/*.toml`` 等根目录）的加载与校验。
 
-曲包是"镜像表以外的曲目"：比如音MAD（otomads）那批只存在于本机（由
-``tools/src/tmc/local_source.py`` 起的本地曲库助手提供）的曲目。它们不进
+曲包是"镜像表以外的曲目"：比如音MAD（otomads）那批只存在于本机（由数据仓库的
+``otomads.local_source`` 起的本地曲库助手提供）的曲目。它们不进
 ``data/sources/*.json``，因此：
 
 * ``albums.toml`` 里不必也不该为它们写条目 —— 曲包自己带 ``[[album]]``；
@@ -17,6 +17,9 @@
 **根目录**（:func:`tmc.repo.pack_roots`）：主仓库 `data/packs/` + 音MAD 数据 submodule
 `data/otomads/packs/`。submodule 在开发时**可选** —— 没初始化时这里给一行提示并跳过它
 （契约 `docs/otomads-separation-v1.md`）。
+
+**只读**：写入侧（录入 / 抓取 / 响度）自 D130 起在数据仓库的 `tools/`（`otomads.*`），
+本模块只负责读与校验。
 
 清单（`<根>/<曲包 id>.toml`）::
 
@@ -56,7 +59,6 @@
 """
 from __future__ import annotations
 
-import hashlib
 import pathlib
 import re
 import sys
@@ -114,20 +116,6 @@ def trim_seconds(track: dict) -> tuple[float, float | None] | None:
     if stop <= start:
         raise ValueError(f"stop_time（{stop_text}）必须晚于 start_time（{start_text or '00:00:00.000'}）")
     return (start, stop - start)
-
-
-def audio_filename(track: dict) -> str:
-    """成品文件名 —— **必须**与磁盘/助手 manifest 的口径一致：`作者 - 标题.mp3`（无作者则 `标题.mp3`）。
-
-    这个名字同时是 manifest 的匹配键、`loudness.json` 的键与单曲模式存档的一部分，所以不能改（D95/D96）。
-    """
-    author = (track.get("author") or "").strip()
-    return f"{author} - {track['title']}.mp3" if author else f"{track['title']}.mp3"
-
-
-def source_key(source: str) -> str:
-    """`source` → 原始件的文件名（同一来源只下一份，重复引用时复用）。"""
-    return hashlib.sha1(source.strip().encode("utf-8")).hexdigest()[:16]
 
 
 def available() -> bool:
