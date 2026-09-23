@@ -145,12 +145,40 @@ pnpm preview    # 本地预览 dist/
 
 - **纯静态托管**：把 `dist/` 交给任意静态服务器即可（`base` 是 `./`，子目录部署也能直接跑）。
   静态站没有开发服务器那层代理，音MAD 要在设置页填「本地曲库地址」。
-- **单端口**（应用 + 曲库 + 信令同端口）：`pnpm build` → 起助手（§3）→ 起信令（`pnpm e2e:peer`，可选）→
-  `node deploy/single-port-proxy.mjs`（默认 `0.0.0.0:8080`，`PORT` / `HOST` 可改）或 `caddy run --config deploy/Caddyfile`。
-  **只把代理绑 `0.0.0.0`**，应用与助手留在回环后面；监听地址的坑、HMR/WebSocket、https 与混合内容见
-  [`deploy/README.md`](deploy/README.md)。
+- **单端口透传**（应用 + 曲库 + 信令同端口）：见下面小节。
 - **联机**：信令默认走本机 PeerJS（`*:9100`）；音视频是 WebRTC P2P（UDP），跨 NAT 需要 STUN/TURN。
   页面参数 `?peerhost=<域名>&peerport=<端口>&peerpath=/peerjs&peersecure=`（`peersecure` 省略时跟页面协议走）。
+
+#### 单端口透传（应用 + 曲库 + 信令同端口）
+
+应用、本地曲库助手、联机信令各跑各的，对外**只暴露一个端口**，由反向代理按路径透传：
+
+```bash
+pnpm build                                                             # 1) 应用产物 dist/
+cd tools && UV_CACHE_DIR=.uv/cache uv run python -m tmc.local_source   # 2) 曲库助手 → 127.0.0.1:8011
+pnpm e2e:peer                                                          # 3) 自建信令 → 127.0.0.1:9100（可选，联机才要）
+APP=static node deploy/single-port-proxy.mjs                           # 4) 对外单端口 → 0.0.0.0:8080
+# 开发时想保留 HMR：`pnpm dev` + `node deploy/single-port-proxy.mjs`（默认把其余请求转到 5173）
+# 装了 Caddy 的等价物：`caddy run --config deploy/Caddyfile`
+```
+
+打开 `http://<本机可路由地址>:8080/?locale=zh`（`hostname -I` 看本机地址）。
+
+| 路径 | 透传到 | 说明 |
+|---|---|---|
+| `/manifest.json`、`/media/*` | `127.0.0.1:8011` | 曲库助手；manifest 里的音频地址按 `X-Forwarded-Proto`/`Host` 现拼，Range 由助手处理 |
+| `/peerjs`、`/peerjs/*` | `127.0.0.1:9100` | 自建 PeerJS 信令 |
+| 其余 | `127.0.0.1:5173`（`APP=static` 时是 `dist/`） | 应用；SPA 回退也在这里 |
+
+**三条必须守住的规则**：
+
+1. **只把代理绑 `0.0.0.0`**，应用与助手留在回环后面 —— 只绑 `127.0.0.1` 的端口从外部浏览器根本连不上（容器/沙箱里尤其明显），全绑又白白多暴露两个端口。
+2. **`X-Forwarded-Proto` 原样往下传**：最外层是 https 隧道/反代时（Cloudflare Tunnel、ngrok、Caddy 都会带 `https` 进来），代理不许改写它，否则助手把音频地址拼成 `http://…`，https 页面报「连接不完全安全」。上层完全不转发协议时用 `PROTO=https node deploy/single-port-proxy.mjs`，或给助手 `--public-base https://<域名>/` 显式指定。
+3. **WebSocket 的 `upgrade` 也按同一套分流转发**：否则经代理端口打开的页面 HMR 不工作，`/peerjs` 也连不上。
+
+环境变量：`HOST`（默认 `0.0.0.0`）、`PORT`（默认 `8080`）、`APP`（默认 `http://127.0.0.1:5173`，`static` = 直接服务 `dist/`）、`LOCAL`（默认 `8011`）、`PEER`（默认 `9100`）、`PROTO`（上层不转发协议时手填 `https`）。
+
+本地源用的是相对路径 `/manifest.json`（**同源**），所以不需要 CORS，换域名/端口/协议也不用改数据、不用重新生成 manifest。更细的踩坑（监听地址、HMR、https 与混合内容、本机分开跑的 `?localmusic=` 覆盖）见 [`deploy/README.md`](deploy/README.md)。
 
 ### 6. 跑测试与数据守卫
 
@@ -175,7 +203,7 @@ pnpm preview    # 本地预览 dist/
 | 音MAD 列表为空、e2e 音MAD 用例红 | 助手没起或不在 8011：`curl -s http://127.0.0.1:8011/manifest.json \| head` |
 | 助手起来了、页面还是没歌 | 它回落到了别的端口（dev 代理写死 8011）：`?localmusic=127.0.0.1:8012` 或设置页填地址 |
 | 音频 404、拖进度条失效 | 静态部署时没填「本地曲库地址」；或用了 `python3 -m http.server` 这类服务器（不支持 Range/CORS；助手本身都支持） |
-| https 页面报"连接不完全安全" | 混合内容：最外层反代要转发 `X-Forwarded-Proto`；或 `PROTO=https node deploy/single-port-proxy.mjs`、助手 `--public-base`（详见 `deploy/README.md`） |
+| https 页面报"连接不完全安全" | 混合内容：最外层反代要转发 `X-Forwarded-Proto`；或 `PROTO=https node deploy/single-port-proxy.mjs`、助手 `--public-base`（详见 §5「单端口透传」与 `deploy/README.md`） |
 | `tmc.fetch_audio` 一启动就退出 | yt-dlp 的升级检查需要联网（连不上 PyPI 就中止，可加 `--offline-ok`）；ffmpeg 缺失也在这里报错 |
 | 抓取个别曲目失败 | 站点限制 / 需登录 / 已下架：单条失败只跳过并计入汇总，其余照抓 |
 | 改了数据/换了裁剪，但音频还是老的 | 成品是按状态跳过的：`pnpm audio:fetch`（只改裁剪会复用原件重裁）；要**覆盖重拉**就加 `--force`，可配 `--track <子串>` 只重拉一部分（§4） |
