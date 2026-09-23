@@ -43,7 +43,7 @@ stop_time = "00:01:10.000"
 .music/.state/otomads.json             ← 幂等状态：source / 原件 hash / start / stop / 成品 hash / yt-dlp 版本
 ```
 
-**必须注意**（会让计数和 e2e 一起错）：`tmc.local_source.scan_library()` 把**库根下的第一层目录名当专辑名**，
+**必须注意**（会让计数和 e2e 一起错）：`otomads.local_source.scan_library()` 把**库根下的第一层目录名当专辑名**，
 而且是 `os.walk` 递归 —— 库根是 `.music`（`local-source.toml`）。原始件若放在 `.music/raw/` 这种普通目录，
 manifest 里就会多出 `album = "raw"` 的垃圾条目，**曲目计数直接变多**（音MAD 统计那条 e2e 就是拿 manifest 数的）。
 因此：原始件放**点目录** `.music/.raw/`，**并且**给 `scan_library` 加一条"跳过任何点目录/点文件"的防线（两处都做）。
@@ -51,7 +51,7 @@ manifest 里就会多出 `album = "raw"` 的垃圾条目，**曲目计数直接�
 ## 3. 命令与流程（独立命令，不进 `tmc.build`）
 
 ```bash
-pnpm audio:fetch          # = cd tools && UV_CACHE_DIR=.uv/cache uv run python -m tmc.fetch_audio
+pnpm audio:fetch          # = cd data/otomads/tools && uv run python -m otomads.fetch_audio --config ../../../local-source.toml
 ```
 
 参数（**不做** `--only <pack>`：现在只有一个曲包，多包时再加；真正有用的是按曲目筛）：
@@ -66,11 +66,10 @@ pnpm audio:fetch          # = cd tools && UV_CACHE_DIR=.uv/cache uv run python -
 1. **依赖检查**：`ffmpeg -version`（系统二进制，缺就报错并给出安装提示）；yt-dlp 走 uv 管（见 §4）。
 2. **yt-dlp 更新**：`uv lock --upgrade-package yt-dlp && uv sync`，然后继续（见 §4 的失败与离线行为）。
 3. **逐条处理** `[[track]]`：状态命中就跳过 → 否则下载原件 → 按 §5 裁剪 → 写成品 + 状态。
-4. **顺便量响度**（用户第 9 条）：先把本次**裁过/换过**的曲目从 `loudness.json` 的缓存里删掉（否则会沿用
-   裁剪前的 dB ✗），再整体跑一次量响度，产出新的 `public/data/loudness.json`。
-   实现上把 `tools/measure_loudness.py` 的核心搬进 `tools/src/tmc/loudness.py`（可被调用），
-   原脚本保留成薄封装（D102 里那条命令照旧可用）。顺带修一个既有小毛病：`measuredDb` 里**已删除文件**的旧键
-   从不清理，这次一并清掉。
+4. **顺便量响度**（用户第 9 条）：先把本次**裁过/换过**的曲目从响度表的缓存里删掉（否则会沿用
+   裁剪前的 dB ✗），再整体跑一次量响度，产出新的 `loudness/<包>.json`（数据仓库，D130）。
+   实现上 `otomads.fetch_audio` 直接调用 `otomads.loudness`（`measure_loudness` 是同一核心的 CLI）。
+   顺带修一个既有小毛病：`measuredDb` 里**已删除文件**的旧键从不清理，这次一并清掉。
 5. **汇总报告**：成功 / 跳过 / 失败各多少条；有失败则以非 0 退出（但不中断其余曲目）。
 
 **`tmc.build` / `pnpm data:check` 保持离线和机器无关**：只做 TOML 的**结构校验**，**不检查音频文件是否存在**。
@@ -121,11 +120,16 @@ ffmpeg -y -i <原件> -t <stop> -c copy <成品>
 2. **`contentHash` 纳入裁剪与来源**（用户第 4 条决定）：`build.py` 的 `content_hash(characters, albums)`
    扩成把每条的 `(album, title, start_time, stop_time, source)` 也算进去 —— 于是"两端裁剪/抓取不同"
    会在**握手期**被拒绝，而不是等抢答时发现起点不一样。代价：改一条 trim 就要两端同步数据（本来也该如此）。
-3. **响度缓存必须失效**：`tools/measure_loudness.py` 的缓存键是**文件名 stem**
+3. **响度缓存必须失效**：`otomads.measure_loudness`（数据仓库）的缓存键是**文件名 stem**
    （`p.stem in cache` 就跳过）。裁剪后文件名不变 ⇒ 会沿用**裁剪前**的 dB，逐曲均衡就错了。
-   裁剪流程要删掉该曲目的缓存键，并重跑量响度；`public/data/loudness.json` 是**跟踪文件**，与音频一起提交。
+   裁剪流程要删掉该曲目的缓存键，并重跑量响度；`loudness/<包>.json`（数据仓库）是**跟踪文件**，与音频一起提交。
 4. **文件名不许改**：manifest 匹配（`sources.ts` 的 `normalizeTitle` + "以 `作者 - 曲名` 结尾"兜底）、
-   `loudness.json` 的键、单曲模式存档，全都建立在 `<作者> - <标题>.mp3` 上。
+   `loudness` 表的键、单曲模式存档，全都建立在 `<作者> - <标题>.mp3` 上。
+5. **响度按源（D130）**：响度表是**每个源自己的表** —— 源注册表里的可选 `loudness` 键（路径相对该源所在仓库的根）。
+   表由**源的所有者**生成（音MAD 在数据仓库 `tools/`）；主仓库 `tmc.build` 只按注册表声明的路径把它
+   拷进 `public/data/<mode>/`。运行时 `SourceRecord.loudnessUrl`（相对数据集目录）交给播放层，
+   播放层按**解析到的 sourceId** 取表；**没有表的源**（三个远程镜像）系数按 1。
+   全局那一份 `public/data/loudness.json` 已退场。
 
 ## 7. 决策记录（用户答复）
 

@@ -4107,6 +4107,49 @@ git filter-repo --refs refs/heads/pack-history \
 迁移前后逐文件核对：37 个数据文件 blob 哈希**逐一相同** ✓；主仓库 `pnpm data:check` 无漂移 ✓。
 **注意**：克隆过旧历史（`d02b5d6`）的人要重新克隆或 `git fetch --force`；数据仓库刚建，没有别的克隆。
 
+## D130 本地源工具与音频流程迁到数据仓库（每源一张响度表 + 角色清单）
+
+**需求**（用户）：执行方案 B —— 把"本地源工具"也搬进数据仓库。四条裁定：① 响度**按源表项**；
+② 角色清单用**带 name/order 的 TOML**；③ 契约文档仍以主仓库 `docs/packs-audio-v1.md` 为准；
+④ 主仓库保留 `pnpm` 包装，但**数据仓库必须能独立跑起完整的音乐源**。
+
+**搬了什么**（数据仓库 `tools/` = 自带 uv 工程；与主仓库**零 import、零 path 依赖**，只靠文件格式当契约）：
+
+| 数据仓库（新） | 主仓库（留） |
+|---|---|
+| `otomads.local_source`、`packformat`（格式层：读 + 写 + 音频路径工具）、`ingest_pack`、`fetch_audio`、`loudness` / `measure_loudness`、`parse_ingest_rows`、`ingest_otomads`、`ingest_local_audio` + **59 条测试** | `tmc.packs` **瘦身成只读**（读 + 严格校验 + `audio_descriptors`；`audio_filename` / `source_key` 随抓取搬走）、`tmc.build`、`tmc.validate`、新增 `tmc.roster` |
+| `characters.toml`（清单）、`loudness/otomads.json` | 生成物 `public/data/**`、`data/card-sets.toml` 的 otomads 图集块、协议 v4、`.music/` 与 `local-source.toml`（机器相关，不搬） |
+
+**每源一张响度表**（用户①）：源注册表新增可选 `loudness = "loudness/otomads.json"` → `build_sources()`
+透传成 `SourceRecord.loudnessUrl`（相对数据集目录）→ `data:build` 把它拷进
+`public/data/otomads/loudness/otomads.json`。运行时：`SharedData.loudnessUrl` 退场，`usePlayer` 按
+**解析到的 `sourceId`** 取对应表，**没有表的源**（三个原曲镜像）系数按 1。生成仍在源的所有者那边：
+`fetch_audio` / `measure_loudness` 只写 `loudness/<包>.json`。
+
+**角色清单**（用户②）：`tmc.roster` 从 `data/characters/*.toml` 生成数据仓库的 `characters.toml`
+（`key` / `name` / `order`）；数据仓库的 `ingest_pack` 只认它，所以能**独立录入**；`tmc.validate` 新增
+`check_roster` 守一致（submodule 缺失时给 note 跳过）。手工追加的"原曲没有的角色"会保留 —— S2 的落脚点。
+
+**独立跑验收**（数据仓库干净目录实测）：`uv sync --project tools` ✓；`uv run --project tools pytest`
+**59 passed** ✓；`local_source --print-url` ✓，真起服务后 `/manifest.json` 200 + Range **206** ✓；
+`measure_loudness` 对测试音频出表 ✓；`fetch_audio --dry-run`（含 `--track` 过滤）/ `ingest_pack --dry-run` /
+`parse_ingest_rows` ✓ —— 全程不 import 主仓库任何代码。
+
+**主仓库接线**：`pnpm local` / `pnpm audio:fetch` / `pnpm audio:measure` 是**纯路径包装**
+（`cd data/otomads/tools && uv run … --config ../../../local-source.toml`；submodule 缺失时一行报错），
+`pnpm data:roster` 生成清单；`tools/pyproject.toml` 去掉 `yt-dlp`。
+
+**踩到的坑**：`usePlayer` 的表地址输入从"一个 URL"变成"sourceId → URL 的映射"后，调用方每次渲染新建对象
+会让取表 effect 无限重跑（单测超时暴露）—— 依赖改成**内容的 `JSON.stringify` 指纹**，映射本体放 ref。
+
+**验证**：`data:build` 写出 13 个文件（多出响度表）、`data:check` 无漂移 ✓、`data:validate` ✓（含清单守卫）、
+主仓库 `pytest` **34 passed**（缺 submodule 时 3 条按预期 skip）✓、`pnpm test` **628 passed** ✓、
+`pnpm e2e` **84 passed + 1 skipped**（7.9min ✓；首跑 4 条红是**助手没起** —— e2e 的既有前置条件，
+起 `pnpm local` 后全绿）。**缺 submodule 实测**：`data:check` 只保原曲+共享项并给提示 ✓、`data:validate` 通过 ✓。
+
+**契约**（用户③）：曲包格式与音频流程仍以主仓库 `docs/packs-audio-v1.md` 为准（§6 新增"响度按源"一条）；
+数据仓库 README 写"写入侧 + 独立运行"。
+
 ---
 
 ## 用户裁定汇总（两轮）

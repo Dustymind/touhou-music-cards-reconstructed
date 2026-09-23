@@ -55,7 +55,7 @@ Playwright 跑 e2e 时会自己起一个（5190 端口）与联机信令（9100�
 
 ### 3. 本地曲库与助手（音MAD 模式，可选）
 
-音MAD 侧的音乐由 `tmc.local_source` 就地提供：`/manifest.json`（曲目表，**按请求现拼**）与
+音MAD 侧的音乐由数据仓库的 `otomads.local_source` 就地提供（主仓库里用 `pnpm local` 起）：`/manifest.json`（曲目表，**按请求现拼**）与
 `/media/<专辑>/<曲目>.mp3`（支持 Range / CORS）。
 
 目录布局（`<曲库>` 默认是仓库根的 `.music/`）：
@@ -89,7 +89,8 @@ label_zh = "音MAD"
 启动：
 
 ```bash
-cd tools && UV_CACHE_DIR=.uv/cache uv run python -m tmc.local_source
+pnpm local                                            # 起助手（工具在数据仓库 tools/，D130）
+# 等价于 cd data/otomads/tools && uv run python -m otomads.local_source --config ../../../local-source.toml
 # --root / --port / --host / --public-base 可覆盖配置；
 # --print-url 只打印实际地址；--print-table 只打印曲目表 JSON
 ```
@@ -99,7 +100,7 @@ cd tools && UV_CACHE_DIR=.uv/cache uv run python -m tmc.local_source
 `http://127.0.0.1:5173/?localmusic=127.0.0.1:8012`，或在设置页 → 音乐源 → **本地曲库地址** 里填（会落盘）。
 
 人工放音频：把 `<作者> - <标题>.wav/flac/m4a/...` 丢进 `<曲库>/incoming/`，再跑
-`python3 tools/ingest_local_audio.py`（转 320k mp3 并移进 `<曲库>/otomads/`）。
+`uv run --project data/otomads/tools python -m otomads.ingest_local_audio`（转 320k mp3 并移进 `<曲库>/otomads/`）。
 
 ### 4. 曲包音频的抓取与裁剪（可选）
 
@@ -134,8 +135,8 @@ pnpm audio:fetch --track 岁月 --dry-run              # 只看计划：标题�
 > ⚠️ `--dry-run` 的预览**不体现 `--force`**（它只看原件在不在）：`--force --dry-run` 仍会打印"原件已在"，
 > 但真正跑起来是**重下重裁**。想看"哪些命中"，用 `--track <子串> --dry-run` 筛就够了。
 
-`--force` 会重下全部命中项，跑完还会**重量一遍响度表**（`public/data/loudness.json`）—— 那份是提交进仓库的生成物，
-记得一起提交。
+`--force` 会重下全部命中项，跑完还会**重量一遍响度表**（数据仓库的 `loudness/otomads.json`，在那边提交；
+主仓库 `pnpm data:build` 会把它拷成 `public/data/otomads/loudness/otomads.json`）—— 两边记得一起提交。
 
 ### 5. 构建与部署
 
@@ -156,7 +157,7 @@ pnpm preview    # 本地预览 dist/
 
 ```bash
 pnpm build                                                             # 1) 应用产物 dist/
-cd tools && UV_CACHE_DIR=.uv/cache uv run python -m tmc.local_source   # 2) 曲库助手 → 127.0.0.1:8011
+pnpm local                                                          # 2) 曲库助手 → 127.0.0.1:8011
 pnpm e2e:peer                                                          # 3) 自建信令 → 127.0.0.1:9100（可选，联机才要）
 APP=static node deploy/single-port-proxy.mjs                           # 4) 对外单端口 → 0.0.0.0:8080
 # 开发时想保留 HMR：`pnpm dev` + `node deploy/single-port-proxy.mjs`（默认把其余请求转到 5173）
@@ -189,7 +190,7 @@ APP=static node deploy/single-port-proxy.mjs                           # 4) 对�
 | `pnpm test` | 单测（真实浏览器）：**628 passed** = 314 条 × chromium + firefox；只跑一个引擎用 `pnpm test:chromium` / `pnpm test:firefox` |
 | `pnpm e2e` | 端到端：chromium + firefox + 移动端（Pixel 7），预期 **84 passed + 1 skipped**；会自己起 dev（5190）与信令（9100） |
 | `pnpm e2e:perf` | 「点击长任务」性能守卫（对机器负载敏感，单独跑） |
-| `cd tools && UV_CACHE_DIR=.uv/cache uv run pytest` | 数据管线的 Python 测试（**93 passed**） |
+| `cd tools && UV_CACHE_DIR=.uv/cache uv run pytest` | 数据管线测试（**34 passed**；音频/本地源那 59 条在数据仓库：`uv run --project tools pytest`） |
 | `pnpm data:check` | `public/data` 与 `data/` 是否漂移（提交前必跑） |
 | `pnpm data:validate` | 数据不变量校验（分类、面次、覆盖表、曲包） |
 | `pnpm data:build` | 改了 `data/` 之后重新生成 `public/data/*.json` |
@@ -205,7 +206,7 @@ APP=static node deploy/single-port-proxy.mjs                           # 4) 对�
 | 助手起来了、页面还是没歌 | 它回落到了别的端口（dev 代理写死 8011）：`?localmusic=127.0.0.1:8012` 或设置页填地址 |
 | 音频 404、拖进度条失效 | 静态部署时没填「本地曲库地址」；或用了 `python3 -m http.server` 这类服务器（不支持 Range/CORS；助手本身都支持） |
 | https 页面报"连接不完全安全" | 混合内容：最外层反代要转发 `X-Forwarded-Proto`；或 `PROTO=https node deploy/single-port-proxy.mjs`、助手 `--public-base`（详见 §5「单端口透传」与 `deploy/README.md`） |
-| `tmc.fetch_audio` 一启动就退出 | yt-dlp 的升级检查需要联网（连不上 PyPI 就中止，可加 `--offline-ok`）；ffmpeg 缺失也在这里报错 |
+| `pnpm audio:fetch` 一启动就退出 | yt-dlp 的升级检查需要联网（连不上 PyPI 就中止，可加 `--offline-ok`）；ffmpeg 缺失也在这里报错 |
 | 抓取个别曲目失败 | 站点限制 / 需登录 / 已下架：单条失败只跳过并计入汇总，其余照抓 |
 | 改了数据/换了裁剪，但音频还是老的 | 成品是按状态跳过的：`pnpm audio:fetch`（只改裁剪会复用原件重裁）；要**覆盖重拉**就加 `--force`，可配 `--track <子串>` 只重拉一部分（§4） |
 | 曲目计数突然变多 | 曲库里放了非点目录的原始件（第一层目录名 = 专辑名）→ 原件放 `<曲库>/.raw/` |
@@ -217,7 +218,7 @@ APP=static node deploy/single-port-proxy.mjs                           # 4) 对�
 **7 套卡面**（6 套上游 + 1 套音MAD 本地图集）；另有**音MAD 曲包 86 首（35 个角色）**，其中 84 首带 `source`（可自动抓取）、
 16 首带裁剪区间，音频走本地曲库助手。
 测试基线：`pnpm test` **628 passed**（314 条 × chromium + firefox，两个引擎都跑）、
-`cd tools && uv run pytest` **93 passed**、e2e 预期 **84 passed + 1 skipped**。
+`cd tools && uv run pytest` **34 passed**、数据仓库 tools 的 pytest **59 passed**、e2e 预期 **84 passed + 1 skipped**。
 完整的现状表（含每一项的复现命令）与文档索引见 [`docs/README.md`](docs/README.md)。
 
 ## 怎么玩
@@ -248,7 +249,7 @@ APP=static node deploy/single-port-proxy.mjs                           # 4) 对�
 | `pnpm e2e:perf` | 单独跑「点击长任务」性能守卫（对机器负载敏感，不进全量） |
 | `pnpm audio:fetch` | 抓取并裁剪曲包音频（见部署指南 §4） |
 | `pnpm data:check` / `pnpm data:validate` | 数据生成物是否漂移 / 不变量校验（`tools/` 是 Python，用 `uv` 管环境） |
-| `cd tools && UV_CACHE_DIR=.uv/cache uv run pytest` | 数据管线的 Python 测试（**93 passed**） |
+| `cd tools && UV_CACHE_DIR=.uv/cache uv run pytest` | 数据管线测试（**34 passed**；音频/本地源那 59 条在数据仓库：`uv run --project tools pytest`） |
 
 **e2e 的前置条件**（音MAD 用例要先起本地曲库助手、浏览器要装在仓库内）见部署指南 §6。
 

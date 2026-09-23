@@ -174,7 +174,7 @@ pnpm test                                     # 275 条 × chromium + firefox
 pnpm data:check                               # 按模式逐份比对
 pnpm data:validate
 cd tools && UV_CACHE_DIR=.uv/cache uv run pytest && cd ..
-# e2e 前置：cd tools && UV_CACHE_DIR=.uv/cache uv run python -m tmc.local_source
+# e2e 前置：pnpm local（数据仓库的 otomads.local_source，D130）
 pnpm e2e                                      # chromium + firefox + mobile
 pnpm e2e:perf                                 # 单独跑
 ```

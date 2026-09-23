@@ -37,17 +37,19 @@ card = ["チルノ-mad.png"]        # 可选：这套图集目录里的文件名
   "音MAD 自己的身份"契约）—— 见 `docs/otomads-separation-v1.md` §5。
 
 当前唯一的曲包是 `otomads`（音MAD，`kind = "local"`）：**86 首 / 35 个角色**，真源在数据 submodule
-`data/otomads/packs/`（独立仓库，见 D128），音频地址来自本地曲库助手（`tmc.local_source` 的
-`/manifest.json`，起法见根 `README.md`）。音MAD 的录入流程写在 submodule 自己的 `README.md` 里。
+`data/otomads/packs/`（独立仓库，见 D128），音频地址来自本地曲库助手（数据仓库的 `otomads.local_source`
+提供 `/manifest.json`，主仓库用 `pnpm local` 起）。音MAD 的**录入/抓取/量响度全在数据仓库的工具里**
+（`data/otomads/tools/`，见它的 `README.md`；主仓库只留 `pnpm` 路径包装，D130）。
 
 ## 录一条新曲目
 
 ```bash
-python3 tools/parse_ingest_rows.py rows.txt      # ① 解析 + 校验 → tools/ingest_rows_<日期>.json
-python3 tools/ingest_otomads.py                  # ② yt-dlp 最高音质下载（已存在会跳过）
-cd tools && UV_CACHE_DIR=.uv/cache uv run python -m tmc.ingest_pack \
-    --pack otomads --rows ../tools/ingest_rows_<日期>.json       # ③ 按角色追加进角色文件
-cd .. && pnpm data:build && pnpm data:validate   # ④ 生成 + 校验
+cd data/otomads
+uv run --project tools python -m otomads.parse_ingest_rows rows.txt   # ① 解析 → tools/ingest_rows_<日期>.json
+uv run --project tools python -m otomads.ingest_pack \
+    --pack otomads --rows tools/ingest_rows_<日期>.json               # ② 按角色追加（校验 characters.toml）
+uv run --project tools python -m otomads.fetch_audio                  # ③ 抓取/裁剪 + 刷新 loudness/otomads.json
+cd ../.. && pnpm data:build && pnpm data:validate                     # ④ 拷响度表 + 生成 + 校验
 ```
 
 ③ 按行的 `character` 分组落文件（文件不存在就新建，带 `key = "…"` 与两行说明），
@@ -55,8 +57,8 @@ cd .. && pnpm data:build && pnpm data:validate   # ④ 生成 + 校验
 `--dry-run` 只打印不落盘；角色 key 不在 `data/characters/*.toml` 里直接报错
 （写错一个 key 会让曲目被静默错挂）。
 
-> 真源在 submodule 里时，③ 写进的是 submodule 的工作区：要在**数据仓库**里提交、打新 tag，
-> 主仓库切到该 tag 后再跑 ④（见 `data/otomads/README.md`）。
+> ②③ 写进的是 submodule 的工作区：要在**数据仓库**里提交、打新 tag，主仓库切到该 tag 后再跑 ④
+> （见 `data/otomads/README.md`）。
 
 ## `[[track]]` 的三个音频键（可选）
 
@@ -71,11 +73,11 @@ cd .. && pnpm data:build && pnpm data:validate   # ④ 生成 + 校验
 `public/data/index.json` 的 `contentHash` —— 两端音频口径不同会在联机握手期就被拒。
 
 ```bash
-cd tools && UV_CACHE_DIR=.uv/cache uv run python -m tmc.fetch_audio [--track 子串] [--dry-run] [--force]
+pnpm audio:fetch --track 子串 --dry-run        # = 数据仓库的 otomads.fetch_audio（D130）
 ```
 
 命令会下载原件到 `<曲库>/.raw/`、按区间裁到 `<曲库>/<专辑>/<作者> - <标题>.mp3`，并顺带刷新
-`public/data/loudness.json`（裁剪过的曲目会先失效缓存）。完整语义、依赖与失败模式见
+本源的响度表 `loudness/otomads.json`（数据仓库；裁剪过的曲目会先失效缓存）。完整语义、依赖与失败模式见
 [`docs/packs-audio-v1.md`](../../docs/packs-audio-v1.md)。
 
 形状与来龙去脉见 `docs/DECISIONS.md`（D52 定曲包形状，D96–D100 分批导入，D107 加音频键与抓取命令，

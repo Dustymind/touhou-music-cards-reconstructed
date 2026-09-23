@@ -12,7 +12,9 @@
 - `meta/stage-cast.tsv` 作品 × 面次 × 登场角色参照表（`tmc.validate` 导出，供离线复核）
 - `packs/` 附加曲包的**通用根目录**（当前只剩 `README.md`：未来的第二个包放这里，契约见它）；音MAD 的真源在
   **submodule** `otomads/` —— 清单 `otomads/packs/otomads.toml` + 一角色一份 `otomads/packs/otomads/*.toml`（35 份；
-  本地专辑，**86 首 / 35 个角色**，见 `otomads/README.md`）。submodule 未初始化时它整个不存在，构建会跳过音MAD 数据集
+  本地专辑，**86 首 / 35 个角色**，见 `otomads/README.md`）。另有角色清单 `otomads/characters.toml`
+  （`pnpm data:roster` 生成）、本源响度表 `otomads/loudness/otomads.json` 与自带工具 `otomads/tools/`（D130）。
+  submodule 未初始化时它整个不存在，构建会跳过音MAD 数据集
 - `sources/*.json` 音乐源表，数组形式 `[[专辑, 曲目, URL], …]`（三份镜像：netease163 / cloudflare_r2 / thbwiki）
 - `sources/originals.toml` **原曲**的源注册表（三个远程镜像）；音MAD 那份在 submodule 里
   （`otomads/sources/otomads.toml` = 本地曲库助手，其同源路径 `/manifest.json`）
