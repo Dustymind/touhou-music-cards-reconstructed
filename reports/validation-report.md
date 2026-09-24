@@ -41,5 +41,6 @@
 
 ## 提示
 
+- 生成物源表地址形态：检查 4 条（相对路径或 http(s) 绝对 URL，D131）
 - 核熱造神ヒソウテンソク ～ 東方非想天則：去掉曲目序号会撞名，故 `曲目` 保留 `NN. ` —— アンノウンＸ ～ Unfound Adventure ← 08. アンノウンＸ ～ Unfound Adventure / 18. アンノウンＸ ～ Unfound Adventure
 - 道中曲面次核对：4 条 no-label（见 reports/stage-check.tsv）

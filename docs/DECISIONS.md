@@ -4152,6 +4152,138 @@ git filter-repo --refs refs/heads/pack-history \
 
 ---
 
+## D131 源表地址改成真相对路径（子目录部署不再 404）+ 三家静态托管配置
+
+**需求**（用户）：先问三件事 —— ① 主仓库能否纯前端单独部署；② 数据仓库能否单独部署附加音乐源；
+③ 网页版能否读自定义本地源服务器。回答期间**实测**发现一个真 Bug：把 `dist/` 挂在子目录
+（GitHub Pages 项目页的真实形态 `user.github.io/<repo>/`）时，**原曲一首都放不出来**。
+用户裁定：**修 Bug + 补守卫 + 顺手配好部署形态**（Cloudflare Pages / GitHub Pages / Vercel）。
+
+**Bug 的形状**（实测，chromium）：
+
+| 请求 | 结果 |
+|---|---|
+| `/sub/data/**`（应用数据，`loadDataBundle` 相对 base） | 200 ✓ |
+| `/sub/assets/**`、`/sub/fonts/**` | 200 ✓ |
+| `/data/sources/{netease163,cloudflare_r2,thbwiki}.json` | **404 ✗** |
+
+三个镜像源的 `table_url` 写的是**根绝对路径** `/data/sources/x.json`，而 `base: "./"` 只治得了
+**相对引用**（`index.html` 里的 `<script src="./assets/…">`）—— `loadSourceTables` 直接
+`fetch(source.tableUrl)`，`base` 管不到那条字符串 ✗。后果不是"少一个源"：三份镜像表是原曲**唯一**的
+地址来源，全 404 → 播放器显示"所有已启用的音源都取不到" → 原曲 368 首全哑（音MAD 不受影响，
+它只有本地源）。README §5 当时写着"子目录部署也能直接跑"，与实测不符。
+
+**根因**：`table_url` 是"根绝对路径"还是"相对路径"这件事，**没有守卫**——`data:check` 只比生成物
+与真源是否漂移（两边都带 `/` 就一致 ✓），`data:validate` 的检查先 `.lstrip("/")` 再找文件（`/` 和没有
+一样通过 ✓）。所以这个形态差异一路溜到用户面前。
+
+**改法**（五处）：
+
+| 位置 | 改动 |
+|---|---|
+| `data/sources/originals.toml` | 三处 `table_url` 去掉前导 `/`：`data/sources/x.json` |
+| `data/otomads/sources/otomads.toml`（数据仓库） | `table_url = "/manifest.json"` → `"manifest.json"`（**数据仓库也要跟着发版**：tag `th09.5-260924` 被 force-move 到 `ee27bb6`，主仓库 gitlink 跟着走） |
+| `tools/src/tmc/build.py` | 新增 `table_url_problem()`：**只允许**相对路径或 http(s) 绝对 URL；`build_sources()` 对每条注册表项当场校验，坏形态 `SystemExit`（`pnpm data:build` 直接红） |
+| `tools/src/tmc/validate.py` | 注册表检查新增第 5 条不变量；另加 `check_source_table_urls()` 查**生成物**（音MAD 那份注册表在 submodule 里，只看主仓库 TOML 会漏） |
+| `vite.config.ts` | 生产构建**不再出 sourcemap**：那份 `index.js.map` 3.7 MB，比站点其余内容（0.8 MB）大四倍；要线上排查用 `vite build --mode development` |
+
+**为什么禁根绝对路径**：四种部署形态里有一种（子目录）它必坏，而相对路径**四种都对**
+（域名根 = 同源根、子目录 = 同源子路径、本机直开、单端口反代）。写错一个 `/` 不该等到用户在
+某个平台上发现"没声音"。
+
+**三家静态托管配置**（都提交进仓库）：
+
+| 平台 | 文件 | 地址形态 | 要点 |
+|---|---|---|---|
+| GitHub Pages | `.github/workflows/deploy-pages.yml` | **子目录** `user.github.io/<repo>/` | `actions/checkout@v7` + `setup-node@v7`(24) + `pnpm/action-setup@v6`(12) + `configure-pages@v6` + `upload-pages-artifact@v5` + `deploy-pages@v5`；`permissions: pages/id-token`、`concurrency: pages`；**不需要 Python/submodule**（`public/data/**` 随仓库提交） |
+| Cloudflare Pages | `public/_headers`（+ 面板设置：构建 `pnpm build`、输出 `dist`） | 域名根 | 缓存策略写在 `_headers` 里；`/data/**` 刻意不长缓存（`contentHash` 是联机握手要比的） |
+| Vercel | `vercel.json` | 域名根 | `framework: null`（别让它去猜 Vite 的默认构建）+ 显式 build/install 命令与输出目录 |
+
+**验证**（本轮实测）：
+
+* **CI 干跑**：临时目录里 `pnpm install --frozen-lockfile` ✓ + `tsc --noEmit && vite build` ✓
+  （即工作流那两步，排除"CI 里装不上/编不过"这类只能到线上才发现的问题）；
+* **子目录部署复现 → 修复**：`dist/` 挂在 `/sub/` 下，三份镜像表变成
+  `/sub/data/sources/*.json` **200** ✓、`3 sources` ✓、点播放真的取到网易云 mp3 ✓（改前同一条路径 404）；
+* **守卫**：故意把一处改回 `/data/sources/…` → `data:build` 退出码 1、`data:validate` 退出码 1 ✓，改回后
+  `data:check` 无漂移 ✓；
+* **产物体积**：`dist/` 从 5.0 MB → **1.4 MB**（sourcemap 退场）。
+
+**顺带实测存下来的两条结论**（写进 `deploy/README.md`）：
+
+1. **https 页面能读 http 回环**：`http://127.0.0.1:8011` 与 `http://localhost:8011` 在 https 页面上
+   chromium / firefox **都放行**（manifest 200 + 音频 206，因为回环被当可信来源）；`http://<私有 IP>`
+   会被拦，`https://127.0.0.1:8011` 打到只讲 http 的助手是 `SSL_PROTOCOL_ERROR`。
+2. **数据仓库独立部署**：从数据仓库自己的克隆起 `local_source`（不经主仓库任何包装）→
+   manifest 200 / 86 条、Range 206、`pytest` 59 passed ✓。
+
+**tag 用 `th09.5-260924`（force-move），不新开 tag**（用户要求）：数据仓库那次改动**没有新开 tag** ——
+`th09.5-260924` 从 `61e47f1` force-move 到 `ee27bb6`（`ee27bb6` 与 `61e47f1` 之间只差
+`sources/otomads.toml` 的一处路径与 `README.ai.MD` 一行说明）。所以：
+
+- 主仓库 gitlink pin 的还是 `ee27bb6`（同一个 commit，只是它现在挂的 tag 名是 `th09.5-260924`）；
+- 拉过旧历史的人要 `git fetch --force --tags`，否则本地 `th09.5-260924` 仍指 `61e47f1`；
+  **submodule 里的那份也要单独 force-fetch**（submodule 是独立仓库，`git fetch` 不会更新 tag），
+  没网时可以从克隆直接 fetch：`git fetch --tags --force <数据仓库克隆路径>`；
+- 老 tag 名 `th09.5-260925`（曾被推送过）已删除，只在推送完成前存在过几分钟。
+
+---
+
+## D132 抓取音频改成并发（`--jobs`，默认 4）
+
+**需求**（用户）：音乐拉取能否并行或加速（如果 yt-dlp 有相关设置）。
+
+**先算账**（本机 32 核实测），再决定往哪儿使劲：
+
+| 环节 | 实测 | 说明 |
+|---|---|---|
+| `import yt_dlp` + `YoutubeDL()` + extractor 匹配 | **0.13 秒/首** | 可忽略 |
+| yt-dlp 后处理 `FFmpegExtractAudio`（4 分钟 m4a → mp3，`-q:a 0`） | **1.005 秒/首** | 且 84/86 的原件本来就是 mp3 ⇒ **这一步根本不发生** |
+| 裁剪 `-c copy`（90 秒） | **0.075 秒/首** | |
+| 若源非 mp3 又要裁（重编码） | **0.383 秒/首** | |
+| **86 首的本地开销合计** | **≈ 23 秒** | 其余 **100% 是网络**（playurl 往返 + 音频本体），期间 CPU 空闲 |
+
+结论：瓶颈全在网络，而原来 `for track in tracks` 是**严格串行**的。
+
+**yt-dlp 自带的并行/加速开关为什么不解决问题**：
+
+| 选项 | 结论 |
+|---|---|
+| `--concurrent-fragments N` | **只并行 HLS/DASH 的"分片"**（m3u8/mpd）。bilibili 的音频是**单个文件**直链，没有分片 ⇒ 开了也是 1 分片 |
+| `--http-chunk-size` / `--buffer-size` | 只影响单连接的读写块，不增加并行度（还要配 `--downloader` 才有意义） |
+| `--sleep-requests` / `--throttled-rate` | 方向相反（限速/退避） |
+| Python API 层面 | `YoutubeDL` 是**按实例**的（一个实例处理一条 URL），没有"多 URL 并行"的开关 |
+
+**改法**（数据仓库 `tools/src/otomads/fetch_audio.py`，`--jobs` 默认 **4**，`1` = 串行）：
+
+1. `ThreadPoolExecutor` + `as_completed`，进度行改成"完成即打印"的 `[n/总数]`（并发下顺序不保证）；
+2. `save_state()` 加 `_STATE_LOCK`：多线程同时收尾时，不锁就会**互相覆盖**（表现为"跑完了但状态里少几条"）；
+3. `ensure_raw()` 用**按 source 分锁**的 `_raw_lock()`：原件按 source 存（`.raw/<sha1(source)[:16]>.mp3`），
+   两条曲目引用同一 source 时只下一份；
+4. `process_track()` 的返回值从 `dict` 变成 `(outcome, claimed)`：同源同区间的"认领"必须由调用方在锁里并表，
+   线程不再直接写共享的 `outputs`；
+5. `download()` 加 `cachedir: False`：并发时每个线程各建一个 `YoutubeDL`，关掉缓存目录就没有共享写点了。
+
+**过程中被测试抓出来的两个真竞态**（都不是想出来的，是跑出来的）：
+
+| 现象 | 根因 |
+|---|---|
+| `--jobs 4` 时报「状态文件损坏，忽略」 | `states.setdefault(pack_id, load_state(path))` —— Python **先求值实参**，所以每个线程都去读一遍同一个文件，正好读到别人写了一半的内容 ✗。改成**进线程池之前把状态全部读进来**，运行期只有写 |
+| 8 条里两条同源曲目都走成 `fetched`（本该一条 `linked`） | "认领"与"产出"分在两处：线程 B 认领后还没 render 完，线程 A 就看 `twin.exists()` 为假 → 白裁一遍 ✗。改成**认领与产出在同一把锁里**（代价是渲染串行，但 `-c copy` 只 0.08 秒，且不同 source 用不同键、互不阻塞） |
+
+**改动落在数据仓库**（主仓库 `pnpm audio:fetch` 只是路径包装），所以照 D131 的规矩走了一遍：
+数据仓库提交 + 新 tag → 主仓库切 tag → 提交 gitlink。
+
+**验证**：数据仓库 `pytest` **61 passed**（新增 2 条并发用例：8 条曲目 / 4 线程 / 6 个 source 的状态完整性、
+同源 3 对只下一份原件且成品两两同 inode；重复跑 8 次全绿）；`pnpm audio:fetch`（全部已缓存）**skip 86** ✓、
+`--jobs 16` 同样 skip 86 ✓（幂等没被并发破坏）；主仓库 `typecheck` / `test` / `e2e` / `data:*` 均与基线一致
+（本轮只动数据仓库的工具，主仓库不涉代码）。
+
+**注意**：真实的**下载**路径（`--jobs > 1` 下走网络）没法在会话里验证 —— bilibili 的并发风控只能实测。
+想先小步试：`pnpm audio:fetch --track <一首> --force`（只重下命中那一首），再决定要不要整包 `--jobs 4`。
+
+---
+
 ## 用户裁定汇总（两轮）
 
 | # | 议题 | 裁定 | 备注 |
@@ -4177,3 +4309,50 @@ git filter-repo --refs refs/heads/pack-history \
 - **同一作品内既是「面主题曲」又是「角色曲」的曲目 = 0 条**；7 组同名多标签全部是同类重复（WAV/MIDI 两版）或 `曲名不詳` 的对话曲。
 - 结论：**E2 无适用对象，规则撤销**；分类改为直接采用 THBWiki 标签。
 - 附带发现：**upstream 有 70 个曲名出现在多张专辑里、且角色不同** —— 这些是**不同的曲子**（同名不等于同曲）。因此 `附加信息` 必须按 `(角色, 专辑, 曲目)` 逐条取自"该专辑所属作品"的标签，绝不能按曲名合并或一刀切。
+
+## D132 追加：子进程不许继承终端的 stdin（"抓取跑完终端不回显"）
+
+**现象**（用户报的）：音乐抓取跑完，终端里敲命令**看不到回显**（能跑，但像瞎了一样）。
+
+**排查**：这是"子进程抢终端"这一类的经典症状 —— 父进程把 stdin 留给子进程，
+子进程若是 `ffmpeg`，它**只要看到 stdin 是终端**就会去接管它（`read_key` 那条路），
+异常路径退出后终端可能停在非回显状态。本项目里两个高危点：
+
+| 位置 | 次数 |
+|---|---|
+| `loudness.mean_volume_db()`（量响度，每条曲目一次） | 一轮 **86 次** |
+| `fetch_audio.render()`（裁剪，`-c copy`） | 每首裁过的 1 次 |
+
+**改法**（全部 `ffmpeg`/`yt-dlp` 调用点）：`stdin=subprocess.DEVNULL`，ffmpeg 另加 `-nostdin`
+（两个都要：`-nostdin` 只管"要不要读"，拦不住"stdin 是 tty"这件事）。涉及
+`fetch_audio`（download/render/ffmpeg_problem/uv lock/uv sync）、`loudness`、`ingest_local_audio`、`ingest_otomads`。
+
+**守卫**：`tools/tests/test_pack_audio.py::test_every_ffmpeg_and_ytdlp_call_gets_its_own_stdin`
+—— 读 `src/otomads/*.py` 的 AST，凡是命令里带 `ffmpeg`/`ffprobe`/`yt-dlp` 的 `subprocess.*` 调用
+**必须**显式给 `stdin`，否则红（实测：故意删掉一处 → 报 `ingest_otomads.py:109` ✓）。
+只读源码、不起进程，所以任何机器上都能跑。
+
+**没能做的验证**（如实记下）：**Linux 沙箱里复现不出这个症状** —— 用真 pty（`pty.openpty`）跑
+`ffmpeg volumedetect`、以及整条 `fetch_audio`（含真下载 + 裁剪 + 量响度），跑前跑后
+`lflag` 都是 `0x8a3b`、ECHO/ICANON 都还在。用户的终端是 **WSL2**，社区里同类报告正集中在
+WSL 的 `subprocess.Popen`（见搜索结果：`subprocess.Popen making WSL 2 terminal inputs invisible`）。
+所以这条按"规范写法"落地，不赌平台；`stdin=DEVNULL` 对 ffmpeg 的**输出没有任何影响**（同一文件
+继承 stdin / DEVNULL / 走函数，三者都量出 `-10.3 dB` ✓，这是本轮实测的）。
+
+**顺带**（用户要求）：编辑了 `README.ai.MD`（补 `--jobs 4` 与并发说明）与 `tools/README.md`
+（新增"两条实现纪律"：并发只在应用层、子进程必须重定向 stdin）。
+
+**flag 改名：`--offline-ok` → `--skip-update`**（用户要求）：旧名字只说了"离线"这**一种**用法，
+而它管的是"**这一步别做**"—— 不查 PyPI、不升级；离线只是最常见的场景。
+`ensure_ytdlp(skip_update=…)`、`args.skip_update`、帮助与全部文档一起改（主仓库只有文档，工具在数据仓库）。
+
+**commit 整合**（用户要求）：数据仓库把本次的 5 条 squash 成 3 条
+（相对路径 / 并发抓取 / stdin 与改名），**用户自己的 `README` 两条提交原样保留**；
+主仓库把本次的 10 条 squash 成 3 条（源表相对路径 + 守卫 / 三家部署配置 + mobile 用例 / gitlink 与决策）。
+两条分支都是**已推送的历史被重写**（`--force-with-lease`），旧 SHA 留档在
+`backup-commits.tmp/`（工作区根，不进任何仓库）。中间那几个 tag 指向的 commit
+（`ee27bb6` / `66206c6` / `addfdb8`）在远端变成不可达，`git gc` 后会消失 —— 只影响历史，不影响任何形态的部署。
+
+**数据仓库 tag**：`th09.5-260924` 最终指向 `2dc63e4`（主仓库 gitlink 跟着走）。
+
+---
