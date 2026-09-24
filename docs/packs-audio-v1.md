@@ -148,6 +148,12 @@ ffmpeg -y -i <原件> -t <stop> -c copy <成品>
    拷进 `public/data/<mode>/`。运行时 `SourceRecord.loudnessUrl`（相对数据集目录）交给播放层，
    播放层按**解析到的 sourceId** 取表；**没有表的源**（三个远程镜像）系数按 1。
    全局那一份 `public/data/loudness.json` 已退场。
+6. **表跟着源部署（D139）**：源还可以在自己的 **manifest** 里用 `loudness` 键声明表 —— 路径**相对 manifest 自身**
+   （例如 `loudness/otomads.json`）。前端**优先**按它取，没声明才回落到第 5 条的 `SourceRecord.loudnessUrl`
+   （数据集目录）。这样"源自包含"：表跟 `manifest.json` / `media/` 一起走，源换宿主（R2 / 别的域名 /
+   独立静态站）**不用改应用**。现状：数据仓库 `stage_media.pack` 把表打进归档并声明它；
+   **本机助手故意不声明**（它只发 `/manifest.json` 与 `/media/*`、不发响度表），所以本地开发与单端口形态
+   照旧走回落那条 —— 两种形态都不会 404。
 
 ## 7. 决策记录（用户答复）
 

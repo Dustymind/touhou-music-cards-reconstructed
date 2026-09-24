@@ -165,14 +165,16 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
     return { ...pinned, [entryRequest.key]: entryRequest.entry };
   }, [pinned, entryRequest]);
 
-  // 每个源自己的响度表（D130）：源没声明就没有表，播放层按 1 处理
+  // 每个源自己的响度表（D130 + D139）：**源在 manifest 里声明的优先**（表跟着源部署，跨宿主都不用改应用），
+  // 没声明才回落到注册表里那份（相对数据集目录）。源没表 ⇒ 播放层按 1 处理。
   const loudnessUrls = useMemo(() => {
     const out: Record<string, string> = {};
     for (const source of dataset.sources) {
-      if (source.loudnessUrl) out[source.id] = source.loudnessUrl;
+      const url = sources.tables[source.id]?.loudnessUrl ?? source.loudnessUrl;
+      if (url) out[source.id] = url;
     }
     return out;
-  }, [dataset.sources]);
+  }, [dataset.sources, sources.tables]);
 
   // 外置曲库（音MAD 曲包）的曲目署名：**本地曲库助手没在跑就是空数组**（`packAuthorsFor` 里判的），
   // 空数组时弹窗里那一行整行不显示。`sources.tables` 换了身份（载入进度变化）就重算。

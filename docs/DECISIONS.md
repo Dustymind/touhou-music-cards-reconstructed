@@ -4721,7 +4721,7 @@ submodule 没初始化时给可执行提示。落点是 submodule（`data/otomad
 
 | 子命令 | 作用 |
 |---|---|
-| `pack` | 按**部署布局**打归档：`manifest.json`（**相对地址**）+ `media/<专辑>/*.mp3` + 可选 `cards-otomads/*`。同一份曲库打两次**逐字节相同**（tar 成员按名排序、mtime/uid/gid/mode 归零、gzip 的 mtime 与 FNAME 都不写） |
+| `pack` | 按**部署布局**打归档：`manifest.json`（**相对地址**）+ `media/<专辑>/*.mp3` + **本源响度表**（`loudness/otomads.json`，D139 起）+ 可选 `cards-otomads/*`。同一份曲库打两次**逐字节相同**（tar 成员按名排序、mtime/uid/gid/mode 归零、gzip 的 mtime 与 FNAME 都不写） |
 | `stage` | 铺进 `dist/`：`--archive <URL\|路径>`（构建时拉）或 `--from <曲库>`（本地铺）；`--base` 才写成绝对地址。结束**自检**（manifest 行数 / 专辑 / 每一行的文件真的在磁盘上），不一致退出码 1 |
 
 主仓库包装：`pnpm media:pack` / `media:stage` / `OTOMADS_MEDIA_URL=… pnpm media:pull`。
@@ -4760,3 +4760,40 @@ submodule 没初始化时给可执行提示。落点是 submodule（`data/otomad
 **实测**（真实 86 首 / 322.1 MB）：`pack` **7.3 秒**出 321.2 MB 归档（87 个成员 = 1 manifest + 86 音频）；
 `stage` **1.8 秒**铺完并**自检通过**；manifest **86 行**、地址相对、曲目名 = 磁盘 stem、百分号编码解码后逐一对得上文件。
 数据仓库 pytest **93 passed**（原 78，+15）。
+
+## D139 响度表跟着源走（manifest 声明 `loudness` + 前端优先 + 回退）
+
+**需求**（用户）："响度表应该跟着自定义源（如音MAD源）部署吧" —— 提得准：D130 的契约是
+"**表由源的所有者生成**"，但**分发**却在应用侧（`tmc.build` 拷进 `public/data/<模式>/loudness/`，
+前端把它**相对数据集目录**解析）⇒ 源单独部署（CF Pages / R2 / 独立静态站）时，表并不在源那一侧。
+
+**方案（零破坏）**：源在自己的 **manifest** 里声明表 —— 可选键 `loudness`，路径**相对 manifest 自身**：
+
+* **前端**：`loadSourceTables` 把它解析成 URL（新增 `sourceRelativeUrl()`，**保持相对形式** ⇒ 域名根与
+  子目录都对）记在源表上；`AppShell` 组装 `loudnessUrls` 时**优先用它**，没声明才回落到
+  `SourceRecord.loudnessUrl`（数据集目录，D130）。播放层那份表的 effect 是**整表重建**（`setGains(next)`），
+  所以"最后一次到达的"就是生效的那份。
+* **数据仓库**：`stage_media.pack` / `stage --from` 把注册表声明的表打进归档（`loudness/otomads.json`）
+  并声明它；CLI 打印覆盖自查（缺 = 那首没量过，合法；多余 = 改名残留）。
+
+**为什么不用"改解析基准"**（把 `loudnessUrl` 一律相对 manifest 解析）：那会让**本机助手 / 单端口**形态 404 ——
+助手只发 `/manifest.json` 与 `/media/*`、单端口代理也只转发这两条，表目前是应用自己发的。走那条路得同时改
+助手路由 + `vite.config` 的代理 + `single-port-proxy.mjs` + `Caddyfile`。而"声明 + 回退"零破坏：
+
+| 形态 | 改后 |
+|---|---|
+| 同源静态（CF Pages 等） | 表在源侧 `<base>/loudness/otomads.json`，manifest 声明它 ⇒ 读源侧 ✓ |
+| 本机助手 / 单端口 | 助手 manifest **故意不声明** ⇒ 回落应用侧那份 ✓ 与改动前完全一致 |
+| 源在别的域名（R2 等） | manifest 与表同宿主 ⇒ 天然成立（改前做不到）✓ |
+| 旧归档（没有声明） | 回落 ✓ |
+
+**实测**（真实 86 首）：`pack` → **88 成员**（1 manifest + 86 音频 + 1 响度表），manifest 带
+`"loudness": "loudness/otomads.json"`；`stage` 打印「响度表 loudness/otomads.json：**86 条**」并自检通过。
+真静态服务器（`python3 -m http.server --directory dist`）+ chromium 探针（**跑完已删**）：应用先取应用侧那份
+（manifest 载入前的回落），manifest 载入后取**源侧** `/loudness/otomads.json`，且它**最后一次**到达 ⇒ 生效。
+
+**保留的一处冗余**：静态形态下会先多取一次应用侧那份（13 KB、同源）。选简单规则（`声明 ?? 注册表`）而不加
+"等 manifest ready 再取注册表那份"的分支 —— 换来的是所有既有形态行为**完全不变**，代价可忽略。
+
+**验证**：数据仓库 pytest **100 passed**（+7）；前端**双引擎各 367 passed**（+5，`sources.test.ts` 共 17 条）；
+`pnpm typecheck` ✓。

@@ -9,6 +9,11 @@ interface SourceTable {
   status: SourceStatus;
   /** `trackId → URL` */
   entries: Map<string, string>;
+  /**
+   * 源在**自己的 manifest 里**声明的响度表地址（已相对 manifest 解析，D139）；没声明就是 undefined。
+   * 播放层优先用它（表跟着源部署），没有才回落到注册表里那份（相对数据集目录，D130）。
+   */
+  loudnessUrl?: string;
   error?: string;
 }
 
@@ -44,6 +49,25 @@ export function applyLocalManifestUrl(
   const url = normalizeLocalManifestUrl(raw);
   if (!url) return [...sources];
   return sources.map((source) => (source.kind === "local" ? { ...source, tableUrl: url } : source));
+}
+
+/**
+ * 把源声明的相对路径解析到 **manifest 所在的目录**（纯字符串，不做 URL 规范化）。
+ *
+ * **保持相对形式是有意的**：`manifest.json` 在域名根与子目录（GitHub Pages 项目页）下都成立，
+ * 于是"响度表跟着源走"（D139）在两种部署形态下都不用改数据。三种输入：
+ * 绝对地址（`http(s)://…` / `//…`）与根绝对路径（`/…`）原样返回，
+ * 其余按 manifest 的目录拼接（`./` 前缀会去掉）。
+ */
+export function sourceRelativeUrl(manifestUrl: string, relative: string): string {
+  const value = relative.trim();
+  if (/^[a-z][a-z0-9+.-]*:/i.test(value) || value.startsWith("//") || value.startsWith("/")) {
+    return value;
+  }
+  const path = manifestUrl.replace(/[?#].*$/, "");
+  const slash = path.lastIndexOf("/");
+  const directory = slash >= 0 ? path.slice(0, slash + 1) : "";
+  return directory + value.replace(/^\.\//, "");
 }
 
 /** 归一化曲名：去掉开头的 `作者 - ` 前缀，再压空白、统一小写。
@@ -167,6 +191,14 @@ export async function loadSourceTables(
         ? payload
         : (payload as { tracks?: unknown } | null)?.tracks;
       table.entries = buildEntries(rows);
+      // 源可以自己声明响度表（**相对 manifest 自身**，D139）：表跟着源部署，跨宿主也不用改应用。
+      // 没声明就留空 —— 调用方（AppShell）回落到注册表里那份（相对数据集目录）。
+      const declared = Array.isArray(payload)
+        ? undefined
+        : (payload as { loudness?: unknown } | null)?.loudness;
+      if (typeof declared === "string" && declared.trim()) {
+        table.loudnessUrl = sourceRelativeUrl(source.tableUrl, declared);
+      }
       table.status = "ready";
     } catch (error) {
       table.status = "error";

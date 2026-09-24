@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { applyLocalManifestUrl, normalizeLocalManifestUrl, buildEntries, countResolvable, loadSourceTables, nextCandidate, resolveTrack } from "./sources";
+import { applyLocalManifestUrl, normalizeLocalManifestUrl, buildEntries, countResolvable, loadSourceTables, nextCandidate, resolveTrack, sourceRelativeUrl } from "./sources";
 import { trackId } from "../data/types";
 
 const rows = [["紅魔郷", "おてんば恋娘", "https://a/1.mp3"], ["妖々夢", "クリスタライズシルバー", "https://a/2.mp3"]];
@@ -129,5 +129,49 @@ describe("源表地址：部署形态无关（D131）", () => {
         expect(source.tableUrl.startsWith("/"), `${base} → ${source.id}`).toBe(false);
       }
     }
+  });
+});
+
+describe("源自己声明的响度表：跟着源走（D139）", () => {
+  const LOCAL = {
+    id: "local", label: { en: "l", zh: "l" }, tableUrl: "manifest.json", kind: "local" as const,
+    order: 1, enabled: true, proxyable: false, description: { en: "", zh: "" },
+  };
+
+  it("相对路径解析到 manifest 所在目录（根部署 / 子目录 / 分离跑 / 带 query 都对）", () => {
+    expect(sourceRelativeUrl("manifest.json", "loudness/otomads.json")).toBe("loudness/otomads.json");
+    expect(sourceRelativeUrl("sub/manifest.json", "loudness/otomads.json")).toBe("sub/loudness/otomads.json");
+    expect(sourceRelativeUrl("/sub/manifest.json", "./loudness/otomads.json")).toBe("/sub/loudness/otomads.json");
+    expect(sourceRelativeUrl("http://127.0.0.1:8011/manifest.json", "loudness/otomads.json"))
+      .toBe("http://127.0.0.1:8011/loudness/otomads.json");
+    expect(sourceRelativeUrl("manifest.json?v=2", "loudness/otomads.json")).toBe("loudness/otomads.json");
+  });
+
+  it("绝对地址与根绝对路径原样保留（表在别的宿主上时用得上）", () => {
+    expect(sourceRelativeUrl("manifest.json", "https://cdn.example.com/loudness/x.json"))
+      .toBe("https://cdn.example.com/loudness/x.json");
+    expect(sourceRelativeUrl("sub/manifest.json", "/loudness/x.json")).toBe("/loudness/x.json");
+  });
+
+  it("manifest 里声明了就记在源表上（供播放层优先使用）", async () => {
+    const payload = { schema: 1, pack: "otomads", loudness: "loudness/otomads.json", tracks: rows };
+    const fetcher = vi.fn(async () => new Response(JSON.stringify(payload), { status: 200 })) as unknown as typeof fetch;
+    const result = await loadSourceTables([LOCAL], {}, fetcher);
+    expect(result.tables.local!.loudnessUrl).toBe("loudness/otomads.json");
+  });
+
+  it("没声明就没有该字段（调用方回落到注册表里那份 = 数据集目录，D130）", async () => {
+    const fetcher = vi.fn(async () =>
+      new Response(JSON.stringify({ schema: 1, pack: "otomads", tracks: rows }), { status: 200 })) as unknown as typeof fetch;
+    const result = await loadSourceTables([LOCAL], {}, fetcher);
+    expect(result.tables.local!.loudnessUrl).toBeUndefined();
+  });
+
+  it("远端源表（裸数组）不会被误当成 manifest 去读字段", async () => {
+    const fetcher = vi.fn(async () => new Response(JSON.stringify(rows), { status: 200 })) as unknown as typeof fetch;
+    const remote = { ...LOCAL, id: "mirror", kind: "remote" as const, tableUrl: "data/sources/x.json" };
+    const result = await loadSourceTables([remote], {}, fetcher);
+    expect(result.tables.mirror!.loudnessUrl).toBeUndefined();
+    expect(result.tables.mirror!.entries.size).toBe(2);
   });
 });
