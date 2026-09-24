@@ -55,7 +55,7 @@ Playwright 跑 e2e 时会自己起一个（5190 端口）与联机信令（9100�
 
 ### 3. 本地曲库与助手（音MAD 模式，可选）
 
-音MAD 侧的音乐由数据仓库的 `otomads.local_source` 就地提供（主仓库里用 `pnpm local` 起）：`/manifest.json`（曲目表，**按请求现拼**）与
+音MAD 侧的音乐由数据仓库的 `otomads.local_source` 就地提供（主仓库里用 `pnpm local` 起）：`manifest.json`（曲目表，**按请求现拼**）与
 `/media/<专辑>/<曲目>.mp3`（支持 Range / CORS）。
 
 目录布局（`<曲库>` 默认是仓库根的 `.music/`）：
@@ -109,11 +109,20 @@ pnpm local                                            # 起助手（工具在数
 
 ```bash
 pnpm audio:fetch                                    # 抓全部缺的 / 重裁（幂等：已就绪的会 skip）
+pnpm audio:fetch --jobs 8                            # 并发数（默认 4；1 = 串行）
 pnpm audio:fetch --track 岁月 --dry-run              # 只看计划：标题或作者含该子串的曲目
 ```
 
+**并发（D132）**：默认 **4 路并发**。抓取的瓶颈**全在网络**（bilibili 的 playurl 往返 + 音频本体），
+本地那点活可以忽略：实测 `import yt_dlp` + `YoutubeDL()` ≈ 0.13 秒/首、`-c copy` 裁剪 ≈ 0.08 秒/首、
+4 分钟 m4a 全量重编码 ≈ 1.0 秒/首 —— 86 首的**本地**开销合计只有约 23 秒。所以并发重叠的是**网络等待**，
+收益由带宽与站点风控决定：`--jobs` 给太大可能撞 bilibili 的 412 风控，**先用 4**，要更快再往上试。
+
+> yt-dlp 自己的 `--concurrent-fragments` 对这个场景**无效** —— 它只并行 HLS/DASH 的**分片**流，
+> 而 bilibili 的音频是**单个文件**直链，没有分片可并行；所以并发只能在应用层做。
+
 依赖 **ffmpeg**（裁剪）+ **yt-dlp**（抓取，uv 管）。跑之前会检查 yt-dlp 更新：有新版本就自动升级并继续，
-**升级失败即中止**（离线环境加 `--offline-ok` 跳过检查）。能否抓到**取决于运行时的网络环境**
+**升级失败即中止**（离线环境加 `--skip-update` 跳过检查）。能否抓到**取决于运行时的网络环境**
 （站点地区限制、是否需要登录、站点改版）。原件留在 `<曲库>/.raw/`、状态在 `<曲库>/.state/`，
 成品是 `<曲库>/<专辑>/<作者> - <标题>.mp3` —— 语义与流程见 [`docs/packs-audio-v1.md`](docs/packs-audio-v1.md)。
 
@@ -147,9 +156,26 @@ pnpm preview    # 本地预览 dist/
 
 - **纯静态托管**：把 `dist/` 交给任意静态服务器即可（`base` 是 `./`，子目录部署也能直接跑）。
   静态站没有开发服务器那层代理，音MAD 要在设置页填「本地曲库地址」。
+  三家的开箱配置都在仓库里：GitHub Pages（`.github/workflows/deploy-pages.yml`）、
+  Cloudflare Pages（设置见 `deploy/README.md`，响应头在 `public/_headers`）、Vercel（`vercel.json`）。
 - **单端口透传**（应用 + 曲库 + 信令同端口）：见下面小节。
 - **联机**：信令默认走本机 PeerJS（`*:9100`）；音视频是 WebRTC P2P（UDP），跨 NAT 需要 STUN/TURN。
   页面参数 `?peerhost=<域名>&peerport=<端口>&peerpath=/peerjs&peersecure=`（`peersecure` 省略时跟页面协议走）。
+
+#### 静态托管的三种形态（都实测过）
+
+| 形态 | 地址 | 要做什么 |
+|---|---|---|
+| 域名根 | `https://cards.example.com/` | 什么都不用改：`base: "./"` + 源表相对路径 |
+| **子目录**（GitHub Pages 项目页） | `https://user.github.io/<repo>/` | 同上，**不需要**设 `base` |
+| 本地直开 | `python3 -m http.server` / `pnpm preview` | 同上 |
+
+**源表地址必须是相对路径**（`data/sources/x.json`，不带前导 `/`）：带前导 `/` 会打到**域名根**，
+子目录部署时三份镜像表全 404 → 原曲一首都放不出来。这条由 `tmc.build` / `tmc.validate` 守（D131），
+改注册表时不用记，写错就 build 不过。
+
+**生产构建默认不出 sourcemap**（`vite.config.ts`）：那份 `.js.map` 3.7 MB，比整个站点其余内容
+（约 0.8 MB）还大四倍。要线上排查用 `pnpm exec vite build --mode development`。
 
 #### 单端口透传（应用 + 曲库 + 信令同端口）
 
@@ -180,7 +206,7 @@ APP=static node deploy/single-port-proxy.mjs                           # 4) 对�
 
 环境变量：`HOST`（默认 `0.0.0.0`）、`PORT`（默认 `8080`）、`APP`（默认 `http://127.0.0.1:5173`，`static` = 直接服务 `dist/`）、`LOCAL`（默认 `8011`）、`PEER`（默认 `9100`）、`PROTO`（上层不转发协议时手填 `https`）。
 
-本地源用的是相对路径 `/manifest.json`（**同源**），所以不需要 CORS，换域名/端口/协议也不用改数据、不用重新生成 manifest。更细的踩坑（监听地址、HMR、https 与混合内容、本机分开跑的 `?localmusic=` 覆盖）见 [`deploy/README.md`](deploy/README.md)。
+本地源用的是相对路径 `manifest.json`（数据集目录下解析成同源的 `/manifest.json`），所以不需要 CORS，换域名/端口/协议也不用改数据、不用重新生成 manifest。更细的踩坑（监听地址、HMR、https 与混合内容、本机分开跑的 `?localmusic=` 覆盖）见 [`deploy/README.md`](deploy/README.md)。
 
 ### 6. 跑测试与数据守卫
 
@@ -206,7 +232,7 @@ APP=static node deploy/single-port-proxy.mjs                           # 4) 对�
 | 助手起来了、页面还是没歌 | 它回落到了别的端口（dev 代理写死 8011）：`?localmusic=127.0.0.1:8012` 或设置页填地址 |
 | 音频 404、拖进度条失效 | 静态部署时没填「本地曲库地址」；或用了 `python3 -m http.server` 这类服务器（不支持 Range/CORS；助手本身都支持） |
 | https 页面报"连接不完全安全" | 混合内容：最外层反代要转发 `X-Forwarded-Proto`；或 `PROTO=https node deploy/single-port-proxy.mjs`、助手 `--public-base`（详见 §5「单端口透传」与 `deploy/README.md`） |
-| `pnpm audio:fetch` 一启动就退出 | yt-dlp 的升级检查需要联网（连不上 PyPI 就中止，可加 `--offline-ok`）；ffmpeg 缺失也在这里报错 |
+| `pnpm audio:fetch` 一启动就退出 | yt-dlp 的升级检查需要联网（连不上 PyPI 就中止，可加 `--skip-update`）；ffmpeg 缺失也在这里报错 |
 | 抓取个别曲目失败 | 站点限制 / 需登录 / 已下架：单条失败只跳过并计入汇总，其余照抓 |
 | 改了数据/换了裁剪，但音频还是老的 | 成品是按状态跳过的：`pnpm audio:fetch`（只改裁剪会复用原件重裁）；要**覆盖重拉**就加 `--force`，可配 `--track <子串>` 只重拉一部分（§4） |
 | 曲目计数突然变多 | 曲库里放了非点目录的原始件（第一层目录名 = 专辑名）→ 原件放 `<曲库>/.raw/` |

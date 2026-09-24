@@ -1,8 +1,10 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-export default defineConfig({
-  // 相对路径：静态托管（含子目录部署）都能直接跑
+export default defineConfig(({ mode }) => ({
+  // 相对路径：静态托管（含子目录部署）都能直接跑。
+  // GitHub Pages 项目页（`user.github.io/<repo>/`）、Cloudflare Pages / Vercel 的域名根、
+  // 单端口反代都在这一种形态下工作，所以**不需要**按平台改 base。
   base: "./",
   plugins: [react()],
   // 本地曲库（音MAD）助手：开发时也和**单端口部署**一样把 /manifest.json 与 /media 转到 8011。
@@ -14,7 +16,9 @@ export default defineConfig({
       "/media": { target: "http://127.0.0.1:8011", changeOrigin: true },
     },
   },
-  build: { outDir: "dist", sourcemap: true },
+  // sourcemap 只在开发模式出：生产那份 3.7 MB 的 `.js.map` 比整个站点（0.8 MB 其余内容）还大四倍，
+  // 传上 Pages / Vercel / CF 是白白多传五倍字节 ✗。要线上排查就 `vite build --mode development`。
+  build: { outDir: "dist", sourcemap: mode === "development" },
   test: {
     // 单元测试跑在**真实浏览器**里（Playwright 驱动）：chromium 与 firefox 两个实例都跑，
     // 和 e2e 一个口径 —— jsdom 没有布局、没有真媒体、没有真事件，很多问题它看不见。
@@ -42,4 +46,4 @@ export default defineConfig({
     setupFiles: ["src/test-setup.ts"],
     globals: true,
   },
-});
+}));

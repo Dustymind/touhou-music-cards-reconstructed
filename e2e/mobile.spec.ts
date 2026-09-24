@@ -100,6 +100,13 @@ test.describe("移动端布局", () => {
   test("播放页窄屏同样是居中列：卡面 → 曲名 → 作者/作品 → 角色名 → 三条控件", async ({ page }) => {
     await page.goto("/?locale=zh");
     await expect(page.getByTestId("now-title")).toBeVisible();
+    // `current-card` 带 0.3s 入场动画（`slideIn`：`transform: translateX(12%)` → `0`），而
+    // `getBoundingClientRect()` **把动画中途的位移算进去** —— 不等它落位就量，偏移量会随"量到动画
+    // 第几毫秒"在 0～12px 之间跳（卡宽 99 时起点位移 11.88px），于是这条用例在阈值 8 边上随机红绿。
+    // 用 poll 等 `transform` 归 `none` 而不是 `waitForTimeout`：慢机器上不会假绿，也不白等固定时长。
+    await expect.poll(async () => page.evaluate(() =>
+      getComputedStyle(document.querySelector('[data-testid="current-card"]')!).transform === "none",
+    )).toBe(true);
     const info = await page.evaluate(() => {
       const rect = (id: string) => document.querySelector(`[data-testid="${id}"]`)!.getBoundingClientRect();
       const mid = (r: DOMRect) => Math.round(r.left + r.width / 2);

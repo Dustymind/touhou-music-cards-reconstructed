@@ -47,6 +47,9 @@ public/data/sources/*.json         # 三份镜像表原样复制（它们本来�
 - **镜像表不拆**：它们的内容已经只属于原曲，位置 `public/data/sources/` 就在原曲数据集根下；
   给音MAD 造三份空表不是分离，是仪式。
 - 每份注册表的 `order` 从 1 起（各自独立的回退顺序）；`table_url` 的相对路径不变。
+  > D131 追补：这里说的"相对路径"必须是**真相对路径**（`data/sources/x.json`，**不带前导 `/`**）。
+  > 带前导 `/` 的根绝对路径只在域名根部署时看着正常，子目录部署（GitHub Pages 项目页）会 404。
+  > 形态由 `tmc.build.table_url_problem()` 守（build 报错 + validate 查生成物）。
 
 ## 3. 数据集形状
 
