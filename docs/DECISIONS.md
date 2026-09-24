@@ -4356,3 +4356,239 @@ WSL 的 `subprocess.Popen`（见搜索结果：`subprocess.Popen making WSL 2 te
 **数据仓库 tag**：`th09.5-260924` 最终指向 `2dc63e4`（主仓库 gitlink 跟着走）。
 
 ---
+
+## D133 「关于」弹窗（不是页签）：四行信息 + MD2 对话框规格
+
+**需求**（用户，三轮）：① 加 About / 关于；② **改成弹窗**，只写四件事 —— **项目作者 / 仓库地址 /
+原作·原曲作者 / 上游版本作者**，**要有关闭按键**，样式遵循 MD2；③ 内容文件要**能直接在内部编辑所有文本**，
+且「关闭」二字取**白色**。
+
+**第一轮做错的**（记下来免得再犯）：先做成了**第 5 个页签 + 一整页**（介绍 / 怎么玩 / 数据来源 /
+版本与数据 / 致谢 + 五张卡片 + 动态数据 chip）。用户否掉：信息量远超需要，而且要为此动一堆本来不该动的东西 ——
+`TAB_ORDER`、`session` 的页签存档、主题里的页签最小宽（5 个页签在 412dp 手机上排不下，被迫把 MUI 的 90 改成
+MD2 的 72）、以及 6 条围绕"页"写的测试。**结论：需求说"弹窗 + 四行"就做弹窗 + 四行**，
+把工程动作限制在真的需要的那几处。
+
+**结论**（做成了什么）：
+
+| 面 | 位置 |
+|---|---|
+| **弹窗里的全部文字**（标题、每行标签与内容、关闭按钮） | **`src/content/about.ts`** —— 用户只改这一个文件 |
+| 弹窗本体（排版，不含任何文案） | `src/ui/components/AboutDialog.tsx` |
+| 入口 | 应用栏最右的 ⓘ 图标按钮（48dp 触控区 + 24dp 图标，`MD2.iconButton`；无障碍名字取 `aboutContent.title`） |
+
+**内容文件为什么长成"数组 + 双语对"**（第三轮改的）：第一版是四个**具名字段**
+（`projectAuthor` / `repository` / …）＋标题与四个标签留在 `localization.ts` ——
+结果是"改一个标签要动另一个文件"，"加一行"要先加类型再加键。现在：
+
+```ts
+export const aboutContent: AboutContent = {
+  title: { en: "About", zh: "关于" },        // ← 要写两份
+  close: { en: "Close", zh: "关闭" },        // ← 要写两份（颜色是正文白，见下）
+  rows: [                                     // ← 数组顺序 = 弹窗里的顺序；加/删/换序都只动这里
+    { label: { en: "Project author", zh: "项目作者" },   // ← 要写两份
+      name: "Dustymind",                                 // ← 只写一份（专有名词）
+      url: "https://github.com/Dustymind" },             // ← 留空 "" = 只显示文字，不给链接
+    …
+  ],
+};
+```
+
+`localization.ts` 里那 6 个 `About*` 键**删掉了**（不留第二处真源）；那个文件现在只管界面固定标签。
+唯一省不掉的是 `title` / `close` / `label` 要写 en/zh 两份 —— 那是语言开关的代价，
+所以把"哪些要写两份"直接写进文件头的表格里，并由 `about.test.ts` 守住。
+
+**不写标签的行 = 单行行**（用户要求）：`label` 也改成**可选**，"没标签"同样按三种写法判 ——
+**整条不写 `label`** / 两份都留空 / 只有空白。没标签时**连 `caption` 元素都不挂**（不是空占位），
+那一行就只剩内容一行；浏览器实测：有标签的行 **46px**（标签 + 内容两行），没标签的行 **24px**（一行）。
+行上带一个 `data-single-line="true"` 标记，测试与将来的样式钩子用它，不必猜 DOM 结构。
+守卫：`AboutDialog.test.tsx` 的"不写 label 的行是单行行"（不写 / 两份留空 / 有标签各一行，
+断言 `caption` 有无、标记属性、以及**单行行确实比两行行矮**）。
+
+**行间距按行分别给**（用户第三轮又反馈"无标题时空行间隔过大"）：第一版把所有行塞进 `Stack spacing={2}`，
+于是"续行"和别的项一样吃 16dp 项间距 —— 在作者名下面那行模型名看起来就是**凭空多了一条空行** ✗。
+现在间距写在行自己身上：**第一项 0 / 没有标签的续行 8dp / 有标签的项之间 16dp**
+（都走 `MD2.grid` 的 8dp 栅格；浏览器实测 `gapAbove` = 8 / 16）。
+守卫同上那条用例的后半段：断言三档 `margin-top` 是 `0px / 8px / 16px`，
+再**只比大小**地量一遍真实空白（`项间距 > 续行间距`）——
+**不比绝对值**：入场是 `Grow`（scale 0.75 → 1），动画没落位时所有 rect 都被缩放
+（实测 8dp 量成 5px，和 e2e 里那条"关闭键 27px"是同一个坑）。
+
+**没有链接的行 = 白色纯文字，绝不渲染空链接**（用户要求）：`url` 改成**可选**，
+"没有链接"把三种写法都算上 —— **不写 `url`** / 空串 `""` / 只有空白。
+之前只判 `row.url === ""`：用户若把 `url` 那一行**删掉**，`undefined` 判不出来，就会渲染出一个
+**没有 `href` 的空 `<a>`**（点不动，却把文字染成主色）。现在没地址就是 `<Typography color="text.primary">`
+（= onSurface 100% = 白），有地址才是主色 `<Link target="_blank" rel="noreferrer noopener">`。
+守卫：`AboutDialog.test.tsx` 里那条"没有链接的行"塞了一份**临时内容**（不写 / 空串 / 空白 / 有地址各一行），
+断言前三行没有 `<a>` 且颜色是 `rgb(255, 255, 255)`、整张弹窗里**只有一个**链接元素 ——
+这也是 `AboutDialog` 留出可选 `content` 口子的原因（默认仍是用户编辑的那份内容真源）。
+
+「关闭」取白色（**用户裁定，唯一一处有意偏离 MD2**：MD2 的对话框动作按钮用主色）：
+`<Button color="inherit">` —— 跟随纸张正文色（onSurface 100% = `#FFFFFF`）。
+实测（真浏览器）：`getComputedStyle(close).color === "rgb(255, 255, 255)"`，而四行的值仍是主色链接。
+
+**没动的东西**（这就是这一版比第一版好的地方）：`TAB_ORDER` 与页签存档（还是四个页签）、
+主题常量（页签最小宽仍是 MUI 默认）、`data/` 与 13 个生成物、联机协议。
+弹窗的开合是**纯界面状态**（`AppShell` 里的 `useState`）：不落盘、不进联机快照。
+
+**并顺手把上游那个键名改了**：上游第 4 个页签的**键**叫 `TabNameAbout`、**文案**却是 "Match/游戏"
+（`.ref/notes/B-ui-config-spec.md` §8.3 记过这处不一致）。本仓库现在真有一个「关于」弹窗，
+两者同名会一直让人看错，所以游戏页的键改成 **`TabNameMatch`**（**文案一字未动**）。
+
+**MD2 对话框规格落在哪**（`src/ui/components/AboutDialog.tsx` 里逐条有注释）：
+
+| MD2 规格 | 实现 |
+|---|---|
+| 最小宽 280dp / 最大宽 560dp | `slotProps.paper.sx` 上的 `minWidth/maxWidth`；**关掉** MUI 的 `maxWidth` 断点（它那套是 xs/sm/md，不是"固定区间"） |
+| 圆角 4dp | `MD2.shape`（纸张圆角本来就由主题的 `MuiPaper` 给，这里显式写出来） |
+| elevation 24dp | MUI `Dialog` 的默认值就是 24 —— 与 MD2 一致，不用手写 |
+| 遮罩 32% 黑 | `slotProps.backdrop.sx`（MUI 默认 50%，偏暗） |
+| 标题 20sp/500、上/左/右 24dp | `DialogTitle` 用的是主题里的 `h6` = MD2 类型比例的 20sp/500；`px/pt: 3`（24dp） |
+| 内容左右 24dp | `DialogContent` 的 `px: 3` |
+| 操作区 8dp、按钮右对齐 | MUI `DialogActions` 的默认就是 `p: 1` + `justify-content: flex-end` |
+| 进入 150ms / 退出 75ms，淡入 + 从 80% 放大 | `slots={{ transition: Grow }}`（scale 0.75→1）+ `transitionDuration={{ enter: 150, exit: 75 }}`（Dialog 会把它同时转发给遮罩） |
+| 关闭方式 | 右下角「关闭」文字按钮（MD2 的 dismissive action）+ **点遮罩** + **Esc**，三者都走同一个 `onClose` |
+| 窄屏 | 纸张外边距 `m: 3`（24dp，MUI 默认 32dp 在手机上更窄）；412dp 手机上实测宽 364dp、不横向溢出 |
+
+**守卫与实测**：
+
+| 守卫 | 查什么 |
+|---|---|
+| `src/content/about.test.ts`（5 条） | `title` / `close` 的 en、zh 都不空；行 `label` 可省、但写了就要两份都在；每行 `name` 不空且至少一行；`url` 要么不写/留空、要么是能 `new URL()` 解析的完整地址；文案里没有 Markdown 残留 |
+| `src/ui/components/AboutDialog.test.tsx`（13 条） | 内容真源里的**每个字**都渲染出来；**行数与顺序 = `rows` 数组**（`about-row-<下标>`）；有地址的行是链接且 `target=_blank rel=noreferrer`、留空的行不是链接；关闭按钮在 `MuiDialogActions` 右对齐、**是白字**、按下去回调一次；点遮罩关、Esc 关；关闭后不再渲染；**没有链接的行是白字且没有空链接**（不写/空串/空白三种写法）、**MD2 尺寸/圆角/阴影/遮罩色**；切语言后标题+标签+关闭按钮一起变中文；内容只写一行时页面也只有一行。断言一律**跟着内容真源算**，改人名/改标签不会假红 |
+| `src/App.test.tsx`（+1 条） | 应用栏 ⓘ 的 `aria-label` = `aboutContent.title`；点开后每行的标签与内容都在、有地址的行是 `_blank` 链接；点「关闭」后弹窗从 DOM 消失 |
+| `e2e/smoke.spec.ts`（+1 条，双引擎） | 同上走真实浏览器；**文字直接 import 内容真源**；链接**按行定位**（按文字找会撞车：`Dustymind` 是 `Dustymind/touhou-…` 的子串，strict mode 报两个元素 —— 实测踩到）；MD2 的 min/max 宽、4dp 圆角、elevation、遮罩色 |
+| `e2e/mobile.spec.ts`（+1 条） | 412dp 手机上弹窗 ≥280dp、两侧各留 24dp、不横向溢出；关闭键 ≥32dp 且点得掉。**量之前先等动画落位**：入场的 scale 挂在 `.MuiDialog-container` 上（纸张的 transform 恒为 `none`，盯它等于没等），没等就量会得到 **27px = 36 × 0.75** 的假红 —— 用 `expect.poll` 等缩放归 1（与播放页卡面那条用例同口径） |
+
+数字：`pnpm typecheck` ✓；`pnpm test` **674 passed**（76 文件；比 D132 基线 636 多 38 = 19 条 × 双引擎）、
+`pnpm e2e` **87 passed + 1 skipped**（见 docs/README.md 现状表）。
+
+**没做的事**：没给弹窗加"编辑入口"（运行时改内容 = 又一套持久化，与"静态站 + 内容随仓库走"的形态不符）；
+没把上游的 `TabNameSourceCode`（"Source/源码"）搬过来 —— 弹窗里的"仓库地址"就是那个职能。
+
+---
+
+## D134 「关于」弹窗里的外置曲库署名（自动行 + 拼音首字母混排 + 本地源门槛）
+
+**需求**（用户）：把**外置曲库（音MAD 曲包）曲目的作者**加进「关于」弹窗，**放在「原作」上方**；
+标签英文写 `Extra pack music author`。随后用户定了三条：**自动收集**、**按名字排序（英文/拼音首字母）**、
+**本地曲库助手真的在跑才显示**。
+
+**数据实情**（`public/data/otomads/characters.json`）：96 条曲目里 **85 条带 `author`**，去重后 **56 个署名**、
+长尾很重（最多的一位 12 首，49 位只有 1 首），且不少是合写（`A & B & C`）——**合写原样保留，不拆**。
+原曲数据集 378 条**一条都没有** author 字段。数据里只有每首曲子的 `source`（bilibili 视频地址），
+**没有作者主页** ⇒ 名字按"没有链接就白色纯文字"的规则渲染。
+
+**做法**：
+
+| 面 | 位置 |
+|---|---|
+| 名单的**收集与排序** | `src/music/packAuthors.ts`（`collectPackAuthors` / `packAuthorsFor` / `sortKeyOf`） |
+| **门槛**（助手在跑） | 同上 `packAuthorsFor()`：当前模式的本地源 `kind === "local"` + `enabled` + `status === "ready"` 且表里有曲目 |
+| 行的**位置与标签** | `src/content/about.ts` 的 `{ auto: "pack-authors", label: … }`（现在放在「原作」上方） |
+| 渲染 | `AboutDialog` 的 `AutoRow`（默认一段文字用「、」连接；`layout: "lines"` 则一行一位） |
+
+**排序为什么要自己造键**：直接拿 `Intl.Collator("zh-Hans-u-co-pinyin")` 排**不够** ——
+实测 ICU 把**拉丁名排在所有汉字之后**（`Chyan_184` 落在 `张伟` 后面），那就不是"首字母混排"了。
+现在的键 = 首字母：拉丁取首字母；汉字**拿 ICU 的拼音序当数轴**，在 23 个锚点字
+（每个首字母取该字母的**最小音节**：a=阿、b=八、c=擦…z=匝）里找"最后一个 ≤ 它"的锚点；
+假名/数字显式归到 `~`（排在字母之后）。这个键**是 ICU 序的细化**（同键内仍按 ICU 排），
+所以不会与它打架，也与多音字无关 —— 锚点比较用的就是 ICU 自己给的读音。
+实测真实名单：`鞍山侯国玉电乐团`(a) → `拔剑Sketon`(b) → `Chyan_184`(c) → `打酱油的小火柴`(d) → …
+→ `丶Mikan`(zhǔ, z) → 假名（`きゅーみぅ`…）殿后；共 56 个，两引擎同序。
+
+**门槛带来的可见性**（要记住）：本地源只属于音MAD 数据集 ⇒ **原曲模式下这一段不显示**
+（那个模式根本不加载本地源，无从判断助手在不在跑）；切到音MAD 模式且助手在跑时才出现。
+
+**守卫**：
+
+| 守卫 | 查什么 |
+|---|---|
+| `src/music/packAuthors.test.ts`（10 条） | 排序键（拉丁/汉字/假名/数字/开头下划线）、A→Z 混排（`鞍` < `拔` < `Chyan_184` < `打` < `张` < 假名）、去重、无 author 的行、原曲数据集不贡献、合写不拆；门槛六种状态（表还没建 / idle / error / ready 但空 / ready 有曲目 / 本地源被关掉 / 原曲模式）；**真实数据**里 56 个署名去重且混排生效 |
+| `AboutDialog.test.tsx`（+3 条） | 自动行渲染在**锚点那一行的位置**、名字用「、」连成一段、白色不是链接；名单为空时**整行不渲染**（连标签都没有）；`layout: "lines"` 一行一位 |
+| `App.test.tsx` | 单测里助手没在跑 ⇒ 自动行的标签**不出现**（就是用户定的那个条件） |
+| `e2e/smoke.spec.ts`（+1 条，双引擎） | 切音MAD + 助手在跑 ⇒ 段落出现、含真实署名（从生成物读）、**在「原作」上方**、名字不是链接。踩过一次坑：这个用例的断言一开始写死中文标签，而页面默认是 en ⇒ 改成从内容真源取 `label.en` |
+| `e2e/mobile.spec.ts`（+1 条） | 手机上面名单很长时：弹窗不超出屏幕、**内容区内部滚动**、关闭键始终留在屏幕里、不横向溢出 |
+
+**没做的**：没把假名拉丁化（要内置五十音表，先不做 —— 排在最后已经可读）；
+没做"只列前 N 位"或折叠（用户要全列）；没有为作者名加链接（数据里没有主页）。
+
+---
+
+## D135 外置曲库的多作者支持（`authors` 数组 + 播放页与关于页共用一套排序）
+
+**需求**（用户）：① 给自定义曲库（音MAD 曲包）加**多重作者**支持；② 播放器显示作者时，
+**排序按关于页那套方法**（英文/拼音首字母混排，D134）。
+
+**现状**：曲包只有单个 `author = "丹花伊吹 & 艾了个拉 & …"`（85 条里 5+ 条是 ` & ` 合写的），
+一路原样进生成物第 4 位 `[专辑, 曲名, extra, author]`，前端当**一个字符串**显示。
+
+**三条不能破的约束**（查过才动手）：
+
+1. **磁盘名 = `作者 - 标题.mp3`**，它同时是助手 manifest 的匹配键、响度表 `loudness/otomads.json` 的键、
+   单曲模式存档的一部分（数据仓库 `packformat.audio_filename`，D95/D96 明写"不能改"）；
+2. 前端 `gainKeyOf()` 就是拿第 4 位拼这个 key ⇒ **第 4 位不能变成数组、也不能排序**；
+3. 老数据里 `author` 是**一整串**，猜 ` & ` 当分隔符会拆错（人名里也可能有 `&`）。
+
+**结论**：
+
+| 面 | 做法 |
+|---|---|
+| 曲包写法 | `author = "甲 & 乙"`（老，整串，**不拆**）或 **`authors = ["甲", "乙"]`**（多作者）；两者只能写一个 |
+| 解析（主仓库 `tmc.packs`） | `authors` → 规范化成 `track["authors"]`（数组）**加** `track["author"] = " & ".join(...)`（stem 那一位） |
+| 生成物 | 第 4 位仍是整串（D94 不变）→ **顺手追加第 5 位** `authors`（只有写了数组才有） |
+| 前端类型 | `MusicEntry = [album, title, extra, author?, authors?]`（`load.ts` 校验第 5 位是非空字符串数组） |
+| 播放页 | `creditLine()`：有第 5 位就 `formatAuthors()`（**排序** + 「、」连接），否则原样显示第 4 位 |
+| 关于页 | `collectPackAuthors()`：有第 5 位就逐个署名，否则整串算一个（D134 那一段因此自动受益） |
+| 排序实现 | 抽到 **`src/music/authorOrder.ts`**（`sortKeyOf` / `sortAuthors` / `formatAuthors` / `AUTHOR_SEPARATOR`）—— 关于页与播放页**共用一份，不许各写一套** |
+| 单曲存档 | `copyEntry()` 把第 5 位一起带上（丢掉它，pin 的曲目显示会退回整串） |
+
+**为什么两种写法在磁盘上等价**：`authors = ["甲","乙"]` ⇒ `"甲 & 乙"` ⇒ 文件名与老写法逐字节相同
+⇒ **把老条目改成数组不需要重抓/重裁音频**，响度表的键也不用动。这也是为什么连接符固定是 `" & "`
+（`packs.AUTHOR_JOIN`）而不是「、」——后者只用于**显示**。
+
+**守卫**（本轮）：
+
+| 守卫 | 查什么 |
+|---|---|
+| `tools/tests/test_rules_and_data.py`（+7 条 pytest） | 老写法整串保留且不产生 `authors`；`authors` 规范化出的整串**与老写法逐字节相同**；`author`+`authors` 同写报错；非数组/空数组/空项报错；`build._pack_music` 第 4 位整串、**第 5 位数组**、没作者只有 3 位 |
+| `src/music/authorOrder.test.ts`（6 条） | 首字母键（拉丁/汉字/假名/数字/空串）；A→Z 混排；不改原数组；比较函数是全序；`formatAuthors` 排序+「、」；单人原样 |
+| `src/music/packAuthors.test.ts`（+1 条） | 写了 `authors` 数组 → **逐个署名**（`["乙","甲"]` → 甲、乙 两条），整串不再算一个署名 |
+| `src/ui/panels/PlayerPanel.test.ts`（5 条，新文件） | 第 5 位 → 排序后「、」连接；单作者原样；只有整串 → **不按 `&` 拆**；没作者回退专辑名 / `showAlbumName:false` 整行不显示；无曲目 → null |
+
+数字：主仓库 pytest **56 passed**（原 48）；`pnpm test` **724 passed**（362 条 × 双引擎）；
+`pnpm data:check` **无漂移**（现有数据没写 `authors` ⇒ 生成物逐字节不变，`contentHash` 也不变 ⇒ 不影响联机握手）。
+
+**数据仓库那一半（本轮已做，tag `th09.5-260925` → `8c1b78b`）**：
+
+| 面 | 做法 |
+|---|---|
+| 解析（数据仓库 `otomads.packformat`） | `TRACK_KEYS` 加 `authors`；`_read_authors` 与主仓库同一套规则；新增 `AUTHOR_JOIN` 与 `author_of()` |
+| 成品文件名 | `audio_filename()` 改用 `author_of()` —— 行为不变（还是 `作者 - 标题.mp3`），但只写 `authors` 也能算对 |
+| 录入器（`otomads.ingest_pack`） | 录入行那一项写成数组即落盘成 `authors = [...]`（`FIELD_ORDER` 加 `authors`，`track_block` 会写 TOML 数组）；只写 `author` 的老行不受影响 |
+| 测试 | 数据仓库 pytest **74 passed**（原 62，+12）：数组规范化出的名字与老写法逐字节相同、`author`+`authors` 同写报错、非数组/空数组/空项报错、整串不拆、只给 `authors` 时文件名也对、录入器写数组（含转义）与坏行报错 |
+| 文档 | 数据仓库 `README.ai.MD` 补 `authors` 一段（**用户的 `README.md` 一个字没动**） |
+
+**跨仓库耦合的守卫**（这次新加的一条）：`AUTHOR_JOIN` 在两个仓库各有一份（零 import 依赖），
+主仓库 `tools/tests/test_build.py::test_author_join_matches_the_data_repo_helper` 按**文本**比对两个字面量、
+并检查两边的代码里都出现 `"authors"`；submodule 没初始化时跳过（与其它依赖曲包的用例同口径）。
+
+**流程**（按 HANDOVER §11）：改**克隆** → 提交（只提交我改的 5 个文件，用户未提交的
+`loudness/otomads.json` 与两个 pack 文件原样留着）→ 打 tag `th09.5-260925` →
+主仓库 submodule `git fetch --tags --force <克隆> && git checkout th09.5-260925` → `pnpm data:check`
+**无漂移**（数据内容没变，生成物逐字节相同 ⇒ `contentHash` 不变）、`pnpm data:validate` 通过、
+主仓库 pytest **56 passed**（原 48，+8）。**两个仓库都还没 push**（用户定）。
+
+**合写署名的拆分（用户裁定后已做，并入同一个 tag `th09.5-260925` → `89ec9c3`）**：
+8 条合写拆成 `authors = [...]` —— 7 条 ` & ` 写法（`" & ".join(parts)` 与原文逐字节相同 ⇒ 成品文件名不变、
+**不用重抓/重裁音频**）＋ 1 条 ` vs ` 写法（`koakuma.toml`：连接符换成 ` & ` ⇒ 成品文件名变了，
+**同时重命名**了 `.music/otomads/` 里那个 mp3 与 `loudness/otomads.json` 的键，增益值不变）。
+去重后署名 **56 → 72**；8 条曲目带上 `authors` 数组（助手侧逐条核对过"算出的文件名都在磁盘上"）。
+拆分脚本自带保真检查（`" & ".join(parts) == 原文`，不一致就跳过并报错）。
+
+**由此产生的指纹变化**：音MAD `contentHash` `4c2ae0dee354` → **`88b738f3ea41`**（第 5 位进哈希）
+⇒ **联机握手的两端必须一起更新**；原曲那份（`e95684b826fb`）不受影响。
+
+**没做的**：数据仓库克隆里用户未提交的改动（两条 `source` 补丁 + `y的自然对数` 的增益 -14.6→-16.0）
+本轮**未触碰**：提交时用 `git apply --cached` **只暂存我改的 hunk**（索引里 8 个文件、工作区里只剩他那 3 处）。
+旧 tag 指向 `8c1b78b`，前移前的 SHA 记在 `backup-commits.tmp/tag-moves.txt`。

@@ -11,9 +11,14 @@
 | 键 | 类型 | 语义 | 缺省 / 单侧 |
 |---|---|---|---|
 | `source` | http(s) URL | 该曲目的音频来源，交给 yt-dlp 抓取（任意 yt-dlp 支持的站点，不写死 B 站） | 缺省 ⇒ 视为"音频由人工放进曲库"，抓取命令跳过它 |
+| `authors` | 字符串数组 | **多作者**（D135）：`authors = ["甲", "乙"]`。与 `author` 只能写一个 | 缺省 ⇒ 用 `author`（整串） |
 | `start_time` | `HH:MM:SS.mmm` | 裁剪**开始**位置 | 缺省 = 文件开头；只给 `stop_time` 时按开头处理 |
 | `stop_time` | `HH:MM:SS.mmm` | 裁剪**结束**位置 | 缺省 = 文件结尾；只给 `start_time` 时按结尾处理（即等效不裁） |
 
+- `author` / `authors`：**成品文件名那一位**永远是整串 `作者 - 标题.mp3`（D95/D96 不能改）。
+  `authors = ["甲", "乙"]` 会被规范化成 `author = "甲 & 乙"`，所以**两种写法在磁盘上完全等价** ——
+  把一个老条目从整串改成数组**不需要重抓/重裁音频**。`author = "乙 & 甲"` 这种整串**不拆**：
+  人名里也可能有 `&`，猜分隔符会拆错。
 - 两个时间键**都为空 ⇒ 不裁剪**（不调 ffmpeg，原件直接作为成品）。
 - 两个键**都只在抓取/裁剪期存在**：运行时（`characters.json` / 前端 / 播放器）**不读它们**，部署时播放的就是裁好的文件。
 - 校验（`tmc.packs.load_packs` + `tmc.validate.check_packs`）：格式必须严格匹配 `^\d{1,2}:\d{2}:\d{2}\.\d{3}$`；
@@ -28,6 +33,8 @@ key = "cirno"
 [[track]]
 album = "otomads"
 author = "鞍山侯国玉电乐团"
+# 多作者这么写（等价于 author = "甲 & 乙"）：
+# authors = ["甲", "乙"]
 title = "无何有之棍 ~ Deep Silver"
 extra = "角色曲"
 source = "https://www.bilibili.com/video/BV1kw411q7S8"
