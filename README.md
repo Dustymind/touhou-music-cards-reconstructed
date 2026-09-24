@@ -216,10 +216,11 @@ APP=static node deploy/single-port-proxy.mjs                           # 4) 对�
 | `pnpm test` | 单测（真实浏览器）：**724 passed** = 362 条 × chromium + firefox；只跑一个引擎用 `pnpm test:chromium` / `pnpm test:firefox` |
 | `pnpm e2e` | 端到端：chromium + firefox + 移动端（Pixel 7），预期 **90 passed + 1 skipped**；会自己起 dev（5190）与信令（9100） |
 | `pnpm e2e:perf` | 「点击长任务」性能守卫（对机器负载敏感，单独跑） |
-| `cd tools && UV_CACHE_DIR=.uv/cache uv run pytest` | 数据管线测试（**56 passed**；音频/本地源那 74 条在数据仓库：`uv run --project tools pytest`） |
+| `cd tools && UV_CACHE_DIR=.uv/cache uv run pytest` | 数据管线测试（**64 passed**；音频/本地源那 78 条在数据仓库：`uv run --project tools pytest`） |
 | `pnpm data:check` | `public/data` 与 `data/` 是否漂移（提交前必跑） |
 | `pnpm data:validate` | 数据不变量校验（分类、面次、覆盖表、曲包） |
 | `pnpm data:build` | 改了 `data/` 之后重新生成 `public/data/*.json` |
+| `pnpm data:scaffold` | 给「真源里有、音MAD 曲包里还没有」的角色预置骨架文件（幂等、**不覆盖**手写内容、不影响生成物；D137） |
 
 **e2e 的两个前置条件**：① 音MAD 相关用例会取同源的 `/manifest.json`（代理到本地曲库助手），
 **先起助手**（§3）再跑，否则那几条会红 —— 这是环境问题，不是代码问题；② 浏览器装在仓库内（§1）。

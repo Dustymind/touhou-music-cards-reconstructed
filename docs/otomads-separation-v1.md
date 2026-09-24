@@ -123,6 +123,13 @@ interface DataBundle {
 **后续（D128）**：真源已拆到独立数据仓库（主仓库 submodule `data/otomads/`），S2 若要做，第二份名单有了自己的落脚点；
 但"与原曲同名 key 的身份一致"仍由主仓库 `tmc.validate.check_datasets` 守，跨库后要先约定角色 key 的来源。
 
+**后续（D137）**：手工补全"其余角色"的曲目时，**不能**把还没有曲目的角色提前写进 `characters.toml`
+（那是**派生**清单：`check_roster` 会判「不再被曲包引用」、`pnpm data:roster` 还会删掉它）。落地的办法是主仓库
+`pnpm data:scaffold` —— 给「真源里有、曲包里还没有文件」的角色生成**骨架文件**（顶层只有 `key`，
+`name`/`order` 以注释带在文件头，另附注释掉的 `[[track]]` 示例）。骨架不含 `[[track]]` ⇒ 对生成物与
+`contentHash` 完全惰性；命令**幂等**且**不覆盖**已填过的文件。**S2 仍按上面的触发条件预留**：
+真要"音MAD 自有身份 / 自有顺序 / 自有别名"时再开，届时改的是 `tmc.roster` 的清单语义 + `check_roster` + 本契约。
+
 ---
 
 ## 6. 哈希与协议（待裁定，§10 Q4 —— C 最尖锐的取舍）

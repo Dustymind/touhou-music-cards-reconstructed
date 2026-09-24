@@ -3,7 +3,7 @@
 
 ```bash
 UV_CACHE_DIR=.uv/cache uv sync          # 建立 tools/.venv（已不再依赖 yt-dlp）
-UV_CACHE_DIR=.uv/cache uv run pytest    # 数据/规则测试（当前 34 条）
+UV_CACHE_DIR=.uv/cache uv run pytest    # 数据/规则测试（当前 64 条）
 git -C .. submodule update --init data/otomads   # 音MAD 数据（可选；没有它曲包相关用例会 skip）
 ```
 
@@ -18,6 +18,7 @@ git -C .. submodule update --init data/otomads   # 音MAD 数据（可选；没�
 | `tmc.migrate` | 上游 v3 JSON → TOML / 专辑注册表 / 数组化源表 + 报告 |
 | `tmc.packs` | 曲包的**只读**加载与校验：清单 `<根>/<id>.toml` + 角色文件 `<根>/<id>/<角色 key>.toml`（根 = 主仓库 `data/packs/` + submodule `data/otomads/packs/`；写入侧已搬去数据仓库） |
 | `tmc.roster` | 从 `data/characters/*.toml` 生成数据仓库的角色清单 `characters.toml`（`pnpm data:roster`） |
+| `tmc.scaffold` | 为「真源里有、曲包里还没有」的角色预置骨架文件 `packs/otomads/<角色 key>.toml`（`pnpm data:scaffold`）：幂等、**不覆盖**已有文件、不含 `[[track]]` 所以对生成物与 `contentHash` 完全惰性（D137） |
 | `tmc.validate` | 不变量校验、面次核对、覆盖表一致性、角色清单守卫 |
 | `tmc.build` | 生成 `public/data/*.json`（`--check` 漂移守卫；`contentHash` 含曲包音频口径；按源注册表的 `loudness` 把响度表拷进数据集目录） |
 | `tmc.check_urls` | 远程音源实链抽查（Range 请求 + 音频嗅探） |

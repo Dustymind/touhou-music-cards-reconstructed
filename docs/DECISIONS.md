@@ -4665,3 +4665,47 @@ export const aboutContent: AboutContent = {
 `pnpm e2e` **90 passed + 1 skipped**（8.7 分钟，含 mobile 的 11 条；前置是 `pnpm local` 在跑）；
 `pnpm data:build` 13 个文件 / `data:check` **无漂移** / `data:validate` ✅（引用集合指纹 `9eecf074138b`）；
 `pnpm build` **1.4 MB / 18 文件**；主仓库 pytest **56 passed**、数据仓库 pytest **78 passed**。
+
+## D137 给缺失的角色预置曲包骨架（`tmc.scaffold`；S2 仍只预留）
+
+**需求**（用户）：后续要**手工**编辑数据仓库补全其余角色的音MAD 曲目，问能否提前把剩余角色的元数据搬过去
+（或放模板）。裁定：**走"骨架文件"（方案 A）**、**C（S2）只预留不实现**、注释**要带** `name`/`order`、
+生成要做成**可重复**的子命令。
+
+**先摸清的三条硬约束**（决定了"能搬什么"）：
+
+1. `characters.toml` 是**派生**清单（`tmc.roster.build_roster` = 曲包引用到的角色 + 手工追加的原曲没有的角色）。
+   把还没曲目的角色提前写进去 ⇒ `tmc.validate.check_roster` 走 `p.error` 报「清单里有不再被曲包引用的角色」，
+   且 `pnpm data:roster` 会把它删掉 ⇒ **`name`/`order` 不能提前搬进清单**。
+2. 角色文件顶层只允许 `key` 与可选的 `card`（`tmc.packs.CHARACTER_KEYS`；`_reject_unknown` 对陌生键**直接报错**）
+   ⇒ **`name`/`order` 也不能作为真键写进骨架**，只能进注释。
+3. 契约 `docs/otomads-separation-v1.md` §5 把这件事定成 **S1（单一真源投影，已实现）vs S2（各自真源）**，
+   并把 S2 挂在触发条件上（音MAD 要有原曲没有的角色/卡面时）。**想把身份搬过去 = 半个 S2**，本轮不做。
+
+**做了什么**：新增 `tools/src/tmc/scaffold.py`（`pnpm data:scaffold`）—— 为「真源里有、`packs/otomads/`
+里还没有文件」的角色生成骨架：头两行与数据仓库 `otomads.ingest_pack.FILE_HEADER` 同款，接着是
+`name` / `order` 注释、`key = "..."`，以及一份**注释掉的** `[[track]]` 示例（示例里 `extra` 的合法取值
+直接从 `validate.EXTRAS` 取，不会漂移）。**幂等**（已有文件一个字节不动）、`--dry-run` 可先看、
+submodule 没初始化时给可执行提示。落点是 submodule（`data/otomads/packs/otomads/`），与 `tmc.roster`
+同一套"主仓库工具写数据仓库工作区"的做法。本轮生成 **86 份**（121 个真源角色 − 35 个已有曲目的）。
+
+**它为什么是惰性的**（实测，不是推断）：
+
+| 检查 | 结果 |
+|---|---|
+| `pnpm data:build` | 13 个文件；原曲 `e95684b826fb` / 音MAD `09fdd246a127` —— **两个哈希都没变** |
+| `pnpm data:check` | ✅ 生成物无漂移（`public/data/**` 逐字节不变） |
+| `pnpm data:validate` | ✅ 通过（引用集合指纹 `9eecf074138b` 不变；`characters.toml` 仍是 35 条） |
+| 主仓库 pytest | **64 passed**（原 56，+8 条新用例） |
+| 数据仓库 pytest（读的是含 86 份骨架的 121 个文件） | **78 passed** |
+
+机制上：骨架没有 `[[track]]` ⇒ `packs.load_packs` 不产出曲目 ⇒ 不进任何数据集；`tmc.roster.diff()`
+只看 `characters.toml`、不看角色文件；数据仓库 `local_source` 的 manifest 是**扫磁盘**生成的、不读角色文件；
+`ingest_pack` 对已存在的文件是**追加**（`path.exists()` 分支）⇒ 骨架与它兼容，填过之后不会被重建。
+
+**C（S2）预留**：真要"音MAD 自有身份 / 自有顺序 / 自有别名"时再开；届时要改的四处已写进契约 §5
+（`tmc.roster` 的清单语义、`check_roster`、契约本身、数据仓库 `README.ai.MD`），且要先约定"跨库后角色 key 的来源"。
+
+**顺带修掉的一处漏改**：改名那轮（D136）的核对 grep 用了 `--include=*.md`，**没匹配到 `README.ai.MD`
+（大写扩展名）**，于是数据仓库根那份说明的第 1 行还写着旧项目名 —— 本轮一并改成「东方谐频拾遗 · 音MAD 曲包数据」。
+教训：跨仓库改名核对**不要按扩展名过滤**。

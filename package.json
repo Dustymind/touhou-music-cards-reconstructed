@@ -17,6 +17,7 @@
     "data:check": "cd tools && UV_CACHE_DIR=.uv/cache uv run python -m tmc.build --check",
     "data:validate": "cd tools && UV_CACHE_DIR=.uv/cache uv run python -m tmc.validate --report",
     "data:roster": "cd tools && UV_CACHE_DIR=.uv/cache uv run python -m tmc.roster",
+    "data:scaffold": "cd tools && UV_CACHE_DIR=.uv/cache uv run python -m tmc.scaffold",
     "audio:fetch": "[ -d data/otomads/tools ] || { echo \"音MAD 数据 submodule 未初始化：git submodule update --init data/otomads\"; exit 1; }; cd data/otomads/tools && UV_CACHE_DIR=.uv/cache uv run python -m otomads.fetch_audio --config ../../../local-source.toml",
     "audio:measure": "[ -d data/otomads/tools ] || { echo \"音MAD 数据 submodule 未初始化：git submodule update --init data/otomads\"; exit 1; }; cd data/otomads/tools && UV_CACHE_DIR=.uv/cache uv run python -m otomads.measure_loudness",
     "e2e": "PLAYWRIGHT_BROWSERS_PATH=\"$PWD/.playwright-browsers\" playwright test --project=chromium --project=firefox --project=mobile",
