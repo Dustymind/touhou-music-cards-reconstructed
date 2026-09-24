@@ -4592,3 +4592,76 @@ export const aboutContent: AboutContent = {
 **没做的**：数据仓库克隆里用户未提交的改动（两条 `source` 补丁 + `y的自然对数` 的增益 -14.6→-16.0）
 本轮**未触碰**：提交时用 `git apply --cached` **只暂存我改的 hunk**（索引里 8 个文件、工作区里只剩他那 3 处）。
 旧 tag 指向 `8c1b78b`，前移前的 SHA 记在 `backup-commits.tmp/tag-moves.txt`。
+
+## D136 项目改名：东方谐频拾遗 ~ Forgotten Harmonic Frequencies in Cards and Otomads（三档命名）
+
+**需求**（用户）：先问"用东方谐频拾遗做项目名如何（先不修改）"，讨论一轮后给出**全名**并裁定**全量落地**。
+
+**名字为什么是这几个字**（讨论里定的，别"顺手改通顺"）：
+
+- 「拾遗」不是随手挑的雅词：歌牌源自百人一首、百人一首源自勅撰和歌集，而《拾遺和歌集》正是
+  "把前几部集子**漏掉的**和歌收拢起来"的那一部 —— 与本项目"从公开镜像与音MAD 曲包**拾取散落曲目**"同构；
+  同人音乐圈也已有「〜拾遺」的专辑先例（《永夜新月譚拾遺》《秘封夜総会拾遺》）。
+- 「谐频」是**双关**：谐波 / 谐波频率（这游戏靠听一小段前奏认曲）＋「谐」的诙谐义（音MAD 本身就是梗文化）。
+- 英文的 `Forgotten` 是对「拾遗」的**可读性取舍**（中文留典籍腔、英文取"被遗忘的"）；
+  `Cards` 与 `Otomads` 不是新造词 —— 它们是**应用内既有的英文词**升格（`MusicModeOtomads` 的英文一直是 "Otomads"）。
+- 音韵：`Forgotten **H**armonic **F**requencies` 头韵；中文六字在古典读法里是"平平平平**入**平"（拾＝入声）。
+
+**三档命名**（本轮唯一要记住的规则 —— **别把三档合成一档**）：
+
+| 档 | 文案 | 落点 |
+|---|---|---|
+| 短名 | 东方谐频拾遗 / Forgotten Harmonic Frequencies | `ShellAppTitle`：应用栏（`AppShell.tsx`）＋游戏页面板标题（`GamePanel.tsx`，`h6`） |
+| 全名 | 东方谐频拾遗 ~ Forgotten Harmonic Frequencies in Cards and Otomads | `index.html` `<title>`、`README.md` H1 |
+| **不动** | 包名 `touhou-music-cards`、tag `th09.5-*`、数据仓库名、联机协议与两个 `contentHash`、部署路径 | 仓库名 / 版本号 / 握手 / 三家静态托管 |
+
+**为什么短名与全名必须分**：应用栏标题是 `whiteSpace: nowrap` 的**硬宽度**，全名（6 汉字 + 60 拉丁字符）
+在那两处会换行 / 溢出（窄屏实测见下）。
+
+**落点（主仓库 6 个文件）**：`index.html`、`src/i18n/localization.ts`（`ShellAppTitle`）、
+`src/App.test.tsx`（它断言的是 **en** 串，必须跟着改）、`README.md`、`tools/pyproject.toml`、`docs/rng-v1.md`。
+
+**故意没动的三处**（免得下次被当成漏改）：
+
+1. `src/content/about.ts` 的「原版歌牌游戏 / 原版歌牌游戏作者」—— 那是**上游** lightbulb128 的项目，不是本项目；
+2. `README.md` 第 3 行的「歌牌游戏」—— 是**体裁**名词（这游戏确实是个歌牌游戏），不是项目名；
+3. 数据仓库 `tools/pyproject.toml` 的 description —— 用户随即要求**一起做**（走完整一轮），见下面"数据仓库那一半"。
+
+**窄屏实测**（临时探针：chromium，412 / 360 / 320dp × zh / en；**跑完已删**，不进仓库）：
+
+| 语言 | 标题文本宽度 | 应用栏高度 | 横向溢出 |
+|---|---|---|---|
+| zh | **121px** | **96px** | 三档宽度都没有（`toolbarScroll == toolbarClient`、`docScroll == docClient`） |
+| en | **295px** | **128px** | 同上，也没有 |
+
+⇒ **代价只有一条，且只在"英文 + 窄屏"**：英文标题变长后，`Alice!` 按钮与 ⓘ 在 < ~470dp 上挤不进标题那一行，
+被 `flexWrap` 推到第二行 ⇒ 应用栏高 **96 → 128px**（多一行 32px）。**中文（默认语言）与宽屏都不受影响**。
+**本轮保持现状**：无溢出、触摸目标仍是 48dp（`e2e/mobile.spec.ts` 的触摸目标用例过）；若要收回这一行，
+办法是给窄屏单独一套更短的英文短名（要新增 i18n 键），**用户未要求，不做**。
+
+**数据仓库那一半（用户要求一起做，走完整一轮 §11）**：
+
+| 步 | 内容 |
+|---|---|
+| 克隆 | description 改成 `东方谐频拾遗 · 音MAD 曲包数据仓库的工具：…`，提交 `61d9e8d chore: rename the project in the tools description` |
+| tag | **force-move `th09.5-260925`**：`43868b5` → `61d9e8d`（同一天第 5 次移动）。**不新开 tag** 的理由与 D131 那次相同：tag 名里只有当天一个日期，新开 `th09.5-260926` 会是"明天"的错日期 |
+| submodule | `git fetch --tags --force <克隆> && git checkout th09.5-260925` → `61d9e8d`；`pnpm data:check` **无漂移**，两个 `contentHash` 都没变 ⇒ **联机两端不用一起更新** |
+| 主仓库 | gitlink 单独提交（`data: pin the otomads submodule to th09.5-260925 (tools description rename)`） |
+
+**两个坑（这个仓库以后还会踩）**：
+
+1. **`git tag -f <name> <commit>` 会把附注 tag 换成轻量 tag** —— `git cat-file -t` 从 `tag` 变 `commit`。
+   本仓库三个 tag **全是附注 tag 且各带一行中文说明**，所以移动必须写
+   `git tag -f -a -m "<说明>" <name> <commit>`，并把这轮内容追加进说明（现在是
+   `多作者 + 合写拆分 + 补齐 source + 响度表自查 + 缓存键刷新 + 工具描述改名`）。本轮先踩了一次、已重建修回。
+2. **`backup-commits.tmp/tag-moves.txt` 记的是 commit SHA，不是 tag 对象 SHA** —— `git rev-parse <tag>` 给的是
+   tag 对象，要 `git rev-parse <tag>^{}` 才是 commit（本轮第一次也记错了、已改）。
+
+**顺手修掉的一处漂移**：`reports/validation-report.md` 里还写着"带 source（可自动抓取）**84** 条"——
+`e9b4430` 补了那两条人工曲目的 source 之后没人重生成这份报告；`pnpm data:validate` 一跑就变 **86**。
+数据本身没错，错的是这份被跟踪的产物，已单独提交（`data: refresh the validation report (86 tracks with source)`）。
+
+**验证**：`pnpm typecheck` ✓；`pnpm test` **724 passed / 82 文件**（与 D135 基线同数，`App.test.tsx` 双引擎都过）；
+`pnpm e2e` **90 passed + 1 skipped**（8.7 分钟，含 mobile 的 11 条；前置是 `pnpm local` 在跑）；
+`pnpm data:build` 13 个文件 / `data:check` **无漂移** / `data:validate` ✅（引用集合指纹 `9eecf074138b`）；
+`pnpm build` **1.4 MB / 18 文件**；主仓库 pytest **56 passed**、数据仓库 pytest **78 passed**。

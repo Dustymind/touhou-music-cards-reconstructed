@@ -1,7 +1,7 @@
 [project]
 name = "tmc-tools"
 version = "0.1.0"
-description = "东方歌牌重构版：数据迁移 / 校验 / 生成 / 分类工具（抓取与本地源助手在数据仓库 tools/，D130）"
+description = "东方谐频拾遗（重建版）：数据迁移 / 校验 / 生成 / 分类工具（抓取与本地源助手在数据仓库 tools/，D130）"
 readme = "README.md"
 requires-python = ">=3.11"
 

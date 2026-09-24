@@ -1,4 +1,4 @@
-# 东方歌牌（重建版）
+# 东方谐频拾遗 ~ Forgotten Harmonic Frequencies in Cards and Otomads
 
 把东方角色的卡面、音乐与对战规则做成一个能在浏览器里玩的歌牌游戏：听前奏抢先认出是哪首曲子、抢到对应角色的卡。
 

@@ -62,7 +62,7 @@ export const Localization = {
 
   ShellLoading: u("Loading data…", "正在载入数据…"),
   ShellLoadFailed: u("Failed to load data", "数据载入失败"),
-  ShellAppTitle: u("Touhou Music Cards", "东方歌牌"),
+  ShellAppTitle: u("Forgotten Harmonic Frequencies", "东方谐频拾遗"),
   ShellDataSummary: u("Data", "数据"),
   ShellCharacters: u("characters", "角色"),
   ShellAlbums: u("albums", "专辑"),
