@@ -217,7 +217,14 @@
      "otomads",
      "Masuo魔法図書館",
      "角色曲",
-     "地下部 vs Rinsaku vs 逢封fn_eg vs Moonview210 vs chleain"
+     "地下部 & Rinsaku & 逢封fn_eg & Moonview210 & chleain",
+     [
+      "地下部",
+      "Rinsaku",
+      "逢封fn_eg",
+      "Moonview210",
+      "chleain"
+     ]
     ]
    ]
   },
@@ -262,7 +269,11 @@
      "otomads",
      "月时盆",
      "角色曲",
-     "打酱油的小火柴 & 长叶松烯"
+     "打酱油的小火柴 & 长叶松烯",
+     [
+      "打酱油的小火柴",
+      "长叶松烯"
+     ]
     ],
     [
      "otomads",
@@ -357,7 +368,14 @@
      "otomads",
      "最终鬼畜全明星•BILIBILI【东方新春宴'24单品】",
      "角色曲",
-     "心水湛清 & thwy & 許祭 & Passthem & 浪涛I2A"
+     "心水湛清 & thwy & 許祭 & Passthem & 浪涛I2A",
+     [
+      "心水湛清",
+      "thwy",
+      "許祭",
+      "Passthem",
+      "浪涛I2A"
+     ]
     ]
    ]
   },
@@ -408,7 +426,14 @@
      "otomads",
      "【2023新春宴音MAD单品】远野马娘前线",
      "角色曲",
-     "丹花伊吹 & 艾了个拉 & 四季映姬78 & thwy & Binkales"
+     "丹花伊吹 & 艾了个拉 & 四季映姬78 & thwy & Binkales",
+     [
+      "丹花伊吹",
+      "艾了个拉",
+      "四季映姬78",
+      "thwy",
+      "Binkales"
+     ]
     ],
     [
      "otomads",
@@ -662,13 +687,22 @@
      "otomads",
      "Beat My Old World 【音MAD|个人全明星】",
      "角色曲",
-     "霜幻不容筱 & Shui__Huo & 逢封fn_eg"
+     "霜幻不容筱 & Shui__Huo & 逢封fn_eg",
+     [
+      "霜幻不容筱",
+      "Shui__Huo",
+      "逢封fn_eg"
+     ]
     ],
     [
      "otomads",
      "【东方新春宴音MAD合作单品⁹】Extend Ash~蓬莱人",
      "角色曲",
-     "稀神灵梦 & SayoYasuda"
+     "稀神灵梦 & SayoYasuda",
+     [
+      "稀神灵梦",
+      "SayoYasuda"
+     ]
     ],
     [
      "otomads",
@@ -731,7 +765,14 @@
      "otomads",
      "【铁道音MAD】放在降弓用刑处轴温很快就会升高 ~ 狂气的CR（2021东方乘车录单品）",
      "角色曲",
-     "Satani_ZC & 天空海Skyocean & ItsZTChun & Rendering-Liu & 专治各种乱入"
+     "Satani_ZC & 天空海Skyocean & ItsZTChun & Rendering-Liu & 专治各种乱入",
+     [
+      "Satani_ZC",
+      "天空海Skyocean",
+      "ItsZTChun",
+      "Rendering-Liu",
+      "专治各种乱入"
+     ]
     ],
     [
      "otomads",
@@ -1011,7 +1052,12 @@
      "otomads",
      "【2024东方新春宴音MAD合作单品】山东之国的不眠夜",
      "角色曲",
-     "鱼调YuDiao & 天空海Skyocean & DKZ53"
+     "鱼调YuDiao & 天空海Skyocean & DKZ53",
+     [
+      "鱼调YuDiao",
+      "天空海Skyocean",
+      "DKZ53"
+     ]
     ],
     [
      "otomads",
