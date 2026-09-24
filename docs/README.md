@@ -55,5 +55,5 @@
 [`../tools/README.md`](../tools/README.md)（数据管线模块）、
 [`../data/README.md`](../data/README.md)（真相源目录）、
 [`../data/packs/README.md`](../data/packs/README.md)（曲包形状）、
-[`../data/otomads/README.md`](../data/otomads/README.md)（音MAD 数据 submodule）、
+[`../data/otomads/README.ai.MD`](../data/otomads/README.ai.MD)（音MAD 数据 submodule；AI 维护的说明）、
 [`../deploy/README.md`](../deploy/README.md)（单端口部署）。

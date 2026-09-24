@@ -58,7 +58,7 @@ cd ../.. && pnpm data:build && pnpm data:validate                     # ④ 拷�
 （写错一个 key 会让曲目被静默错挂）。
 
 > ②③ 写进的是 submodule 的工作区：要在**数据仓库**里提交、打新 tag，主仓库切到该 tag 后再跑 ④
-> （见 `data/otomads/README.md`）。
+> （见 `data/otomads/README.ai.MD`）。
 
 ## `[[track]]` 的三个音频键（可选）
 

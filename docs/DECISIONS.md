@@ -4078,7 +4078,7 @@ ring 仍会顶掉上一次 ✓、stop 打断回调且不触发 + dispose 关上�
 `pnpm typecheck` ✓；`pnpm test` **628 passed**（314 条 × chromium + firefox ✓）；`pnpm e2e` **84 passed + 1 skipped**（chromium + firefox + mobile，8.3min ✓）。
 **"可选"实测**：把 `data/otomads` 临时移走 → `pnpm data:check` 只保原曲+共享项并给提示、`pytest` 按预期 **skip 3 条** ✓（跑完已复位）。
 
-**之后要做的事**（写进了 `data/otomads/README.md`）：音MAD 若要引入**原曲没有的角色**或自己的身份，
+**之后要做的事**（写进了 `data/otomads/README.ai.MD`）：音MAD 若要引入**原曲没有的角色**或自己的身份，
 要么主仓库先加同名 key，要么另立 S2 契约（`docs/otomads-separation-v1.md` §5）——
 submodule 只是给了第二份名单落脚点，跨库一致性仍要新约定。
 
@@ -4148,7 +4148,7 @@ git filter-repo --refs refs/heads/pack-history \
 起 `pnpm local` 后全绿）。**缺 submodule 实测**：`data:check` 只保原曲+共享项并给提示 ✓、`data:validate` 通过 ✓。
 
 **契约**（用户③）：曲包格式与音频流程仍以主仓库 `docs/packs-audio-v1.md` 为准（§6 新增"响度按源"一条）；
-数据仓库 README 写"写入侧 + 独立运行"。
+数据仓库的 `README.ai.MD` 写"写入侧 + 独立运行"。
 
 ---
 
