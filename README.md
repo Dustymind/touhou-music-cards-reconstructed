@@ -186,10 +186,13 @@ pnpm media:stage                              # 从本机 .music + public/cards-
 OTOMADS_MEDIA_URL=<归档 URL> pnpm media:pull  # 构建时从归档拉（CI 用的就是这条思路）
 ```
 
-GitHub Pages 那条工作流会在构建后**自动**取 `releases/latest/download/otomads-media.tar.gz`
-（取不到就跳过：部署照常，音MAD 只是没有音频）。归档里是一份**相对地址**的 `manifest.json`
-+ `media/otomads/*.mp3`（+ 可选 `cards-otomads/*`），所以同一份归档在域名根与子目录下**都能用**，
-不必按部署形态重打；`pnpm media:pack` 是**可复现**的（同一份曲库打两次逐字节相同）。
+**部署方式：静态音MAD 源由人手动铺**（**不接 CI** —— 主仓库的 Pages 工作流保持"纯静态、不需要 Python"
+的原取舍，见 D138）。拿到归档两条路：`gh release download th09.5-260925 --pattern otomads-media.tar.gz`
+（**主仓库是私有的**，匿名 `curl` 那个 release 地址会 404），或本机 `pnpm media:pack` 现打一份；
+把归档解到静态站根目录即可（里面就是 `manifest.json` + `media/otomads/*.mp3`）。
+归档里是一份**相对地址**的 `manifest.json` + `media/otomads/*.mp3`（+ 可选 `cards-otomads/*`），
+所以同一份归档在域名根与子目录下**都能用**，不必按部署形态重打；`pnpm media:pack` 是**可复现**的
+（同一份曲库打两次逐字节相同）。
 口径与坑（归档按不可信输入处理、`dist` 会被重建清空、素材不入库）见数据仓库 `README.ai.MD`
 的「静态部署」一节与 `docs/DECISIONS.md` D138。
 **预览时注意**：`pnpm preview` 会**继承 dev 的代理**（`/manifest.json` 与 `/media` 转发给 8011 助手），

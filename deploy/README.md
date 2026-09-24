@@ -52,8 +52,9 @@ Vercel 用 `vercel.json` 的 `headers`；GitHub Pages **不认** `_headers`（�
    ```
 
    铺完站点上就有同源的 `manifest.json` + `media/otomads/*.mp3`（+ `cards-otomads/*`）。
-   **素材不进仓库**：归档由 `pnpm media:pack` 生成（可复现），发布成 Release 资产即可；
-   GitHub Pages 工作流会在构建后自动取它（取不到就跳过 ⇒ 部署照常、音MAD 只是没音频）。
+   **素材不进仓库**：归档由 `pnpm media:pack` 生成（可复现）并发布成 Release 资产，**由人手动铺** ——
+   本仓库的 Pages 工作流**不**拉素材（用户裁定，D138）；而且主仓库是**私有**的，匿名取 Release 资产会 404，
+   要取就带令牌：`gh release download th09.5-260925 --pattern otomads-media.tar.gz`（或本机 `pnpm media:pack`）。
    注意顺序永远是**先 `pnpm build` 再铺素材** —— 重新构建会清空 `dist/`。
    **验证要用真静态服务器**：`pnpm preview` 会继承 dev 的代理（`/manifest.json` 与 `/media` → 8011 助手），
    助手没跑时那两条是 **500**；用 `python3 -m http.server --directory dist` 才验得到静态素材

@@ -4724,9 +4724,17 @@ submodule 没初始化时给可执行提示。落点是 submodule（`data/otomad
 | `pack` | 按**部署布局**打归档：`manifest.json`（**相对地址**）+ `media/<专辑>/*.mp3` + 可选 `cards-otomads/*`。同一份曲库打两次**逐字节相同**（tar 成员按名排序、mtime/uid/gid/mode 归零、gzip 的 mtime 与 FNAME 都不写） |
 | `stage` | 铺进 `dist/`：`--archive <URL\|路径>`（构建时拉）或 `--from <曲库>`（本地铺）；`--base` 才写成绝对地址。结束**自检**（manifest 行数 / 专辑 / 每一行的文件真的在磁盘上），不一致退出码 1 |
 
-主仓库包装：`pnpm media:pack` / `media:stage` / `OTOMADS_MEDIA_URL=… pnpm media:pull`；
-GitHub Pages 工作流在 `pnpm build` 之后**可选拉取** `releases/latest/download/otomads-media.tar.gz`
-（取不到就 no-op ⇒ 部署照常、只是音MAD 没有音频），所以 CI **仍然不需要 Python**（一行 `curl … | tar -xz -C dist`）。
+主仓库包装：`pnpm media:pack` / `media:stage` / `OTOMADS_MEDIA_URL=… pnpm media:pull`。
+
+**部署方式（用户随后裁定，推翻本节最初写的那条）**：**静态音MAD 源由人手动铺，不接 CI** ——
+主仓库的 Pages 工作流保持"纯静态、不需要 Python / 不需要 submodule"的原取舍（工作流里只留一段注释指到这里）。
+两条把这条路走死的事实，记下来省得再试：
+
+1. **主仓库是私有的**：Release 资产对**匿名**请求返回 **404**（`releases/latest/download/…` 与
+   `releases/download/<tag>/…` 都试过），所以"CI 里一行 `curl … | tar`"在本仓库**走不通**，要拉必须带令牌
+   （`gh release download`）。想给**公开**地址就得放对象存储 / 公开仓库，再用 `OTOMADS_MEDIA_URL` 指过去。
+2. 归档已发布成 Release 资产 `th09.5-260925`（**336,834,005 bytes**），带令牌下载回来与本地 **sha256 逐字节一致**
+   （实测，3 分 21 秒）；解包 87 个成员。手动铺的命令与口径见主仓库 `README.md` 的「音MAD 素材」一节。
 
 **为什么 manifest 写相对地址**（关键设计）：前端把解析出来的 URL **直接赋给 `audio.src`**（`src/audio/usePlayer.ts:296`），
 相对地址按**页面**解析 ⇒ 同一份归档在域名根与子目录（GH Pages 项目页）下**都能用**，不必为部署形态重新打包；
