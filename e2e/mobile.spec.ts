@@ -6,6 +6,8 @@
  */
 import { expect, test } from "@playwright/test";
 
+import { aboutContent } from "../src/content/about";
+
 const TABS = ["播放", "列表", "设置", "游戏"];
 
 test.describe("移动端布局", () => {
@@ -39,6 +41,87 @@ test.describe("移动端布局", () => {
     });
     expect(configRows.length).toBeGreaterThan(1);
     expect(new Set(configRows).size).toBe(1);
+  });
+
+  test("关于弹窗：窄屏放得下、不横向溢出、关闭键点得到", async ({ page }) => {
+    await page.goto("/?locale=zh");
+    await page.getByTestId("about-open").tap();
+    const dialog = page.getByTestId("about-dialog");
+    await expect(dialog).toBeVisible();
+    // 第一行的标签（跟着内容真源走，用户改了标签这个用例不会假红）
+    await expect(dialog).toContainText(aboutContent.rows[0]!.label.zh);
+
+    // 入场是 MD2 的"淡入 + 从 80% 放大"（`Grow`：scale 0.75 → 1，150ms），而且这个 scale 挂在
+    // **`.MuiDialog-container`** 上（不是纸张上 —— 纸张的 transform 恒为 none，盯它等于没等）。
+    // 动画没落位就量尺寸会小一圈：实测关闭键量出 **27px = 36 × 0.75**，会被误判成"触摸目标不达标"。
+    // 与播放页卡面那条用例同一个口径：poll 到缩放归 1 为止，而不是白等一个固定时长。
+    await expect.poll(async () => page.evaluate(() => {
+      const matrix = new DOMMatrix(getComputedStyle(document.querySelector(".MuiDialog-container")!).transform);
+      return matrix.a === 1 && matrix.d === 1 && matrix.e === 0 && matrix.f === 0;
+    })).toBe(true);
+
+    const metrics = await page.evaluate(() => {
+      const paper = document.querySelector(".MuiDialog-paper")!.getBoundingClientRect();
+      const close = document.querySelector('[data-testid="about-close"]')!.getBoundingClientRect();
+      const root = document.documentElement;
+      return {
+        width: Math.round(paper.width),
+        viewport: root.clientWidth,
+        closeHeight: Math.round(close.height),
+        scroll: root.scrollWidth,
+        client: root.clientWidth,
+      };
+    });
+    // MD2：最小宽 280；两侧各留 24dp 边距（MUI 默认 32dp，手机上会把对话框压得更窄）
+    expect(metrics.width).toBeGreaterThanOrEqual(280);
+    expect(metrics.width).toBeLessThanOrEqual(metrics.viewport - 48 + 1);
+    expect(metrics.closeHeight).toBeGreaterThanOrEqual(32);         // MD2 文字按钮 small = 32dp
+    expect(metrics.scroll).toBeLessThanOrEqual(metrics.client + 1); // 弹窗打开时也不横向溢出
+
+    // 关闭键真的能用（点一下弹窗消失）
+    await page.getByTestId("about-close").tap();
+    await expect(dialog).toHaveCount(0);
+  });
+
+  test("关于弹窗：外置曲库署名很长时，内容区滚动、关闭键仍在（音MAD + 助手在跑）", async ({ page }) => {
+    await page.goto("/?locale=zh");
+    // 切到音MAD 模式（本地源这时才载入；前置条件同其它音MAD 用例：先 `pnpm local`）
+    await page.getByRole("tab", { name: "设置", exact: true }).click();
+    await page.getByTestId("section-source-summary").click();
+    await page.waitForTimeout(400);
+    await page.getByTestId("music-mode-otomads").click();
+    await page.getByTestId("about-open").tap();
+
+    const dialog = page.getByTestId("about-dialog");
+    await expect(dialog.locator('[data-auto="pack-authors"]')).toBeVisible();
+    await expect.poll(async () => page.evaluate(() =>
+      new DOMMatrix(getComputedStyle(document.querySelector(".MuiDialog-container")!).transform).a,
+    )).toBe(1);
+
+    const metrics = await page.evaluate(() => {
+      const paper = document.querySelector(".MuiDialog-paper")!.getBoundingClientRect();
+      const content = document.querySelector(".MuiDialogContent-root")!;
+      const close = document.querySelector('[data-testid="about-close"]')!.getBoundingClientRect();
+      const root = document.documentElement;
+      return {
+        paperHeight: Math.round(paper.height),
+        viewportHeight: root.clientHeight,
+        contentScrolls: content.scrollHeight > content.clientHeight,
+        closeTop: Math.round(close.top),
+        closeBottom: Math.round(close.bottom),
+        scroll: root.scrollWidth,
+        client: root.clientWidth,
+      };
+    });
+    // 弹窗不超出屏幕；长名单在内容区**内部滚动**，关闭键始终留在屏幕里
+    expect(metrics.paperHeight).toBeLessThanOrEqual(metrics.viewportHeight);
+    expect(metrics.contentScrolls).toBe(true);
+    expect(metrics.closeBottom).toBeLessThanOrEqual(metrics.viewportHeight);
+    expect(metrics.closeTop).toBeGreaterThan(0);
+    expect(metrics.scroll).toBeLessThanOrEqual(metrics.client + 1);
+
+    await page.getByTestId("about-close").tap();
+    await expect(dialog).toHaveCount(0);
   });
 
   test("应用栏在窄屏折成两行：页签独占一行、彩蛋用短文案", async ({ page }) => {

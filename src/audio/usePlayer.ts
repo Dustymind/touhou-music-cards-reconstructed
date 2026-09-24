@@ -86,7 +86,11 @@ export interface PlayerApi {
 /** 倒计时"滴答"时长（毫秒）：短促，三声之间不糊在一起。 */
 const BELL_TICK_MS = 320;
 
-/** 均衡系数：曲包曲目的清单标题就是磁盘文件名（`作者 - 曲名` ✓），其它源没有这张表 → 1 ✓ */
+/** 均衡系数：曲包曲目的清单标题就是磁盘文件名（`作者 - 曲名` ✓），其它源没有这张表 → 1 ✓
+ *
+ *  ⚠️ 这里**必须用第 4 位那个整串**（`entry[3]`，多作者时就是 `" & ".join(authors)`）：
+ *  它是磁盘 stem、manifest 的匹配键与响度表的键。第 5 位（`authors`，D135）是给**显示**排序用的，
+ *  拿它拼 key 会查不到响度表（而且换写法就会失配）。 */
 export function gainKeyOf(entry: MusicEntry | null): string | null {
   if (!entry) return null;
   return entry[3] ? `${entry[3]} - ${entry[1]}` : entry[1];

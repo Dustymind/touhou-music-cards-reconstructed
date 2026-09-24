@@ -1,6 +1,9 @@
 """`附加信息` 判定的黄金样例（docs/rules-classification-v1.md §4）与数据不变量。"""
+import pathlib
+
 import pytest
 
+from tmc import build
 from tmc import packs as pack_mod
 from tmc import validate
 from tmc.roles import RoleIndex, classify
@@ -199,3 +202,73 @@ def test_check_packs_notes_shared_source():
                                          make_pack_track(title="二", source=shared)], CHARS, problems)
     assert not problems.errors
     assert any("共用同一个 source" in note for note in problems.notes)
+
+
+# ------------------------------------------------------------------ 多作者（D135）
+
+def write_pack(tmp_path, track_body: str) -> pathlib.Path:
+    """造一个最小曲包根目录（清单 + 一角色一份），返回根目录。"""
+    root = tmp_path / "packs"
+    root.mkdir()
+    (root / "demo.toml").write_text(
+        '[pack]\nid = "demo"\nlabel_en = "Demo"\nlabel_zh = "演示"\nkind = "local"\norder = 100\n'
+        '\n[[album]]\nkey = "demo"\nname = "demo"\nkind = "other"\npack = "demo"\norder = 100\n',
+        encoding="utf-8")
+    (root / "demo").mkdir()
+    (root / "demo" / "cirno.toml").write_text(
+        'key = "cirno"\n\n[[track]]\nalbum = "demo"\ntitle = "曲目"\nextra = "角色曲"\n' + track_body,
+        encoding="utf-8")
+    return root
+
+
+def parse_only_pack(tmp_path, monkeypatch, track_body: str) -> dict:
+    """只让 `load_packs` 看到这一个曲包根目录，返回解析出来的那一条 track。"""
+    root = write_pack(tmp_path, track_body)
+    monkeypatch.setattr(pack_mod.repo, "pack_roots", lambda: [root])
+    _packs, _albums, tracks, _cards = pack_mod.load_packs()
+    assert len(tracks) == 1, tracks
+    return tracks[0]
+
+
+def test_author_is_kept_as_one_string(tmp_path, monkeypatch):
+    """老写法 `author = "乙 & 甲"`：**原样保留**，不猜哪个 `&` 是分隔符，也不产生 authors。"""
+    track = parse_only_pack(tmp_path, monkeypatch, 'author = "乙 & 甲"\n')
+    assert track["author"] == "乙 & 甲"
+    assert "authors" not in track
+
+
+def test_authors_list_is_normalized_to_the_same_stem_string(tmp_path, monkeypatch):
+    """`authors = ["甲", "乙"]` → 数组 + **与老写法完全等价的整串**（磁盘文件名/响度表键不变）。"""
+    track = parse_only_pack(tmp_path, monkeypatch, 'authors = ["甲", "乙"]\n')
+    assert track["authors"] == ["甲", "乙"]
+    assert track["author"] == "甲 & 乙"          # 与 `author = "甲 & 乙"` 逐字节相同 ⇒ 换写法不用重抓音频
+
+
+def test_authors_and_author_cannot_coexist(tmp_path, monkeypatch):
+    with pytest.raises(SystemExit, match="只能写一个"):
+        parse_only_pack(tmp_path, monkeypatch, 'author = "甲"\nauthors = ["甲", "乙"]\n')
+
+
+@pytest.mark.parametrize("body", [
+    'authors = "甲"\n',                    # 不是数组
+    'authors = []\n',                      # 空数组
+    'authors = ["甲", "  "]\n',            # 有空项
+])
+def test_bad_authors_are_rejected(tmp_path, monkeypatch, body):
+    with pytest.raises(SystemExit, match="authors"):
+        parse_only_pack(tmp_path, monkeypatch, body)
+
+
+def test_build_emits_authors_as_the_fifth_slot():
+    """`build._pack_music`：第 4 位仍是整串（stem），第 5 位才是多作者数组。"""
+    music = build._pack_music([
+        {"character": "cirno", "album": "demo", "title": "一", "extra": "角色曲",
+         "author": "甲 & 乙", "authors": ["甲", "乙"]},
+        {"character": "cirno", "album": "demo", "title": "二", "extra": "角色曲", "author": "丙"},
+        {"character": "cirno", "album": "demo", "title": "三", "extra": "角色曲"},
+    ])
+    assert music["cirno"] == [
+        ["demo", "一", "角色曲", "甲 & 乙", ["甲", "乙"]],
+        ["demo", "二", "角色曲", "丙"],
+        ["demo", "三", "角色曲"],
+    ]

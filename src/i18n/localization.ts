@@ -2,7 +2,8 @@
 import { isCheat, glitchString } from "../cheat";
 
 export type Locale = "en" | "zh";
-type Localized = { en: string; zh: string };
+/** 一份双语文案（`en` / `zh` 各一条）—— 界面文案表、`src/content/about.ts`、数据里的 `label`/`description` 都是这个形状。 */
+export type Localized = { en: string; zh: string };
 
 const u = (en: string, zh: string): Localized => ({ en, zh });
 
@@ -10,7 +11,10 @@ export const Localization = {
   TabNamePlayer: u("Player", "播放"),
   TabNameList: u("List", "列表"),
   TabNameConfigs: u("Config", "设置"),
-  TabNameAbout: u("Match", "游戏"),
+  // 上游把这**一个**键叫 `TabNameAbout`、文案却是 "Match/游戏"（.ref/notes/B-ui-config-spec.md §8.3 记过）。
+  // 本仓库现在真有一个「关于」弹窗（文字在 `src/content/about.ts`），两者同名会一直让人看错，所以把游戏页的键改成
+  // 它该有的名字（**文案一字未动**）。
+  TabNameMatch: u("Match", "游戏"),
   TabNameAlice: u("Alice!", "Alice!"),
 
   PlayerTabUpcoming: u("Upcoming (click to skip)", "接下来（点击以跳过）"),
@@ -66,6 +70,8 @@ export const Localization = {
   ShellDataHash: u("Data hash", "数据指纹"),
   ShellLanguage: u("Language", "语言"),
   ShellNotYet: u("This screen arrives in a later milestone.", "该界面将在后续里程碑实现。"),
+
+  // 「关于」弹窗的文字**不在这里** —— 全部在 `src/content/about.ts`（用户可以整篇改，含标题与关闭按钮）
 
   ConfigTabPresetHifuu: u("Hifuu tracks", "秘封曲"),
   ConfigTabPresetCD: u("CD", "CD"),

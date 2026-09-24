@@ -97,6 +97,8 @@ def _pack_music(pack_tracks: list[dict]) -> dict[str, list[list]]:
         entry = [track["album"], track["title"], track["extra"]]
         if track.get("author"):
             entry.append(track["author"])      # 可选第 4 位：作者（D94）
+        if track.get("authors"):
+            entry.append(track["authors"])     # 可选第 5 位：**多作者数组**（D135，与第 4 位同源）
         music.setdefault(track["character"], []).append(entry)
     return music
 

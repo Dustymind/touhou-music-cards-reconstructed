@@ -74,7 +74,7 @@ PACK_KINDS = ("local",)
 PACK_KEYS = {"id", "label_en", "label_zh", "kind", "order"}
 ALBUM_KEYS = {"key", "name", "kind", "pack", "order", "show_album_name"}
 #: 角色文件里 `[[track]]` 的键 —— **没有** `character`：角色由文件的 `key` 决定
-TRACK_KEYS = {"album", "author", "title", "extra", "source", "start_time", "stop_time"}
+TRACK_KEYS = {"album", "author", "authors", "title", "extra", "source", "start_time", "stop_time"}
 #: 角色文件的顶层键（`track` 之外）：`card` 是**可选**的卡面覆盖（写法同 `data/characters/*.toml`）
 CHARACTER_KEYS = {"key", "card"}
 
@@ -224,11 +224,40 @@ def _character_tracks(pack_dir: pathlib.Path, manifest: str,
                 "extra": entry.get("extra", "角色曲"),
                 "pack": pack_dir.name,
             }
-            if entry.get("author"):
-                track["author"] = entry["author"]
+            _read_authors(entry, track, f"{where} / {entry.get('title')}")
             _read_audio_keys(entry, track, f"{where} / {track['title']}")
             out.append(track)
     return out
+
+
+#: 多作者在**文件名 / 响度表键**里的连接符。磁盘上的成品是 `作者 - 标题.mp3`，
+#: 而那个名字是 manifest 匹配键、响度表键与单曲存档的一部分（数据仓库 `packformat.audio_filename`，D95/D96），
+#: 所以 `authors = ["A", "B"]` 必须能还原成 `A & B` —— 也就是**原来那串合写就是 " & " 连接的**。
+AUTHOR_JOIN = " & "
+
+
+def _read_authors(entry: dict, track: dict, where: str) -> None:
+    """`author`（单个字符串）或 `authors`（字符串数组）：两种写法都认，但**不能同时写**。
+
+    - `author = "A & B"`：老写法，**原样保留**（不猜哪个 `&` 是分隔符），显示时也是一整串；
+    - `authors = ["A", "B"]`：多作者（D135）。规范化后同时给出：
+      `track["authors"]`（数组，给前端排序/分别署名用）与 `track["author"] = " & ".join(...)`
+      （**成品文件名那一位**，与 `author` 写法在磁盘上完全等价 ⇒ 换写法不用重抓音频）。
+    """
+    single = entry.get("author")
+    many = entry.get("authors")
+    if single is not None and many is not None:
+        raise SystemExit(f"{where}：author 与 authors 只能写一个（author 是整串、authors 是数组）")
+    if many is not None:
+        if not isinstance(many, list) or not many:
+            raise SystemExit(f"{where}：authors 必须是非空字符串数组，例如 authors = [\"甲\", \"乙\"]")
+        cleaned = [str(name).strip() for name in many]
+        if not all(cleaned):
+            raise SystemExit(f"{where}：authors 里不能有空字符串")
+        track["authors"] = cleaned
+        track["author"] = AUTHOR_JOIN.join(cleaned)
+    elif single:
+        track["author"] = single
 
 
 def _read_audio_keys(entry: dict, track: dict, where: str) -> None:

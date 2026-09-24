@@ -64,12 +64,17 @@ export function validateCharacters(raw: unknown, expected: number): CharacterRec
     assert(Array.isArray(character.music) && character.music.length > 0, `${character.key} 缺曲目`);
     for (const entry of character.music) {
       // `[专辑, 曲名, extra]`，第 4 位是**可选**的作者（音MAD 这类曲目才有）
-      assert(Array.isArray(entry) && (entry.length === 3 || entry.length === 4),
+      assert(Array.isArray(entry) && entry.length >= 3 && entry.length <= 5,
         `${character.key} 曲目条目形状不对`);
       assert((EXTRAS as readonly string[]).includes(entry[2]),
         `${character.key} 的附加信息非法：${String(entry[2])}`);
-      assert(entry.length === 3 || typeof entry[3] === "string",
+      assert(entry.length < 4 || typeof entry[3] === "string",
         `${character.key} 的作者字段必须是字符串`);
+      // 第 5 位（多作者数组，D135）：要写就得是非空字符串数组
+      assert(entry.length < 5
+        || (Array.isArray(entry[4]) && entry[4].length > 0
+            && entry[4].every((name) => typeof name === "string" && name.trim() !== "")),
+        `${character.key} 的多作者字段必须是非空字符串数组`);
     }
   }
   return characters;

@@ -1,14 +1,15 @@
-/** 应用外壳：页签栏（含 Alice 彩蛋按钮）+ 当前页。 */
+/** 应用外壳：页签栏（含 Alice 彩蛋按钮与「关于」弹窗入口）+ 当前页。 */
+import InfoRounded from "@mui/icons-material/InfoRounded";
 import {
-  AppBar, Box, Button, Container, Stack, Tab, Tabs, Toolbar, Typography, useMediaQuery,
+  AppBar, Box, Button, Container, IconButton, Stack, Tab, Tabs, Toolbar, Typography, useMediaQuery,
 } from "@mui/material";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { Localization, t } from "../../i18n/localization";
+import { Localization, localized, t } from "../../i18n/localization";
 import { stableHash } from "../../rng";
 import { TAB_ORDER, useSession, type TabId } from "../../store/session";
-import { NoFontFamily } from "../../theme/theme";
+import { MD2, NoFontFamily } from "../../theme/theme";
 import { trackId, type DataBundle, type MusicEntry } from "../../data/types";
 import { usePreset } from "../../store/preset";
 import { currentQueue, useQueue } from "../../store/queue";
@@ -28,6 +29,9 @@ import { PlayerPanel } from "../panels/PlayerPanel";
 import { ConfigPanel } from "../panels/ConfigPanel";
 import { GamePanel } from "../panels/GamePanel";
 import { ListPanel } from "../panels/ListPanel";
+import { AboutDialog } from "../components/AboutDialog";
+import { aboutContent } from "../../content/about";
+import { packAuthorsFor } from "../../music/packAuthors";
 
 const ALICE_LABELS = [
   "Alice is the best!",
@@ -66,6 +70,8 @@ export function dataHashes(bundle: DataBundle): Record<string, string> {
 export function AppShell({ bundle }: { bundle: DataBundle }) {
   /** 窄屏：页签折到第二行、彩蛋文案用短版（上游也是小屏显示 "Alice!"） */
   const isSmallScreen = useMediaQuery("(max-width: 599.95px)");
+  /** 「关于」弹窗的开合：纯界面状态（不落盘、不进联机快照），所以留在组件里 */
+  const [aboutOpen, setAboutOpen] = useState(false);
   const {
     tab, setTab, locale, cardCollection, musicMode, localMusicUrl,
     entryRequest, setEntryRequest,
@@ -168,6 +174,13 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
     return out;
   }, [dataset.sources]);
 
+  // 外置曲库（音MAD 曲包）的曲目署名：**本地曲库助手没在跑就是空数组**（`packAuthorsFor` 里判的），
+  // 空数组时弹窗里那一行整行不显示。`sources.tables` 换了身份（载入进度变化）就重算。
+  const packAuthors = useMemo(
+    () => packAuthorsFor(bundle, dataset, sources.tables),
+    [bundle, dataset, sources.tables],
+  );
+
   const player = usePlayer({
     dataset,
     loudnessUrls,
@@ -242,7 +255,8 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
     player: t(Localization.TabNamePlayer),
     list: t(Localization.TabNameList),
     config: t(Localization.TabNameConfigs),
-    game: t(Localization.TabNameAbout),
+    // 游戏页的键是 `TabNameMatch`（上游那个键名叫 About、文案却是 Match，已按内容改名）
+    game: t(Localization.TabNameMatch),
   };
 
   return (
@@ -304,8 +318,21 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
           <Button color="secondary" onClick={jumpToAlice} disabled={gameActive} sx={{ minWidth: 0 }}>
             {aliceLabel(isSmallScreen)}
           </Button>
+          {/* MD2 应用栏的"关于"入口：48dp 触控区 + 24dp 图标（`MD2.iconButton` 的规格） */}
+          <IconButton
+            color="inherit"
+            onClick={() => setAboutOpen(true)}
+            aria-label={localized(aboutContent.title, locale)}
+            data-testid="about-open"
+            sx={{ width: MD2.iconButton.size, height: MD2.iconButton.size, flexShrink: 0 }}
+          >
+            <InfoRounded fontSize="small" sx={{ fontSize: MD2.iconButton.icon }} />
+          </IconButton>
         </Toolbar>
       </AppBar>
+
+      {/* 「关于」弹窗：内容真源 `src/content/about.ts`，Esc / 点遮罩 / 「关闭」按钮都能关 */}
+      <AboutDialog open={aboutOpen} onClose={() => setAboutOpen(false)} packAuthors={packAuthors} />
 
       {/* MD2 响应式页边距：移动 16dp / 桌面 24dp */}
       <Container maxWidth={false} sx={{ px: { xs: 2, md: 3 }, py: 3 }}>

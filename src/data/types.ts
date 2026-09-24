@@ -5,8 +5,15 @@ export const EXTRAS = ["角色曲", "道中曲", "更多道中曲", "秘封曲"]
 export type Extra = (typeof EXTRAS)[number];
 
 /** `[专辑, 曲目, 附加信息]`——`曲目` 保留 `NN. ` 序号（见 docs/DECISIONS.md D6）。 */
-/** `[专辑, 曲名, extra]`；第 4 位是**可选**的作者（音MAD 这类有作者信息的曲目才有）。 */
-export type MusicEntry = [album: string, title: string, extra: Extra, author?: string];
+/** `[专辑, 曲名, extra]`；第 4 位是**可选**的作者（音MAD 这类有作者信息的曲目才有）。
+ *
+ * 第 5 位是**可选的多作者数组**（D135）：只有曲包写了 `authors = [...]` 时才有。
+ * 它与第 4 位**同源** —— 第 4 位是 `" & ".join(authors)`，也就是磁盘上那个
+ * `作者 - 曲名.mp3` 的 stem 写法（响度表与单曲存档都按它取，**不能排序、不能改连接符**）；
+ * 第 5 位才是"给显示排序用"的数组。 */
+export type MusicEntry = [
+  album: string, title: string, extra: Extra, author?: string, authors?: string[],
+];
 
 export interface CharacterRecord {
   key: string;

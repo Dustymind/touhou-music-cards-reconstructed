@@ -1,7 +1,9 @@
-/** 双引擎冒烟：数据加载、页签切换、预设交互、对战回合。 */
+/** 双引擎冒烟：数据加载、页签切换、关于弹窗、预设交互、对战回合。 */
 import { captureAudio, waitForPlaying } from "./audio";
 import { dragCard } from "./dnd";
+import { aboutContent } from "../src/content/about";
 import { expect, test, type Page } from "@playwright/test";
+import { readFileSync } from "node:fs";
 
 test("加载数据并渲染页签与播放页", async ({ page }) => {
   await page.goto("/");
@@ -19,6 +21,88 @@ test("列表页列出全部角色并能搜索", async ({ page }) => {
   await expect(page.getByText("121 / 121")).toBeVisible();
   await page.getByPlaceholder("Search Character").fill("cirno");
   await expect(page.getByText("1 / 121")).toBeVisible();
+});
+
+test("关于弹窗：应用栏入口打开、每行内容都在、「关闭」键关得掉", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByTestId("about-dialog")).toHaveCount(0);
+
+  await page.getByTestId("about-open").click();
+  const dialog = page.getByTestId("about-dialog");
+  await expect(dialog).toBeVisible();
+  // 弹窗里的每一个字都在内容真源里（用户改了人名/标签这里跟着走，不会假红）
+  await expect(dialog).toContainText(aboutContent.title.en);
+  for (const row of aboutContent.rows) {
+    if ("auto" in row) continue;               // 自动行（外置曲库署名）由下面那条用例专门验
+    await expect(dialog).toContainText(row.name);
+    if (row.label !== undefined) await expect(dialog).toContainText(row.label.en);
+  }
+  await expect(dialog).toContainText(aboutContent.close.en);
+  // 有地址的行是能点的新标签页链接。**按行定位**（`about-row-<下标>`）：
+  // 按文字找会撞车（`Dustymind` 是 `Dustymind/touhou-music-…` 的子串，strict mode 直接报两个元素）
+  const linkedIndex = aboutContent.rows.findIndex((row) => row.url !== "");
+  expect(linkedIndex).toBeGreaterThanOrEqual(0);
+  const link = dialog.getByTestId(`about-row-${linkedIndex}`).getByRole("link");
+  await expect(link).toHaveAttribute("href", aboutContent.rows[linkedIndex]!.url);
+  await expect(link).toHaveAttribute("target", "_blank");
+
+  // MD2 对话框规格：最小宽 280 / 最大宽 560、4dp 圆角、有 elevation、遮罩 32% 黑
+  const box = await page.evaluate(() => {
+    const style = getComputedStyle(document.querySelector(".MuiDialog-paper")!);
+    return {
+      minWidth: style.minWidth,
+      maxWidth: style.maxWidth,
+      radius: style.borderTopLeftRadius,
+      elevation: style.boxShadow === "none" ? 0 : 1,
+      scrim: getComputedStyle(document.querySelector(".MuiBackdrop-root")!).backgroundColor,
+    };
+  });
+  expect(box).toMatchObject({ minWidth: "280px", maxWidth: "560px", radius: "4px", elevation: 1 });
+  expect(box.scrim).toBe("rgba(0, 0, 0, 0.32)");
+
+  // 关闭按键（MD2 操作区在右下）
+  await page.getByTestId("about-close").click();
+  await expect(dialog).toHaveCount(0);
+});
+
+test("关于弹窗：外置曲库（音MAD）署名自动列出，且在「原作」上方", async ({ page }) => {
+  // 名单直接从**真源生成物**取（曲包长什么样，这里就比什么），并挑三个真实署名来验
+  const data = JSON.parse(readFileSync("public/data/otomads/characters.json", "utf8")) as {
+    characters: { music: (string | string[])[][] }[];
+  };
+  // 与 `collectPackAuthors` 同一口径：写了 `authors`（第 5 位）就用数组，否则用整串（第 4 位）
+  const authors = [...new Set(data.characters.flatMap((character) => character.music.flatMap(
+    (entry) => ((entry[4] as string[] | undefined) ?? [entry[3] as string]).filter(Boolean),
+  )))];
+  expect(authors.length).toBeGreaterThan(10);
+
+  await page.goto("/");
+  // 切到音MAD 模式：本地源（本机助手 8011）这时才会载入 —— 前置条件与另外几条音MAD 用例相同。
+  // 音乐模式开关在「音乐源」分区里，分区默认折叠（D47），先展开。
+  await page.getByRole("tab", { name: "Config", exact: true }).click();
+  await expandSection(page, "source");
+  await page.getByTestId("music-mode-otomads").click();
+  await page.getByTestId("about-open").click();
+
+  const dialog = page.getByTestId("about-dialog");
+  await expect(dialog).toBeVisible();
+  const auto = dialog.locator('[data-auto="pack-authors"]');
+  await expect(auto).toBeVisible();                          // 助手在跑才有这一段
+  // 标签取自内容真源（页面默认 en；写成 `label.zh` 就成了一条只在中文下对的用例）
+  const anchor = aboutContent.rows.find((row) => "auto" in row)!;
+  await expect(auto).toContainText(anchor.label.en);
+  for (const name of authors.slice(0, 3)) await expect(auto).toContainText(name);
+
+  // 位置：它在「原作」那一行**上方**（用户要求）
+  const rows = await page.evaluate(() => [...document.querySelectorAll('[data-testid^="about-row-"]')]
+    .map((row) => ({ auto: row.getAttribute("data-auto") === "pack-authors", text: row.textContent ?? "" })));
+  const autoIndex = rows.findIndex((row) => row.auto);
+  const originalIndex = rows.findIndex((row) => row.text.includes("上海アリス幻樂団"));
+  expect(autoIndex).toBeGreaterThanOrEqual(0);
+  expect(originalIndex).toBeGreaterThan(autoIndex);
+
+  // 名字不是链接（数据里没有作者主页）
+  await expect(auto.locator("a")).toHaveCount(0);
 });
 
 test("设置页：秘封父项是批量控制，三态开关改变统计", async ({ page }) => {

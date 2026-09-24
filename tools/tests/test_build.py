@@ -8,6 +8,8 @@ D131 追加：**源表地址形态**（相对路径 / http(s) 绝对 URL，禁�
 from __future__ import annotations
 
 import json
+import pathlib
+import re
 
 import pytest
 
@@ -123,3 +125,30 @@ def test_shipped_table_urls_are_deployment_shaped():
         for source in payload["sources"]:
             assert build.table_url_problem(source["tableUrl"]) is None, \
                 f"[{mode}] {source['id']} → {source['tableUrl']}"
+
+
+# ------------------------------------------------------------------ 跨仓库耦合：作者连接符（D135）
+
+def test_author_join_matches_the_data_repo_helper():
+    """两仓库各有一份 `AUTHOR_JOIN`（成品文件名 `作者 - 标题.mp3` 的口径）—— 它们必须一致。
+
+    为什么要有这条：主仓库 `tmc.packs` 生成 `characters.json`，数据仓库的曲库助手
+    （`otomads.packformat`）用同一个规则找磁盘文件与响度表键。两份实现 **零 import 依赖**
+    （两个仓库互相看不见对方的代码），所以只能这样按文本对一下字面量：
+
+    - 数据仓库那份改了而主仓库没改（或反过来）⇒ 多作者曲目的音频**一声不响地找不到**；
+    - 没初始化 submodule 时跳过（与其它依赖曲包的用例同口径）。
+    """
+    helper = repo.ROOT / "data" / "otomads" / "tools" / "src" / "otomads" / "packformat.py"
+    if not helper.is_file():
+        pytest.skip("数据 submodule 未初始化：跳过跨仓库口径检查")
+
+    def literal(path, name):
+        match = re.search(rf'^{name}\s*=\s*"([^"]*)"', path.read_text(encoding="utf-8"), re.MULTILINE)
+        assert match, f"{path} 里找不到 {name}"
+        return match.group(1)
+
+    assert literal(helper, "AUTHOR_JOIN") == pack_mod.AUTHOR_JOIN
+    # `authors` 这个键两边都要认（只认一边 ⇒ 曲包一写就被另一边当成"不认识的键"拒掉）
+    for path in (helper, pathlib.Path(pack_mod.__file__)):
+        assert '"authors"' in path.read_text(encoding="utf-8"), path

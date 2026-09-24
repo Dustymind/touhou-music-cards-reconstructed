@@ -17,6 +17,7 @@ import { displayTitle } from "../../data/types";
 import { Localization, t } from "../../i18n/localization";
 import type { PlayerApi } from "../../audio/usePlayer";
 import type { TableMap } from "../../music/sources";
+import { formatAuthors } from "../../music/authorOrder";
 import { fadeInSx, NoFontFamily } from "../../theme/theme";
 import { CharacterCard } from "../components/CharacterCard";
 import { glitchEnabled, preferLocalCards } from "../../runtime";
@@ -50,9 +51,14 @@ const PLAYER_LINE_GAP = { xs: 1, sm: 1.5 };
 const PLAYER_CONTROL_WIDTH = 420;
 
 /** 播放页第二行：**有作者显示作者**；没有作者时看专辑的 `showAlbumName`（缺省 true），
- *  为 false 就整行不显示（例如音MAD 那批没有作者的曲目）。 */
-function creditLine(entry: MusicEntry | null, albums: readonly AlbumRecord[]): string | null {
+ *  为 false 就整行不显示（例如音MAD 那批没有作者的曲目）。
+ *
+ *  多作者（`MusicEntry[4]`，D135）**先按关于页那套"英文/拼音首字母"排序**再用「、」连接
+ *  —— 用户要求两边同一口径；排序实现在 `src/music/authorOrder.ts`（**不许在别处再写一套**）。
+ *  注意只有**显示**排序：第 4 位那个整串是磁盘文件名/响度表的键，任何时候都不能重排（见 `gainKeyOf`）。 */
+export function creditLine(entry: MusicEntry | null, albums: readonly AlbumRecord[]): string | null {
   if (!entry) return null;
+  if (entry[4]?.length) return formatAuthors(entry[4]);
   if (entry[3]) return entry[3];
   const album = albums.find((item) => item.name === entry[0]);
   return album?.showAlbumName === false ? null : entry[0];

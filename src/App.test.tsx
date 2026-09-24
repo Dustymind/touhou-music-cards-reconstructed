@@ -4,6 +4,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import App from "./App";
+import { aboutContent, type AboutEntryRow } from "./content/about";
 import { TICK_LATE_TOLERANCE_MS, aliceLabel, tickDue } from "./ui/shell/AppShell";
 import { installDataFetchStub, installFakeAudio } from "./test-utils";
 import { TURN_COUNTDOWN_MS } from "./game/useGameLoop";
@@ -114,6 +115,50 @@ describe("App 冒烟（真实数据）", () => {
     expect(text).toContain("Touhou Music Cards");
     expect(text).not.toContain("所有已启用的音源都取不到");
     expect(text).toContain("121 in rotation");
+  });
+
+  it("「关于」弹窗：应用栏的入口打开、内容真源的每一行都在、「关闭」按钮关得掉", async () => {
+    installDataFetchStub();
+    const { container } = await renderApp();
+    await waitFor(container, (value) => value.includes("Player"));
+    expect(document.querySelector('[data-testid="about-dialog"]')).toBeNull();
+
+    // 应用栏的入口（图标按钮，无障碍名字取自内容真源的标题）
+    const open = container.querySelector<HTMLButtonElement>('[data-testid="about-open"]')!;
+    expect(open.getAttribute("aria-label")).toBe(aboutContent.title.en);
+    await act(async () => { open.click(); });
+
+    const dialog = document.querySelector('[data-testid="about-dialog"]')!;
+    const text = dialog.textContent ?? "";
+    // 每一**普通行**的内容（有标签的连标签一起）都来自 `src/content/about.ts`
+    for (const row of aboutContent.rows) {
+      if ("auto" in row) continue;                    // 自动行（外置曲库署名）另有用例
+      expect(text).toContain(row.name);
+      if (row.label !== undefined) expect(text).toContain(row.label.en);
+    }
+
+    expect(text).toContain(aboutContent.close.en);
+    // 有地址的行是能点的链接（新标签页打开）
+    const entryRows = aboutContent.rows.filter((row): row is AboutEntryRow => !("auto" in row));
+    const [firstLinked] = entryRows.filter((row) => row.url !== "");
+    const link = [...dialog.querySelectorAll("a[href]")]
+      .find((anchor) => anchor.getAttribute("href") === firstLinked!.url)!;
+    expect(link.getAttribute("target")).toBe("_blank");
+
+    // 外置曲库署名：单测里本地曲库助手没在跑（`/manifest.json` 取不到）→ 这一行**整行不显示**
+    expect(text).not.toContain(aboutContent.rows
+      .filter((row) => "auto" in row)
+      .map((row) => row.label.en)
+      .join(""));
+
+    // 关闭按键：按下去弹窗就该没了（退出有 75ms 过渡，`closeAfterTransition` 之后才从 DOM 移除）
+    const close = dialog.querySelector<HTMLButtonElement>('[data-testid="about-close"]')!;
+    await act(async () => { close.click(); });
+    const deadline = Date.now() + 1000;
+    while (document.querySelector('[data-testid="about-dialog"]') && Date.now() < deadline) {
+      await act(async () => { await new Promise((resolve) => setTimeout(resolve, 10)); });
+    }
+    expect(document.querySelector('[data-testid="about-dialog"]')).toBeNull();
   });
 
   it("首次进入配置页：预设默认全选（父项勾选、统计 全库可用）", async () => {

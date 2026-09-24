@@ -27,17 +27,20 @@ const FRESH: SingleTrackState = { enabled: false, pins: {}, disabledCharacters: 
 
 /** 手选条目：3 元（专辑 / 曲目 / 附加信息）或 4 元（第 4 位是**可选作者**，音MAD 那批基本都有）。 */
 function isEntry(raw: unknown): raw is MusicEntry {
-  return Array.isArray(raw) && (raw.length === 3 || raw.length === 4)
+  return Array.isArray(raw) && raw.length >= 3 && raw.length <= 5
     && typeof raw[0] === "string" && typeof raw[1] === "string"
     && EXTRAS_SET.has(String(raw[2]))
-    && (raw.length === 3 || typeof raw[3] === "string");
+    && (raw.length < 4 || typeof raw[3] === "string")
+    && (raw.length < 5
+      || (Array.isArray(raw[4]) && raw[4].length > 0
+          && raw[4].every((name) => typeof name === "string")));
 }
 
-/** 只留校验过的位置；**第 4 位作者跟着走** —— 丢掉它，播放页那一行对 pin 的曲目就只剩专辑名。 */
+/** 只留校验过的位置；**作者（第 4 位）与多作者（第 5 位）都跟着走** ——
+ *  丢掉它们，播放页那一行对 pin 的曲目就只剩专辑名。 */
 function copyEntry(value: MusicEntry): MusicEntry {
-  return value.length === 4
-    ? [value[0], value[1], value[2], value[3]]
-    : [value[0], value[1], value[2]];
+  const copy = value.slice(0, Math.min(value.length, 5)) as MusicEntry;
+  return copy;
 }
 
 function validateSingleTrack(raw: unknown): SingleTrackState | null {
