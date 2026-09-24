@@ -4709,3 +4709,46 @@ submodule 没初始化时给可执行提示。落点是 submodule（`data/otomad
 **顺带修掉的一处漏改**：改名那轮（D136）的核对 grep 用了 `--include=*.md`，**没匹配到 `README.ai.MD`
 （大写扩展名）**，于是数据仓库根那份说明的第 1 行还写着旧项目名 —— 本轮一并改成「东方谐频拾遗 · 音MAD 曲包数据」。
 教训：跨仓库改名核对**不要按扩展名过滤**。
+
+## D138 音MAD 素材的静态部署（`stage_media`：打归档 + 铺 dist，构建时拉取）
+
+**需求**（用户，三轮）：① 问"现行数据库能否单独构建静态页面以供部署" ⇒ 答：数据仓库**不能**（它没有前端与
+构建器，只有数据 + Python 工具），主仓库能、而且本来就是纯静态，唯一缺的是音MAD 素材；
+② 问"能否做成同源静态素材" ⇒ 答：能，但要生成**烘焙了部署基地址**的 manifest + 按 `media/<专辑>/<曲目>.mp3` 放音频；
+③ 裁定：**324 MB 音频走"构建时拉取"**，并把"① manifest ② 音频 ③ 卡面"三步做成**命令 + 说明**。
+
+**做了什么**：新增数据仓库工具 `otomads.stage_media`（**纯标准库**，两个子命令）：
+
+| 子命令 | 作用 |
+|---|---|
+| `pack` | 按**部署布局**打归档：`manifest.json`（**相对地址**）+ `media/<专辑>/*.mp3` + 可选 `cards-otomads/*`。同一份曲库打两次**逐字节相同**（tar 成员按名排序、mtime/uid/gid/mode 归零、gzip 的 mtime 与 FNAME 都不写） |
+| `stage` | 铺进 `dist/`：`--archive <URL\|路径>`（构建时拉）或 `--from <曲库>`（本地铺）；`--base` 才写成绝对地址。结束**自检**（manifest 行数 / 专辑 / 每一行的文件真的在磁盘上），不一致退出码 1 |
+
+主仓库包装：`pnpm media:pack` / `media:stage` / `OTOMADS_MEDIA_URL=… pnpm media:pull`；
+GitHub Pages 工作流在 `pnpm build` 之后**可选拉取** `releases/latest/download/otomads-media.tar.gz`
+（取不到就 no-op ⇒ 部署照常、只是音MAD 没有音频），所以 CI **仍然不需要 Python**（一行 `curl … | tar -xz -C dist`）。
+
+**为什么 manifest 写相对地址**（关键设计）：前端把解析出来的 URL **直接赋给 `audio.src`**（`src/audio/usePlayer.ts:296`），
+相对地址按**页面**解析 ⇒ 同一份归档在域名根与子目录（GH Pages 项目页）下**都能用**，不必为部署形态重新打包；
+而助手的动态 manifest 必须是绝对地址（它可能跨源）。要绝对就 `--base`。
+
+**踩到 / 避开的坑**：
+
+1. **gzip 会把输出文件名写进头（FNAME）** ⇒ 同一份素材打到不同路径就得到不同字节；`GzipFile(filename="")` 才叫可复现。
+2. **归档是不可信输入**（可能来自网络）：`stage` 拒绝绝对路径、`..`、符号/硬链接/设备成员（tar 的经典路径穿越），
+   两条测试盯着；3.11 没有 `extractall(filter=…)`，用 try/except 兼容（3.12+ 顺带走官方 `data` 过滤器）。
+3. **`vite build` 会清空 `dist/`**（默认 `emptyOutDir`）⇒ 顺序永远是"先 build、再铺素材"，重建后要重铺。
+4. 归档（324 MB）与 `public/cards-otomads/` 都进 `.gitignore`：**素材不进仓库**这条不变。
+5. 工具改的是**克隆**、而 `pnpm` 包装跑的是 **submodule**（§9.2 那条老坑）⇒ 本轮照旧"克隆改 → 提交 → 前移 tag → 切 submodule"。
+6. **`pnpm preview` 不能当静态服务器用**：它继承 dev 的代理（`vite.config.ts` 把 `/manifest.json` 与 `/media`
+   转发给 8011 助手），助手没跑时这两条是 **500**。验证"站点自带素材"必须用真静态服务器
+   （`python3 -m http.server --directory dist`）。这条已写进主仓库 README 与 `deploy/README.md`。
+
+**静态站的实测**（临时探针，chromium，**跑完已删**）：把 `dist/`（含铺好的素材）用 `python3 -m http.server` 发出来，
+应用按**页面相对**取到 `GET /manifest.json` → **200**，切到音MAD 后请求
+`GET /media/otomads/%E5%B7%9D%E5%85%88%E5%83%A7%20-%20…mp3` → **200**（同源、百分号编码解码后就是磁盘文件），
+设置页统计显示「可用 **86** / 全库 **86** 首 · 35 个角色有曲目」。
+
+**实测**（真实 86 首 / 322.1 MB）：`pack` **7.3 秒**出 321.2 MB 归档（87 个成员 = 1 manifest + 86 音频）；
+`stage` **1.8 秒**铺完并**自检通过**；manifest **86 行**、地址相对、曲目名 = 磁盘 stem、百分号编码解码后逐一对得上文件。
+数据仓库 pytest **93 passed**（原 78，+15）。

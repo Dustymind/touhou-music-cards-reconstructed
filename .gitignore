@@ -26,6 +26,10 @@ playwright-report/
 local-source.toml
 # 本地曲库（音MAD 音频等，几十 MB 起）：只放本机，不进仓库
 .music/
+# 音MAD 素材归档（`pnpm media:pack` 的产物，约 324 MB）：发布成 Release 资产，不进仓库
+otomads-media.tar.gz
+# 音MAD 卡面（`pnpm media:pack` 会带上它；素材不入库，由用户自己放）
+public/cards-otomads/
 
 # 编辑器 / 系统
 .DS_Store

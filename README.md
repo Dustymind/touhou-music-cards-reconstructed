@@ -155,7 +155,8 @@ pnpm preview    # 本地预览 dist/
 ```
 
 - **纯静态托管**：把 `dist/` 交给任意静态服务器即可（`base` 是 `./`，子目录部署也能直接跑）。
-  静态站没有开发服务器那层代理，音MAD 要在设置页填「本地曲库地址」。
+  静态站没有开发服务器那层代理，音MAD 有两条路：**站点自带素材**（见下面「音MAD 素材」），
+  或让访客在设置页填「本地曲库地址」。
   三家的开箱配置都在仓库里：GitHub Pages（`.github/workflows/deploy-pages.yml`）、
   Cloudflare Pages（设置见 `deploy/README.md`，响应头在 `public/_headers`）、Vercel（`vercel.json`）。
 - **单端口透传**（应用 + 曲库 + 信令同端口）：见下面小节。
@@ -173,6 +174,27 @@ pnpm preview    # 本地预览 dist/
 **源表地址必须是相对路径**（`data/sources/x.json`，不带前导 `/`）：带前导 `/` 会打到**域名根**，
 子目录部署时三份镜像表全 404 → 原曲一首都放不出来。这条由 `tmc.build` / `tmc.validate` 守（D131），
 改注册表时不用记，写错就 build 不过。
+
+#### 音MAD 素材（可选，D138）
+
+音MAD 的音频（86 首 / 约 324 MB）与音MAD 卡面**不进仓库**。想让它们跟着站点走：
+
+```bash
+pnpm build                                    # 先构建（vite 会清空 dist）
+pnpm media:pack                               # 打归档 → otomads-media.tar.gz（已 gitignore）→ 发布成 Release 资产
+pnpm media:stage                              # 从本机 .music + public/cards-otomads 铺进 dist
+OTOMADS_MEDIA_URL=<归档 URL> pnpm media:pull  # 构建时从归档拉（CI 用的就是这条思路）
+```
+
+GitHub Pages 那条工作流会在构建后**自动**取 `releases/latest/download/otomads-media.tar.gz`
+（取不到就跳过：部署照常，音MAD 只是没有音频）。归档里是一份**相对地址**的 `manifest.json`
++ `media/otomads/*.mp3`（+ 可选 `cards-otomads/*`），所以同一份归档在域名根与子目录下**都能用**，
+不必按部署形态重打；`pnpm media:pack` 是**可复现**的（同一份曲库打两次逐字节相同）。
+口径与坑（归档按不可信输入处理、`dist` 会被重建清空、素材不入库）见数据仓库 `README.ai.MD`
+的「静态部署」一节与 `docs/DECISIONS.md` D138。
+**预览时注意**：`pnpm preview` 会**继承 dev 的代理**（`/manifest.json` 与 `/media` 转发给 8011 助手），
+所以它**不能**用来验静态素材 —— 请用 `python3 -m http.server --directory dist` 或任意静态服务器
+（实测：真静态服务器上 `/manifest.json` 200、音频 200；`pnpm preview` 在助手没跑时是 500）。
 
 **生产构建默认不出 sourcemap**（`vite.config.ts`）：那份 `.js.map` 3.7 MB，比整个站点其余内容
 （约 0.8 MB）还大四倍。要线上排查用 `pnpm exec vite build --mode development`。

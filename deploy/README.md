@@ -41,14 +41,27 @@ Vercel 用 `vercel.json` 的 `headers`；GitHub Pages **不认** `_headers`（�
 
 ### 静态托管下的音频（重要）
 
-静态站没有代理层，音源表默认是**同源**相对路径（原曲 `data/sources/*.json`、音MAD `manifest.json`），
-而静态平台上没有助手，所以：
+静态站没有代理层，音源表默认是**同源**相对路径（原曲 `data/sources/*.json`、音MAD `manifest.json`）。
+**原曲**照常可播（三份镜像表跟站点一起发出去，音频来自网易云 / R2 / THBWiki）。**音MAD** 有两条路：
 
-* **原曲**照常可播（三份镜像表跟站点一起发出去，音频来自网易云 / R2 / THBWiki）；
-* **音MAD**要访客**自己在本机跑助手**，然后在设置页（音乐源 → 本地曲库地址）或
-  `?localmusic=127.0.0.1:8011` 填地址。**https 页面也能读 http 回环**（实测 chromium + firefox 都放行：
-  manifest 200、音频 206）—— 回环地址被浏览器当可信来源，不算混合内容。填 `http://<私有 IP>:8011`
-  就**会被拦**（只有 loopback 豁免），那种情况要给助手套一层 TLS 反代并转发 `X-Forwarded-Proto`。
+1. **站点自带素材**（推荐，D138）：把音MAD 的音频与卡面铺进 `dist/`，访客什么都不用做 ——
+
+   ```bash
+   pnpm build && pnpm media:stage     # 本机素材直接铺
+   OTOMADS_MEDIA_URL=<归档 URL> pnpm media:pull   # 或构建时从归档拉
+   ```
+
+   铺完站点上就有同源的 `manifest.json` + `media/otomads/*.mp3`（+ `cards-otomads/*`）。
+   **素材不进仓库**：归档由 `pnpm media:pack` 生成（可复现），发布成 Release 资产即可；
+   GitHub Pages 工作流会在构建后自动取它（取不到就跳过 ⇒ 部署照常、音MAD 只是没音频）。
+   注意顺序永远是**先 `pnpm build` 再铺素材** —— 重新构建会清空 `dist/`。
+   **验证要用真静态服务器**：`pnpm preview` 会继承 dev 的代理（`/manifest.json` 与 `/media` → 8011 助手），
+   助手没跑时那两条是 **500**；用 `python3 -m http.server --directory dist` 才验得到静态素材
+   （实测：manifest 200 + 音频 200，且请求都落在同源 `/media/otomads/…`）。
+2. **访客自己在本机跑助手**：设置页（音乐源 → 本地曲库地址）或 `?localmusic=127.0.0.1:8011` 填地址。
+   **https 页面也能读 http 回环**（实测 chromium + firefox 都放行：manifest 200、音频 206）——
+   回环地址被浏览器当可信来源，不算混合内容。填 `http://<私有 IP>:8011` 就**会被拦**（只有 loopback 豁免），
+   那种情况要给助手套一层 TLS 反代并转发 `X-Forwarded-Proto`。
 
 ## B. 单端口部署（方案 B）
 

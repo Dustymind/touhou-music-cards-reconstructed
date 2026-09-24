@@ -41,6 +41,21 @@ jobs:
       # `pnpm build` = `tsc --noEmit && vite build`：类型检查也是这一关的一部分
       - name: 类型检查 + 构建
         run: pnpm build
+      # 音MAD 素材（86 首 / 约 324 MB 音频 + 可选卡面）**不进仓库**，构建时从 Release 资产拉（D138）。
+      # 归档的布局就是部署根（`manifest.json` + `media/otomads/*.mp3`），所以一行 tar 就够 —— CI 仍然**不需要 Python**。
+      # 没发过这个资产时这一步是 no-op：部署照常，只是音MAD 模式取不到曲子（原曲模式不受影响）。
+      # 想用别的地址（对象存储 / 预发布资产）就设仓库变量 `OTOMADS_MEDIA_URL`。
+      - name: 铺音MAD 素材（可选）
+        env:
+          MEDIA_URL: ${{ vars.OTOMADS_MEDIA_URL }}
+        run: |
+          URL="${MEDIA_URL:-https://github.com/${{ github.repository }}/releases/latest/download/otomads-media.tar.gz}"
+          if curl -fsSL "$URL" -o "$RUNNER_TEMP/otomads-media.tar.gz"; then
+            tar -xzf "$RUNNER_TEMP/otomads-media.tar.gz" -C dist
+            echo "✅ 已铺音MAD 素材：$(find dist/media -name '*.mp3' | wc -l) 首"
+          else
+            echo "::notice::取不到 $URL —— 跳过，音MAD 模式将没有音频（用 \`pnpm media:pack\` 打归档并作为 Release 资产发布）"
+          fi
       - uses: actions/upload-pages-artifact@v5
         with:
           path: dist
