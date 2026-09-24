@@ -152,13 +152,41 @@ def check_card_sets(p: Problems) -> int:
     return len(ids)
 
 
+def check_source_table_urls(p: Problems) -> int:
+    """**生成物**里的 ``tableUrl`` 形态检查（D131）：返回检查过的源数。
+
+    守的是前端真正读到的那份 JSON（不是注册表），于是两处注册表都被覆盖 ——
+    音MAD 那份在数据仓库里，只看主仓库的 TOML 会漏掉它。
+    """
+    checked = 0
+    for mode in build_mod.MODES:
+        path = build_mod.dataset_dir(mode) / "sources.json"
+        if not path.exists():
+            if mode == "otomads":
+                p.note("音MAD 生成物不存在（submodule 未初始化）：跳过 otomads 源表地址检查")
+            else:
+                p.error(f"缺少生成物：{repo.shown(path)}（跑 `pnpm data:build`）")
+            continue
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        for source in payload.get("sources", []):
+            checked += 1
+            problem = build_mod.table_url_problem(source.get("tableUrl"))
+            if problem is not None:
+                p.error(f"[{mode}] 音源 {source.get('id')} 的 tableUrl 不合法"
+                        f"（{source.get('tableUrl')}）：{problem}")
+    p.note(f"生成物源表地址形态：检查 {checked} 条（相对路径或 http(s) 绝对 URL，D131）")
+    return checked
+
+
 def check_source_registry(p: Problems) -> dict:
-    """两个模式的音源注册表：id/order 唯一、远程源的表文件存在，外加契约 §5 的四条不变量。
+    """两个模式的音源注册表：id/order 唯一、远程源的表文件存在，外加契约 §5 的五条不变量。
 
     1. 每个模式**至少有一个** `enabled = true` 的源（否则那个模式一个地址都解析不出来）；
     2. `otomads` 必须含**恰好一个** `kind = "local"` 的源，且默认启用（音MAD 的地址只能来自本地 manifest）；
     3. `originals` **不得**含 `kind = "local"`（本地曲库只服务音MAD）；
-    4. 两份注册表的 `id` 不得冲突。
+    4. 两份注册表的 `id` 不得冲突；
+    5. `table_url` 只能是相对路径或 http(s) 绝对 URL（D131）——
+       根绝对路径（前导 `/`）在子目录部署下必 404，那个模式就一首歌都放不出来。
     """
     by_mode: dict[str, list[dict]] = {}
     for mode in build_mod.MODES:
@@ -182,6 +210,11 @@ def check_source_registry(p: Problems) -> dict:
             if entry["order"] in orders:
                 p.error(f"[{mode}] 音源 order 重复：{entry['order']}")
             orders.add(entry["order"])
+            # 地址形态（D131）：根绝对路径在子目录部署下必 404
+            problem = build_mod.table_url_problem(entry["table_url"])
+            if problem is not None:
+                p.error(f"[{mode}] 音源 {entry['id']} 的 table_url 不合法"
+                        f"（{entry['table_url']}）：{problem}")
             if entry["kind"] == "remote":
                 rel = entry["table_url"].lstrip("/").replace("data/sources/", "")
                 if not (repo.DATA / "sources" / rel).exists():
@@ -606,6 +639,8 @@ def run() -> tuple["Problems", dict]:
                          if a not in pack_album_names}
     source_stats = check_sources(mirror_referenced, p)
     source_registry = check_source_registry(p)
+    # 生成物里的源表地址形态（D131）：前端读的是 JSON，注册表对了这里也不能漏
+    source_registry["table_urls"] = check_source_table_urls(p)
     card_sets = check_card_sets(p)
     pending = check_pending(chars, p)
     overrides = check_overrides(chars, p)

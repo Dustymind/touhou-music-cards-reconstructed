@@ -2,8 +2,12 @@
 
 对应用户审阅时列的仓库外条目（`REVIEW-enhanced-otomad-mode.md`）：R1（并入口只有一处）、
 R6（停生成没人读的 `packs.json`）、R7④（镜像 id 从注册表派生，不再三处硬编码）。
+D131 追加：**源表地址形态**（相对路径 / http(s) 绝对 URL，禁根绝对路径）——
+子目录部署（GitHub Pages 项目页）下根绝对路径必 404。
 """
 from __future__ import annotations
+
+import json
 
 import pytest
 
@@ -73,3 +77,49 @@ def test_mirror_ids_come_from_the_registry(tmp_path, monkeypatch):
         encoding="utf-8")
     monkeypatch.setattr(repo, "DATA", tmp_path)
     assert build.mirror_source_ids() == ("m1", "m2")
+
+
+# ---- D131：源表地址形态（根绝对路径在子目录部署下必 404） ----
+
+@pytest.mark.parametrize("value", ["data/sources/x.json", "manifest.json", "loudness/otomads.json",
+                                   "https://example.com/t.json", "http://127.0.0.1:8011/manifest.json"])
+def test_table_url_accepts_relative_and_absolute(value):
+    assert build.table_url_problem(value) is None
+
+
+@pytest.mark.parametrize("value", ["/data/sources/x.json", "/manifest.json", "//example.com/t.json",
+                                   "file:///tmp/t.json", "", "   ", None])
+def test_table_url_rejects_root_absolute_and_other_schemes(value):
+    """防线就是这里：站点部署在子目录（GitHub Pages 项目页 `user.github.io/<repo>/`）时，
+    前导 `/` 会把请求打到**域名根**上去 → 404 → 那个模式所有曲目都解析不出地址。"""
+    assert build.table_url_problem(value) is not None
+
+
+def test_build_sources_refuses_a_root_absolute_table_url(tmp_path, monkeypatch):
+    """注册表里写错一个 `/`，`data:build` 当场炸 —— 而不是等用户在子目录部署上发现放不出声。"""
+    (tmp_path / "sources").mkdir()
+    (tmp_path / "sources" / "originals.toml").write_text(
+        '[[source]]\nid = "m1"\nlabel_en = "m"\nlabel_zh = "m"\n'
+        'table_url = "/data/sources/m1.json"\nkind = "remote"\norder = 1\nenabled = true\n',
+        encoding="utf-8")
+    monkeypatch.setattr(repo, "DATA", tmp_path)
+    with pytest.raises(SystemExit, match="table_url 不合法"):
+        build.build_sources("originals")
+
+
+def test_shipped_table_urls_are_deployment_shaped():
+    """**已提交的**生成物（前端真正 fetch 的那两个 JSON）不许出现根绝对路径。
+
+    这条盯的是产物而不是注册表：音MAD 的注册表在数据 submodule 里，
+    只读主仓库的 TOML 会漏掉它（`data/otomads/sources/otomads.toml`）。
+    """
+    for mode in build.MODES:
+        path = build.dataset_dir(mode) / "sources.json"
+        if not path.exists():
+            assert mode == "otomads", f"缺少生成物：{path}（跑 `pnpm data:build`）"
+            continue
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        assert payload["sources"], mode
+        for source in payload["sources"]:
+            assert build.table_url_problem(source["tableUrl"]) is None, \
+                f"[{mode}] {source['id']} → {source['tableUrl']}"

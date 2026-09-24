@@ -7,7 +7,7 @@
     "en": "Netease 163",
     "zh": "网易云音乐"
    },
-   "tableUrl": "/data/sources/netease163.json",
+   "tableUrl": "data/sources/netease163.json",
    "kind": "remote",
    "order": 1,
    "enabled": true,
@@ -23,7 +23,7 @@
     "en": "Cloudflare R2",
     "zh": "Cloudflare R2"
    },
-   "tableUrl": "/data/sources/cloudflare_r2.json",
+   "tableUrl": "data/sources/cloudflare_r2.json",
    "kind": "remote",
    "order": 2,
    "enabled": true,
@@ -39,7 +39,7 @@
     "en": "THBWiki",
     "zh": "THBWiki"
    },
-   "tableUrl": "/data/sources/thbwiki.json",
+   "tableUrl": "data/sources/thbwiki.json",
    "kind": "remote",
    "order": 3,
    "enabled": true,

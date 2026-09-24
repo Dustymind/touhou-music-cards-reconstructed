@@ -19,6 +19,7 @@ import argparse
 import hashlib
 import pathlib
 import json
+import re
 import sys
 import tomllib
 
@@ -132,13 +133,45 @@ def mirror_source_ids() -> tuple[str, ...]:
     return tuple(entry["id"] for entry in load_registry("originals") if entry["kind"] == "remote")
 
 
+def table_url_problem(value: object) -> str | None:
+    """源表的地址是否可用？可用返回 ``None``，否则返回一句人话（D131）。
+
+    只有两种合法形态：
+
+    * **绝对 URL**（``https://…/table.json``）—— 第三方源可以挂在别的域名上；
+    * **相对路径**（``data/sources/x.json`` / ``manifest.json``）—— 相对**应用所在的那一层**解析。
+
+    ✗ **根绝对路径**（前导 ``/``，如 ``/data/sources/x.json``）在四种部署形态里有一种必坏：
+    站点挂在子目录（GitHub Pages 项目页 ``user.github.io/<repo>/``、任意子路径反代）时它会打到
+    **域名根**上去 → 404 → 那个模式下所有曲目都解析不出地址。前端 ``base`` 用 ``./`` 只治得了
+    相对引用，管不到 ``fetch()`` 收到的那条字符串 ✓。
+
+    ``//host/x``（协议相对）也没法在“同源相对路径”和“跨源绝对地址”之间归类，一并拒掉。
+    """
+    if not isinstance(value, str) or value.strip() == "":
+        return "不能为空"
+    if value.startswith("/"):
+        return (f"不能是根绝对路径（前导 `/`）：站点部署在子目录时会打到域名根上 → 404。"
+                f"请写成相对路径（如 `data/sources/x.json`）或完整 URL（`https://…`）")
+    if re.match(r"^[a-zA-Z][a-zA-Z0-9+.\-]*:", value):
+        if not re.match(r"^https?://", value, re.IGNORECASE):
+            return "只支持 http(s) 绝对 URL，或相对路径（其它 scheme 前端取不到）"
+    return None
+
+
 def build_sources(mode: str) -> dict:
     """**某个模式**的音乐源注册表 → 运行时 JSON（契约 `docs/sources-separation-v1.md` §2）。
 
     一个模式一份：原曲 = 远程镜像；音MAD = 本地曲库助手。前端只读这一份，不在代码里硬编码音源。
+    地址形态在这里就把关（:func:`table_url_problem`）：坏形态在 `data:build` 当场炸，
+    而不是等用户在某个子目录部署上发现"一首歌都放不出来"（D131）。
     """
     sources = []
     for entry in load_registry(mode):
+        problem = table_url_problem(entry["table_url"])
+        if problem is not None:
+            raise SystemExit(
+                f"❌ [{mode}] 音源 {entry['id']} 的 table_url 不合法：{entry['table_url']}\n   {problem}")
         record = {
             "id": entry["id"],
             "label": {"en": entry["label_en"], "zh": entry["label_zh"]},

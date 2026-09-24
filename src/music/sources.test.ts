@@ -61,8 +61,8 @@ describe("sources resolver", () => {
 
 describe("本地曲库地址（单端口同源 / 本机分离两种形态）", () => {
   const sources = [
-    { id: "netease163", kind: "remote", tableUrl: "/data/sources/netease163.json" },
-    { id: "local", kind: "local", tableUrl: "/manifest.json" },
+    { id: "netease163", kind: "remote", tableUrl: "data/sources/netease163.json" },
+    { id: "local", kind: "local", tableUrl: "manifest.json" },
   ] as unknown as Parameters<typeof applyLocalManifestUrl>[0];
 
   it("归一化：空 → null；基地址补 manifest.json；host:port 补协议；完整 json 原样", () => {
@@ -78,9 +78,9 @@ describe("本地曲库地址（单端口同源 / 本机分离两种形态）", (
 
   it("默认（空覆盖）保持数据里的相对路径 = 同源", () => {
     const applied = applyLocalManifestUrl(sources, "");
-    expect(applied.find((source) => source.id === "local")!.tableUrl).toBe("/manifest.json");
+    expect(applied.find((source) => source.id === "local")!.tableUrl).toBe("manifest.json");
     expect(applied.find((source) => source.id === "netease163")!.tableUrl)
-      .toBe("/data/sources/netease163.json");
+      .toBe("data/sources/netease163.json");
   });
 
   it("给了覆盖值：只改 local 源，镜像源不受影响", () => {
@@ -88,8 +88,46 @@ describe("本地曲库地址（单端口同源 / 本机分离两种形态）", (
     expect(applied.find((source) => source.id === "local")!.tableUrl)
       .toBe("http://127.0.0.1:8011/manifest.json");
     expect(applied.find((source) => source.id === "netease163")!.tableUrl)
-      .toBe("/data/sources/netease163.json");
+      .toBe("data/sources/netease163.json");
     // 不改写入参
-    expect(sources[1]!.tableUrl).toBe("/manifest.json");
+    expect(sources[1]!.tableUrl).toBe("manifest.json");
+  });
+});
+
+describe("源表地址：部署形态无关（D131）", () => {
+  /** 子目录部署（GitHub Pages 项目页 `user.github.io/<repo>/`）下，根绝对路径会打到**域名根**上去。
+   *  这里把"相对路径按页面 URL 解析"这件事钉住 —— 前端只负责把数据里的字符串交给 `fetch()`，
+   *  所以正确性完全取决于数据里那条字符串不带前导 `/`（生成侧由 `tmc.build`/`tmc.validate` 守）。 */
+  const pageBase = "https://user.github.io/tmc/sub/";
+
+  it("相对路径按页面地址解析，子目录部署也落在站点内", () => {
+    expect(new URL("data/sources/netease163.json", pageBase).href)
+      .toBe("https://user.github.io/tmc/sub/data/sources/netease163.json");
+    expect(new URL("manifest.json", pageBase).href)
+      .toBe("https://user.github.io/tmc/sub/manifest.json");
+  });
+
+  it("根绝对路径会跑到站点外面（就是那个 Bug 的形状）", () => {
+    expect(new URL("/data/sources/netease163.json", pageBase).href)
+      .toBe("https://user.github.io/data/sources/netease163.json");
+  });
+
+  it("域名根部署时两者等价（老形态在根部署下看不出问题）", () => {
+    const root = "https://cards.example.com/";
+    expect(new URL("data/sources/netease163.json", root).href)
+      .toBe(new URL("/data/sources/netease163.json", root).href);
+  });
+
+  it("已提交的生成物里不许有根绝对路径的 tableUrl", async () => {
+    const datasets = ["data", "data/otomads"];
+    for (const base of datasets) {
+      const payload = (await (await fetch(`${base}/sources.json`)).json()) as {
+        sources: { id: string; tableUrl: string }[];
+      };
+      expect(payload.sources.length).toBeGreaterThan(0);
+      for (const source of payload.sources) {
+        expect(source.tableUrl.startsWith("/"), `${base} → ${source.id}`).toBe(false);
+      }
+    }
   });
 });

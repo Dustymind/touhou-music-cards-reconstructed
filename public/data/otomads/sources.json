@@ -7,7 +7,7 @@
     "en": "Local library",
     "zh": "本地曲库"
    },
-   "tableUrl": "/manifest.json",
+   "tableUrl": "manifest.json",
    "kind": "local",
    "order": 1,
    "enabled": true,
