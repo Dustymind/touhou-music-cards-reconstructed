@@ -43,6 +43,40 @@ test.describe("移动端布局", () => {
     expect(new Set(configRows).size).toBe(1);
   });
 
+  test("设置页本地曲库地址：窄屏三个控件仍在一行、间隙 8dp、右侧不出屏", async ({ page }) => {
+    // 这一行是「输入框 → 重置 → 应用」：加第三个控件后要确认窄屏没被挤换行、也没顶出视口
+    // （只量这一行自己的右边缘：音源分区展开后页面还有**别的**历史溢出，见 HANDOVER 未决项）
+    for (const width of [412, 320]) {
+      await page.setViewportSize({ width, height: 915 });
+      await page.goto("/?locale=zh");
+      await page.getByRole("tab", { name: "设置", exact: true }).click();
+      await page.getByTestId("section-source-summary").click();
+      await page.waitForTimeout(400);
+      // 本地源属于音MAD（契约 sources-separation-v1.md）：切过去这一行才挂载
+      await page.getByTestId("music-mode-otomads").click();
+      const metrics = await page.evaluate(() => {
+        const round = (value: number) => Math.round(value);
+        const root = document.documentElement;
+        const line = document.querySelector('[data-testid="local-music-url"]')!;
+        const input = line.querySelector(".MuiInputBase-root")!.getBoundingClientRect();
+        const reset = document.querySelector('[data-testid="local-music-reset"]')!.getBoundingClientRect();
+        const apply = document.querySelector('[data-testid="local-music-apply"]')!.getBoundingClientRect();
+        const middle = (rect: DOMRect) => round(rect.top + rect.height / 2);
+        return {
+          centered: middle(input) === middle(reset) && middle(reset) === middle(apply),
+          gaps: [round(reset.left - input.right), round(apply.left - reset.right)],
+          heights: [round(input.height), round(reset.height), round(apply.height)],
+          right: round(line.getBoundingClientRect().right),
+          viewport: root.clientWidth,
+        };
+      });
+      expect(metrics.centered, `${width}dp 这一行换行了`).toBe(true);
+      expect(metrics.gaps, `${width}dp 的间隙不是 8dp`).toEqual([8, 8]);
+      expect(metrics.heights, `${width}dp 的控件高度变了`).toEqual([48, 32, 32]);
+      expect(metrics.right, `${width}dp 顶出视口`).toBeLessThanOrEqual(metrics.viewport);
+    }
+  });
+
   test("关于弹窗：窄屏放得下、不横向溢出、关闭键点得到", async ({ page }) => {
     await page.goto("/?locale=zh");
     await page.getByTestId("about-open").tap();

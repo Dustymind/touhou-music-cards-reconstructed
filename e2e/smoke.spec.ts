@@ -855,7 +855,7 @@ test("音乐模式：原曲 / 音MAD 切换（原版 otomads 模式）", async (
   await expect(page.getByTestId("preset-stats")).toContainText("378 / 378");
 });
 
-test("本地曲库地址：默认同源，?localmusic= 可指向本机助手（单端口部署）", async ({ page }) => {
+test("本地曲库地址：默认同源，?localmusic= 可指向本机助手，「重置」回默认（单端口部署）", async ({ page }) => {
   // 默认：数据里是相对路径 → 请求打到应用自己（同源，单端口部署的形态）
   const sameOrigin: string[] = [];
   page.on("request", (request) => {
@@ -867,8 +867,38 @@ test("本地曲库地址：默认同源，?localmusic= 可指向本机助手（�
   // 音源层按模式拆（契约 sources-separation-v1.md）：本地地址栏只在音MAD（注册表里有本地源）时出现
   await page.getByTestId("music-mode-otomads").click();
   await expect(page.getByLabel("local-music-url")).toBeVisible();
+  await expect(page.getByLabel("local-music-url")).toHaveValue("");   // 空 = 不覆盖（默认值只有这一种写法）
   await expect.poll(() => sameOrigin.length).toBeGreaterThan(0);
   expect(new URL(sameOrigin[0]!).origin).toBe(new URL(page.url()).origin);
+
+  // 行内规格：输入框 → 「重置」→「应用」（主操作最右），MD2 8dp 栅格 + small 尺寸
+  // （filled 输入框 small 实测 48dp、文字/描边按钮 small 32dp、三者中线对齐 ⇒ 按钮不撑高这一行）
+  const geometry = await page.evaluate(() => {
+    const round = (value: number) => Math.round(value);
+    const root = document.documentElement;
+    const line = document.querySelector('[data-testid="local-music-url"]')!;
+    const input = line.querySelector(".MuiInputBase-root")!.getBoundingClientRect();
+    const resetButton = document.querySelector<HTMLButtonElement>('[data-testid="local-music-reset"]')!;
+    const reset = resetButton.getBoundingClientRect();
+    const apply = document.querySelector('[data-testid="local-music-apply"]')!.getBoundingClientRect();
+    return {
+      inputHeight: round(input.height),
+      resetHeight: round(reset.height),
+      applyHeight: round(apply.height),
+      resetGap: round(reset.left - input.right),
+      applyGap: round(apply.left - reset.right),
+      centered: round(input.top + input.height / 2) === round(reset.top + reset.height / 2)
+        && round(reset.top + reset.height / 2) === round(apply.top + apply.height / 2),
+      insideViewport: round(line.getBoundingClientRect().right) <= root.clientWidth,
+      resetDisabled: resetButton.disabled,
+    };
+  });
+  expect(geometry.inputHeight).toBe(48);
+  expect([geometry.resetHeight, geometry.applyHeight]).toEqual([32, 32]);
+  expect([geometry.resetGap, geometry.applyGap]).toEqual([8, 8]);   // 8dp 栅格；正值同时钉住"重置在应用左侧"
+  expect(geometry.centered).toBe(true);
+  expect(geometry.insideViewport).toBe(true);
+  expect(geometry.resetDisabled).toBe(true);                        // 已经是默认 ⇒ 没什么可重置
 
   // 覆盖：?localmusic=127.0.0.1:8011 → 打到本机助手（本机分开跑 dev 时的用法）
   const overridden: string[] = [];
@@ -884,8 +914,23 @@ test("本地曲库地址：默认同源，?localmusic= 可指向本机助手（�
   await page.getByTestId("music-mode-otomads").click();
   // 设置页回显的是"存档里的覆盖值"
   await expect(page.getByLabel("local-music-url")).toHaveValue("127.0.0.1:8011");
+  await expect(page.getByTestId("local-music-reset")).toBeEnabled();
   await expect.poll(() => overridden.length).toBeGreaterThan(0);
   expect(overridden[0]).toContain("http://127.0.0.1:8011/manifest.json");
+
+  // 「重置」= 清掉存档里的覆盖 ⇒ 回到数据里的默认（同源）；按钮随即变灰。
+  // 地址栏里的 `?localmusic=` 不动（刷新后仍按参数生效 —— "URL 参数优先于存档"那条规则没变，D55）。
+  const afterReset: string[] = [];
+  page.on("request", (request) => {
+    if (request.url().endsWith("/manifest.json") && !request.url().includes("8011")) {
+      afterReset.push(request.url());
+    }
+  });
+  await page.getByTestId("local-music-reset").click();
+  await expect(page.getByLabel("local-music-url")).toHaveValue("");
+  await expect(page.getByTestId("local-music-reset")).toBeDisabled();
+  await expect.poll(() => afterReset.length).toBeGreaterThan(0);
+  expect(new URL(afterReset[0]!).origin).toBe(new URL(page.url()).origin);
 });
 
 test("音乐源回退顺序：显示用源名称，重排不打乱开关（用户反馈后）", async ({ page }) => {

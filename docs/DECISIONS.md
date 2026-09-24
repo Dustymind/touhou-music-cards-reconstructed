@@ -4797,3 +4797,61 @@ submodule 没初始化时给可执行提示。落点是 submodule（`data/otomad
 
 **验证**：数据仓库 pytest **100 passed**（+7）；前端**双引擎各 367 passed**（+5，`sources.test.ts` 共 17 条）；
 `pnpm typecheck` ✓。
+
+---
+
+## D140 本地曲库地址可以重置回默认值（「重置」按钮；默认值只有空串这一种写法）
+
+**需求**（用户）："现有本地源配置项是否可以增加默认值，如果可以，在配置框右侧，'应用'按键左侧，
+增加'重置'按钮，用于将该配置恢复成默认值。注意间距，注意遵循 Material Design 2。"
+
+**结论：可以 —— 默认值本来就存在，而且是空串**（不是某个具体地址）：
+
+| 环节 | 事实 |
+|---|---|
+| 存档 | `session` 的 fallback 与校验回落都是 `localMusicUrl: ""`；`pickString("")` **认空串** ⇒ 空串能落盘、刷新后仍是默认 |
+| 语义 | 空串 → `normalizeLocalManifestUrl` 返回 `null` → `applyLocalManifestUrl` 原样返回注册表 ⇒ 用数据里的 `table_url`（D131 的相对路径 `manifest.json`）⇒ 单端口 / 静态站形态下就是**同源** `/manifest.json` |
+| 界面 | 输入框的 placeholder 一直是这个默认（`localSource.tableUrl`） |
+
+**为什么默认值只能写成空串**（两个坑）：① 把 `manifest.json` 填进框里 ⇒ `normalizeLocalManifestUrl`
+按"不带 scheme 就补 `http://`"处理，得到 `http://manifest.json` ✗；② 拿一个具体地址（如 `127.0.0.1:8011`）
+当默认值 ⇒ `applyLocalManifestUrl` 会**永远**把本地源改写成绝对地址，直接破坏 D55 的"默认同源"契约
+（`e2e/smoke.spec.ts` 那条用例正是钉它的）。
+
+**做法**：
+
+| 位置 | 改动 |
+|---|---|
+| `i18n/localization.ts` | 新增 `LocalMusicReset: u("Reset", "重置")`（`ConfigTabPresetReset` 是折叠面板重构后留下的死键，**没动**） |
+| `SourceSection.tsx` | 这一行变成 输入框 → **重置** → 应用；重置 = `setLocalMusicUrl("")`（存档已经是空就跳过写盘）+ `setDraftUrl(null)` |
+| 同上 | `disabled` 看**框里显示的值**（`urlValue.trim() === ""`）而不是存档 —— 所见即所得：只打了草稿没应用也能点，点了草稿一起丢（用户选的口径） |
+| 同上 | **不动**地址栏里的 `?localmusic=`："URL 参数优先于存档"（D55）那条规则没变；重置只清存档 |
+
+**MD2 / 间距**（用户点名的两条；全部落在既有常量内，没有新增数值）：
+
+- 间距沿用 `spacing={1}` = **8dp**（MD2 8dp 栅格）；主操作「应用」放最右（MD2 惯例）且保持 outlined，
+  「重置」用文字按钮（低强调）—— 与 `2c4f2df` 之前那个被删掉的重置按钮同一档。
+- small 尺寸：filled 输入框 **48dp**（实测）、按钮 **32dp**（`MD2.button.small`），`alignItems: "center"`
+  ⇒ 三者中线对齐、行高仍由输入框决定（按钮不把它撑高）。
+
+**窄屏实测**（临时探针，chromium，**跑完已删**；412/360/320dp × zh/en，音源分区展开 + 音MAD 模式）：
+这一行的右边缘六种组合**都是离视口 32px**（16 页边距 + 16 分区内边距）、`scrollWidth == clientWidth`、
+三个控件始终一行、间隙 **8/8**、高度 **48/32/32**、中线对齐 ✓；往输入框里压 40 字符的长地址也不溢出 ✓。
+⇒ 不需要 `minWidth: 0` / 换行之类的补丁。
+
+**顺带发现（不在本条范围，别当成这次改坏的）**：同一个探针量到**音源分区展开后**页面在窄屏会横向溢出
+（320/zh **+12**、360/en **+45**、320/en **+85**），元凶是**源行自己那一排**（`source-state-*` 的开关
+`FormControlLabel` 与上/下移 `IconButton`）：把「重置」`display: none` 掉之后溢出量**一模一样**，
+原曲侧（连重置按钮都还没挂载）同样溢出，不展开分区则为 0。D136 的窄屏探针只量了**折叠态**、
+`mobile.spec.ts` 的溢出用例也只点页签不展开分区 ⇒ 这条一直没人覆盖。**本条不动它**（要改的是源行的排布）。
+
+**测试**：
+
+- 单测 `ConfigPanel.test.tsx` **+2**（该文件 15 条）：①有新覆盖时按钮可点 → 点了 store 与输入框都回空、
+  按钮随之变灰；②只打草稿（存档还是默认）时也可点 → 草稿被丢掉、没被写进 store。
+  **反证**：把 `disabled` 改成看存档（`localMusicUrl === ""`）→ 用例②红 ✓（1 failed | 1 passed）。
+- e2e `smoke.spec.ts` 那条扩写：默认态断言输入框为 `""`、行内规格 **48/32/32 + 8/8 + 中线对齐 + 行右边缘不出屏**、
+  空值时重置不可点；`?localmusic=` 那半段补"点重置 → 输入框回空、按钮变灰、`/manifest.json` 请求回到**同源**"。
+  **反证**：把 onClick 里的 `setLocalMusicUrl("")` 摘掉 → 该用例红 ✓（`toHaveValue` 收到 `127.0.0.1:8011`）。
+- e2e `mobile.spec.ts` **+1**（移动端 12 条）：412 与 **320**dp 下这一行三个控件仍在一行、间隙 8dp、
+  高度 48/32/32、行右边缘不出屏（只量这一行**自己**的边缘 —— 见上面那条历史溢出）。

@@ -316,4 +316,38 @@ describe("ConfigPanel", () => {
     expect(input(container, "local-music-url").value).toBe("127.0.0.1:9000");
     expect(useSession.getState().localMusicUrl).toBe("127.0.0.1:9999");
   });
+
+  it("本地曲库地址：有新覆盖时「重置」可点，点了回到默认（store 与输入框都空）并变灰", async () => {
+    // 默认值 = 空串 = 不覆盖（注册表里的 `manifest.json`，同源形态下即本站）
+    await act(async () => { useSession.getState().setLocalMusicUrl("127.0.0.1:8011"); });
+    const { container } = await openLocalMusicUrl();
+    const reset = () => container.querySelector<HTMLButtonElement>('[data-testid="local-music-reset"]')!;
+
+    expect(input(container, "local-music-url").value).toBe("127.0.0.1:8011");
+    expect(reset().disabled).toBe(false);
+
+    await click(reset());
+
+    // 覆盖被清掉：落盘的也是空串（`pickString` 认空串 ⇒ 刷新后仍是默认）
+    expect(useSession.getState().localMusicUrl).toBe("");
+    expect(input(container, "local-music-url").value).toBe("");
+    expect(reset().disabled).toBe(true);
+  });
+
+  it("本地曲库地址：只打了草稿（store 还是默认）时「重置」也可点，负责把草稿丢掉", async () => {
+    const { container } = await openLocalMusicUrl();
+
+    // 还没应用 ⇒ 按钮一开始照样是灰的
+    expect(container.querySelector<HTMLButtonElement>('[data-testid="local-music-reset"]')!.disabled).toBe(true);
+    await type(input(container, "local-music-url"), "127.0.0.1:9000");
+    // 所见即所得：框里有字就可点（此时 store 仍是默认值）
+    const reset = container.querySelector<HTMLButtonElement>('[data-testid="local-music-reset"]')!;
+    expect(reset.disabled).toBe(false);
+    expect(useSession.getState().localMusicUrl).toBe("");
+
+    await click(reset);
+
+    expect(input(container, "local-music-url").value).toBe("");
+    expect(useSession.getState().localMusicUrl).toBe("");     // 没有被草稿写进去
+  });
 });

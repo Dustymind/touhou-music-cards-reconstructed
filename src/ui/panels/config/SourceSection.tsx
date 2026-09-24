@@ -92,7 +92,12 @@ function SourceSectionInner({ bundle, tables }: { bundle: DataBundle; tables: Ta
         )}
       </Stack>
 
-      {/* 本地曲库地址：只有**本数据集的注册表里有本地源**时才出现（原曲那边没有本地源，留空即默认） */}
+      {/* 本地曲库地址：只有**本数据集的注册表里有本地源**时才出现（原曲那边没有本地源，留空即默认）。
+       *  三个控件一行（输入框 → 重置 → 应用）：MD2 的间距是 8dp 栅格 ⇒ `spacing={1}`；
+       *  按钮 small = 32dp、filled 输入框 small = **48dp**（实测），`alignItems: "center"` 让两者中线对齐、
+       *  行高仍由输入框决定（按钮不会把这一行撑高）。
+       *  主操作「应用」放最右（MD2 惯例），「重置」是低强调的文字按钮（outlined 留给应用）。
+       *  窄屏实测（412/360/320dp × zh/en）：三个控件始终一行、间隙 8dp，行右边缘离视口 32dp，不溢出。 */}
       {localSource && (
       <Stack direction="row" spacing={1} sx={{ mb: 2, alignItems: "center" }} data-testid="local-music-url">
         <TextField
@@ -104,6 +109,23 @@ function SourceSectionInner({ bundle, tables }: { bundle: DataBundle; tables: Ta
           onChange={(event) => setDraftUrl(event.target.value)}
           slotProps={{ htmlInput: { "aria-label": "local-music-url" } }}
         />
+        <Button
+          size="small"
+          sx={{ flexShrink: 0 }}
+          // 所见即所得：框里不是默认值（含还没应用的草稿）就可点；空着时无事可做 ⇒ 灰掉
+          disabled={urlValue.trim() === ""}
+          data-testid="local-music-reset"
+          // 重置 = 清掉存档里的覆盖 + 丢弃草稿 ⇒ 回到**数据里的默认**（注册表 `table_url`，同源形态下即本站
+          // `/manifest.json`）。**值只能是空串**：把 `manifest.json` 填进框里会被 `normalizeLocalManifestUrl`
+          // 当成 host:port 补成 `http://manifest.json` ✗；写一个具体地址则会破坏"默认同源"（单端口 / 静态站形态）。
+          // 地址栏里的 `?localmusic=` 不动 —— "URL 参数优先于存档"那条规则没变（D55）。
+          onClick={() => {
+            if (localMusicUrl !== "") setLocalMusicUrl("");
+            setDraftUrl(null);
+          }}
+        >
+          {t(Localization.LocalMusicReset)}
+        </Button>
         <Button
           size="small"
           variant="outlined"
