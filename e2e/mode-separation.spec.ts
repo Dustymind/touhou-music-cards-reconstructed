@@ -1,7 +1,8 @@
 /** B：两个音乐模式的状态互不干扰（状态按模式分键）＋ 列表页跟着模式走。
  *
  * 跑在 chromium 与 firefox 两个 project 上（默认 testDir 下的用例两个引擎都跑，见 playwright.config.ts）。
- * 前置条件：音MAD 的统计取同源 `/manifest.json`，要先起本地曲库助手（见根 `README.md`）。
+ * 前置条件：起本地曲库助手，且每条 `page.goto` 都带 `?localmusic=127.0.0.1:8011` ——
+ * 音MAD 的默认源**已经改成 CDN**（D141），e2e 一律钉到本机助手（统计也取同源 `/manifest.json`），不依赖外网。
  * 期望值一律**跟着数据走**（D97 的教训：写死 121 / 24 会随数据漂移）。
  */
 import { expect, test, type Page } from "@playwright/test";
@@ -41,7 +42,7 @@ test("列表页跟着音乐模式：音MAD 下只列有音MAD 曲目的角色", 
   expect(playable.otomads.length).toBeGreaterThan(0);
   expect(playable.otomads.length).toBeLessThan(playable.originals.length);
 
-  await page.goto("/");
+  await page.goto("/?localmusic=127.0.0.1:8011");
   await page.getByRole("tab", { name: "List", exact: true }).click();
   await expect(page.getByText(`${playable.originals.length} / ${playable.originals.length}`)).toBeVisible();
   await expect(page.getByTestId(`list-row-${onlyOriginals}`)).toBeVisible();
@@ -74,7 +75,7 @@ test("切模式不带走另一个模式的预设（状态按模式分键）", as
   const packed = ((await manifest.json()) as { tracks: unknown[] }).tracks.length;
   expect(packed).toBeGreaterThan(0);
 
-  await page.goto("/");
+  await page.goto("/?localmusic=127.0.0.1:8011");
   await page.getByRole("tab", { name: "Config", exact: true }).click();
   await expandSection(page, "preset");
   const before = (await page.getByTestId("preset-stats").textContent()) ?? "";
@@ -110,7 +111,7 @@ test("音MAD 模式下不再下载原曲的镜像表（音源层按模式拆的�
       originals.push(request.url());
     }
   });
-  await page.goto("/");
+  await page.goto("/?localmusic=127.0.0.1:8011");
   await expect.poll(() => originals.length).toBeGreaterThan(0);
 
   // 切到音MAD（音源注册表里只有本地曲库）→ 那三份表一次都不该再取

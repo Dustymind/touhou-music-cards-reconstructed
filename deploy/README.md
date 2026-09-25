@@ -41,10 +41,14 @@ Vercel 用 `vercel.json` 的 `headers`；GitHub Pages **不认** `_headers`（�
 
 ### 静态托管下的音频（重要）
 
-静态站没有代理层，音源表默认是**同源**相对路径（原曲 `data/sources/*.json`、音MAD `manifest.json`）。
-**原曲**照常可播（三份镜像表跟站点一起发出去，音频来自网易云 / R2 / THBWiki）。**音MAD** 有两条路：
+静态站没有代理层，音源表默认是**同源**相对路径（原曲 `data/sources/*.json`）；
+**音MAD 的默认源是项目 CDN 的绝对地址**（D141）⇒ 什么素材都不用自带就能出声。**原曲**照常可播
+（三份镜像表跟站点一起发出去，音频来自网易云 / R2 / THBWiki）。**音MAD** 有三条路：
 
-1. **站点自带素材**（推荐，D138）：把音MAD 的音频与卡面铺进 `dist/`，访客什么都不用做 ——
+1. **默认：走 CDN**（推荐，D141）—— 打开就有声音，站点不必带那 324 MB；代价是依赖外网与 CDN 可用性。
+2. **站点自带素材**（同源，不依赖外网）：把音MAD 的音频与卡面铺进 `dist/`，**并把数据里的 `table_url`
+   改回相对路径 `manifest.json`**（`data/otomads/sources/otomads.toml` → `pnpm data:build`），
+   否则访客仍旧走 CDN：
 
    ```bash
    pnpm build && pnpm media:stage     # 本机素材直接铺
@@ -59,7 +63,9 @@ Vercel 用 `vercel.json` 的 `headers`；GitHub Pages **不认** `_headers`（�
    **验证要用真静态服务器**：`pnpm preview` 会继承 dev 的代理（`/manifest.json` 与 `/media` → 8011 助手），
    助手没跑时那两条是 **500**；用 `python3 -m http.server --directory dist` 才验得到静态素材
    （实测：manifest 200 + 音频 200，且请求都落在同源 `/media/otomads/…`）。
-2. **访客自己在本机跑助手**：设置页（音乐源 → 本地曲库地址）或 `?localmusic=127.0.0.1:8011` 填地址。
+   想让**访客**临时切到站点自带那份而不改数据：设置页填本站地址（如 `cards.example.com`，会补
+   `/manifest.json`）——注意**不能填相对路径**（`manifest.json` 会被当成 `host:port` 补成 `http://manifest.json` ✗）。
+3. **访客自己在本机跑助手**：设置页（音乐源 → 本地曲库地址）或 `?localmusic=127.0.0.1:8011` 填地址。
    **https 页面也能读 http 回环**（实测 chromium + firefox 都放行：manifest 200、音频 206）——
    回环地址被浏览器当可信来源，不算混合内容。填 `http://<私有 IP>:8011` 就**会被拦**（只有 loopback 豁免），
    那种情况要给助手套一层 TLS 反代并转发 `X-Forwarded-Proto`。
@@ -112,10 +118,13 @@ node deploy/single-port-proxy.mjs        # 默认 0.0.0.0:8080
 同样能热更新；Caddy 的 `reverse_proxy` 本身就会透传升级。实测：直连 5173 与经 8080 的页面都会建立
 `ws://<页面 origin>/?token=…` 连接。
 
-## 为什么本地源默认是相对路径
+## 音MAD 源的地址形态（D141）
 
-`data/otomads/sources/otomads.toml` 里 `local` 源的 `table_url = "manifest.json"`（**不带前导 `/`**）——
-相对**数据集目录**解析，所以：
+`data/otomads/sources/otomads.toml` 里 `local` 源的默认 `table_url` 现在是 **CDN 的绝对地址**
+（`https://otomads-cdn.tsukinomiyako-mangesui.top/manifest.json`）⇒ 静态站与单端口形态**都不必自带素材**，
+反代那两条 `/manifest.json`、`/media/*`（见 B 节表格）只在**你把 `table_url` 改回相对路径**时才有用。
+
+改回相对路径（`table_url = "manifest.json"`，**不带前导 `/`**）时它的语义是相对**应用所在那一层**：
 
 - 域名根部署时它就是同源的 `/manifest.json`，**不需要 CORS**（助手发的
   `Access-Control-Allow-Origin: *` 只是给跨源场景留的）；
@@ -129,17 +138,18 @@ node deploy/single-port-proxy.mjs        # 默认 0.0.0.0:8080
 /sub/manifest.json → 8011      # 应用挂在 /sub/ 时
 ```
 
-只做**纯静态**托管（应用在 Pages/Vercel、助手在本机 8011）不需要这一条 —— 那时走的是
-设置页填的绝对地址（`127.0.0.1:8011`）。
+只做**纯静态**托管（应用在 Pages/Vercel、素材在别处）不需要这一条 —— 默认走 CDN，或由设置页填绝对地址
+（`127.0.0.1:8011` / `cards.example.com`）。
 
 ## 本机分开跑（不是单端口）怎么办
 
-应用在 5173、助手在 8011 时，同源的 `manifest.json` 会打到应用服务器上 ✗。两种办法：
+默认源是 CDN（D141），**不会自动用助手**；要用本机曲库就显式覆盖（两条等价）：
 
 - 打开 `http://127.0.0.1:5173/?localmusic=127.0.0.1:8011`（URL 参数，**优先于**存档）；
-- 或在设置页 → 音乐源 → **本地曲库地址** 填 `127.0.0.1:8011` 再点「应用」（会落盘）。
+- 或在设置页 → 音乐源 → **本地曲库地址** 填 `127.0.0.1:8011` 再点「应用」（会落盘；点旁边的「重置」回默认 = CDN）。
 
 两种写法都接受：完整 manifest 地址、基地址（自动补 `/manifest.json`）、省略协议的 `host:port`（自动补 `http://`）。
+**注意别填相对路径**（`manifest.json` 会被当成 `host:port` 补成 `http://manifest.json` ✗）。
 
 ## https 与"连接不完全安全"
 
@@ -166,8 +176,8 @@ node deploy/single-port-proxy.mjs        # 默认 0.0.0.0:8080
 | `http://192.168.x.x:8011/…`（私有 IP） | ✗ 被拦 | **只有 loopback 豁免**；要给助手套 TLS 反代 |
 | `https://127.0.0.1:8011/…`（https 打到只讲 http 的助手） | ✗ `SSL_PROTOCOL_ERROR` | 助手本身不发 TLS |
 
-所以 https 站点上：**同源部署留空**即可；**本机助手可以填 `http://127.0.0.1:8011`**（能通）；
-跨机器/私有 IP 必须 https。
+所以 https 站点上：**留空 = 走 CDN**（默认，https，不涉混合内容）；**本机助手可以填
+`http://127.0.0.1:8011`**（能通）；跨机器/私有 IP 必须 https。
 
 ## 联机注意
 

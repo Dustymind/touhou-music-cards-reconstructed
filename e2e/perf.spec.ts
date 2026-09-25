@@ -38,8 +38,8 @@ test("点击不产生 ≥250ms 的长任务（dev 下最坏情况）", async ({ 
     expect(best, `${name} 出现长任务`).toBeLessThan(THRESHOLD_MS);
   };
 
-  // 播放页
-  await page.goto("/?locale=zh");
+  // 播放页（会切到音MAD：钉到本机助手 —— D141 起默认源是 CDN，量长任务时别掺进外网请求）
+  await page.goto("/?locale=zh&localmusic=127.0.0.1:8011");
   await page.getByRole("tab", { name: "播放", exact: true }).click();
   await expect(page.getByTestId("player-control")).toBeVisible();
   await measure("播放/暂停", () => page.getByTestId("play-toggle").click());

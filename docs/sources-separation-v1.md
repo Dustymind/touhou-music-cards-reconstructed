@@ -78,12 +78,12 @@ public/data/sources/*.json         # 三份镜像表原样复制（它们本来�
 | # | 不变量 | 为什么 |
 |---|---|---|
 | 1 | 每个模式的注册表**至少有一个** `enabled = true` 的源 | 否则那个模式一个地址都解析不出来（今天靠运行期补丁兜着） |
-| 2 | `otomads.toml` **必须含恰好一个** `kind = "local"` 的源，且默认启用 | 音MAD 的地址只能来自本地 manifest |
+| 2 | `otomads.toml` **必须含恰好一个** `kind = "local"` 的源，且默认启用 | 音MAD 只有这一个源。地址是什么由数据说了算（D141 起默认是 CDN 的绝对地址；`kind = "local"` 的用处是**允许被「本地曲库地址」/`?localmusic=` 覆盖**） |
 | 3 | `originals.toml` **不得**含 `kind = "local"` | 本地曲库只服务音MAD；混进来会让原曲莫名其妙依赖本机助手 |
 | 4 | 两份注册表的 `id` 不得冲突 | 同名不同表会让人看不懂"这个开关到底在关哪个" |
 
 **保留** `applyLocalManifestUrl()`（`?localmusic=` 部署覆盖）与单端口部署的 `/manifest.json` 代理 ——
-那是部署参数，不是模式补丁。
+那是部署参数，不是模式补丁。D141 起它的用途更明确：默认源在 CDN 上，本机开发/自建素材靠这个覆盖指回去。
 
 ## 6. 不进哈希（明确的约定）
 
@@ -121,7 +121,7 @@ public/data/sources/*.json         # 三份镜像表原样复制（它们本来�
 | 文件 | 内容 |
 |---|---|
 | `data/sources/originals.toml` | 三个远程镜像（netease163 / cloudflare_r2 / thbwiki），**不含**本地源 |
-| `data/otomads/sources/otomads.toml` | 只有本地曲库源，`order = 1`、`enabled = true`（本模式唯一来源；D128 起在 submodule 里） |
+| `data/otomads/sources/otomads.toml` | 只有本地曲库源，`order = 1`、`enabled = true`（本模式唯一来源；D128 起在 submodule 里；**默认 `table_url` 是 CDN 的绝对地址**，D141） |
 | `public/data/sources.json` / `public/data/otomads/sources.json` | 各自的生成物（`build_sources(mode)`） |
 | `public/data/sources/{netease163,cloudflare_r2,thbwiki}.json` | **不挪**（契约 §2） |
 

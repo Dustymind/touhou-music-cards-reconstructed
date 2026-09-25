@@ -48,7 +48,8 @@ test.describe("移动端布局", () => {
     // （只量这一行自己的右边缘：音源分区展开后页面还有**别的**历史溢出，见 HANDOVER 未决项）
     for (const width of [412, 320]) {
       await page.setViewportSize({ width, height: 915 });
-      await page.goto("/?locale=zh");
+      // 会切到音MAD：钉到本机助手（D141 起默认源是 CDN），别依赖外网
+      await page.goto("/?locale=zh&localmusic=127.0.0.1:8011");
       await page.getByRole("tab", { name: "设置", exact: true }).click();
       await page.getByTestId("section-source-summary").click();
       await page.waitForTimeout(400);
@@ -118,7 +119,8 @@ test.describe("移动端布局", () => {
   });
 
   test("关于弹窗：外置曲库署名很长时，内容区滚动、关闭键仍在（音MAD + 助手在跑）", async ({ page }) => {
-    await page.goto("/?locale=zh");
+    // 音MAD 的默认源现在是 CDN（D141）：这里钉到本机助手，测试不依赖外网
+    await page.goto("/?locale=zh&localmusic=127.0.0.1:8011");
     // 切到音MAD 模式（本地源这时才载入；前置条件同其它音MAD 用例：先 `pnpm local`）
     await page.getByRole("tab", { name: "设置", exact: true }).click();
     await page.getByTestId("section-source-summary").click();

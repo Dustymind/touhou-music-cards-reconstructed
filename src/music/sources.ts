@@ -54,10 +54,14 @@ export function applyLocalManifestUrl(
 /**
  * 把源声明的相对路径解析到 **manifest 所在的目录**（纯字符串，不做 URL 规范化）。
  *
- * **保持相对形式是有意的**：`manifest.json` 在域名根与子目录（GitHub Pages 项目页）下都成立，
+ * **相对 manifest 本身就是有意的**：`manifest.json` 在域名根与子目录（GitHub Pages 项目页）下都成立，
  * 于是"响度表跟着源走"（D139）在两种部署形态下都不用改数据。三种输入：
  * 绝对地址（`http(s)://…` / `//…`）与根绝对路径（`/…`）原样返回，
  * 其余按 manifest 的目录拼接（`./` 前缀会去掉）。
+ *
+ * 曲目地址也走它（D141）：**源可以挂在别的域名上**，而相对地址在 `<audio>.src` 里是按**页面**解析的，
+ * 那样会去应用自己那台主机上找音频（404）⇒ manifest 是绝对地址时这里就得到绝对地址 ✓；
+ * manifest 本身是相对路径（同源 / 子目录形态）时结果仍是相对形式 ⇒ 与改前逐字一致 ✓。
  */
 export function sourceRelativeUrl(manifestUrl: string, relative: string): string {
   const value = relative.trim();
@@ -77,8 +81,11 @@ export function normalizeTitle(title: string): string {
   return title.replace(/^[^-]{1,60}?\s+-\s+/, "").replace(/\s+/g, " ").trim().toLowerCase();
 }
 
-/** 把 `[[专辑, 曲目, URL], …]` 收成查表用的 Map。 */
-export function buildEntries(rows: unknown): Map<string, string> {
+/** 把 `[[专辑, 曲目, URL], …]` 收成查表用的 Map。
+ *
+ *  `manifestUrl` 非空时，相对地址按 **manifest 所在的那一层**解析（D141，见 `sourceRelativeUrl`）；
+ *  不传（纯函数用法 / 没加载过 manifest）时原样存 URL —— 与改前逐字一致。 */
+export function buildEntries(rows: unknown, manifestUrl = ""): Map<string, string> {
   const entries = new Map<string, string>();
   if (!Array.isArray(rows)) return entries;
   for (const row of rows) {
@@ -87,7 +94,7 @@ export function buildEntries(rows: unknown): Map<string, string> {
     if (typeof url !== "string" || url.length === 0) continue;
     // 只存**本来的键**（一行一条 ✓）。归一化匹配交给 `resolveTrack` 的兜底扫描 ——
     // 早先在这里插过"归一化别名"，结果 `entries.size` 从 24 变 48 ✗，界面上的条目数就错了（D96）
-    entries.set(trackId(album, title), url);
+    entries.set(trackId(album, title), manifestUrl ? sourceRelativeUrl(manifestUrl, url) : url);
   }
   return entries;
 }
@@ -190,7 +197,7 @@ export async function loadSourceTables(
       const rows = Array.isArray(payload)
         ? payload
         : (payload as { tracks?: unknown } | null)?.tracks;
-      table.entries = buildEntries(rows);
+      table.entries = buildEntries(rows, source.tableUrl);
       // 源可以自己声明响度表（**相对 manifest 自身**，D139）：表跟着源部署，跨宿主也不用改应用。
       // 没声明就留空 —— 调用方（AppShell）回落到注册表里那份（相对数据集目录）。
       const declared = Array.isArray(payload)

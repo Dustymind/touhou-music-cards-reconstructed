@@ -4855,3 +4855,54 @@ submodule 没初始化时给可执行提示。落点是 submodule（`data/otomad
   **反证**：把 onClick 里的 `setLocalMusicUrl("")` 摘掉 → 该用例红 ✓（`toHaveValue` 收到 `127.0.0.1:8011`）。
 - e2e `mobile.spec.ts` **+1**（移动端 12 条）：412 与 **320**dp 下这一行三个控件仍在一行、间隙 8dp、
   高度 48/32/32、行右边缘不出屏（只量这一行**自己**的边缘 —— 见上面那条历史溢出）。
+
+---
+
+## D141 音MAD 的默认源改成项目 CDN（`table_url` 绝对地址 + 曲目地址按 manifest 解析）
+
+**需求**（用户）："默认值为 `https://otomads-cdn.tsukinomiyako-mangesui.top`" —— D140 那条里我写的是
+"默认值只有空串这一种写法（= 用注册表里的相对路径 `manifest.json`，同源）"，用户把这个默认值**定死在 CDN 上**。
+问过一层（注册表 / 音源层加一条 / 前端会话默认），用户选**注册表**：默认值就该在数据里。
+
+**探测**（先验 CDN 到底能不能用）：`/manifest.json` **200**（86 首、`application/json`、Cloudflare、
+`access-control-allow-origin: *`）＋ 表里声明 `"loudness": "loudness/otomads.json"`（该表也 200）；
+`/media/otomads/…mp3` 带 `Range` → **206** + `content-range` + `audio/mpeg`；根路径 **404**（纯素材 CDN，不是应用站）。
+
+**⚠ 先修一个真 bug**：CDN 那份 manifest 的曲目地址是**相对路径**（`media/otomads/…`，`stage_media` 的口径），
+而 `usePlayer` 是 `audio.src = resolved.url` **原样**用 ⇒ 相对地址按**页面**解析，会去应用自己那台主机上找音频
+（404）⇒ **CDN 等于白指**。改法：`buildEntries(rows, manifestUrl)` 多一个基地址参数，相对地址按
+**manifest 所在的那一层**解析（复用 D139 那个 `sourceRelativeUrl`）：
+
+| manifest 形态 | 曲目地址 | 结果 |
+|---|---|---|
+| 绝对（CDN / R2 / 本机助手） | 相对 | 拼成源那一层的绝对地址 ✓（跨域也能播） |
+| 相对（同源 / 子目录部署） | 相对 | **仍是相对形式** ⇒ 与改前逐字一致 ✓（子目录照样对） |
+| 任意 | 已经是绝对 | 原样通过 ✓ |
+
+**数据侧**（`sources/otomads.toml`，数据仓库）：`table_url` 改成 CDN 的 manifest 地址；注释重写
+（两种合法形态、`kind = "local"` **为什么故意保留** —— 设置页「本地曲库地址」与 `?localmusic=` 只覆盖
+kind=local 的源，本机开发就靠它指回去）；`description_*` 改成"默认由项目 CDN 提供"（原来写的是
+"由本机助手提供"，已经不是事实了）；`label_*` **没动**（`本地曲库` 是 e2e 与回退顺序显示在用的名字）。
+顺手补上数据仓库 `.gitignore` 的 `otomads-media.tar.gz`（HANDOVER §10.10 欠的那一行）。
+
+**"空 = 默认"这条语义完全没变**：D140 的「重置」还是写空串，只是空串现在落到 CDN 上 ⇒
+输入框留空、placeholder 显示 CDN 地址、全新安装也直接走 CDN ✓（用户选的就是这条）。
+
+**连带的口径变化**（都写进 README / `deploy/README.md` / 数据仓库 `README.ai.MD`）：
+
+- 静态站与单端口形态**不必再自带那 324 MB 素材**（D138 的 `pnpm media:stage` 从"必须"降级成"想同源自带时才用"，
+  而且还要把 `table_url` 改回 `manifest.json` 才生效）；
+- 本机开发（`pnpm local` + 5173）**不再自动用助手** ⇒ `?localmusic=127.0.0.1:8011`（或设置页填地址）；
+- `?localmusic=` / `applyLocalManifestUrl` / 单端口反代那两条路径**一行没改**，只是从"必用"变成"要用才用"。
+
+**测试**：单测 `sources.test.ts` **+2**（19 条）：`buildEntries` 的三种形态 + 跨域源下"曲目地址与响度表
+两条口径一致"。e2e：`smoke.spec.ts` 那条本地曲库用例改成**默认走 CDN**（CDN 用 `page.route` 挡在本机，
+测试**不依赖外网**：断言 placeholder 是 CDN、默认请求打 `…/manifest.json`、覆盖本机助手、重置回 CDN），
+其余凡是要音MAD 素材的用例一律 `?localmusic=127.0.0.1:8011` **钉到本机助手**
+（`smoke` 3 处、`mode-separation` 3 条、`mobile` 2 条、`perf` 1 处）。
+
+**验证**：数据仓库 pytest **100 passed**；主仓库 pytest 全绿（64 条，退出码 0）；`pnpm data:build` 13 个文件、
+`data:check` 无漂移、`data:validate` ✅（引用集合指纹 `9eecf074138b` 不变）；
+**两个 `contentHash` 都没变**（`e95684b826fb` / `09fdd246a127`）—— 源表地址不进哈希（契约 §6）⇒
+联机两端不用一起更新 ✓。数据仓库提交 `bb3c307`、tag `th09.5-260925` 第 10 次前移
+（`83b95a6` → `bb3c307`，tag 对象 `8dcb12e`，旧 SHA 已进 `backup-commits.tmp/tag-moves.txt`）。

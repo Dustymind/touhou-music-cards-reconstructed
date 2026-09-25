@@ -57,6 +57,37 @@ describe("sources resolver", () => {
     ], {}, fetcher);
     expect(result.tables.local!.entries.size).toBe(2);
   });
+
+  it("曲目地址按 **manifest 所在的那一层**解析（D141：源挂在别的域名上）", () => {
+    const relative = [["otomads", "a", "media/otomads/a.mp3"], ["otomads", "b", "./media/otomads/b.mp3"]];
+
+    // 跨域源（CDN）：拼成源自己那台主机上的绝对地址；`./` 去掉
+    const cdn = buildEntries(relative, "https://cdn.example.com/manifest.json");
+    expect(cdn.get(trackId("otomads", "a"))).toBe("https://cdn.example.com/media/otomads/a.mp3");
+    expect(cdn.get(trackId("otomads", "b"))).toBe("https://cdn.example.com/media/otomads/b.mp3");
+    // 源挂在子路径下时跟着 manifest 的目录走
+    expect(buildEntries(relative, "https://cdn.example.com/music/manifest.json").get(trackId("otomads", "a")))
+      .toBe("https://cdn.example.com/music/media/otomads/a.mp3");
+
+    // manifest 本身是相对路径（同源 / 子目录部署）→ 仍然是相对形式，与改前逐字一致
+    expect(buildEntries(relative, "manifest.json").get(trackId("otomads", "a"))).toBe("media/otomads/a.mp3");
+    // 绝对地址原样通过（本机助手就是这种）
+    expect(buildEntries(rows, "https://cdn.example.com/manifest.json").get(trackId("紅魔郷", "おてんば恋娘")))
+      .toBe("https://a/1.mp3");
+  });
+
+  it("跨域源：曲目与响度表两条地址口径一致（都落在源那一层，D139 + D141）", async () => {
+    const fetcher = vi.fn(async () => new Response(JSON.stringify({
+      schema: 1, loudness: "loudness/otomads.json", tracks: [["otomads", "a", "media/otomads/a.mp3"]],
+    }), { status: 200 })) as unknown as typeof fetch;
+    const result = await loadSourceTables([
+      { id: "local", label: { en: "l", zh: "l" }, tableUrl: "https://cdn.example.com/manifest.json", kind: "local", order: 1, enabled: true, proxyable: false, description: { en: "", zh: "" } },
+    ], {}, fetcher);
+
+    const table = result.tables.local!;
+    expect(table.entries.get(trackId("otomads", "a"))).toBe("https://cdn.example.com/media/otomads/a.mp3");
+    expect(table.loudnessUrl).toBe("https://cdn.example.com/loudness/otomads.json");
+  });
 });
 
 describe("本地曲库地址（单端口同源 / 本机分离两种形态）", () => {

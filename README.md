@@ -95,10 +95,11 @@ pnpm local                                            # 起助手（工具在数
 # --print-url 只打印实际地址；--print-table 只打印曲目表 JSON
 ```
 
-**开发服务器已经把 `/manifest.json` 与 `/media` 代理到 `127.0.0.1:8011`**，所以页面里不用填地址 ——
-前提是助手就在 8011。它回落到别的端口（或你想分开跑）时，用
-`http://127.0.0.1:5173/?localmusic=127.0.0.1:8012`，或在设置页 → 音乐源 → **本地曲库地址** 里填（会落盘；
-填错了点它右边的**「重置」**即可回到默认 —— 留空 = 不覆盖，用数据集里那份同源的 `/manifest.json`）。
+**音MAD 的默认源是项目 CDN**（`https://otomads-cdn.tsukinomiyako-mangesui.top`，写在数据里的 `table_url` 绝对地址，D141）——
+开箱即用，站点不必自带那 324 MB 素材。想改用**本机曲库**（开发时的常规做法）：
+开发服务器已经把 `/manifest.json` 与 `/media` 代理到 `127.0.0.1:8011`，页面加上 `?localmusic=127.0.0.1:8011` 即可
+（助手回落到别的端口就改这个数），或在设置页 → 音乐源 → **本地曲库地址** 里填（会落盘；
+填错了点它右边的**「重置」**即回到默认 = CDN）。
 
 人工放音频：把 `<作者> - <标题>.wav/flac/m4a/...` 丢进 `<曲库>/incoming/`，再跑
 `uv run --project data/otomads/tools python -m otomads.ingest_local_audio`（转 320k mp3 并移进 `<曲库>/otomads/`）。
@@ -158,8 +159,9 @@ pnpm preview    # 本地预览 dist/
 ```
 
 - **纯静态托管**：把 `dist/` 交给任意静态服务器即可（`base` 是 `./`，子目录部署也能直接跑）。
-  静态站没有开发服务器那层代理，音MAD 有两条路：**站点自带素材**（见下面「音MAD 素材」），
-  或让访客在设置页填「本地曲库地址」。
+  音MAD 素材**默认从项目 CDN 取**（D141）⇒ 什么都不用做；要**站点自带素材**（同源、不依赖外网）就照
+  「音MAD 素材」把素材铺进 `dist/`，并把数据里的 `table_url` 改回相对路径 `manifest.json` 再 `pnpm data:build`
+  （也可以让访客在设置页「本地曲库地址」里填本站地址，例如 `cards.example.com` —— 会自动补 `/manifest.json`）。
   三家的开箱配置都在仓库里：GitHub Pages（`.github/workflows/deploy-pages.yml`）、
   Cloudflare Pages（设置见 `deploy/README.md`，响应头在 `public/_headers`）、Vercel（`vercel.json`）。
 - **单端口透传**（应用 + 曲库 + 信令同端口）：见下面小节。
@@ -235,14 +237,17 @@ APP=static node deploy/single-port-proxy.mjs                           # 4) 对�
 
 环境变量：`HOST`（默认 `0.0.0.0`）、`PORT`（默认 `8080`）、`APP`（默认 `http://127.0.0.1:5173`，`static` = 直接服务 `dist/`）、`LOCAL`（默认 `8011`）、`PEER`（默认 `9100`）、`PROTO`（上层不转发协议时手填 `https`）。
 
-本地源用的是相对路径 `manifest.json`（数据集目录下解析成同源的 `/manifest.json`），所以不需要 CORS，换域名/端口/协议也不用改数据、不用重新生成 manifest。更细的踩坑（监听地址、HMR、https 与混合内容、本机分开跑的 `?localmusic=` 覆盖）见 [`deploy/README.md`](deploy/README.md)。
+音MAD 默认源是 CDN 上的绝对地址（带 CORS `*` 与 Range，D141），manifest 里的媒体地址是**相对路径**、由前端按
+manifest 所在那一层解析 ⇒ 换域名/端口/协议、换宿主与子路径都不用改数据、不用重新生成 manifest；要**站点自带素材**
+（同源）就把注册表的 `table_url` 改回 `manifest.json`。更细的踩坑（监听地址、HMR、https 与混合内容、
+本机分开跑的 `?localmusic=` 覆盖）见 [`deploy/README.md`](deploy/README.md)。
 
 ### 6. 跑测试与数据守卫
 
 | 命令 | 作用 |
 |---|---|
 | `pnpm typecheck` | 类型检查 |
-| `pnpm test` | 单测（真实浏览器）：**724 passed** = 362 条 × chromium + firefox；只跑一个引擎用 `pnpm test:chromium` / `pnpm test:firefox` |
+| `pnpm test` | 单测（真实浏览器）：**742 passed** = 371 条 × chromium + firefox；只跑一个引擎用 `pnpm test:chromium` / `pnpm test:firefox` |
 | `pnpm e2e` | 端到端：chromium + firefox + 移动端（Pixel 7），预期 **90 passed + 1 skipped**；会自己起 dev（5190）与信令（9100） |
 | `pnpm e2e:perf` | 「点击长任务」性能守卫（对机器负载敏感，单独跑） |
 | `cd tools && UV_CACHE_DIR=.uv/cache uv run pytest` | 数据管线测试（**64 passed**；音频/本地源那 78 条在数据仓库：`uv run --project tools pytest`） |
@@ -258,9 +263,9 @@ APP=static node deploy/single-port-proxy.mjs                           # 4) 对�
 
 | 症状 | 原因 / 处置 |
 |---|---|
-| 音MAD 列表为空、e2e 音MAD 用例红 | 助手没起或不在 8011：`curl -s http://127.0.0.1:8011/manifest.json \| head` |
-| 助手起来了、页面还是没歌 | 它回落到了别的端口（dev 代理写死 8011）：`?localmusic=127.0.0.1:8012` 或设置页填地址 |
-| 音频 404、拖进度条失效 | 静态部署时没填「本地曲库地址」；或用了 `python3 -m http.server` 这类服务器（不支持 Range/CORS；助手本身都支持） |
+| 音MAD 列表为空 | 默认源是 **CDN**（D141）⇒ 先确认连得上它；要用本机曲库就加 `?localmusic=127.0.0.1:8011`（e2e 一律这么钉，跑前先 `pnpm local`）。助手没起或不在 8011：`curl -s http://127.0.0.1:8011/manifest.json \| head` |
+| 助手起来了、页面还是没歌 | 默认源是 CDN（D141），不会自动用助手：`?localmusic=127.0.0.1:8011` 或设置页填地址（助手回落到别的端口就改这个数） |
+| 音频 404、拖进度条失效 | 站点自带素材但没铺好、或没把 `table_url` 改回 `manifest.json`；也可能是 `python3 -m http.server` 这类服务器（不支持 Range/CORS；CDN 与助手都支持） |
 | https 页面报"连接不完全安全" | 混合内容：最外层反代要转发 `X-Forwarded-Proto`；或 `PROTO=https node deploy/single-port-proxy.mjs`、助手 `--public-base`（详见 §5「单端口透传」与 `deploy/README.md`） |
 | `pnpm audio:fetch` 一启动就退出 | yt-dlp 的升级检查需要联网（连不上 PyPI 就中止，可加 `--skip-update`）；ffmpeg 缺失也在这里报错 |
 | 抓取个别曲目失败 | 站点限制 / 需登录 / 已下架：单条失败只跳过并计入汇总，其余照抓 |
@@ -273,7 +278,7 @@ APP=static node deploy/single-port-proxy.mjs                           # 4) 对�
 数据由 `pnpm data:check` 守住：**121 个角色 / 40 张专辑 / 464 条角色曲目条目（454 首去重曲目）**、
 **7 套卡面**（6 套上游 + 1 套音MAD 本地图集）；另有**音MAD 曲包 86 首（35 个角色）**，其中 84 首带 `source`（可自动抓取）、
 16 首带裁剪区间，音频走本地曲库助手。
-测试基线：`pnpm test` **724 passed**（362 条 × chromium + firefox，两个引擎都跑）、
+测试基线：`pnpm test` **742 passed**（371 条 × chromium + firefox，两个引擎都跑）、
 `cd tools && uv run pytest` **56 passed**、数据仓库 tools 的 pytest **74 passed**、e2e **90 passed + 1 skipped**。
 完整的现状表（含每一项的复现命令）与文档索引见 [`docs/README.md`](docs/README.md)。
 
@@ -360,7 +365,7 @@ APP=static node deploy/single-port-proxy.mjs                           # 4) 对�
 
 | 命令 | 作用 |
 |---|---|
-| `pnpm typecheck` / `pnpm test` | 类型检查 / 单测（362 条 × chromium + firefox = **724 passed**） |
+| `pnpm typecheck` / `pnpm test` | 类型检查 / 单测（371 条 × chromium + firefox = **742 passed**） |
 | `pnpm test:chromium` / `pnpm test:firefox` | 只跑其中一个引擎（调试用） |
 | `pnpm e2e` | 浏览器端到端：chromium + firefox + 移动端（Pixel 7） |
 | `pnpm e2e:chromium` / `pnpm e2e:firefox` / `pnpm e2e:mobile` | 只跑其中一端（调试用） |
@@ -373,7 +378,7 @@ APP=static node deploy/single-port-proxy.mjs                           # 4) 对�
 
 ### 迭代时怎么快跑（全量很慢，别每次都全量）
 
-全量那两条是**提交前**的闸门，不是写代码时的循环：`pnpm test` 要 **~70 秒**（724 条 × 两个引擎，
+全量那两条是**提交前**的闸门，不是写代码时的循环：`pnpm test` 要 **~70 秒**（742 条 × 两个引擎，
 真实浏览器）、`pnpm e2e` 要 **~9 分钟**（91 条 × 三个 project，串行）。改一处就想看一眼时，按"范围从小到大"来：
 
 | 想确认什么 | 命令 | 实测耗时 |

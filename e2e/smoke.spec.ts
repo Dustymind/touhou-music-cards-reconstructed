@@ -76,7 +76,8 @@ test("关于弹窗：外置曲库（音MAD）署名自动列出，且在「原�
   )))];
   expect(authors.length).toBeGreaterThan(10);
 
-  await page.goto("/");
+  // 音MAD 的默认源现在是 CDN（D141）：这里显式钉到本机助手，测试不依赖外网
+  await page.goto("/?localmusic=127.0.0.1:8011");
   // 切到音MAD 模式：本地源（本机助手 8011）这时才会载入 —— 前置条件与另外几条音MAD 用例相同。
   // 音乐模式开关在「音乐源」分区里，分区默认折叠（D47），先展开。
   await page.getByRole("tab", { name: "Config", exact: true }).click();
@@ -805,13 +806,14 @@ test("卡面图集设置对游戏页生效（选卡菜单 + 牌桌，用户反�
 });
 
 test("音乐模式：原曲 / 音MAD 切换（原版 otomads 模式）", async ({ page }) => {
-  // 本地曲库默认是**同源**的相对路径（单端口部署形态，见 deploy/）；分开跑 dev 时用 ?localmusic= 覆盖
+  // 音MAD 的默认源现在是 CDN（D141）：e2e 一律 `?localmusic=` 钉到本机助手（先 `pnpm local`），
+  // 不依赖外网；本机助手的 manifest 就是同一批 86 首。
   const localRequests: string[] = [];
   page.on("request", (request) => {
     if (request.url().endsWith("/manifest.json")) localRequests.push(request.url());
   });
 
-  await page.goto("/");
+  await page.goto("/?localmusic=127.0.0.1:8011");
   await page.getByRole("tab", { name: "Config", exact: true }).click();
   await expandSection(page, "source");
   await page.getByTestId("music-mode").waitFor();
@@ -822,9 +824,9 @@ test("音乐模式：原曲 / 音MAD 切换（原版 otomads 模式）", async (
   await expect(page.getByTestId("preset-stats")).toContainText("378 / 378");
   expect(localRequests).toHaveLength(0);
 
-  // 切到音MAD：只剩**本地曲库曲包**里的曲目，并自动去取本地曲库的 manifest（同源）。
+  // 切到音MAD：只剩**本地曲库曲包**里的曲目，并自动去取本地曲库的 manifest（这里是覆盖后的本机助手）。
   // 曲目条数**跟着数据走**（用户会往 .music/ 里继续加音MAD，写死 24 会随数据漂移 ✗）：
-  // 从同源的 manifest 数一遍，再和设置页的统计对齐。
+  // 从 manifest 数一遍，再和设置页的统计对齐。
   const manifest = await page.request.get("/manifest.json");
   expect(manifest.ok()).toBe(true);
   const packedTracks = ((await manifest.json()) as { tracks: unknown[] }).tracks.length;
@@ -835,7 +837,7 @@ test("音乐模式：原曲 / 音MAD 切换（原版 otomads 模式）", async (
   await expect.poll(async () => (await page.getByTestId("preset-stats").textContent()) ?? "")
     .toContain(`${packedTracks} / ${packedTracks}`);
   await expect.poll(() => localRequests.length).toBeGreaterThan(0);
-  expect(new URL(localRequests[0]!).origin).toBe(new URL(page.url()).origin);
+  expect(localRequests[0]).toBe("http://127.0.0.1:8011/manifest.json");
 
   // 模式落盘：刷新后仍在音MAD
   await page.reload();
@@ -855,21 +857,32 @@ test("音乐模式：原曲 / 音MAD 切换（原版 otomads 模式）", async (
   await expect(page.getByTestId("preset-stats")).toContainText("378 / 378");
 });
 
-test("本地曲库地址：默认同源，?localmusic= 可指向本机助手，「重置」回默认（单端口部署）", async ({ page }) => {
-  // 默认：数据里是相对路径 → 请求打到应用自己（同源，单端口部署的形态）
-  const sameOrigin: string[] = [];
+test("本地曲库地址：默认走 CDN，?localmusic= 可指向本机助手，「重置」回默认", async ({ page }) => {
+  // 音MAD 的默认源现在是 **CDN**（D141，注册表里的 `table_url`）：
+  // 默认路径挡在本机 ⇒ 这条用例不依赖外网；覆盖路径仍指向本机助手（本机分开跑 dev 的用法）。
+  const CDN = "https://otomads-cdn.tsukinomiyako-mangesui.top";
+  await page.route(`${CDN}/**`, (route) => route.fulfill({
+    status: 200,
+    contentType: "application/json",
+    headers: { "access-control-allow-origin": "*" },
+    body: JSON.stringify({ schema: 1, pack: "otomads", tracks: [] }),
+  }));
+  const cdnRequests: string[] = [];
   page.on("request", (request) => {
-    if (request.url().endsWith("/manifest.json")) sameOrigin.push(request.url());
+    if (request.url().startsWith(`${CDN}/`)) cdnRequests.push(request.url());
   });
+
   await page.goto("/");
   await page.getByRole("tab", { name: "Config", exact: true }).click();
   await expandSection(page, "source");
   // 音源层按模式拆（契约 sources-separation-v1.md）：本地地址栏只在音MAD（注册表里有本地源）时出现
   await page.getByTestId("music-mode-otomads").click();
-  await expect(page.getByLabel("local-music-url")).toBeVisible();
-  await expect(page.getByLabel("local-music-url")).toHaveValue("");   // 空 = 不覆盖（默认值只有这一种写法）
-  await expect.poll(() => sameOrigin.length).toBeGreaterThan(0);
-  expect(new URL(sameOrigin[0]!).origin).toBe(new URL(page.url()).origin);
+  const field = page.getByLabel("local-music-url");
+  await expect(field).toBeVisible();
+  await expect(field).toHaveValue("");                                    // 空 = 不覆盖（默认值只有这一种写法）
+  await expect(field).toHaveAttribute("placeholder", `${CDN}/manifest.json`);   // 默认值就在 placeholder 里
+  await expect.poll(() => cdnRequests.length).toBeGreaterThan(0);
+  expect(cdnRequests[0]).toBe(`${CDN}/manifest.json`);                    // 默认真的去取 CDN
 
   // 行内规格：输入框 → 「重置」→「应用」（主操作最右），MD2 8dp 栅格 + small 尺寸
   // （filled 输入框 small 实测 48dp、文字/描边按钮 small 32dp、三者中线对齐 ⇒ 按钮不撑高这一行）
@@ -900,7 +913,7 @@ test("本地曲库地址：默认同源，?localmusic= 可指向本机助手，�
   expect(geometry.insideViewport).toBe(true);
   expect(geometry.resetDisabled).toBe(true);                        // 已经是默认 ⇒ 没什么可重置
 
-  // 覆盖：?localmusic=127.0.0.1:8011 → 打到本机助手（本机分开跑 dev 时的用法）
+  // 覆盖：?localmusic=127.0.0.1:8011 → 打到本机助手（本机分开跑 dev / 想用自己的曲库时）
   const overridden: string[] = [];
   page.on("request", (request) => {
     // 只看真的去取 manifest 的请求（页面 URL 本身也含 ?localmusic=8011）
@@ -913,28 +926,27 @@ test("本地曲库地址：默认同源，?localmusic= 可指向本机助手，�
   await expandSection(page, "source");
   await page.getByTestId("music-mode-otomads").click();
   // 设置页回显的是"存档里的覆盖值"
-  await expect(page.getByLabel("local-music-url")).toHaveValue("127.0.0.1:8011");
+  await expect(field).toHaveValue("127.0.0.1:8011");
   await expect(page.getByTestId("local-music-reset")).toBeEnabled();
   await expect.poll(() => overridden.length).toBeGreaterThan(0);
   expect(overridden[0]).toContain("http://127.0.0.1:8011/manifest.json");
 
-  // 「重置」= 清掉存档里的覆盖 ⇒ 回到数据里的默认（同源）；按钮随即变灰。
+  // 「重置」= 清掉存档里的覆盖 ⇒ 回到**数据里的默认（CDN）**；按钮随即变灰。
   // 地址栏里的 `?localmusic=` 不动（刷新后仍按参数生效 —— "URL 参数优先于存档"那条规则没变，D55）。
   const afterReset: string[] = [];
   page.on("request", (request) => {
-    if (request.url().endsWith("/manifest.json") && !request.url().includes("8011")) {
-      afterReset.push(request.url());
-    }
+    if (request.url().startsWith(`${CDN}/`)) afterReset.push(request.url());
   });
   await page.getByTestId("local-music-reset").click();
-  await expect(page.getByLabel("local-music-url")).toHaveValue("");
+  await expect(field).toHaveValue("");
   await expect(page.getByTestId("local-music-reset")).toBeDisabled();
   await expect.poll(() => afterReset.length).toBeGreaterThan(0);
-  expect(new URL(afterReset[0]!).origin).toBe(new URL(page.url()).origin);
+  expect(afterReset[0]).toBe(`${CDN}/manifest.json`);
 });
 
 test("音乐源回退顺序：显示用源名称，重排不打乱开关（用户反馈后）", async ({ page }) => {
-  await page.goto("/?locale=zh");
+  // 这一条会切到音MAD：钉到本机助手（D141 起默认源是 CDN），别依赖外网
+  await page.goto("/?locale=zh&localmusic=127.0.0.1:8011");
   await page.getByRole("tab", { name: "设置", exact: true }).click();
   await expandSection(page, "source");
   const display = page.getByTestId("source-fallback-order");
@@ -991,7 +1003,8 @@ test("音乐源回退顺序：显示用源名称，重排不打乱开关（用�
 });
 
 test("MD2 细节：下拉标签入框、搜索框居中、边框可见（用户反馈后）", async ({ page }) => {
-  await page.goto("/");
+  // 末尾会切到音MAD 看源行：钉到本机助手（D141 起默认源是 CDN），别依赖外网
+  await page.goto("/?localmusic=127.0.0.1:8011");
 
   // 列表页搜索框：outlined（没有浮动标签占位）→ 占位文字垂直居中
   await page.getByRole("tab", { name: "List", exact: true }).click();
