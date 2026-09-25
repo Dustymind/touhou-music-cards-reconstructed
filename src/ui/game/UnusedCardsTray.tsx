@@ -148,9 +148,11 @@ export function UnusedCardsTray({ columns, ...props }: UnusedCardsTrayProps) {
               sx={{
                 borderTopLeftRadius: MD2.shape,
                 borderTopRightRadius: MD2.shape,
-                // MD2 深色主题的"高度"靠 surface 叠加表达：16dp → 15% 白；再加 1px 顶部分隔线
-                backgroundImage:
-                  "linear-gradient(rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.15))",
+                // MD2 的"高度"靠 surface 叠加表达：16dp → 15% 覆盖层；再加 1px 顶部分隔线。
+                // 覆盖层的方向跟着主题走（深色叠白、浅色叠黑），否则亮色模式下白叠白等于没有高度。
+                backgroundImage: (muiTheme) => muiTheme.palette.mode === "dark"
+                  ? "linear-gradient(rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.15))"
+                  : "linear-gradient(rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.15))",
                 borderTop: `1px solid ${MD2.accordion.divider}`,
                 boxShadow: (muiTheme) => muiTheme.shadows[16],
                 // 高度由把手拖动控制（三档吸附），三档按"卡牌大小"换算成 px
