@@ -5618,3 +5618,20 @@ Domains & Routes。搬完我从**真域名**再复验一遍（`*.workers.dev` �
 
 两张表（"改什么 ⇒ 会不会自动上线"）分别写进了数据仓库 `README.ai.MD` 与 `deploy/README.md` §A.3。
 一次 push 触发的重建：下载 340 MB + 自检 + 部署，约 2–3 分钟（静态资源请求免费、不限量）。
+
+**追补：能不能让 CI 自己调 yt-dlp 抓音频？**（用户追问，2026-09-25 实测 —— **不能**，别再试第二次）
+
+在**分支**上放了个临时探针（`probe-ytdlp`，跑完即删，不打扰 main），用 GitHub 托管 runner 试三条真 source：
+
+| 观测 | 结果 |
+|---|---|
+| runner 出口 IP | `130.131.55.228`（Azure 数据中心） |
+| `https://www.bilibili.com/` | **200**（域名可达，不是网络问题） |
+| 三条 source 解析 | **全部 `ERROR: [BiliBili] … HTTP Error 412: Precondition Failed`** ⇒ 命中 bilibili 的**风控**（数据中心 IP），不是地区封锁 |
+| runner 上的 ffmpeg | 有，但**没有 `libmp3lame`** ⇒ D142 的重编码裁切会失败（apt 那份 ffmpeg 带 lame，这条大概率可解，但上面那条无解） |
+| 86 条 source 的宿主 | **全是 `www.bilibili.com`** ⇒ 没有"换成能抓的源"这条退路 |
+
+⇒ **抓取必须发生在 bilibili 认的出口 IP 后面**（本机/住宅网络），与"有没有曲库"无关（yt-dlp 不需要曲库）。
+想全自动的话，可行路线是**自托管 runner**（跑在用户自己那台机器上：IP 被接受 ✓ 曲库也在那儿 ✓）：
+`runs-on: [self-hosted, linux]` + `otomads.fetch_audio --root <曲库>` + `stage_media pack` + 换资产 + 触发。
+安全前提：**只挂 `push` / `workflow_dispatch`，绝不要 `pull_request`**（公开仓库上 fork PR 会让外部代码跑在自家机器上）。
