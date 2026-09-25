@@ -1,17 +1,23 @@
 # GitHub Pages 部署（纯静态，无后端）。
 #
+# ⚠️ **2026-09-25 起暂时停用**（D146）：应用现在由 **Vercel** 部署（`vercel.json`），而这个仓库的
+#    GitHub Pages **从没启用过** —— 每次 push 都在 `actions/configure-pages` 那一步失败
+#    （`Get Pages site failed`，本工作流 23 次运行全部失败/取消）。停用的是**触发器**，工作流本体
+#    一个字没动，将来要用 Pages 时：
+#
+#      1. 恢复下面 `push:` 那两行；
+#      2. 仓库 Settings → Pages → Build and deployment → Source 选 **GitHub Actions**。
+#
 # 为什么能这么简单：
 #   - `public/data/**`（13 个生成物，含三份镜像表与音MAD 数据集）**随仓库提交**，
 #     所以 CI 不需要 Python / uv，也不需要初始化 `data/otomads` submodule；
 #   - `vite.config.ts` 的 `base` 是 `./`，子目录项目页（`user.github.io/<repo>/`）不用改配置。
-#
-# 一次性设置：仓库 Settings → Pages → Build and deployment → Source 选 **GitHub Actions**。
 name: deploy-pages
 
 on:
-  push:
-    branches: [main]
-  workflow_dispatch:
+  # push:
+  #   branches: [main]
+  workflow_dispatch:      # 暂时只留手动触发（见上面的说明）
 
 permissions:
   contents: read
