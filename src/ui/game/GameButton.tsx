@@ -4,9 +4,9 @@ import Button, { type ButtonProps } from "@mui/material/Button";
 import { MD2 } from "../../theme/theme";
 
 /** 分组标题与控件、同组按钮、组与组之间的间距（px）——全页统一，都是 MD2 的 8dp 栅格或其倍数。 */
-export const GAME_LABEL_GAP = MD2.grid;
-export const GAME_BUTTON_GAP = MD2.grid;
-export const GAME_GROUP_GAP = MD2.grid * 3;
+const GAME_LABEL_GAP = MD2.grid;
+const GAME_BUTTON_GAP = MD2.grid;
+const GAME_GROUP_GAP = MD2.grid * 3;
 
 /** 分组标题：与按钮同高、垂直居中，字号与按钮一致。 */
 export const gameLabelSx = {
@@ -80,7 +80,7 @@ const iconSlot = {
 } as const;
 
 /** 所有游戏页按钮（含 ButtonGroup 里的）共用。 */
-export const gameButtonSx = {
+const gameButtonSx = {
   height: MD2.button.medium,
   minHeight: MD2.button.medium,
   px: 2,                  // MD2：左右各 16dp

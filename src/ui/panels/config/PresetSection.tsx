@@ -19,7 +19,7 @@ const TRI_ORDER: Tri[] = ["unset", "on", "off"];
 /** MD2 复选框行：**统一行高 40dp**、控件与文字垂直居中。
  *  之前为了"多行标签时与首行对齐"用了 `mt: -0.75/1.25` 微调，导致复选框盒子（38dp）比单行行高（32dp）还高、
  *  跟文字也不在同一基线上（用户反馈"勾选框高度与文字不一样"）。统一行高后一行一行都齐。 */
-export const PRESET_ROW_SX = {
+const PRESET_ROW_SX = {
   ml: 1,
   mr: 0,
   minHeight: 40,

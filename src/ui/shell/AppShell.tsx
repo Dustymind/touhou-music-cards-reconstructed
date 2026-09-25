@@ -49,7 +49,7 @@ export function aliceLabel(smallScreen: boolean): string {
 }
 
 /** 倒计时三声的偏移（毫秒，相对进入 `countdown` 那一刻）—— 与 `useGameLoop` 的 3000ms 对齐。 */
-export const COUNTDOWN_TICK_MS = [0, 1000, 2000] as const;
+const COUNTDOWN_TICK_MS = [0, 1000, 2000] as const;
 
 /** 迟到容忍（毫秒）：后台标签页会把定时器节流成"回来时一次全放"，几声挤在一起就是连成一串 ✗。
  *  迟到超过这个量就跳过这一声 —— 宁缺毋滥，正常抖动（几十毫秒）不受影响（D125）。 */

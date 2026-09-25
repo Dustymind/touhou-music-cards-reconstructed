@@ -35,7 +35,7 @@ interface ResolvedTrack {
 const LOCAL_MANIFEST_FILE = "manifest.json";
 
 /** 媒体地址上的**数据版本**参数名（D144）。 */
-export const REVISION_PARAM = "v";
+const REVISION_PARAM = "v";
 
 /**
  * 归一化本地曲库地址：
@@ -87,7 +87,7 @@ export function sourceRelativeUrl(manifestUrl: string, relative: string): string
 /** 归一化曲名：去掉开头的 `作者 - ` 前缀，再压空白、统一小写。
  *  本地曲库的 manifest 按**磁盘文件名**生成（文件名带作者前缀 ✓），而曲包数据里作者是独立字段、
  *  曲名已经不带前缀 ✓ —— 两边比较前必须同一口径，否则音MAD 匹配不上、播不出声。 */
-export function normalizeTitle(title: string): string {
+function normalizeTitle(title: string): string {
   return title.replace(/^[^-]{1,60}?\s+-\s+/, "").replace(/\s+/g, " ").trim().toLowerCase();
 }
 

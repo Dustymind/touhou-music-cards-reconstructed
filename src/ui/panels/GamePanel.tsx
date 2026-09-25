@@ -52,7 +52,7 @@ import { isCheatReally } from "../../cheat";
 import { markCountdownStart, TimerDisplay } from "../game/TimerDisplay";
 
 /** 判定状态在界面上的名字（`en` 保持上游的原始枚举名，`zh` 给出中文）。 */
-export const STATE_LABEL: Record<JudgeState, keyof typeof Localization> = {
+const STATE_LABEL: Record<JudgeState, keyof typeof Localization> = {
   selecting: "GameStateSelecting",
   countdown: "GameStateCountdown",
   turnStart: "GameStateTurnStart",

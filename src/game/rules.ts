@@ -93,7 +93,7 @@ export function blockedCardKeys(
 }
 
 /** 某张卡面现在在谁手里（牌库或收集区）；没有则 null。 */
-export function holderOf(state: GameState, card: CardInfo): { player: PlayerIndex; slot: number } | null {
+function holderOf(state: GameState, card: CardInfo): { player: PlayerIndex; slot: number } | null {
   for (let index = 0; index < state.players.length; index += 1) {
     const slot = state.players[index]!.deck.findIndex((entry) => sameCard(entry, card));
     if (slot >= 0) return { player: index, slot };

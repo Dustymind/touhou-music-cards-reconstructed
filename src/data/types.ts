@@ -87,7 +87,7 @@ export interface ModeDataset {
 }
 
 /** 与模式无关的资源：卡面图集是全站共享的（素材只有一套）。 */
-export interface SharedData {
+interface SharedData {
   cardSets: CardSetRecord[];
 }
 

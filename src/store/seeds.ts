@@ -17,7 +17,7 @@ import { STORAGE_PREFIX, defineStore, isRecord, pickNumber } from "../persist";
 import { SEED_MAX, deriveSeed, newSeed, type Seed, type SeedLabel } from "../rng";
 
 /** 权威端（联机主机 / 单机本机）或副本端（联机客户端）。 */
-export type SeedAuthority = "authority" | "replica";
+type SeedAuthority = "authority" | "replica";
 
 interface Persisted {
   ownSeed: Seed;

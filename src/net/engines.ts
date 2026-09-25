@@ -31,7 +31,7 @@ interface EngineDeps {
  * 配置的流向是**主机读、客户端采用**，所以 `getConfig` 只属于这里：
  * 客户端引擎拿不到（也不该拿到）它，写错了就是编译错误 ✓。
  */
-export interface HostEngineDeps extends EngineDeps {
+interface HostEngineDeps extends EngineDeps {
   getConfig: () => SessionConfigWire;
 }
 

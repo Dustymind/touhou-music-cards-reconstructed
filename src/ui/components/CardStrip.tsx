@@ -67,7 +67,7 @@ interface StripLayout {
 
 /** MUI 默认滑块拇指直径 20px → 半径 10px；滑轨两端各内缩这么多，
  *  推到 0 / 1 时拇指外缘正好与卡牌显示区的左右边界齐平。 */
-export const SLIDER_THUMB_RADIUS = 10;
+const SLIDER_THUMB_RADIUS = 10;
 
 /** 等距排布：`step = 卡宽 + 间距`；总宽 = 首张 + 其余每张一个 step。 */
 export function stripLayout(count: number, width: number, gap: number, visibleWidth: number): StripLayout {

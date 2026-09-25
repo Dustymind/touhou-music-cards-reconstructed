@@ -75,7 +75,7 @@ export type HostMessage =
 
 /** 音乐模式（原曲 / 音MAD）的协议表示：与 `src/music/mode.ts` 的 `MusicMode` 同形，
  *  但协议层不 import UI 模块，避免耦合。 */
-export type MusicModeWire = "originals" | "otomads";
+type MusicModeWire = "originals" | "otomads";
 
 export type Message = ClientIntent | HostMessage;
 

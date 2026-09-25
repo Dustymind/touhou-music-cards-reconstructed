@@ -66,7 +66,7 @@ export function cheatSanitize(input?: string): string {
   return isCheat() ? getGlitchCheat(text) : text;
 }
 
-export function hsvToRgb(h: number, s: number, v: number): { r: number; g: number; b: number } {
+function hsvToRgb(h: number, s: number, v: number): { r: number; g: number; b: number } {
   const i = Math.floor(h * 6);
   const f = h * 6 - i;
   const p = v * (1 - s);
