@@ -5663,3 +5663,49 @@ CI 重打出来的清单与本机打的**永远对不上** ⇒ 客户端每次�
 
 **两张表**（"改什么 ⇒ 会不会自动上线"）分别写进了数据仓库 `README.ai.MD` 与 `deploy/README.md` §A.3：
 一次 push 触发的重建 = 下载 340 MB + 自检 + 部署，约 2–3 分钟（静态资源请求免费、不限量）。
+
+---
+
+## D150 素材站的部署搬进 **GitHub Actions**：一条链跑完测试 → 重打 → 构建 → 部署（2026-09-25）
+
+**触发**：用户报"站点没更新"。查下来 CF 面板给的是：
+
+> 此项目已与您的 Git 帐户断开连接。这可能会导致部署失败。
+
+**症状与证据**（值得记下来，因为它是**静默失败**）：
+
+| 观测 | 值 |
+|---|---|
+| 数据仓库 push | `8da9c34`（含新曲目），CI `tests` + `repack-media` **全绿**，`repack-media` 里 POST Deploy Hook 那一步 **success（HTTP 2xx）** |
+| 手动再跑一次 `trigger-cdn` | 同样 success |
+| 线上 `build-info.json` | 仍是 `builtAt 13:22:07Z` / `archiveSha 8e9f34f8…`，`manifest.json` 仍 **86 行**（新曲目那首没上） |
+| `cf-cache-status` / `cache-control` | `HIT` + `max-age=0, must-revalidate` ⇒ 边缘有校验过，**源站就是旧的**（不是缓存骗人） |
+| 等多久都没用 | 约 9 分钟、两轮触发、带 cache-buster 查询 ⇒ 一条构建都没出现 |
+
+**根因**：Deploy Hook 只负责"请求一次构建"，构建本身要靠项目的 **Git 连接**去拉代码 ——
+连接断了，hook 照样回 2xx（所以 CI 全绿），但**零构建**。用户按官方文档去重连（Settings → Builds →
+Git Repository → Manage，外加 GitHub 侧检查 App 安装）后**仍未恢复**。
+
+**决定**：不再把"上线"这件事押在 CF 侧的连接状态上，把整条链搬进 GitHub Actions ——
+数据仓库新增 `.github/workflows/publish.yml`，`push`（或手动）时三段串行：
+
+```
+① test（141 pytest + 7 node --test）→ ② repack（重打归档；逐字节变了才换 media 资产）
+→ ③ deploy（下归档 → python3 tools/build_cdn_site.py → npx wrangler deploy）→ 线上复验 sha 一致
+```
+
+**顺带删掉**：`repack-media.yml`（并入 publish 的第②段，**去掉 POST Deploy Hook 那步**）与
+`trigger-cdn.yml`（它唯一的作用就是那个 hook）。CF 面板上的 Workers Builds 项目随之退役，可以删。
+
+**代价与取舍**：
+
+- 需要一次性人工：CF 建一个 API Token（模板 **Edit Cloudflare Workers**；自定义要 `Workers Scripts:Edit`
+  + `Workers Routes:Edit`）+ `gh secret set CLOUDFLARE_API_TOKEN -R …`。**没配时第③段跳过并打 notice**，
+  不算失败 ⇒ 结构可以先落地、token 随后补。
+- `wrangler deploy` 对静态资源按哈希**增量上传**：首次全量（约几分钟），之后只传变化的那几首。
+- 自定义域名**必须写进 `wrangler.jsonc` 的 `routes`**（`custom_domain: true`）：`wrangler deploy` 只保证
+  "配置里声明过的"绑定，不声明就有被摘掉的风险，而 `sources/otomads.toml` 的 `table_url` 指着它。
+- 收益：失败在 Actions 日志里看得见（CF 那边我们看不见）、不再依赖面板状态、触发面只剩 `push` 与一个
+  带 `dry_run` 的手动入口。
+
+**遗留**：CF 的 Workers Builds 项目与本仓库 secret `CF_DEPLOY_HOOK` 都不再被引用，可清理。

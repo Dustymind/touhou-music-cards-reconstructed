@@ -95,17 +95,25 @@ Vercel 用 `vercel.json` 的 `headers`；GitHub Pages **不认** `_headers`（�
 | 域名 | Custom domains | Worker → Settings → **Domains & Routes** |
 | 旧项目能不能改造成它 | — | **不能**：Direct Upload 的项目不能转 Git 集成（[官方文档](https://developers.cloudflare.com/pages/get-started/direct-upload/)），所以是"新建一个 + 搬域名" |
 
-**面板里要设的（一次性）**
+**面板那套已经退役**（D150，2026-09-25）：下面这六步是当初接 Workers Builds 时做的，现在**不需要了** ——
+构建与部署搬进 GitHub Actions（数据仓库 `.github/workflows/publish.yml`），面板上那个 Workers Builds 项目可以删掉。
+留档是因为它解释了 `wrangler.jsonc` 的形状：
 
-1. Workers & Pages → Create → Connect to Git → 选 `Dustymind/touhou-music-cards-otomads-data`
-   （公开仓库，不需要额外权限），生产分支 `main`；
+1. Workers & Pages → Create → Connect to Git → 选 `Dustymind/touhou-music-cards-otomads-data`，生产分支 `main`；
 2. **Build command** = `python3 tools/build_cdn_site.py`；
-3. **Deploy command** = `npx wrangler deploy`；
-4. 环境变量 `SKIP_DEPENDENCY_INSTALL=1`（仓库根没有 package.json / requirements.txt，本来也不会自动装）；
-5. Worker 名 = `otomads-cdn-git`（与 `wrangler.jsonc` 里的 `name` 一致，否则 wrangler 会警告并擅自改名）；
-6. 手动跑一次 → 用 **`<worker>.<account>.workers.dev`** 验证（这一步不动线上）→ 再把
-   `otomads-cdn.tsukinomiyako-mangesui.top` 从老 Pages 项目**移除**、作为 **Custom Domain** 加到 Worker 上
-   （同一时刻只能挂一处；老项目先别删 —— 回滚就是把它挂回去）。
+3. **Deploy command** = `npx wrangler deploy`（**不带** `dist` 参数）；
+4. 环境变量 `SKIP_DEPENDENCY_INSTALL=1`；
+5. Worker 名 = `otomads-cdn-git`（与 `wrangler.jsonc` 的 `name` 一致）；
+6. 第一次手动跑 → 用 `<worker>.<account>.workers.dev` 验证 → 再把自定义域名从老 Pages 项目搬过来。
+
+**现在唯一要人做的一步**：CF 面板建一个 API Token（模板 **Edit Cloudflare Workers**；自定义则要
+`Workers Scripts:Edit` + `Workers Routes:Edit`），然后
+
+```bash
+gh secret set CLOUDFLARE_API_TOKEN -R Dustymind/touhou-music-cards-otomads-data
+```
+
+没配这个 secret 时 `publish` 的第③段会**跳过并打一条 notice**（不算失败）。
 
 **迁移已完成并复验**（2026-09-25，域名从老 Pages 项目搬到 Worker）：
 
@@ -117,9 +125,11 @@ Vercel 用 `vercel.json` 的 `headers`；GitHub Pages **不认** `_headers`（�
 | 根路径 | 404 |
 | **真浏览器（无任何覆盖，走默认源）** | 取到表并解析出 `…/media/otomads/川先僧%20-%20普通肥猫魔法使.mp3?v=…`，**零失败请求** |
 
-**`wrangler.jsonc` 里为什么是那三样**：`name`（对齐 CI）、`compatibility_date`（wrangler 上传 Worker 的硬要求，
-删除会直接报错）、`assets.directory = "./dist"` + `not_found_handling = "none"`（找不到就 404，
-与老站一致 —— 这个站点只放 manifest / 媒体 / 响度表，**不能**回退成 HTML）。
+**`wrangler.jsonc` 里为什么是这几样**：`name`（对齐 Worker 名）、`compatibility_date`（wrangler 上传 Worker 的硬要求，
+删了直接报错）、`assets.directory = "./dist"` + `not_found_handling = "none"`（找不到就 404，
+与老站一致 —— 这个站点只放 manifest / 媒体 / 响度表，**不能**回退成 HTML），
+以及 **`routes` 里的自定义域名**（D150 加的）：`wrangler deploy` 只保证"配置里声明过的"绑定，
+不声明就有可能把域名摘掉 —— 而 `sources/otomads.toml` 的 `table_url` 指着它，掉了等于素材站下线。
 
 **构建里发生什么**（数据仓库 `tools/build_cdn_site.py`，纯标准库、不装依赖）：
 
@@ -128,33 +138,38 @@ Vercel 用 `vercel.json` 的 `headers`；GitHub Pages **不认** `_headers`（�
 ```
 
 `review` 是**部署守卫**：清单五键、每一行都有对应文件，并拿**仓库里的 `packs/`** 对照
-（"归档少了 = 改完 packs 忘了重打包"，只警告不拦）。**manifest 不在构建里重生成** ——
-逐曲 `revision` 是打包那台机器的 mtime 指纹，容器里没有那些文件 ⇒ 原样铺归档里那份。
+（"归档少了 = 改完 packs 忘了重打包"，只警告不拦）。**这个构建脚本本身不重算 manifest** ——
+它只是解包铺盘；清单是第②段（CI 重打）或本机 `pack` 写出来的，逐曲版本号是**内容**哈希（D149）。
 （实测一次构建：Python 用镜像自带的、下 340 MB 约 15 秒、`review` + 解包 1 秒。
 所以数据仓库根**故意不放 `.python-version`** —— 钉 `3.13` 会让 CF 现装一份 Python，白等 2 分 40 秒。）
 
-**触发**
+**触发**（D150 起：一条链，全在 GitHub Actions）
+
+```
+push(main) ─▶ ① test ─▶ ② repack（变了才换 media 资产）─▶ ③ deploy（build_cdn_site.py → wrangler deploy）
+```
 
 | 更新类型 | 怎么触发 | 线上会变吗 |
 |---|---|---|
-| 曲目表元数据（标题/作者/附加信息/卡面**引用**、删曲目）、响度表 | 数据仓库 **push 即自动**：`repack-media` 用上一份归档的媒体重打 | **会** |
-| 站点侧文件（`wrangler.jsonc`、`media-worker.mjs`、`tools/**`、工作流）| 同上（同一条链路里会重建）| **会** |
-| **新音频**（新抓/重裁）| 只能在**本机**，且**先传资产、再推源码**：`pnpm media:pack` → `gh release upload media … --clobber` → push（packs 变了才要推；没推就补 `gh workflow run trigger-cdn.yml -R …`）| **会** |
-| 只改文档 | push 触发重建，但归档逐字节没变 ⇒ 不换资产 | 站点重建一次，内容不变 |
+| 曲目表元数据（标题/作者/附加信息/卡面**引用**、删曲目）、响度表 | 数据仓库 **push 即自动**（第②段用上一份归档的媒体重打）| **会** |
+| 站点侧文件（`wrangler.jsonc`、`media-worker.mjs`、`tools/**`、工作流）| 同一条链（第③段重建并部署）| **会** |
+| **新音频**（新抓/重裁）| 只能在**本机**，且**先传资产、再推源码**：`pnpm media:pack` → `gh release upload media … --clobber` → push（packs 变了才要推；没推就补 `gh workflow run publish.yml -R …`）| **会** |
+| 只改文档 | push 照旧走完三段，但归档逐字节没变 ⇒ 不换资产 | 站点重建一次，内容不变 |
 
-> **D149 起**：`repack-media`（push + 手动）负责"重打归档 → 变了就换 `media` 资产 → POST
-> [Deploy Hook](https://developers.cloudflare.com/pages/configuration/deploy-hooks/) 让 CF 重建"；
-> `trigger-cdn` 退成"只重建站点"的手动按钮。前提是逐曲版本号改用**内容**哈希
-> （`packformat.content_revision`）—— 否则 CI 重打的清单与本机打的永远对不上、客户端每次重下 324 MB；
+> **为什么不走 Cloudflare 的 Workers Builds / Deploy Hook 了**：那条路依赖 CF 侧的 Git 集成，
+> 连接一失效就**零构建**，而 Deploy Hook 照样回 **2xx** ⇒ 静默失败 —— 2026-09-25 就这么停了一整天，
+> 站点一直停在旧构建上，`gh run list` 全绿、面板里"根本没触发"。搬进 Actions 后失败在日志里看得见，
+> 而且 `wrangler` 对静态资源按哈希**增量上传**（首次全量约几分钟，之后只传变化的那几首）。
+> 前提仍是逐曲版本号用**内容**哈希（`packformat.content_revision`，D149）——
+> 否则 CI 重打的清单与本机打的永远对不上、客户端每次重下 324 MB；
 > `tools/tests/test_repack.py` 钉着"本机打包 == CI 重打（逐字节相同）"。
-> 首次切换会让 86 首的 `?v=` 全变一次（客户端重下一次媒体），之后只有真变过的才变。
 
 **新音频仍然得在本机打包发布**（素材不进仓库，打包要读本机文件才能算内容哈希）：
 
 ```bash
 cd <主仓库> && pnpm media:pack
 gh release upload media otomads-media.tar.gz --clobber -R Dustymind/touhou-music-cards-otomads-data
-gh workflow run trigger-cdn.yml -R Dustymind/touhou-music-cards-otomads-data   # 或者再推一次数据仓库
+gh workflow run publish.yml -R Dustymind/touhou-music-cards-otomads-data   # 或者再推一次数据仓库
 ```
 
 卡点是**出口 IP**，不是"有没有曲库"：2026-09-25 实测 GitHub 托管 runner 出口是数据中心
@@ -162,10 +177,10 @@ gh workflow run trigger-cdn.yml -R Dustymind/touhou-music-cards-otomads-data   #
 `HTTP Error 412: Precondition Failed`（风控），且 86 条**全是** bilibili ⇒ 没有"换源"退路；
 那份 ffmpeg 也**没有 `libmp3lame`**，D142 的重编码裁切会失败。想全自动只有**自托管 runner**
 （`runs-on: [self-hosted, linux]`，只挂 `push`/`workflow_dispatch`，**不要** `pull_request`）。
-纯元数据改动不需要本机 —— `repack-media` 拿上一份归档的媒体重打即可。
+纯元数据改动不需要本机 —— 第②段拿上一份归档的媒体重打即可。
 
 **回滚两条**：① CF 面板 → Worker `otomads-cdn-git` → Deployments → 选上一版 **Rollback**（秒级）；
-② 重新铺一次（`gh workflow run trigger-cdn.yml -R Dustymind/touhou-music-cards-otomads-data`）。
+② `git revert` 那次改动再 push（重跑一遍链），或手动 `gh workflow run publish.yml -R Dustymind/touhou-music-cards-otomads-data`。
 （D147 那套 `deploy-cdn`（wrangler 直传老 Pages 项目）已随老项目退场 —— 2026-09-25 真域名复验通过后删的。）
 
 **媒体由一个小 Worker 脚本接管**（数据仓库 `media-worker.mjs`，`wrangler.jsonc` 里
