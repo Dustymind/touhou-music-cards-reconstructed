@@ -6,6 +6,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { useAppearance } from "../../../store/appearance";
+import { MD2 } from "../../../theme/theme";
 import { buildTheme } from "../../../theme/theme";
 import { AppearanceSection } from "./AppearanceSection";
 
@@ -68,6 +69,30 @@ describe("外观分区", () => {
     expect(localStorage.getItem("tmc.v1.appearance")).toContain("#2196f3");
     await click(container, "theme-color-reset");
     expect(useAppearance.getState().primary).toBe("");
+  });
+
+  it("MD2 规格：色块 32dp、内容区留白与行距都取常量（不在组件里写死数字）", async () => {
+    const container = await render();
+    const box = (container.querySelector('[data-testid="theme-color-blue"]') as HTMLElement).getBoundingClientRect();
+    expect(Math.round(box.width)).toBe(32);
+    expect(Math.round(box.height)).toBe(32);
+
+    // 内容区留白 = MD2.card.padding（AccordionDetails 的 padding，由主题统一给）
+    const content = container.querySelector('[data-testid="section-appearance-content"]') as HTMLElement;
+    const details = content.parentElement as HTMLElement;
+    expect(getComputedStyle(details).padding).toBe(`${MD2.card.padding}px`);
+
+    // 行距一律落在 MD2 的 8dp 栅格上：不写死具体像素（那是主题 / Stack 的实现细节），
+    // 但任何一处随手写的 13px 都会被这条挡下。
+    const rows = content.firstElementChild as HTMLElement;             // <Stack spacing={MD2.grid}>
+    for (const child of Array.from(rows.children)) {
+      const style = getComputedStyle(child as HTMLElement);
+      for (const value of [style.marginTop, style.marginBottom, style.rowGap]) {
+        const px = parseFloat(value);
+        if (Number.isNaN(px) || px === 0) continue;
+        expect(px % MD2.grid, `${child.tagName} 的 ${value} 不在 ${MD2.grid}dp 栅格上`).toBe(0);
+      }
+    }
   });
 
   it("自定义取色器与色板等价（都走同一个 setPrimary）", async () => {
