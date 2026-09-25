@@ -14,9 +14,13 @@
 
 | 平台 | 地址形态 | 配置文件 | 备注 |
 |---|---|---|---|
-| **GitHub Pages** | `https://<user>.github.io/<repo>/`（**子目录**） | `.github/workflows/deploy-pages.yml` | 一次性设置：Settings → Pages → Source 选 **GitHub Actions**；`base: "./"` 不用改 |
-| **Cloudflare Pages** | `https://<project>.pages.dev/` | 无（面板填构建配置） | 构建命令 `pnpm build`、输出目录 `dist`、Node 24、包管理器 pnpm 12；响应头见 `public/_headers` |
-| **Vercel** | `https://<project>.vercel.app/` | `vercel.json` | 框架选 Other（配置里 `framework: null`）；构建/安装命令都写死在配置里 |
+| **Vercel**（**当前线上**） | `https://<project>.vercel.app/` | `vercel.json` | 框架选 Other（配置里 `framework: null`）；构建/安装命令都写死在配置里。push 到 `main` 由 Vercel 自己构建 |
+| ~~GitHub Pages~~（**暂时停用**，D146） | `https://<user>.github.io/<repo>/`（**子目录**） | `.github/workflows/deploy-pages.yml`（**保留，但已摘掉 push 触发**） | 这个仓库的 Pages 从没启用过 ⇒ 每次 push 都在 `configure-pages` 失败（23 次全红）。要用就把工作流里 `push:` 那两行恢复 + Settings → Pages → Source 选 **GitHub Actions**；`base: "./"` 不用改 |
+| **Cloudflare Pages**（可选，应用本体） | `https://<project>.pages.dev/` | 无（面板填构建配置） | 构建命令 `pnpm build`、输出目录 `dist`、Node 24、包管理器 pnpm 12；响应头见 `public/_headers` |
+
+> 注意"Cloudflare Pages"在这个项目里有**两个不同的站点**：上面这行是**应用本体**（可选形态），
+> 而默认音源用的**素材站** `otomads-cdn.tsukinomiyako-mangesui.top` 是另一个 Pages 项目
+> （`otomads-cdn`），它由 `.github/workflows/deploy-otomads-cdn.yml` 部署 —— 见 §A.3。
 
 三家的构建命令都是 `pnpm build`（= `tsc --noEmit && vite build`，类型检查也是这一关的一部分），
 **不需要 Python / uv / submodule**：`public/data/**` 的 13 个生成物随仓库提交。
@@ -56,9 +60,11 @@ Vercel 用 `vercel.json` 的 `headers`；GitHub Pages **不认** `_headers`（�
    ```
 
    铺完站点上就有同源的 `manifest.json` + `media/otomads/*.mp3`（+ `cards-otomads/*`）。
-   **素材不进仓库**：归档由 `pnpm media:pack` 生成（可复现）并发布成 Release 资产，**由人手动铺** ——
-   本仓库的 Pages 工作流**不**拉素材（用户裁定，D138）；而且主仓库是**私有**的，匿名取 Release 资产会 404，
-   要取就带令牌：`gh release download th09.5-260925 --pattern otomads-media.tar.gz`（或本机 `pnpm media:pack`）。
+   **素材不进仓库**：归档由 `pnpm media:pack` 生成（可复现）并发布成 Release 资产。
+   这条路上"铺"是**你自己**的事（`media:stage` 铺进你自己的 `dist/`）；**项目 CDN 那一份**现在由
+   `.github/workflows/deploy-otomads-cdn.yml` 铺（D146，见 §A.3）—— 本仓库的 Pages 工作流仍然**不**拉素材。
+   主仓库是**私有**的，匿名取 Release 资产会 404，要取就带令牌：
+   `gh release download th09.5-260925 --pattern otomads-media.tar.gz`（或本机 `pnpm media:pack`）。
    注意顺序永远是**先 `pnpm build` 再铺素材** —— 重新构建会清空 `dist/`。
    **验证要用真静态服务器**：`pnpm preview` 会继承 dev 的代理（`/manifest.json` 与 `/media` → 8011 助手），
    助手没跑时那两条是 **500**；用 `python3 -m http.server --directory dist` 才验得到静态素材
@@ -69,6 +75,42 @@ Vercel 用 `vercel.json` 的 `headers`；GitHub Pages **不认** `_headers`（�
    **https 页面也能读 http 回环**（实测 chromium + firefox 都放行：manifest 200、音频 206）——
    回环地址被浏览器当可信来源，不算混合内容。填 `http://<私有 IP>:8011` 就**会被拦**（只有 loopback 豁免），
    那种情况要给助手套一层 TLS 反代并转发 `X-Forwarded-Proto`。
+
+### 素材站（默认 CDN）的部署（D146）
+
+默认音源指的 `otomads-cdn.tsukinomiyako-mangesui.top` 是一个**独立的 Cloudflare Pages 项目**
+（`otomads-cdn`），内容就是素材归档解出来的那一份（`manifest.json` + `media/otomads/*.mp3`
++ `loudness/otomads.json`）。以前靠人在本地解压 + `wrangler pages deploy`；现在交给 CI：
+
+```bash
+# ① 本地：打归档（**必须有曲库** —— manifest 里每首的 `revision` 是本机文件的名字+大小+mtime，D144）
+pnpm media:pack
+sha256sum otomads-media.tar.gz                 # 记一下，跑 CI 时对一遍
+gh release upload th09.5-260925 otomads-media.tar.gz --clobber
+
+# ② CI：部署（GitHub → Actions → deploy-otomads-cdn → Run workflow）
+gh workflow run deploy-otomads-cdn.yml         # 或加 -f dry_run=true 只下载 + 自检
+```
+
+工作流做了什么：从 Release 取归档 → **归档自检**（清单五键、每行都有文件；"曲目表里有、地址表里没有"
+只警告 —— 那是"还没抓"的合法中间态）→ 解到部署根 → 读 Pages 项目的**生产分支**（不写死 `main`，
+写错会静默落成 preview）→ `wrangler pages deploy` → **线上复核**（CDN 那份 manifest 与归档**逐字节
+相同**才算成功，带 `?ci=` 绕开边缘缓存）。
+
+一次性配置（仓库 Settings → Secrets and variables → Actions）：
+
+| 名字 | 值 |
+|---|---|
+| secret `CLOUDFLARE_API_TOKEN` | Cloudflare → My Profile → API Tokens → 模板 “Edit Cloudflare Workers”，或自定义 **Account → Cloudflare Pages → Edit** |
+| secret `CLOUDFLARE_ACCOUNT_ID` | `5102f3861137b0abc1a12e2c793c19d2` |
+| variable `CF_PAGES_PROJECT`（可选） | 默认 `otomads-cdn` |
+| variable `OTOMADS_CDN_HOST`（可选） | 默认 `https://otomads-cdn.tsukinomiyako-mangesui.top` |
+
+**为什么打包不能也交给 CI**：曲库（377 MB）不在任何仓库里（素材不进仓库，用户裁定），而 manifest 的
+逐曲版本号来自本机文件的 mtime ⇒ 只有手上有曲库的机器打得出正确的清单。CI 只负责"把已发布的归档铺上去"。
+**为什么不自己写 `_headers`**：CDN 那套逐路径缓存（清单/响度表 `max-age=0, must-revalidate`、
+媒体 `max-age=14400`）来自 zone 级规则 / Pages 默认，**不在部署物里**（归档里没有 `_headers`）——
+CI 里加一个反而会改变现状。
 
 ## B. 单端口部署（方案 B）
 

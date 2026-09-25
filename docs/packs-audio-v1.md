@@ -591,8 +591,10 @@ if is_anthology:
 
 - **本机助手**：改了代码即是 ✓（每次请求现读 `packs/`）；
 - **Release 归档 / 自托管**：归档已重打（`manifest.json` 带这两个键），自托管的人重取一次即可；
-- **项目 CDN**（默认源）：**要换掉那一个 `manifest.json`**（几十 KB）。老清单只会走兜底
-  —— 不会坏，但等于没改。
+- **项目 CDN**（默认源）：**要铺一次** —— D146 起由主仓库的
+  `.github/workflows/deploy-otomads-cdn.yml` 从 Release 归档铺到 Cloudflare Pages 项目 `otomads-cdn`
+  （详见 `deploy/README.md` §A.3），不再手抄那几十 KB。老清单只会走兜底 —— **不会坏，但等于没改**；
+  工作流的最后一步拿"**线上 manifest 与归档逐字节相同**"当成功判据，所以"铺没铺上"不再靠人肉核对。
 
 ### 7. 要接受的代价（用户已认）
 

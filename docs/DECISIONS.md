@@ -5269,3 +5269,76 @@ if is_anthology:
    自洽所以不会红，但它守的不是线上那份。
 3. **握手语义随生效数据集走**：一端用了新数据、另一端还停在兜底那份 ⇒ 曲线目表不同 ⇒ 握手期被拒
    （fail-closed）；曲目表一样就照旧能一起玩（哈希不含 URL 与版本）。
+
+## D146 素材站（CDN）交给 CI 铺；GitHub Pages 暂时停用（应用由 Vercel 部署）
+
+**需求**（用户 2026-09-25）：
+
+> 1. 能否写ci，让cloudflare pages部署静态cdn
+> 2. 暂时禁用github pages部署，但保留ci工作流文件，目前是vercel部署
+
+### 1. 先摸清"CDN 到底是什么"（别猜）
+
+| 证据 | 结论 |
+|---|---|
+| 工作区根 `.wrangler/cache/pages.json` = `{"account_id":"5102f386…","project_name":"otomads-cdn"}` + `.wrangler/tmp/pages-*` | 线上是 **Cloudflare Pages 项目 `otomads-cdn`**，而且是 **`wrangler pages deploy` 直传**（不是 Worker + R2，也不是 Git 集成 —— 那两种都铺不动这条路） |
+| 工作区根 `dist/`（326 MB，15:46）= `manifest.json` + `media/` + `loudness/` | 旧手动流程的**部署根**；CI 之后它就没用了 |
+| CDN 响应头实测：`/manifest.json`、`/loudness/*` → `public, max-age=0, must-revalidate`；`/media/**/*.mp3` → `public, max-age=14400, must-revalidate` + `accept-ranges: bytes`；根 404 → `no-store`；都带 `access-control-allow-origin: *` | **归档里没有 `_headers` 文件**（88 个成员 = manifest + 86 音频 + 响度表）⇒ 这套逐路径缓存来自 **zone 级规则 / Pages 默认**，**不在部署物里** ⇒ CI 里**不**加 `_headers`（加了反而改变现状） |
+
+### 2. `deploy-otomads-cdn.yml`（主仓库，手动触发）
+
+```
+本地  pnpm media:pack → sha256sum → gh release upload th09.5-260925 otomads-media.tar.gz --clobber
+CI    Actions → deploy-otomads-cdn → Run workflow（或 gh workflow run deploy-otomads-cdn.yml）
+```
+
+工作流：**前置检查**（缺凭据当场失败）→ `gh release download`（本仓库私有 ⇒ 用自己的 `github.token`）→
+**归档自检**（`.github/scripts/check_otomads_archive.py`）→ 解到部署根 → **读 Pages 项目的生产分支**
+（不写死 `main`：写错会让这次部署静默落成 **preview**，自定义域名一动不动，表现是"CI 全绿、线上没变"）
+→ `npx wrangler@4 pages deploy`（直传；wrangler 按内容哈希去重，只改清单时实际只传几十 KB）→
+**线上复核：CDN 那份 manifest 与归档逐字节相同**（带 `?ci=` 绕开边缘缓存，最多重试 12 次）。
+
+三个刻意的取舍：
+
+1. **打包不进 CI**：manifest 里每首的 `revision` 是**本机那份文件**的名字+大小+mtime（D144），而曲库
+   （377 MB）不在任何仓库里（素材不进仓库，D138 的裁定没变）⇒ 只有手上有曲库的机器打得出正确清单。
+   CI 只做"把**已发布**的归档铺上去"——所以本地那两步（pack + upload）仍然是必须的。
+2. **工作流放在主仓库而不是数据仓库**：归档是**主仓库的 Release 资产**，私有仓库要用令牌才读得到 ——
+   自己的 workflow 用 `github.token` 就行；放数据仓库就得再配一个 PAT（多一个会过期的秘密）。
+   数据仓库那边改数据，仍然只影响"本地打包"这一步。
+3. **成功判据是"线上与归档逐字节相同"**，不是"wrangler 退出码 0"：D144 那轮的教训正是
+   "Claude 以为铺好了、其实线上还是旧清单"（当时只有人肉 `cmp` 才发现）。这条复核会自动抓出来。
+
+一次性配置（Settings → Secrets and variables → Actions）：secret `CLOUDFLARE_API_TOKEN`
+（Cloudflare → My Profile → API Tokens → 模板 “Edit Cloudflare Workers”，或自定义 **Account → Cloudflare
+Pages → Edit**）、secret `CLOUDFLARE_ACCOUNT_ID`（`5102f3861137b0abc1a12e2c793c19d2`）；
+可选 variable `CF_PAGES_PROJECT`（默认 `otomads-cdn`）、`OTOMADS_CDN_HOST`（默认项目 CDN 域名）。
+
+### 3. GitHub Pages 暂时停用（**保留文件**）
+
+`.github/workflows/deploy-pages.yml` 只摘掉 `push:` 触发（改成只在 `workflow_dispatch` 里手动跑），
+文件与步骤一个字没动，恢复方法写在文件头两行：恢复 `push:` + Settings → Pages → Source 选 GitHub Actions。
+
+**为什么停**：这个仓库的 Pages **从没启用过** —— 本工作流 23 次运行**全部失败/取消**，每次 push 都卡在
+`actions/configure-pages`（`Get Pages site failed`）。应用现在由 **Vercel** 部署（`vercel.json` 在仓库里，
+push 到 `main` 由 Vercel 自己构建），所以那些失败纯粹是噪音。
+
+### 4. 验证
+
+- **CI 脚本按四个场景实测**（本地跑真归档，不是想象）：① 真归档 → `✅ 88 个成员 / 86 行 / 35 角色 /
+  86 条曲目 / revision 743231decd5f6a44`；② 缺 `albums`/`characters` → 红（这正是"部署等于没生效"）；
+  ③ 只多一条"还没抓"的曲目 → **绿 + 两条警告**（合法的补全中间态，不能拦住部署）；
+  ④ **线上那份旧清单** → 红（`manifest 缺 albums/characters`）—— 恰好证明"还差的那一步"没做。
+  脚本里踩到并修掉两个真 bug：曲名匹配没按前端口径（磁盘名是 `作者 - 标题`、曲目表里作者是独立字段）、
+  地址里的文件名**百分号编码**而归档成员名是原始 UTF-8（要 `unquote` 再比）。
+- 主仓库 pytest **69 passed**（65 → +4：`tools/tests/test_ci_scripts.py` 钉住"CI 脚本的归一化口径与
+  `sources.ts` 那条正则一致"、硬判据与警告判据）。
+- **没跑**：真实的部署（本机没有 Cloudflare API Token，那是 secret）—— 第一次运行要用户点了才算验过；
+  `pnpm test` / `pnpm e2e` 这轮没动应用代码，不重跑。
+
+### 5. 还没做（要人做）
+
+1. 加两个 secret（上面那张表）；
+2. 跑一次 `deploy-otomads-cdn` —— **这一跑同时就是 D145 的收尾**：Release 资产里已经是带
+   `albums`/`characters` 的新归档（上一轮换过），铺上去之后 C 才真正生效；
+3. 工作区根的 `dist/`（326 MB 的旧部署根）可以删了。
