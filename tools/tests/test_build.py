@@ -200,3 +200,107 @@ def test_normalize_title_matches_the_data_repo_helper():
     for path in (helper, repo.ROOT / "src" / "music" / "sources.ts"):
         text = path.read_text(encoding="utf-8")
         assert " - ${wanted}" in text or 'f" - {wanted_norm}"' in text, path
+
+
+# ---------------------- 跨仓库共享向量：时间解析 / 裁剪区间 / 键集合（D150 追加）
+
+#: **共享测试向量**：与 数据仓库 `tools/tests/test_pack_audio.py` 里那份**同一份字面量**（两个仓库零 import 依赖，
+#: 只能靠"同一批字面量 + 各自测自己的实现"来对口径）。三组分别盯着：
+#:   ① 时间解析（`parse_time` 接受/拒绝哪些写法）
+#:   ② 裁剪区间（`trim_seconds` 的单侧语义与非法区间）
+#:   ③ 四组键集合 —— **一边加键，另一边就把整包判成"不认识的键"而拒收**（`_reject_unknown` 是硬失败）
+PACK_TIME_VECTOR = [
+    ("00:00:00.000", 0.0),
+    ("00:00:01.500", 1.5),
+    ("01:02:03.250", 3723.25),
+    ("12:34:56.789", 45296.789),
+    ("0:00:00.000", 0.0),          # 小时允许 1 位
+]
+
+PACK_TIME_BAD = [
+    "00:00:00",        # 缺毫秒
+    "00:00:00.00",     # 毫秒必须 3 位
+    "1:02:03",         # 缺毫秒
+    "00:60:00.000",    # 分钟越界
+    "00:00:60.000",    # 秒越界
+    "1:2:3.000",       # 分秒必须 2 位
+    "abc",
+]
+
+PACK_TRIM_VECTOR = [
+    ({}, None),                                                    # 两个键都没写 ⇒ 不裁剪
+    ({"start_time": "00:00:02.000"}, (2.0, None)),                  # 只给起点 ⇒ 裁到文件尾
+    ({"stop_time": "00:00:03.000"}, (0.0, 3.0)),                    # 只给终点 ⇒ 从文件头
+    ({"start_time": "00:00:01.000", "stop_time": "00:00:04.500"}, (1.0, 3.5)),
+    ({"start_time": "00:00:04.000", "stop_time": "00:00:04.000"}, "raises"),   # 零长度非法
+    ({"start_time": "00:00:05.000", "stop_time": "00:00:04.000"}, "raises"),   # 起点晚于终点
+]
+
+PACK_KEYS_VECTOR = {
+    "pack": {"id", "label_en", "label_zh", "kind", "order"},
+    "album": {"key", "name", "kind", "pack", "order", "show_album_name"},
+    "track": {"album", "author", "authors", "title", "extra", "source", "start_time", "stop_time"},
+    "character": {"key", "card"},
+}
+
+
+def test_parse_time_matches_the_shared_vector():
+    for text, expected in PACK_TIME_VECTOR:
+        assert pack_mod.parse_time(text) == pytest.approx(expected)
+    for text in PACK_TIME_BAD:
+        with pytest.raises(ValueError):
+            pack_mod.parse_time(text)
+
+
+def test_trim_seconds_matches_the_shared_vector():
+    for track, expected in PACK_TRIM_VECTOR:
+        if expected == "raises":
+            with pytest.raises(ValueError):
+                pack_mod.trim_seconds(track)
+        else:
+            assert pack_mod.trim_seconds(track) == expected
+
+
+def test_key_sets_match_the_shared_vector():
+    assert pack_mod.PACK_KEYS == PACK_KEYS_VECTOR["pack"]
+    assert pack_mod.ALBUM_KEYS == PACK_KEYS_VECTOR["album"]
+    assert pack_mod.TRACK_KEYS == PACK_KEYS_VECTOR["track"]
+    assert pack_mod.CHARACTER_KEYS == PACK_KEYS_VECTOR["character"]
+
+
+def _data_repo_file():
+    """数据仓库的 `packformat.py`（submodule 未初始化时跳过）。"""
+    helper = repo.ROOT / "data" / "otomads" / "tools" / "src" / "otomads" / "packformat.py"
+    if not helper.is_file():
+        pytest.skip("数据 submodule 未初始化：跳过跨仓库口径检查")
+    return helper
+
+
+def test_key_sets_match_the_data_repo_literals():
+    """四组键集合与数据仓库那份**逐字相同**（上面的共享向量只钉了"我们这边"的值）。
+
+    再按文本对一次的理由：一边加键，另一边的 `_reject_unknown` 会把**整包**判成"不认识的键"拒收 ——
+    这类故障只在对面的数据上炸，本仓库的单测看不见。
+    """
+    import ast
+
+    helper = _data_repo_file()
+    wanted = {"PACK_KEYS", "ALBUM_KEYS", "TRACK_KEYS", "CHARACTER_KEYS"}
+    found = {}
+    for node in ast.parse(helper.read_text(encoding="utf-8")).body:
+        if (isinstance(node, ast.Assign) and len(node.targets) == 1
+                and isinstance(node.targets[0], ast.Name) and node.targets[0].id in wanted):
+            found[node.targets[0].id] = set(ast.literal_eval(node.value))
+    assert found, f"{helper} 里找不到那四组键集合"
+    assert found == {"PACK_KEYS": pack_mod.PACK_KEYS, "ALBUM_KEYS": pack_mod.ALBUM_KEYS,
+                     "TRACK_KEYS": pack_mod.TRACK_KEYS, "CHARACTER_KEYS": pack_mod.CHARACTER_KEYS}
+
+
+def test_audio_filename_shape_matches_the_data_repo_helper():
+    """成品文件名的形状（`作者 - 标题.mp3` / 无作者时 `标题.mp3`）与数据仓库一致（D95/D96）。
+
+    这个名字同时是 manifest 的匹配键与响度表的键：形状一变 ⇒ 音频"看得见却点不响"、或整表键对不上。
+    """
+    text = _data_repo_file().read_text(encoding="utf-8")
+    assert "f\"{author} - {track['title']}.mp3\"" in text, "数据仓库的成品名形状变了？"
+    assert "f\"{track['title']}.mp3\"" in text, "数据仓库的无作者成品名形状变了？"
