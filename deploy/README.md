@@ -135,10 +135,15 @@ Vercel 用 `vercel.json` 的 `headers`；GitHub Pages **不认** `_headers`（�
 
 **触发**
 
-| 更新类型 | 怎么触发 |
-|---|---|
-| 加曲目 / 改裁量 / 改响度表（`packs/`、`loudness/` 有变化）| 数据仓库 **push** ⇒ 自动构建 |
-| **只换了音频**（D142/D143 那种：git 里没有任何变化）| `gh workflow run trigger-cdn.yml -R Dustymind/touhou-music-cards-otomads-data`（POST 一次 [Deploy Hook](https://developers.cloudflare.com/pages/configuration/deploy-hooks/)）；没配那个 secret 就去面板点 Retry |
+| 更新类型 | 怎么触发 | 线上会变吗 |
+|---|---|---|
+| 站点侧文件（`wrangler.jsonc`、`media-worker.mjs`、`tools/**`、工作流）| 数据仓库 **push 即自动重建** | **会**（这些是构建侧的输入）|
+| 加曲目 / 改裁量 / 改响度表（`packs/`、`loudness/`）| push 会重建，但**得先重打包并上传归档**才有效果 | 只重建**不会**变 |
+| 换过 `media` Release 的归档（`gh release upload` 没有 git 事件）| `gh workflow run trigger-cdn.yml -R Dustymind/touhou-music-cards-otomads-data`（POST 一次 [Deploy Hook](https://developers.cloudflare.com/pages/configuration/deploy-hooks/)），或面板点 Retry，或推一个空提交 | **会** |
+
+> 2026-09-25 实测：push 本身**不会**触发 CF 那边的构建（`build-info.json` 轮询五分钟为证），
+> 所以 `trigger-cdn` 工作流在 `push` 与 `workflow_dispatch` 两条入口上都挂了 Deploy Hook；
+> 同一天验证：11:40:28 推送 → `trigger-cdn`（10 秒）→ 线上 `build-info.json` 于 **11:40:53** 换成新构建。
 
 **打包与发布仍然是手动的**（素材不进仓库、逐曲版本号来自本机 mtime）：
 

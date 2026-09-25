@@ -5600,3 +5600,21 @@ Domains & Routes。搬完我从**真域名**再复验一遍（`*.workers.dev` �
 **push 不触发构建** ⇒ 这个按钮是必需而非可选）；`.gitignore` 补 `.wrangler/` 与 `/dist/`。
 **留给用户**：在 CF 面板删掉老 Pages 项目 `otomads-cdn`；主仓库那份旧私有 Release 资产与工作区根的
 `dist/`（326 MB 旧部署根）可删。
+
+### 12. 追问"直接改源仓库的文件能不能自动更新" ⇒ 补上 push 触发（2026-09-25）
+
+**结论分两半**，一半可修、一半是原理性的：
+
+1. **push 原本不触发构建**（`trigger-cdn` 只有 `workflow_dispatch`；CF 那边的 "Git 集成"也没在 push 时构建
+   —— 早先轮询 `build-info.json` 五分钟为证）⇒ **可修**：给 `trigger-cdn.yml` 加上 `on: push: branches: [main]`，
+   由它去 POST Deploy Hook（Secret 已经在用）。**实测**：`11:40:28` 推送 → 工作流 10 秒成功 →
+   线上 `build-info.json` 从 `11:16:30Z` 变成 **`11:40:53Z`**（新构建 + 新部署）✓。
+   ⇒ 站点侧文件（`wrangler.jsonc`、`media-worker.mjs`、`tools/**`、工作流本身）**改完推上去就自动生效**。
+2. **"改仓库里的数据文件"不会改变线上内容** ⇒ **原理性**：站点内容来自 `media` Release 的归档，
+   而 manifest 里每首的逐曲版本号是**本机文件**的名字+大小+mtime（D144），音频库不在 git 里
+   ⇒ 构建只能"下载已发布的归档再原样铺"，仓库里的 `packs/*.toml` 它根本不读（读了也只会让曲目表与音频对不上）。
+   加曲目/换音频的完整链路仍是：`pnpm media:pack` → `gh release upload media … --clobber` → 触发一次
+   （面板 Retry / 手动工作流 / 推一个空提交 —— 因为 `gh release upload` 不产生 git 事件）。
+
+两张表（"改什么 ⇒ 会不会自动上线"）分别写进了数据仓库 `README.ai.MD` 与 `deploy/README.md` §A.3。
+一次 push 触发的重建：下载 340 MB + 自检 + 部署，约 2–3 分钟（静态资源请求免费、不限量）。
