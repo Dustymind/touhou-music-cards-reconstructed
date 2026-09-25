@@ -19,6 +19,7 @@
  */
 import { EXTRAS, trackId, type AlbumKind, type AlbumRecord, type CharacterRecord, type DataBundle, type DataIndex, type Extra, type ModeDataset, type MusicEntry } from "./types";
 import { stableHash } from "../rng";
+import { isRecord } from "../persist";
 
 /** 快照里的一个角色：**只给"角色 → 曲目"**（+ 可选卡面覆盖）。 */
 export interface PackSnapshotCharacter {
@@ -40,10 +41,6 @@ export interface PackSnapshot {
 }
 
 const ALBUM_KINDS: readonly AlbumKind[] = ["game", "fighting", "hifuu", "other"];
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
 
 /** 非空字符串（去掉首尾空白后仍非空）。 */
 function text(value: unknown): string | undefined {

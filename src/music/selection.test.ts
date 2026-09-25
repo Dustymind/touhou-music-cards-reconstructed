@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { AlbumRecord, CharacterRecord } from "../data/types";
-import { allowedTracks, countEnabled, defaultPreset, isTrackEnabled, type PresetState } from "./selection";
+import { allowedTracks, defaultPreset, isTrackEnabled, type PresetState } from "./selection";
 
 const albums: AlbumRecord[] = [
   { key: "th06", name: "紅魔郷", kind: "game", pack: "originals", order: 1 },
@@ -54,11 +54,5 @@ describe("selection resolver", () => {
     const result = allowedTracks(preset({ hifuu: { 蓬莱人形: false } }), character, pinned);
     expect(result.entries).toEqual([pinned]);
     expect(result.pinned).toBe(pinned);
-  });
-
-  it("统计可用曲目数", () => {
-    expect(countEnabled(preset(), [character])).toEqual({ enabled: 3, total: 3 });
-    expect(countEnabled(preset({ albums: { 紅魔郷: false, 妖々夢: false }, hifuu: { 蓬莱人形: false } }), [character]))
-      .toEqual({ enabled: 0, total: 3 });
   });
 });

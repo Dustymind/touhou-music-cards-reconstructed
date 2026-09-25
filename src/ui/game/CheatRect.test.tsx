@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { CheatRect } from "./CheatRect";
 import { enableCheat, isCheatReally, isCheatString } from "../../cheat";
-import { glitchEnabled, preferLocalCards, preferR2Cards } from "../../runtime";
+import { glitchEnabled, preferLocalCards } from "../../runtime";
 
 async function render(node: React.ReactElement): Promise<HTMLElement> {
   const container = document.createElement("div");
@@ -37,11 +37,10 @@ describe("彩蛋", () => {
     expect(isCheatReally()).toBe(true);
   });
 
-  it("URL 参数：?g / ?local / ?r2", () => {
-    window.history.replaceState({}, "", "/?g=1&local=1&r2=1");
+  it("URL 参数：?g / ?local", () => {
+    window.history.replaceState({}, "", "/?g=1&local=1");
     expect(glitchEnabled()).toBe(true);
     expect(preferLocalCards()).toBe(true);
-    expect(preferR2Cards()).toBe(true);
     window.history.replaceState({}, "", "/");
     expect(glitchEnabled()).toBe(false);
   });

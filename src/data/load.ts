@@ -10,7 +10,6 @@ import {
   type DataBundle,
   type DataIndex,
   EXTRAS,
-  type Extra,
   type ModeDataset,
   type SourceRecord,
 } from "./types";
@@ -159,9 +158,3 @@ export async function loadDataBundle(base = "./data"): Promise<DataBundle> {
   return { shared: { cardSets }, datasets: { originals, otomads } };
 }
 
-/** 某角色的曲目按附加信息分组（预设 UI 与统计用）。 */
-export function groupByExtra(character: CharacterRecord): Record<Extra, number> {
-  const counts = { 角色曲: 0, 道中曲: 0, 更多道中曲: 0, 秘封曲: 0 } as Record<Extra, number>;
-  for (const [, , extra] of character.music) counts[extra] += 1;
-  return counts;
-}

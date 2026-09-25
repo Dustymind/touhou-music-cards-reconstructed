@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
-  DataLoadError, groupByExtra, loadDataBundle, validateAlbums, validateCharacters, validateIndex,
+  DataLoadError, loadDataBundle, validateAlbums, validateCharacters, validateIndex,
   validateSources,
 } from "./load";
 import { displayTitle, splitTrackId, trackId, type CharacterRecord } from "./types";
@@ -100,17 +100,5 @@ describe("track helpers", () => {
   it("显示名去掉序号但存档值保留", () => {
     expect(displayTitle("04. 恋色マジック")).toBe("恋色マジック");
     expect(displayTitle("恋色マスタースパーク")).toBe("恋色マスタースパーク");
-  });
-
-  it("按附加信息分组", () => {
-    const counts = groupByExtra(character({
-      music: [
-        ["a", "t1", "角色曲"],
-        ["a", "t2", "道中曲"],
-        ["b", "t3", "秘封曲"],
-        ["b", "t4", "秘封曲"],
-      ],
-    }));
-    expect(counts).toEqual({ 角色曲: 1, 道中曲: 1, 更多道中曲: 0, 秘封曲: 2 });
   });
 });

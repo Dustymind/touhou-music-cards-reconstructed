@@ -38,15 +38,6 @@ def source_roots() -> tuple[pathlib.Path, ...]:
     return (DATA / "sources", DATA / OTOMADS_DATA / "sources")
 
 
-def find_pack_manifest(pack_id: str) -> pathlib.Path | None:
-    """按 :func:`pack_roots` 找曲包清单 `<id>.toml`；找不到返回 `None`。"""
-    for root in pack_roots():
-        path = root / f"{pack_id}.toml"
-        if path.exists():
-            return path
-    return None
-
-
 def find_source_registry(mode: str) -> pathlib.Path | None:
     """按 :func:`source_roots` 找音源注册表 `<mode>.toml`；找不到返回 `None`。"""
     for root in source_roots():
@@ -141,11 +132,6 @@ def lookup_key(text: str) -> str:
     s = re.sub(r"[。.．]+$", "", s)
     s = re.sub(r"\s+", "", s)
     return s.strip().lower()
-
-
-def album_key(name: str) -> str:
-    """专辑的稳定 ASCII key 由 albums.toml 提供；此函数只做兜底 slug。"""
-    return re.sub(r"[^a-z0-9]+", "-", unicodedata.normalize("NFKC", name).lower()).strip("-")
 
 
 # ---------------------------------------------------------------- 专辑注册表种子

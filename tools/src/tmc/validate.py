@@ -14,7 +14,6 @@ import json
 import sys
 import re
 import tomllib
-from pathlib import Path
 
 from . import build as build_mod
 from . import packs as packs_mod

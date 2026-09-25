@@ -75,19 +75,3 @@ export function allowedTracks(
   return { entries, pinned: null };
 }
 
-
-/** 统计：全库可用曲目数（配置页显示预设效果）。 */
-export function countEnabled(
-  preset: PresetState,
-  characters: readonly CharacterRecord[],
-): { enabled: number; total: number } {
-  let enabled = 0;
-  let total = 0;
-  for (const character of characters) {
-    for (const [album, , extra] of character.music) {
-      total += 1;
-      if (isTrackEnabled(preset, album, extra)) enabled += 1;
-    }
-  }
-  return { enabled, total };
-}

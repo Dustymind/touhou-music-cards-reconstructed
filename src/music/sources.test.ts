@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { applyLocalManifestUrl, normalizeLocalManifestUrl, buildEntries, countResolvable, loadSourceTables,
-  nextCandidate, resolveTrack, sourceRelativeUrl, tableRevision, versionedUrl } from "./sources";
+  resolveTrack, sourceRelativeUrl, tableRevision, versionedUrl } from "./sources";
 import { trackId } from "../data/types";
 
 const rows = [["紅魔郷", "おてんば恋娘", "https://a/1.mp3"], ["妖々夢", "クリスタライズシルバー", "https://a/2.mp3"]];
@@ -28,8 +28,8 @@ describe("sources resolver", () => {
       s2: { id: "s2", status: "ready" as const, entries: buildEntries(rows) },
     };
     const failed = new Set([`s1\u0000${trackId("紅魔郷", "おてんば恋娘")}`]);
-    expect(nextCandidate(tables, ["s1", "s2"], "紅魔郷", "おてんば恋娘", failed)?.sourceId).toBe("s2");
-    expect(nextCandidate(tables, ["s1"], "紅魔郷", "おてんば恋娘", failed)).toBeNull();
+    expect(resolveTrack(tables, ["s1", "s2"], "紅魔郷", "おてんば恋娘", failed)?.sourceId).toBe("s2");
+    expect(resolveTrack(tables, ["s1"], "紅魔郷", "おてんば恋娘", failed)).toBeNull();
   });
 
   it("加载失败的源不参与解析，状态被记录", async () => {

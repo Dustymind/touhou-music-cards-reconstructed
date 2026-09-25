@@ -14,8 +14,4 @@ export function preferLocalCards(): boolean {
   return params().has("local");
 }
 
-/** `?r2=`：卡面走 R2（我们的默认 origin 就是 R2，这里只用于显式确认） */
-export function preferR2Cards(): boolean {
-  return params().has("r2");
-}
 

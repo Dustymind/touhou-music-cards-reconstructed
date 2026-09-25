@@ -122,15 +122,3 @@ def _album_work(album: str) -> str:
             return work
     return ""
 
-
-def build_role_index_from_mirror(mirror_dir=None) -> dict[str, list[list[str]]]:
-    """解析 THBWiki-Markdown 的 `<作品>-Music.md`，产出 rows.json 的内容。"""
-    from .fetch_roles import parse_music_page  # 延迟导入，避免循环
-
-    mirror = mirror_dir or repo.THBWIKI_DIR
-    rows: dict[str, list[list[str]]] = {}
-    for path in sorted(mirror.glob("*.md")):
-        parsed = parse_music_page(path.read_text(encoding="utf-8", errors="replace"))
-        if parsed:
-            rows[path.stem] = parsed
-    return rows

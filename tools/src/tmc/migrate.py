@@ -257,10 +257,6 @@ def migrate_sources(referenced: set[tuple[str, str]], report: Migration) -> None
         }
 
 
-def _same_track(path: str, key: tuple[str, str]) -> bool:
-    album, title = repo.split_track_path(path)
-    return (unicodedata.normalize("NFC", album), unicodedata.normalize("NFC", title)) == key
-
 
 def _character_names() -> set[str]:
     """全部角色的名字与别名（用于判断标签是否真的绑定了角色）。"""

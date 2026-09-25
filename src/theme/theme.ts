@@ -55,7 +55,7 @@ export const Palette = {
   divider: "rgba(255, 255, 255, 0.12)",
 } as const;
 
-/** 卡片状态底色（上游 `CharacterCard.tsx` 的原值）。 *//** 卡片状态底色（上游 `CharacterCard.tsx` 的原值）。 */
+/** 卡片状态底色（上游 `CharacterCard.tsx` 的原值）。 */
 export const CardColors = {
   Normal: "#ffffff",
   Hover: "#b3f9ffff",

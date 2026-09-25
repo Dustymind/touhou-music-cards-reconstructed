@@ -175,16 +175,6 @@ export function resolveTrack(
   return null;
 }
 
-/** 换源重试：跳过当前失败的那个源，找下一个候选。 */
-export function nextCandidate(
-  tables: TableMap,
-  order: readonly string[],
-  album: string,
-  title: string,
-  failed: ReadonlySet<string>,
-): ResolvedTrack | null {
-  return resolveTrack(tables, order, album, title, failed);
-}
 
 /** 该组合下有多少首能被解析（配置页诊断用）。 */
 export function countResolvable(tables: TableMap, order: readonly string[]): number {
