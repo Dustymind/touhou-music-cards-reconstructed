@@ -27,6 +27,9 @@ interface ResolvedTrack {
 /** 本地曲库 manifest 的固定文件名（助手与 v2 的约定）。 */
 const LOCAL_MANIFEST_FILE = "manifest.json";
 
+/** 媒体地址上的**数据版本**参数名（D144）。 */
+export const REVISION_PARAM = "v";
+
 /**
  * 归一化本地曲库地址：
  * - 空 → `null`（用数据里的默认值，单端口部署时就是同源的 `/manifest.json`）；
@@ -81,20 +84,49 @@ export function normalizeTitle(title: string): string {
   return title.replace(/^[^-]{1,60}?\s+-\s+/, "").replace(/\s+/g, " ").trim().toLowerCase();
 }
 
-/** 把 `[[专辑, 曲目, URL], …]` 收成查表用的 Map。
+/**
+ * 源表里的**数据版本**：行里的第 4 位（逐曲，优先）> 顶层的 `revision`（整表兜底）> 空串。
+ *
+ * 为什么要有它（D144）：媒体地址在"数据变了但**链接没变**"时是不变的，而 CDN 给 `.mp3` 发的是
+ * `max-age=14400` ⇒ 浏览器与边缘节点会拿旧的顶最多 4 小时（实测：重裁过的曲子仍播旧音频）。
+ * 把版本拼进 URL 之后**版本一变 = URL 一变**，缓存键跟着音频走，而不是跟着链接走。
+ *
+ * 版本号由**源自己的清单**算（数据仓库 `packformat.media_revision`：文件名+大小+mtime）；
+ * 逐曲那一位尤其重要 —— 只让变过的那几首换 URL，不会让整包 321 MB 全部重下 ✓。
+ *
+ * 空串 = **这个源没有声明版本**（三个远程镜像的裸数组就是这种）⇒ 一个字节都不拼，与改前逐字一致。
+ * 它们不需要这个机制：表本身是**同源数据集文件**、每次都 `no-cache` 重新校验，而媒体在别人的
+ * 主机上、内容不变（真换了 URL 也就换了地址，缓存自然不命中）。
+ */
+export function tableRevision(payload: unknown): string {
+  const declared = (payload as { revision?: unknown } | null)?.revision;
+  return typeof declared === "string" ? declared.trim() : "";
+}
+
+/** 把数据版本拼进媒体地址（已有查询串就用 `&`）。`revision` 为空 ⇒ **原样返回**（与改前逐字一致）。 */
+export function versionedUrl(url: string, revision: string | undefined): string {
+  if (!revision) return url;
+  const value = encodeURIComponent(revision);
+  return url.includes("?") ? `${url}&${REVISION_PARAM}=${value}` : `${url}?${REVISION_PARAM}=${value}`;
+}
+
+/**
+ * 把 `[[专辑, 曲目, URL, 版本?], …]` 收成查表用的 Map。
  *
  *  `manifestUrl` 非空时，相对地址按 **manifest 所在的那一层**解析（D141，见 `sourceRelativeUrl`）；
- *  不传（纯函数用法 / 没加载过 manifest）时原样存 URL —— 与改前逐字一致。 */
-export function buildEntries(rows: unknown, manifestUrl = ""): Map<string, string> {
+ *  不传（纯函数用法 / 没加载过 manifest）时原样存 URL —— 与改前逐字一致。
+ *  `revision` 是**整表兜底**版本（D144，见 `tableRevision`）：行里自带第 4 位时以行为准。 */
+export function buildEntries(rows: unknown, manifestUrl = "", revision = ""): Map<string, string> {
   const entries = new Map<string, string>();
   if (!Array.isArray(rows)) return entries;
   for (const row of rows) {
     if (!Array.isArray(row) || row.length < 3) continue;
-    const [album, title, url] = row as [string, string, string];
+    const [album, title, url, own] = row as [string, string, string, unknown];
     if (typeof url !== "string" || url.length === 0) continue;
     // 只存**本来的键**（一行一条 ✓）。归一化匹配交给 `resolveTrack` 的兜底扫描 ——
     // 早先在这里插过"归一化别名"，结果 `entries.size` 从 24 变 48 ✗，界面上的条目数就错了（D96）
-    entries.set(trackId(album, title), manifestUrl ? sourceRelativeUrl(manifestUrl, url) : url);
+    const resolved = manifestUrl ? sourceRelativeUrl(manifestUrl, url) : url;
+    entries.set(trackId(album, title), versionedUrl(resolved, typeof own === "string" ? own : revision));
   }
   return entries;
 }
@@ -197,7 +229,7 @@ export async function loadSourceTables(
       const rows = Array.isArray(payload)
         ? payload
         : (payload as { tracks?: unknown } | null)?.tracks;
-      table.entries = buildEntries(rows, source.tableUrl);
+      table.entries = buildEntries(rows, source.tableUrl, tableRevision(payload));
       // 源可以自己声明响度表（**相对 manifest 自身**，D139）：表跟着源部署，跨宿主也不用改应用。
       // 没声明就留空 —— 调用方（AppShell）回落到注册表里那份（相对数据集目录）。
       const declared = Array.isArray(payload)

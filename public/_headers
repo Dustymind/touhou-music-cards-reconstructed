@@ -22,3 +22,12 @@
 
 /fonts/*
   Cache-Control: public, max-age=604800
+
+# D144：**自托管形态**（`pnpm media:stage` 把素材铺进 dist）下，这两样必须每次校验 ——
+# 前端靠清单里的 `revision` 换媒体 URL，清单自己被缓存住的话，换不换 URL 都白搭。
+# 媒体本身（`/media/**`）**不用压短**：它的地址带 `?v=<版本>`，版本一变 URL 就变，缓存自然不命中。
+/manifest.json
+  Cache-Control: public, max-age=0, must-revalidate
+
+/loudness/*
+  Cache-Control: public, max-age=0, must-revalidate

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { applyLocalManifestUrl, normalizeLocalManifestUrl, buildEntries, countResolvable, loadSourceTables, nextCandidate, resolveTrack, sourceRelativeUrl } from "./sources";
+import { applyLocalManifestUrl, normalizeLocalManifestUrl, buildEntries, countResolvable, loadSourceTables,
+  nextCandidate, resolveTrack, sourceRelativeUrl, tableRevision, versionedUrl } from "./sources";
 import { trackId } from "../data/types";
 
 const rows = [["紅魔郷", "おてんば恋娘", "https://a/1.mp3"], ["妖々夢", "クリスタライズシルバー", "https://a/2.mp3"]];
@@ -87,6 +88,62 @@ describe("sources resolver", () => {
     const table = result.tables.local!;
     expect(table.entries.get(trackId("otomads", "a"))).toBe("https://cdn.example.com/media/otomads/a.mp3");
     expect(table.loudnessUrl).toBe("https://cdn.example.com/loudness/otomads.json");
+  });
+
+  // ------------------------------------------------- 媒体地址上的数据版本（D144）
+
+  it("媒体地址拼上清单里的**逐曲**版本号，盖过整表版本号", () => {
+    const withRevisions = [
+      ["otomads", "a", "media/otomads/a.mp3", "rev-a"],
+      ["otomads", "b", "media/otomads/b.mp3"],                 // 行里没给 → 用整表兜底
+    ];
+    const entries = buildEntries(withRevisions, "https://cdn.example.com/manifest.json", "whole");
+
+    expect(entries.get(trackId("otomads", "a"))).toBe("https://cdn.example.com/media/otomads/a.mp3?v=rev-a");
+    expect(entries.get(trackId("otomads", "b"))).toBe("https://cdn.example.com/media/otomads/b.mp3?v=whole");
+  });
+
+  it("没有版本的源**逐字不变**（三个远程镜像的裸数组就是这种）", () => {
+    // 关键的一条：D144 不许顺手改掉别人的地址 —— 没声明版本就一个字节都不拼
+    expect(buildEntries(rows, "https://cdn.example.com/manifest.json").get(trackId("紅魔郷", "おてんば恋娘")))
+      .toBe("https://a/1.mp3");
+    expect(versionedUrl("https://a/1.mp3", "")).toBe("https://a/1.mp3");
+    expect(versionedUrl("https://a/1.mp3", undefined)).toBe("https://a/1.mp3");
+    expect(tableRevision(rows)).toBe("");                      // 裸数组没有 revision 键
+    expect(tableRevision(null)).toBe("");
+  });
+
+  it("已经有查询串的地址用 `&` 接，不做替换", () => {
+    expect(versionedUrl("https://a/x.mp3?id=7", "r1")).toBe("https://a/x.mp3?id=7&v=r1");
+    expect(versionedUrl("https://a/x.mp3", "r1")).toBe("https://a/x.mp3?v=r1");
+    // 版本号里的特殊字符要编码（数据侧是十六进制，但别把这条当隐含前提）
+    expect(versionedUrl("https://a/x.mp3", "a/b c")).toBe("https://a/x.mp3?v=a%2Fb%20c");
+  });
+
+  it("加载时读清单顶层的 `revision` 当整表兜底", async () => {
+    const fetcher = vi.fn(async () => new Response(JSON.stringify({
+      schema: 1, pack: "otomads", revision: "rev-42",
+      tracks: [["otomads", "a", "media/otomads/a.mp3"]],
+    }), { status: 200 })) as unknown as typeof fetch;
+    const result = await loadSourceTables([
+      { id: "local", label: { en: "l", zh: "l" }, tableUrl: "https://cdn.example.com/manifest.json", kind: "local", order: 1, enabled: true, proxyable: false, description: { en: "", zh: "" } },
+    ], {}, fetcher);
+
+    expect(tableRevision({ revision: "rev-42" })).toBe("rev-42");
+    expect(result.tables.local!.entries.get(trackId("otomads", "a")))
+      .toBe("https://cdn.example.com/media/otomads/a.mp3?v=rev-42");
+  });
+
+  it("清单里没有 `revision` 键时也不拼（否则会把远程镜像的地址全改掉）", async () => {
+    const fetcher = vi.fn(async () => new Response(JSON.stringify({
+      schema: 1, pack: "otomads", tracks: [["otomads", "a", "media/otomads/a.mp3"]],
+    }), { status: 200 })) as unknown as typeof fetch;
+    const result = await loadSourceTables([
+      { id: "local", label: { en: "l", zh: "l" }, tableUrl: "https://cdn.example.com/manifest.json", kind: "local", order: 1, enabled: true, proxyable: false, description: { en: "", zh: "" } },
+    ], {}, fetcher);
+
+    expect(result.tables.local!.entries.get(trackId("otomads", "a")))
+      .toBe("https://cdn.example.com/media/otomads/a.mp3");
   });
 });
 
