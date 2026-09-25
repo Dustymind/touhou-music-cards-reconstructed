@@ -17,7 +17,7 @@
 | 数据漂移 | 无 | `pnpm data:check` |
 | 数据校验 | 通过 | `pnpm data:validate` |
 | 联机协议版本 | 4 | `src/net/protocol.ts`（`SessionConfigWire` = 音乐模式 + 会话种子；`dataHash` = 两个模式各一个） |
-| 决策日志 | D1–D135 | [`DECISIONS.md`](DECISIONS.md) |
+| 决策日志 | D1–D150 | [`DECISIONS.md`](DECISIONS.md) |
 
 > **e2e 的前置条件**：音MAD 相关用例会取同源的 `/manifest.json`（开发服务器代理到本地曲库助手），
 > 必须先起助手再跑，否则那几条会红 —— 这是环境问题，不是代码问题（D105 记过这个坑）。
