@@ -37,3 +37,6 @@ public/cards-otomads/
 !.vscode/settings.json
 .idea/
 *.swp
+
+# wrangler 本地产物（现在部署在 GitHub Actions 里跑，本机不需要）
+.wrangler/
