@@ -6,13 +6,12 @@
  * 老存档（单键 `tmc.v1.single-track`）归**原曲**（`legacyName`）。
  */
 import { create } from "zustand";
-import type { StoreApi, UseBoundStore } from "zustand";
 
 import type { MusicEntry } from "../data/types";
 import { EXTRAS } from "../data/types";
 import { defineStore, isRecord, pickBoolean, type StoreSpec } from "../persist";
 import type { MusicMode } from "../music/mode";
-import { useMusicMode } from "./modeScope";
+import { makeModeStores, type ModeHook } from "./modeScope";
 import { useSession } from "./session";
 
 interface SingleTrackState {
@@ -151,20 +150,10 @@ function makeSlice(mode: MusicMode) {
   }));
 }
 
-const slices: Record<MusicMode, UseBoundStore<StoreApi<SingleTrackSlice>>> = {
-  originals: makeSlice("originals"),
-  otomads: makeSlice("otomads"),
-};
+const singleStores = makeModeStores<SingleTrackSlice>(makeSlice);
 
 /** 某个音乐模式那把（测试与非组件代码用）。 */
-export function singleStoreFor(mode: MusicMode): UseBoundStore<StoreApi<SingleTrackSlice>> {
-  return slices[mode];
-}
+export const singleStoreFor = singleStores.storeFor;
 
 /** 当前音乐模式那把（组件用；切模式即换表）。 */
-export function useSingleTrack(): SingleTrackSlice;
-export function useSingleTrack<T>(selector: (state: SingleTrackSlice) => T): T;
-export function useSingleTrack<T>(selector?: (state: SingleTrackSlice) => T): SingleTrackSlice | T {
-  const store = slices[useMusicMode()];
-  return selector ? store(selector) : store();
-}
+export const useSingleTrack: ModeHook<SingleTrackSlice> = singleStores.useStore;

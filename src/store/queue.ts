@@ -9,12 +9,11 @@
  * 分键之后每个模式各自记住自己的顺序、临时禁用与当前角色。老存档（单键 `tmc.v1.queue`）归**原曲**。
  */
 import { create } from "zustand";
-import type { StoreApi, UseBoundStore } from "zustand";
 
 import { defineStore, isRecord, pickBooleanMap, pickString, type StoreSpec } from "../persist";
 import { shuffleWithSeed, type Seed } from "../rng";
 import type { MusicMode } from "../music/mode";
-import { currentMusicMode, useMusicMode } from "./modeScope";
+import { makeModeStores, type ModeHook } from "./modeScope";
 import { useSeeds } from "./seeds";
 
 interface Persisted {
@@ -150,25 +149,13 @@ function makeSlice(mode: MusicMode) {
   }));
 }
 
-const slices: Record<MusicMode, UseBoundStore<StoreApi<QueueState>>> = {
-  originals: makeSlice("originals"),
-  otomads: makeSlice("otomads"),
-};
+const queueStores = makeModeStores<QueueState>(makeSlice);
 
 /** 某个音乐模式那把（测试与非组件代码用）。 */
-export function queueStoreFor(mode: MusicMode): UseBoundStore<StoreApi<QueueState>> {
-  return slices[mode];
-}
+export const queueStoreFor = queueStores.storeFor;
 
 /** 当前音乐模式那把（**非组件**代码用：事件处理、联机回调）。 */
-export function currentQueue(): UseBoundStore<StoreApi<QueueState>> {
-  return slices[currentMusicMode()];
-}
+export const currentQueue = queueStores.currentStore;
 
 /** 当前音乐模式那把（组件用；切模式即换队列）。 */
-export function useQueue(): QueueState;
-export function useQueue<T>(selector: (state: QueueState) => T): T;
-export function useQueue<T>(selector?: (state: QueueState) => T): QueueState | T {
-  const store = slices[useMusicMode()];
-  return selector ? store(selector) : store();
-}
+export const useQueue: ModeHook<QueueState> = queueStores.useStore;

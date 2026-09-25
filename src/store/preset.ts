@@ -5,13 +5,12 @@
  * 老存档（单键 `tmc.v1.preset`）归**原曲**（`legacyName`），音MAD 侧从默认值长起。
  */
 import { create } from "zustand";
-import type { StoreApi, UseBoundStore } from "zustand";
 
 import type { AlbumRecord } from "../data/types";
 import { defineStore, isRecord, pickBooleanMap, type StoreSpec } from "../persist";
 import { CATEGORY_KEYS, defaultPreset, mergeWithDefaults, type PresetState, type Tri } from "../music/selection";
 import type { MusicMode } from "../music/mode";
-import { useMusicMode } from "./modeScope";
+import { makeModeStores, type ModeHook } from "./modeScope";
 
 const TRIS: Tri[] = ["unset", "on", "off"];
 
@@ -101,23 +100,13 @@ function makeSlice(mode: MusicMode) {
   }));
 }
 
-const slices: Record<MusicMode, UseBoundStore<StoreApi<PresetSlice>>> = {
-  originals: makeSlice("originals"),
-  otomads: makeSlice("otomads"),
-};
+const presetStores = makeModeStores<PresetSlice>(makeSlice);
 
 /** 某个音乐模式那把（测试与非组件代码用）。 */
-export function presetStoreFor(mode: MusicMode): UseBoundStore<StoreApi<PresetSlice>> {
-  return slices[mode];
-}
+export const presetStoreFor = presetStores.storeFor;
 
 /** 当前音乐模式那把（组件用；切模式即换表）。 */
-export function usePreset(): PresetSlice;
-export function usePreset<T>(selector: (state: PresetSlice) => T): T;
-export function usePreset<T>(selector?: (state: PresetSlice) => T): PresetSlice | T {
-  const store = slices[useMusicMode()];
-  return selector ? store(selector) : store();
-}
+export const usePreset: ModeHook<PresetSlice> = presetStores.useStore;
 
 /** 秘封父复选框的显示态：全选 / 全不选 / 半选（派生，不存值）。 */
 export function hifuuParentState(preset: PresetState, albums: readonly AlbumRecord[]): "all" | "none" | "mixed" {

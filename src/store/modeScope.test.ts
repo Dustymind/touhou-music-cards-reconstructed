@@ -5,11 +5,14 @@
  */
 import { act } from "react";
 import { beforeEach, describe, expect, it } from "vitest";
+import { create } from "zustand";
 
 import { defineStore } from "../persist";
 import { renderHook } from "../test-utils";
 import type { MusicEntry } from "../data/types";
+import type { MusicMode } from "../music/mode";
 import type { PresetState } from "../music/selection";
+import { makeModeStores } from "./modeScope";
 import { presetSpec, presetStoreFor, usePreset } from "./preset";
 import { queueSpec, queueStoreFor } from "./queue";
 import { singleStoreFor, singleTrackSpec } from "./single";
@@ -28,6 +31,18 @@ const FRESH_PRESET: PresetState = {
 const FRESH_SINGLE = { enabled: false, pins: {}, disabledCharacters: {} };
 const FRESH_QUEUE = { order: [], temporaryDisabled: {}, currentKey: null };
 
+/** `makeModeStores` 工厂的最小验证对象（用例在文件末尾）：四个真 store 用的就是这个工厂。 */
+interface Probe {
+  mode: MusicMode;
+  hits: number;
+  bump: () => void;
+}
+const probe = makeModeStores<Probe>((mode) => create<Probe>((set) => ({
+  mode,
+  hits: 0,
+  bump: () => set((state) => ({ hits: state.hits + 1 })),
+})));
+
 beforeEach(() => {
   localStorage.clear();
   useSession.setState({ musicMode: "originals", entryRequest: null });
@@ -37,6 +52,8 @@ beforeEach(() => {
   single.otomads.setState(FRESH_SINGLE);
   queue.originals.setState(FRESH_QUEUE);
   queue.otomads.setState(FRESH_QUEUE);
+  probe.storeFor("originals").setState({ hits: 0 });
+  probe.storeFor("otomads").setState({ hits: 0 });
 });
 
 describe("老存档迁移（单键 → .originals）", () => {
@@ -109,6 +126,38 @@ describe("列表页点播（entryRequest）不跨模式", () => {
     useSession.getState().setEntryRequest({ key: "cirno", entry: OTOMAD });
     useSession.getState().setMusicMode("originals");
     expect(useSession.getState().entryRequest).toEqual({ key: "cirno", entry: OTOMAD });
+  });
+});
+
+describe("makeModeStores 工厂（四个 store 共用的那点装配）", () => {
+  it("两个模式各建一把：同一个模式每次拿到同一把，改一边不动另一边", () => {
+    expect(probe.storeFor("originals")).not.toBe(probe.storeFor("otomads"));
+    expect(probe.storeFor("originals")).toBe(probe.storeFor("originals"));
+
+    probe.storeFor("originals").getState().bump();
+    expect(probe.storeFor("originals").getState().hits).toBe(1);
+    expect(probe.storeFor("otomads").getState().hits).toBe(0);
+    expect(probe.storeFor("otomads").getState().mode).toBe("otomads");
+  });
+
+  it("currentStore / useStore 跟着会话模式换表：无参取整份，传选择器取那一段", async () => {
+    useSession.setState({ musicMode: "originals" });
+    expect(probe.currentStore()).toBe(probe.storeFor("originals"));
+
+    const hook = await renderHook(() => ({
+      whole: probe.useStore(), selector: probe.useStore((state) => state.mode),
+    }));
+    expect(hook.result.current.whole).toMatchObject({ mode: "originals", hits: 0 });
+    expect(hook.result.current.selector).toBe("originals");
+
+    // 切模式：钩子与 currentStore 一起换到另一把（不缓存"上一次的模式"）
+    await act(async () => { useSession.getState().setMusicMode("otomads"); });
+    await hook.rerender();
+    expect(hook.result.current.whole.mode).toBe("otomads");
+    expect(hook.result.current.selector).toBe("otomads");
+    expect(probe.currentStore()).toBe(probe.storeFor("otomads"));
+    // 卸载：挂着的钩子会订阅会话，下一次 `beforeEach` 改模式会在 act 之外触发它
+    await hook.unmount();
   });
 });
 

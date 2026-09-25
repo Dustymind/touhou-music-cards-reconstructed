@@ -5,11 +5,10 @@
  * 音MAD 那份**默认不写任何覆盖**：它注册表里的本地源本来就 `enabled = true`（由 `tmc.validate` 守）。
  */
 import { create } from "zustand";
-import type { StoreApi, UseBoundStore } from "zustand";
 
 import { defineStore, isRecord, pickBoolean, pickNumber, pickString, type StoreSpec } from "../persist";
 import type { MusicMode } from "../music/mode";
-import { useMusicMode } from "./modeScope";
+import { makeModeStores, type ModeHook } from "./modeScope";
 
 interface SourceOverride {
   enabled: boolean;
@@ -129,20 +128,10 @@ function makeSlice(mode: MusicMode) {
   }));
 }
 
-const slices: Record<MusicMode, UseBoundStore<StoreApi<SourceSlice>>> = {
-  originals: makeSlice("originals"),
-  otomads: makeSlice("otomads"),
-};
+const sourceStores = makeModeStores<SourceSlice>(makeSlice);
 
 /** 某个模式那把（测试与非组件代码用）。 */
-export function sourceStoreFor(mode: MusicMode): UseBoundStore<StoreApi<SourceSlice>> {
-  return slices[mode];
-}
+export const sourceStoreFor = sourceStores.storeFor;
 
 /** 当前音乐模式那把（组件用；切模式即换表）。 */
-export function useSourceOverrides(): SourceSlice;
-export function useSourceOverrides<T>(selector: (state: SourceSlice) => T): T;
-export function useSourceOverrides<T>(selector?: (state: SourceSlice) => T): SourceSlice | T {
-  const store = slices[useMusicMode()];
-  return selector ? store(selector) : store();
-}
+export const useSourceOverrides: ModeHook<SourceSlice> = sourceStores.useStore;
