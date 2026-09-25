@@ -108,7 +108,7 @@ export const aboutContent: AboutContent = {
     // `layout` 不写 = 一段文字（用「、」连接）；写成 "lines" = 一行一个作者。
     {
       auto: "pack-authors",
-      label: { en: "Extra pack music author", zh: "外置曲库曲目作者" },
+      label: { en: "Extra pack music author", zh: "外置曲库曲目作者（按拼音首字母排序）" },
     },
     {
       label: { en: "Original", zh: "原作" },
