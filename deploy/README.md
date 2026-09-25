@@ -96,7 +96,7 @@ Vercel 用 `vercel.json` 的 `headers`；GitHub Pages **不认** `_headers`（�
 | 旧项目能不能改造成它 | — | **不能**：Direct Upload 的项目不能转 Git 集成（[官方文档](https://developers.cloudflare.com/pages/get-started/direct-upload/)），所以是"新建一个 + 搬域名" |
 
 **面板那套已经退役**（D150，2026-09-25）：下面这六步是当初接 Workers Builds 时做的，现在**不需要了** ——
-构建与部署搬进 GitHub Actions（数据仓库 `.github/workflows/publish.yml`），面板上那个 Workers Builds 项目可以删掉。
+构建与部署搬进 GitHub Actions（数据仓库 `.github/workflows/publish.yml`），面板上那个 Workers Builds 项目**已删**（2026-09-25）。
 留档是因为它解释了 `wrangler.jsonc` 的形状：
 
 1. Workers & Pages → Create → Connect to Git → 选 `Dustymind/touhou-music-cards-otomads-data`，生产分支 `main`；

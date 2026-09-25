@@ -5708,4 +5708,7 @@ Git Repository → Manage，外加 GitHub 侧检查 App 安装）后**仍未恢�
 - 收益：失败在 Actions 日志里看得见（CF 那边我们看不见）、不再依赖面板状态、触发面只剩 `push` 与一个
   带 `dry_run` 的手动入口。
 
-**遗留**：CF 的 Workers Builds 项目与本仓库 secret `CF_DEPLOY_HOOK` 都不再被引用，可清理。
+**收尾（2026-09-25，用户"已清理"）**：CF 的 Workers Builds 项目已删、仓库 secret `CF_DEPLOY_HOOK` 已删
+（`gh secret list` 只剩 `CLOUDFLARE_API_TOKEN`，创建于 `19:11:14Z`），老 Pages 项目 `otomads-cdn`
+的 `otomads-cdn.pages.dev` 也已解析不到。**删完复验**：`build-info.json` / `manifest.json` **200**、
+媒体 `Range` → **206**、根 **404** ⇒ 删构建项目**没有**把 Worker 与自定义域名带走（Worker 本身是独立资源）。
