@@ -122,6 +122,20 @@ export function isRecord(raw: unknown): raw is Record<string, unknown> {
   return typeof raw === "object" && raw !== null && !Array.isArray(raw);
 }
 
+/** `unknown` → `Record<string, boolean>`：只留下能解析成布尔的键（预设与临时禁选两处共用）。
+ *
+ * 注意**不要**顺手并 `single.ts` 里那份：它只保留 `true`（`false` 要丢掉），语义不同。
+ */
+export function pickBooleanMap(raw: unknown): Record<string, boolean> {
+  const out: Record<string, boolean> = {};
+  if (!isRecord(raw)) return out;
+  for (const [key, flag] of Object.entries(raw)) {
+    const parsed = pickBoolean(flag);
+    if (parsed !== null) out[key] = parsed;
+  }
+  return out;
+}
+
 export function pickString(raw: unknown, allowed?: readonly string[]): string | null {
   if (typeof raw !== "string") return null;
   if (allowed && !allowed.includes(raw)) return null;

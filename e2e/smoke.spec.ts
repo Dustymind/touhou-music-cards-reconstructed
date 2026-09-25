@@ -1,6 +1,7 @@
 /** 双引擎冒烟：数据加载、页签切换、关于弹窗、预设交互、对战回合。 */
 import { captureAudio, waitForPlaying } from "./audio";
 import { dragCard } from "./dnd";
+import { expandSection } from "./ui";
 import { aboutContent } from "../src/content/about";
 import { expect, test, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
@@ -659,11 +660,6 @@ test("卡片大小按钮按 0.01 步进并夹在 0.04~0.40", async ({ page }) =>
   expect(stored).toContain("cardWidthPercentage");
 });
 
-/** 展开设置页的某个分区（MD2 扩展面板默认折叠，内容不挂载）。 */
-async function expandSection(page: Page, id: string): Promise<void> {
-  await page.getByTestId(`section-${id}-summary`).click();
-  await page.waitForTimeout(400);   // 等展开动画（250ms）
-}
 
 /** 等元素上的 CSS 动画跑完再量尺寸：卡片滑入是 0.3s 的 translateX，量早了会差 10+ px。 */
 async function settledAnimations(page: Page, testId: string): Promise<void> {

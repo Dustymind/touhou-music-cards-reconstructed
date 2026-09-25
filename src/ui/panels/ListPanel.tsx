@@ -20,9 +20,6 @@ import { useCurrentDataset } from "../../data/useDataset";
 import { currentQueue, useQueue } from "../../store/queue";
 import { MD2, NoFontFamily } from "../../theme/theme";
 
-/** MD2 展开动画：250ms 进 / 200ms 出，标准缓动。 */
-const EXPAND_MS = { enter: 250, exit: 200 } as const;
-
 interface ListPanelProps {
   bundle: DataBundle;
   /** 点某一首曲目 → 立刻播这一首（播放能力由外壳提供） */
@@ -183,7 +180,7 @@ const ListRow = memo(function ListRow({
             flexShrink: 0,
             color: "text.secondary",
             transform: expanded ? "rotate(180deg)" : "none",
-            transition: `transform ${EXPAND_MS.enter}ms cubic-bezier(0.4, 0, 0.2, 1)`,
+            transition: `transform ${MD2.accordion.timeout.enter}ms ${MD2.accordion.easing}`,
           }}
         >
           <ExpandMoreRounded fontSize="small" />
@@ -191,7 +188,7 @@ const ListRow = memo(function ListRow({
       </ListItemButton>
 
       {/* 曲目：只有展开时才挂载（默认折叠 → 121 行不会一次性铺开） */}
-      <Collapse in={expanded} timeout={EXPAND_MS} unmountOnExit>
+      <Collapse in={expanded} timeout={MD2.accordion.timeout} unmountOnExit>
         <List disablePadding data-testid={`list-tracks-${character.key}`}>
           {character.music.map((entry) => {
             const id = `${character.key}|${entry[0]}|${entry[1]}`;

@@ -6,15 +6,8 @@
  * 期望值一律**跟着数据走**（D97 的教训：写死 121 / 24 会随数据漂移）。
  */
 import { expect, test, type Page } from "@playwright/test";
+import { expandSection } from "./ui";
 
-/** 展开设置页的某个分区（已经是展开状态就别再点，点了会收起来）。 */
-async function expandSection(page: Page, id: string): Promise<void> {
-  const summary = page.getByTestId(`section-${id}-summary`);
-  if ((await summary.getAttribute("aria-expanded")) !== "true") {
-    await summary.click();
-    await page.waitForTimeout(400);   // 展开动画 250ms
-  }
-}
 
 interface Loaded {
   playable: { originals: string[]; otomads: string[] };

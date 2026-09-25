@@ -5,6 +5,8 @@ import {
   Switch, TextField, Typography,
 } from "@mui/material";
 import { useEffect, useMemo, useRef, useState } from "react";
+
+import { useElementWidth } from "../useElementWidth";
 import AddRounded from "@mui/icons-material/AddRounded";
 import CardGiftcardRounded from "@mui/icons-material/CardGiftcardRounded";
 import ClassRounded from "@mui/icons-material/ClassRounded";
@@ -88,8 +90,9 @@ function GamePanelInner({ bundle }: { bundle: DataBundle }) {
   const [cardWidthPercentage, setCardWidthPercentage] = useState(
     () => loadGameSetting().cardWidthPercentage,
   );
-  const [containerWidth, setContainerWidth] = useState(1000);
   const canvasRef = useRef<HTMLDivElement | null>(null);
+  // 容器宽度：卡片大小按它的百分比算（上游 `containerRef.clientWidth`）
+  const containerWidth = useElementWidth(canvasRef, null, 1000);
   const cardWidth = Math.max(24, Math.round(containerWidth * cardWidthPercentage));
   const net = useNet();
   /** 单选组里的图标：与按钮同一套图标尺寸 */
@@ -215,16 +218,6 @@ function GamePanelInner({ bundle }: { bundle: DataBundle }) {
     init(cards, buildSongConflicts(usable));
     setOrder(usable.map((character) => character.key));
   }, [dataset, init, setOrder]);
-
-  // 容器宽度：卡片大小按它的百分比算（上游 `containerRef.clientWidth`）
-  useEffect(() => {
-    const element = canvasRef.current;
-    if (!element || typeof ResizeObserver === "undefined") return undefined;
-    const observer = new ResizeObserver(() => setContainerWidth(element.clientWidth));
-    observer.observe(element);
-    setContainerWidth(element.clientWidth);
-    return () => observer.disconnect();
-  }, []);
 
   // 载入上次的卡片大小与牌库尺寸（上游 localStorage 的 `gameSetting`）。
   // 牌库尺寸只在**用户自己改过**（存的不是默认值）时才套用：否则会盖掉调用方/联机同步过来的尺寸。

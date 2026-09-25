@@ -11,7 +11,7 @@
 import { create } from "zustand";
 import type { StoreApi, UseBoundStore } from "zustand";
 
-import { defineStore, isRecord, pickBoolean, pickString, type StoreSpec } from "../persist";
+import { defineStore, isRecord, pickBooleanMap, pickString, type StoreSpec } from "../persist";
 import { shuffleWithSeed, type Seed } from "../rng";
 import type { MusicMode } from "../music/mode";
 import { currentMusicMode, useMusicMode } from "./modeScope";
@@ -33,12 +33,7 @@ function validateQueue(raw: unknown): Persisted | null {
     ? raw.order.filter((key): key is string => typeof key === "string")
     : null;
   if (!order) return null;
-  const disabledRaw = isRecord(raw.temporaryDisabled) ? raw.temporaryDisabled : {};
-  const temporaryDisabled: Record<string, boolean> = {};
-  for (const [key, value] of Object.entries(disabledRaw)) {
-    const flag = pickBoolean(value);
-    if (flag !== null) temporaryDisabled[key] = flag;
-  }
+  const temporaryDisabled = pickBooleanMap(raw.temporaryDisabled);
   const currentKey = raw.currentKey === null ? null : pickString(raw.currentKey);
   return { order, temporaryDisabled, currentKey };
 }

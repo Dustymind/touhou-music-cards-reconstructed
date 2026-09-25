@@ -11,7 +11,9 @@
  * 加上卡片组件 `memo`，所以拖滑块不会触发上百个卡片节点重排/重渲染。
  */
 import { Box, Slider } from "@mui/material";
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useRef, useState } from "react";
+
+import { useElementWidth } from "../useElementWidth";
 
 import type { CardSetRecord } from "../../data/types";
 import { DRAG_MIME } from "../../game/drag";
@@ -141,7 +143,7 @@ export function CardStrip(props: CardStripProps) {
   const stripRef = useRef<HTMLDivElement | null>(null);
   /** 卡条**实际**渲染宽度：外面可能因为 `max-width: 100%` 把它压窄，
    *  滑块必须按实际宽度内缩，否则拇指会探出卡片边缘。 */
-  const [stripWidth, setStripWidth] = useState(visibleWidth);
+  const stripWidth = useElementWidth(stripRef, visibleWidth, visibleWidth);
 
   // 回调放进 ref：卡片是 memo 的，父组件每次渲染都换新函数会把它全部打回重渲染
   const clickRef = useRef(props.onCardClick);
@@ -151,15 +153,6 @@ export function CardStrip(props: CardStripProps) {
   const handleClick = useCallback((card: StripCard) => clickRef.current?.(card), []);
   const handleDragStart = useCallback((card: StripCard) => dragRef.current?.(card), []);
   const handleHover = useCallback((id: string | null) => setHovered(id), []);
-
-  useEffect(() => {
-    const element = stripRef.current;
-    if (!element || typeof ResizeObserver === "undefined") return undefined;
-    const observer = new ResizeObserver(() => setStripWidth(element.clientWidth));
-    observer.observe(element);
-    setStripWidth(element.clientWidth);
-    return () => observer.disconnect();
-  }, [visibleWidth]);
 
   const { step, maxOffset } = stripLayout(cards.length, width, gap, stripWidth);
   const offset = -pan * maxOffset;

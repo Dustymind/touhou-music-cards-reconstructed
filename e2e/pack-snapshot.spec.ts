@@ -9,6 +9,7 @@
  * （源现在会带 `albums` / `characters`），音频仍指向真清单里的真文件 ⇒ "能选中并出声"也是真的。
  */
 import { expect, test, type Page } from "@playwright/test";
+import { expandSection } from "./ui";
 import { captureAudio, waitForPlaying } from "./audio";
 
 const HELPER_MANIFEST = "http://127.0.0.1:8011/manifest.json";
@@ -21,14 +22,6 @@ interface BakedCharacter {
   card: string[];
 }
 
-/** 展开设置页的某个分区（已经是展开状态就别再点，点了会收起来）。 */
-async function expandSection(page: Page, id: string): Promise<void> {
-  const summary = page.getByTestId(`section-${id}-summary`);
-  if ((await summary.getAttribute("aria-expanded")) !== "true") {
-    await summary.click();
-    await page.waitForTimeout(400);   // 展开动画 250ms
-  }
-}
 
 /** 应用栏上的数据指纹（12 位十六进制）—— 联机握手比的就是它。 */
 async function fingerprint(page: Page): Promise<string> {

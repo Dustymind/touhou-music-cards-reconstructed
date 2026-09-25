@@ -7,6 +7,7 @@
 import { expect, test } from "@playwright/test";
 
 import { aboutContent } from "../src/content/about";
+import { expandSection } from "./ui";
 
 const TABS = ["播放", "列表", "设置", "游戏"];
 
@@ -27,8 +28,7 @@ test.describe("移动端布局", () => {
   test("设置页换行的 tag 行左边缘一致", async ({ page }) => {
     await page.goto("/?locale=zh");
     await page.getByRole("tab", { name: "设置", exact: true }).click();
-    await page.getByTestId("section-data-summary").click();
-    await page.waitForTimeout(500);
+    await expandSection(page, "data");
     const configRows = await page.evaluate(() => {
       const content = document.querySelector('[data-testid="data-chips"]')!;
       const rows = new Map<number, number[]>();
@@ -123,8 +123,7 @@ test.describe("移动端布局", () => {
     await page.goto("/?locale=zh&localmusic=127.0.0.1:8011");
     // 切到音MAD 模式（本地源这时才载入；前置条件同其它音MAD 用例：先 `pnpm local`）
     await page.getByRole("tab", { name: "设置", exact: true }).click();
-    await page.getByTestId("section-source-summary").click();
-    await page.waitForTimeout(400);
+    await expandSection(page, "source");
     await page.getByTestId("music-mode-otomads").click();
     await page.getByTestId("about-open").tap();
 

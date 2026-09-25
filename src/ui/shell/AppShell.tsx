@@ -323,7 +323,7 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
               order: { xs: 3, md: 0 },
               width: { xs: "100%", md: "auto" },
               flex: { md: 1 },
-              minHeight: 48,
+              minHeight: MD2.tab.height,
             }}
           >
             {TAB_ORDER.map((id) => (

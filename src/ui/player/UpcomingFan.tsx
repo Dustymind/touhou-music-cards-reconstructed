@@ -4,7 +4,9 @@
  * 点击一张卡＝临时跳过（临时禁用，变灰）。
  */
 import { Box } from "@mui/material";
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
+
+import { useElementWidth } from "../useElementWidth";
 
 import type { CardSetRecord, DataBundle, ModeDataset } from "../../data/types";
 import { useCurrentDataset } from "../../data/useDataset";
@@ -48,19 +50,9 @@ export function fanLayout(
 export function UpcomingFan(props: UpcomingFanProps) {
   const dataset = useCurrentDataset(props.bundle);
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const [measured, setMeasured] = useState(0);
+  const measured = useElementWidth(containerRef, null, 0);
   const windowWidth = typeof window === "undefined" ? 1200 : window.innerWidth;
   const cardWidth = fanCardWidth(windowWidth);
-
-  // 可视宽度 = 容器实测宽度（jsdom 里量不到就用兜底值）
-  useEffect(() => {
-    const element = containerRef.current;
-    if (!element || typeof ResizeObserver === "undefined") return undefined;
-    const observer = new ResizeObserver(() => setMeasured(element.clientWidth));
-    observer.observe(element);
-    setMeasured(element.clientWidth);
-    return () => observer.disconnect();
-  }, []);
 
   const visibleWidth = props.visibleWidth ?? Math.max(240, measured || Math.round(windowWidth * 0.62));
 

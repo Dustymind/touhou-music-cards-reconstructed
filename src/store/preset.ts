@@ -8,7 +8,7 @@ import { create } from "zustand";
 import type { StoreApi, UseBoundStore } from "zustand";
 
 import type { AlbumRecord } from "../data/types";
-import { defineStore, isRecord, pickBoolean, type StoreSpec } from "../persist";
+import { defineStore, isRecord, pickBooleanMap, type StoreSpec } from "../persist";
 import { CATEGORY_KEYS, defaultPreset, mergeWithDefaults, type PresetState, type Tri } from "../music/selection";
 import type { MusicMode } from "../music/mode";
 import { useMusicMode } from "./modeScope";
@@ -21,22 +21,13 @@ const FALLBACK: PresetState = {
 
 function validatePreset(raw: unknown): PresetState | null {
   if (!isRecord(raw)) return null;
-  const boolMap = (value: unknown): Record<string, boolean> => {
-    const out: Record<string, boolean> = {};
-    if (!isRecord(value)) return out;
-    for (const [key, flag] of Object.entries(value)) {
-      const parsed = pickBoolean(flag);
-      if (parsed !== null) out[key] = parsed;
-    }
-    return out;
-  };
   const source = isRecord(raw.category) ? raw.category : {};
   const category = { 角色曲: "unset", 道中曲: "unset", 更多道中曲: "unset" } as PresetState["category"];
   for (const key of CATEGORY_KEYS) {
     const value = source[key];
     if (typeof value === "string" && (TRIS as string[]).includes(value)) category[key] = value as Tri;
   }
-  return { albums: boolMap(raw.albums), hifuu: boolMap(raw.hifuu), category };
+  return { albums: pickBooleanMap(raw.albums), hifuu: pickBooleanMap(raw.hifuu), category };
 }
 
 /** 某个音乐模式的存档规格（测试直接用它验校验与迁移）。 */
