@@ -1,28 +1,23 @@
 /** 对战页交互：随机补满 → 开局 → 抢拍 → 下一回合 → 终局（真实数据）。 */
 import { act } from "react";
-import { createRoot, type Root } from "react-dom/client";
+import type { Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { DataBundle } from "../../data/types";
 import { setLocale } from "../../i18n/localization";
-import { loadRealBundle } from "../../test-utils";
+import { clickTestId, loadRealBundle, renderGamePanel } from "../../test-utils";
 import type { CardInfo } from "../../game/types";
 import { useGame } from "../../game/useGame";
 import { TURN_COUNTDOWN_MS } from "../../game/useGameLoop";
 import { useSession } from "../../store/session";
-import { GamePanel } from "./GamePanel";
 
 let bundle: DataBundle;
 let root: Root | null = null;
 
 async function render(): Promise<HTMLElement> {
-  const container = document.createElement("div");
-  document.body.appendChild(container);
-  root = createRoot(container);
-  await act(async () => {
-    root!.render(<GamePanel bundle={bundle} />);
-  });
-  return container;
+  const mounted = await renderGamePanel(bundle);
+  root = mounted.root;
+  return mounted.container;
 }
 
 /** 合成一次 HTML5 拖拽：jsdom 没有 `DataTransfer`，挂个假的上就行（组件只用 setData/effectAllowed）。 */
@@ -39,14 +34,6 @@ async function dragTo(container: HTMLElement, fromId: string, toId: string): Pro
   await fire(from, "dragstart");
   await fire(to, "dragover");
   await fire(to, "drop");
-}
-
-async function click(container: HTMLElement, testId: string): Promise<void> {
-  const element = container.querySelector(`[data-testid="${testId}"]`);
-  if (!element) throw new Error(`缺少元素 ${testId}`);
-  await act(async () => {
-    element.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-  });
 }
 
 describe("GamePanel", () => {
@@ -109,7 +96,7 @@ describe("GamePanel", () => {
     const zunUnused = container.querySelector('[data-testid^="unused-card-"] img')?.getAttribute("src") ?? "";
     expect(zunUnused).toContain("/cards-zun/");
 
-    await click(container, "random-fill");
+    await clickTestId(container, "random-fill");
     const zunDeck = container.querySelector('[data-testid^="deck-you-card-"] img')?.getAttribute("src") ?? "";
     expect(zunDeck).toContain("/cards-zun/");
   });
@@ -122,28 +109,28 @@ describe("GamePanel", () => {
     expect(has("lobby-reveal")).toBe(false);
     expect(has("fill-cpu-deck")).toBe(false);
 
-    await click(container, "mode-cpu");
+    await clickTestId(container, "mode-cpu");
     expect(has("deck-opponent")).toBe(true);
     expect(has("fill-cpu-deck")).toBe(true);        // 电脑模式能调电脑卡组
     expect(has("lobby-reveal")).toBe(false);        // 电脑模式没有联机栏
     await act(async () => { await vi.advanceTimersByTimeAsync(400); });   // 等显隐动画结束
 
-    await click(container, "mode-multi");
+    await clickTestId(container, "mode-multi");
     expect(has("deck-opponent")).toBe(true);
     expect(has("lobby-reveal")).toBe(true);         // 多人模式才有联机栏
     expect(has("fill-cpu-deck")).toBe(false);       // 多人模式不可调对方卡组
     await act(async () => { await vi.advanceTimersByTimeAsync(400); });
 
     // 多人模式下点对方棋盘上的牌也不会把它拿回卡池
-    await click(container, "clear-deck");
+    await clickTestId(container, "clear-deck");
     const opponentBefore = useGame.getState().game.players[1]!.deck.filter(Boolean).length;
-    await click(container, "mode-cpu");
+    await clickTestId(container, "mode-cpu");
     await act(async () => { await vi.advanceTimersByTimeAsync(400); });
-    await click(container, "fill-cpu-deck");
+    await clickTestId(container, "fill-cpu-deck");
     expect(useGame.getState().game.players[1]!.deck.filter(Boolean).length).toBeGreaterThan(0);
-    await click(container, "mode-multi");
+    await clickTestId(container, "mode-multi");
     await act(async () => { await vi.advanceTimersByTimeAsync(400); });
-    await click(container, "deck-opponent-card-0");
+    await clickTestId(container, "deck-opponent-card-0");
     expect(useGame.getState().game.players[1]!.deck.filter(Boolean).length)
       .toBe(useGame.getState().game.players[1]!.deck.filter(Boolean).length);
     void opponentBefore;
@@ -153,11 +140,11 @@ describe("GamePanel", () => {
 
   it("随机补满 → 开局 → 倒计时后进入回合", async () => {
     const container = await render();
-    await click(container, "random-fill");
+    await clickTestId(container, "random-fill");
     const filled = useGame.getState().game.players[0]!.deck.filter(Boolean).length;
     expect(filled).toBe(24);
 
-    await click(container, "start-game");
+    await clickTestId(container, "start-game");
     expect(useGame.getState().game.state).toBe("countdown");
 
     await act(async () => {
@@ -169,27 +156,27 @@ describe("GamePanel", () => {
 
   it("点击自己的牌即抢拍；抢错会染色并记录", async () => {
     const container = await render();
-    await click(container, "random-fill");
-    await click(container, "start-game");
+    await clickTestId(container, "random-fill");
+    await clickTestId(container, "start-game");
     await act(async () => {
       await vi.advanceTimersByTimeAsync(TURN_COUNTDOWN_MS + 50);
     });
     const game = useGame.getState().game;
     const wrongSlot = game.players[0]!.deck.findIndex(
       (entry) => entry && entry.characterKey !== game.currentKey);
-    await click(container, `deck-you-card-${wrongSlot}`);
+    await clickTestId(container, `deck-you-card-${wrongSlot}`);
     expect(useGame.getState().game.pickEvents).toHaveLength(1);
   });
 
   it("下一回合推进 turnSeq，并把答案在结算时公开", async () => {
     const container = await render();
-    await click(container, "random-fill");
-    await click(container, "start-game");
+    await clickTestId(container, "random-fill");
+    await clickTestId(container, "start-game");
     await act(async () => {
       await vi.advanceTimersByTimeAsync(TURN_COUNTDOWN_MS + 50);
     });
     const before = useGame.getState().game.turnSeq;
-    await click(container, "next-turn");
+    await clickTestId(container, "next-turn");
     expect(useGame.getState().game.state).toBe("countdown");
     await act(async () => {
       await vi.advanceTimersByTimeAsync(TURN_COUNTDOWN_MS + 50);
@@ -199,10 +186,10 @@ describe("GamePanel", () => {
 
   it("CPU 模式：对手会自己出手", async () => {
     const container = await render();
-    await click(container, "mode-cpu");
+    await clickTestId(container, "mode-cpu");
     expect(useGame.getState().game.mode).toBe("cpu");
-    await click(container, "random-fill");
-    await click(container, "start-game");
+    await clickTestId(container, "random-fill");
+    await clickTestId(container, "start-game");
     // 开局会洗牌，第一个回合的角色＝洗好顺序的第 0 个（读完再给 CPU 摆牌）
     const first = useGame.getState().game.order[0]!;
     const decoy = useGame.getState().game.order[1]!;
@@ -228,7 +215,7 @@ describe("GamePanel", () => {
   it("切到中文后游戏页全部是中文（不留英文标签）", async () => {
     setLocale("zh");
     const container = await render();
-    await click(container, "mode-cpu");   // 电脑卡组那组按键只在电脑模式下出现
+    await clickTestId(container, "mode-cpu");   // 电脑卡组那组按键只在电脑模式下出现
     await act(async () => { await vi.advanceTimersByTimeAsync(400); });
     const text = container.textContent ?? "";
     for (const label of ["开始游戏", "中止游戏", "随机补满", "补满电脑", "清空卡组", "打乱卡组",
@@ -243,7 +230,7 @@ describe("GamePanel", () => {
       expect(text).not.toContain(leftover);
     }
     // 联机栏只在多人模式出现
-    await click(container, "mode-multi");
+    await clickTestId(container, "mode-multi");
     await act(async () => { await vi.advanceTimersByTimeAsync(400); });
     const multiText = container.textContent ?? "";
     for (const label of ["联机", "名称", "建立房间", "房间号", "加入", "状态摘要"]) {
@@ -251,8 +238,8 @@ describe("GamePanel", () => {
     }
 
     // 开局后的状态名也走中文
-    await click(container, "random-fill");
-    await click(container, "start-game");
+    await clickTestId(container, "random-fill");
+    await clickTestId(container, "start-game");
     await act(async () => {
       await vi.advanceTimersByTimeAsync(TURN_COUNTDOWN_MS + 50);
     });
@@ -263,8 +250,8 @@ describe("GamePanel", () => {
   it("中文下的结算与罚牌提示", async () => {
     setLocale("zh");
     const container = await render();
-    await click(container, "random-fill");
-    await click(container, "start-game");
+    await clickTestId(container, "random-fill");
+    await clickTestId(container, "start-game");
     await act(async () => {
       await vi.advanceTimersByTimeAsync(TURN_COUNTDOWN_MS + 50);
     });
@@ -287,21 +274,21 @@ describe("GamePanel", () => {
 
   it("电脑卡组也有打乱与清空（用户要求）", async () => {
     const container = await render();
-    await click(container, "mode-cpu");
+    await clickTestId(container, "mode-cpu");
     await act(async () => { await vi.advanceTimersByTimeAsync(400); });
     // 两边都补满，再打乱电脑卡组：顺序变了但张数不变
-    await click(container, "random-fill");
-    await click(container, "fill-cpu-deck");
+    await clickTestId(container, "random-fill");
+    await clickTestId(container, "fill-cpu-deck");
     const before = useGame.getState().game.players[1]!.deck.map((card) => card?.characterKey ?? "-");
     expect(before.filter((key) => key !== "-")).toHaveLength(24);
 
-    await click(container, "shuffle-cpu-deck");
+    await clickTestId(container, "shuffle-cpu-deck");
     const shuffled = useGame.getState().game.players[1]!.deck.map((card) => card?.characterKey ?? "-");
     expect(shuffled.filter((key) => key !== "-")).toHaveLength(24);
     expect(shuffled).not.toEqual(before);          // 24 张里换位，几乎不可能原地不动
     expect(useGame.getState().game.players[0]!.deck.every((card) => card !== null)).toBe(true);
 
-    await click(container, "clear-cpu-deck");
+    await clickTestId(container, "clear-cpu-deck");
     expect(useGame.getState().game.players[1]!.deck.every((card) => card === null)).toBe(true);
     // 电脑卡组清空后，这些卡回到"未使用卡牌"
     const unused = container.querySelectorAll('[data-testid^="unused-card-"]').length;
@@ -310,14 +297,14 @@ describe("GamePanel", () => {
 
   it("自己的卡组也有打乱与清空（按钮落到自己的那一侧）", async () => {
     const container = await render();
-    await click(container, "mode-cpu");
+    await clickTestId(container, "mode-cpu");
     await act(async () => { await vi.advanceTimersByTimeAsync(400); });
-    await click(container, "fill-cpu-deck");
-    await click(container, "random-fill");
-    await click(container, "shuffle-deck");
+    await clickTestId(container, "fill-cpu-deck");
+    await clickTestId(container, "random-fill");
+    await clickTestId(container, "shuffle-deck");
     expect(useGame.getState().game.players[0]!.deck.every((card) => card !== null)).toBe(true);
     const cpuBefore = useGame.getState().game.players[1]!.deck.map((card) => card?.characterKey ?? "-");
-    await click(container, "clear-deck");
+    await clickTestId(container, "clear-deck");
     expect(useGame.getState().game.players[0]!.deck.every((card) => card === null)).toBe(true);
     expect(useGame.getState().game.players[1]!.deck.map((card) => card?.characterKey ?? "-"))
       .toEqual(cpuBefore);                          // 只动自己那一侧
@@ -339,33 +326,33 @@ describe("GamePanel", () => {
     expect(container.querySelectorAll('[data-testid^="unused-card-"]').length).toBe(unusedBefore - 1);
 
     // 再点牌库里这张 → 回到未使用卡牌
-    await click(container, "deck-you-card-0");
+    await clickTestId(container, "deck-you-card-0");
     expect(useGame.getState().game.players[0]!.deck[0]).toBeNull();
     expect(container.querySelectorAll('[data-testid^="unused-card-"]').length).toBe(unusedBefore);
   });
 
   it("自定义卡组：主机能拿走电脑卡组里的牌，开局后按钮与卡池都不可改", async () => {
     const container = await render();
-    await click(container, "mode-cpu");
+    await clickTestId(container, "mode-cpu");
     await act(async () => { await vi.advanceTimersByTimeAsync(400); });
-    await click(container, "fill-cpu-deck");
+    await clickTestId(container, "fill-cpu-deck");
     const cpuSlot0 = useGame.getState().game.players[1]!.deck[0]!;
-    await click(container, "deck-opponent-card-0");
+    await clickTestId(container, "deck-opponent-card-0");
     expect(useGame.getState().game.players[1]!.deck[0]).toBeNull();
     // 被拿掉的卡出现在未使用区
     const testId = `unused-card-${cpuSlot0.characterKey}-${cpuSlot0.cardIndex}`;
     expect(container.querySelector(`[data-testid="${testId}"]`)).not.toBeNull();
 
     // 开局后（非选牌阶段）不能再改卡组
-    await click(container, "random-fill");
-    await click(container, "start-game");
+    await clickTestId(container, "random-fill");
+    await clickTestId(container, "start-game");
     const shuffleButton = container.querySelector<HTMLButtonElement>('[data-testid="shuffle-cpu-deck"]');
     expect(shuffleButton?.disabled).toBe(true);
   });
 
   it("拖动放置：拖到指定槽位、拖回未使用区、牌位互换", async () => {
     const container = await render();
-    await click(container, "mode-cpu");
+    await clickTestId(container, "mode-cpu");
     await act(async () => { await vi.advanceTimersByTimeAsync(400); });
     const firstUnused = container.querySelector<HTMLElement>('[data-testid^="unused-card-"]')!;
     const unusedId = firstUnused.getAttribute("data-testid")!;
@@ -414,26 +401,26 @@ describe("GamePanel", () => {
     expect(base).toBeGreaterThan(0);
     expect(trayWidth()).toBe(base);            // 未使用卡牌区与卡槽同尺寸
 
-    await click(container, "card-larger");
+    await clickTestId(container, "card-larger");
     const oneStepUp = cardWidth();
     expect(oneStepUp).toBeGreaterThan(base);   // 0.08 → 0.09
     expect(trayWidth()).toBe(oneStepUp);
-    await click(container, "card-smaller");
-    await click(container, "card-smaller");
+    await clickTestId(container, "card-smaller");
+    await clickTestId(container, "card-smaller");
     expect(cardWidth()).toBeLessThan(base);    // 0.09 → 0.07
 
     // 一路减小：到下限后按钮禁用、宽度不再变
-    for (let i = 0; i < 12; i += 1) await click(container, "card-smaller");
+    for (let i = 0; i < 12; i += 1) await clickTestId(container, "card-smaller");
     const floor = cardWidth();
     expect(smaller().disabled).toBe(true);
-    await click(container, "card-smaller");
+    await clickTestId(container, "card-smaller");
     expect(cardWidth()).toBe(floor);
 
     // 一路加大：到上限后按钮禁用、宽度不再变
-    for (let i = 0; i < 40; i += 1) await click(container, "card-larger");
+    for (let i = 0; i < 40; i += 1) await clickTestId(container, "card-larger");
     const ceiling = cardWidth();
     expect(larger().disabled).toBe(true);
-    await click(container, "card-larger");
+    await clickTestId(container, "card-larger");
     expect(cardWidth()).toBe(ceiling);
 
     // 夹在 0.04~0.40：上下限之比 ≈ 10 倍（同一容器宽度下）
@@ -449,10 +436,10 @@ describe("GamePanel", () => {
       Number(root.querySelector('[data-testid="deck-you"]')?.getAttribute("data-card-width") ?? 0);
     const before = widthOf(container);
 
-    await click(container, "card-larger");
-    await click(container, "card-larger");
-    await click(container, "card-larger");
-    await click(container, "card-larger");            // 0.08 → 0.12
+    await clickTestId(container, "card-larger");
+    await clickTestId(container, "card-larger");
+    await clickTestId(container, "card-larger");
+    await clickTestId(container, "card-larger");            // 0.08 → 0.12
     const widened = widthOf(container);
     expect(widened).toBeGreaterThan(before);
     await act(async () => {
@@ -528,7 +515,7 @@ describe("GamePanel", () => {
       container.querySelector<HTMLInputElement>('input[aria-label="filter-by-deck"]')!;
     const rotation = (): string =>
       container.querySelector<HTMLElement>('[data-testid="rotation-count"]')?.textContent ?? "";
-    await click(container, "random-fill");
+    await clickTestId(container, "random-fill");
 
     // 默认关：开关未勾选、没有临时禁用
     expect(filter().checked).toBe(false);
@@ -541,7 +528,7 @@ describe("GamePanel", () => {
 
     // 开局：轮播会被重洗、临时禁用会被清空 —— 开关还开着，就该立刻按当前卡槽重筛（D124）
     const narrowed = rotation();
-    await click(container, "start-game");
+    await clickTestId(container, "start-game");
     expect(useGame.getState().game.state).toBe("countdown");
     expect(filter().checked).toBe(true);          // 开关没有被"开局重置"悄悄改掉
     expect(rotation()).toBe(narrowed);            // 轮播仍是卡槽里的角色，没回到完整列表
@@ -558,7 +545,7 @@ describe("GamePanel", () => {
       container.querySelector<HTMLElement>(`[data-testid="unused-card-${id}"]`);
 
     // 先放琪露诺：与她共用《ミストレイク》的若鹭姬立刻压暗（但仍留在未使用区里）
-    await click(container, "unused-card-cirno-0");
+    await clickTestId(container, "unused-card-cirno-0");
     expect(useGame.getState().game.players[0]!.deck[0]?.characterKey).toBe("cirno");
     expect(unused("wakasagihime-0")).not.toBeNull();
     expect(unused("wakasagihime-0")!.getAttribute("data-disabled")).toBe("true");
@@ -571,7 +558,7 @@ describe("GamePanel", () => {
       .toEqual(["cirno"]);
 
     // 同一个 key 的第二/第三张卡面（Prismriver 三姐妹 = 三个角色共用一个 key）同样只允许一张
-    await click(container, "unused-card-prismriver-sisters-0");
+    await clickTestId(container, "unused-card-prismriver-sisters-0");
     expect(unused("prismriver-sisters-1")!.getAttribute("data-disabled")).toBe("true");
     expect(unused("prismriver-sisters-2")!.getAttribute("data-disabled")).toBe("true");
 
@@ -584,7 +571,7 @@ describe("GamePanel", () => {
 
   it("随机补满不会抽出同一首歌的两个角色（D108）", async () => {
     const container = await render();
-    await click(container, "random-fill");
+    await clickTestId(container, "random-fill");
 
     const game = useGame.getState().game;
     const conflicts = useGame.getState().conflicts;

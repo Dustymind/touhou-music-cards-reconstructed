@@ -1,10 +1,10 @@
 /** 联机 React 层：开房/加入/聊天/意图落地（真实 GamePanel + 进程内总线）。 */
 import { act } from "react";
-import { createRoot, type Root } from "react-dom/client";
+import type { Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import type { DataBundle } from "../data/types";
-import { loadRealBundle } from "../test-utils";
+import { clickTestId, loadRealBundle, renderGamePanel } from "../test-utils";
 import { useGame } from "../game/useGame";
 
 /** 两端握手比的是两个模式各一个哈希（协议 v4 / 契约 §6 C3）。 */
@@ -13,7 +13,6 @@ function dataHashes(): { originals: string; otomads: string } {
 }
 import * as rules from "../game/rules";
 import { emptyState } from "../game/types";
-import { GamePanel } from "../ui/panels/GamePanel";
 import { __busHub, __setTransportFactory, useNet } from "./useNet";
 import { helloIntent } from "./engines";
 import type { Message } from "./protocol";
@@ -22,21 +21,9 @@ let bundle: DataBundle;
 let root: Root | null = null;
 
 async function renderPanel(): Promise<HTMLElement> {
-  const container = document.createElement("div");
-  document.body.appendChild(container);
-  root = createRoot(container);
-  await act(async () => {
-    root!.render(<GamePanel bundle={bundle} />);
-  });
-  return container;
-}
-
-async function click(container: HTMLElement, testId: string): Promise<void> {
-  const element = container.querySelector(`[data-testid="${testId}"]`);
-  if (!element) throw new Error(`缺少元素 ${testId}`);
-  await act(async () => {
-    element.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-  });
+  const mounted = await renderGamePanel(bundle);
+  root = mounted.root;
+  return mounted.container;
 }
 
 
@@ -69,7 +56,7 @@ describe("联机（React 层）", () => {
 
   it("开房后展示分享码与参与者列表", async () => {
     const container = await renderPanel();
-    await click(container, "net-host");
+    await clickTestId(container, "net-host");
     const net = useNet.getState();
     expect(net.role).toBe("host");
     expect(net.shareCode).toBeTruthy();
@@ -79,7 +66,7 @@ describe("联机（React 层）", () => {
 
   it("第二端握手成功后收到快照与参与者列表", async () => {
     const container = await renderPanel();
-    await click(container, "net-host");
+    await clickTestId(container, "net-host");
     const roomId = useNet.getState().roomId;
 
     // 用总线模拟另一端
@@ -100,7 +87,7 @@ describe("联机（React 层）", () => {
 
   it("数据哈希不一致时拒绝并显示错误", async () => {
     const container = await renderPanel();
-    await click(container, "net-host");
+    await clickTestId(container, "net-host");
     const peer = __busHub().connect("client");
     const received: Message[] = [];
     peer.onMessage((_from, message) => received.push(message));
@@ -113,7 +100,7 @@ describe("联机（React 层）", () => {
 
   it("客户端的抢拍意图到达主机后落到本地状态", async () => {
     const container = await renderPanel();
-    await click(container, "net-host");
+    await clickTestId(container, "net-host");
     const peer = __busHub().connect("client");
     peer.sendToHost(helloIntent("Guest", false, dataHashes()));
 
@@ -143,7 +130,7 @@ describe("联机（React 层）", () => {
 
   it("客户端的 `confirmStart` 意图让主机开赛，新快照照常广播", async () => {
     const container = await renderPanel();
-    await click(container, "net-host");
+    await clickTestId(container, "net-host");
     const peer = __busHub().connect("client");
     const received: Message[] = [];
     peer.onMessage((_from, message) => received.push(message));
@@ -160,7 +147,7 @@ describe("联机（React 层）", () => {
 
   it("聊天双向可达", async () => {
     const container = await renderPanel();
-    await click(container, "net-host");
+    await clickTestId(container, "net-host");
     const peer = __busHub().connect("client");
     const received: Message[] = [];
     peer.onMessage((_from, message) => received.push(message));
@@ -181,8 +168,8 @@ describe("联机（React 层）", () => {
 
   it("离开房间后回到离线状态", async () => {
     const container = await renderPanel();
-    await click(container, "net-host");
-    await click(container, "net-leave");
+    await clickTestId(container, "net-host");
+    await clickTestId(container, "net-leave");
     expect(useNet.getState().role).toBeNull();
     expect(useNet.getState().status).toBe("offline");
   });

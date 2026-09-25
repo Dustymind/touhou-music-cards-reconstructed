@@ -10,6 +10,30 @@ import { loadDataBundle } from "./data/load";
 import { buildEntries, type TableMap } from "./music/sources";
 import { createRoot, type Root } from "react-dom/client";
 
+import { GamePanel } from "./ui/panels/GamePanel";
+
+/** 把「对战页」挂进 body 里的新容器：`useNet.test.tsx` 与 `GamePanel.test.tsx` 共用同一套脚手架
+ * （挂载顺序、`act` 包裹、返回容器都给好；调用方自己决定 `afterEach` 怎么清理）。
+ */
+export async function renderGamePanel(bundle: DataBundle): Promise<{ container: HTMLElement; root: Root }> {
+  const container = document.createElement("div");
+  document.body.appendChild(container);
+  const root: Root = createRoot(container);
+  await act(async () => {
+    root.render(<GamePanel bundle={bundle} />);
+  });
+  return { container, root };
+}
+
+/** 按 `data-testid` 点一下（真实浏览器里派发冒泡的 `MouseEvent`）。 */
+export async function clickTestId(container: HTMLElement, testId: string): Promise<void> {
+  const element = container.querySelector(`[data-testid="${testId}"]`);
+  if (!element) throw new Error(`缺少元素 ${testId}`);
+  await act(async () => {
+    element.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  });
+}
+
 export interface HookResult<T> {
   result: { current: T };
   rerender: () => Promise<void>;
