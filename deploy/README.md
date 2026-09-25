@@ -106,6 +106,16 @@ Vercel 用 `vercel.json` 的 `headers`；GitHub Pages **不认** `_headers`（�
    `otomads-cdn.tsukinomiyako-mangesui.top` 从老 Pages 项目**移除**、作为 **Custom Domain** 加到 Worker 上
    （同一时刻只能挂一处；老项目先别删 —— 回滚就是把它挂回去）。
 
+**迁移已完成并复验**（2026-09-25，域名从老 Pages 项目搬到 Worker）：
+
+| 项 | 结果 |
+|---|---|
+| `build-info.json` | **200**（老 Pages 项目没有这个路径 ⇒ 域名确实指向新 Worker）|
+| manifest / 响度表 | CORS `*` + `max-age=0, must-revalidate` + **与归档逐字节相同** |
+| 媒体 | `accept-ranges: bytes` + CORS + `max-age=14400, must-revalidate`；`Range` → **206**；越界 **416** |
+| 根路径 | 404 |
+| **真浏览器（无任何覆盖，走默认源）** | 取到表并解析出 `…/media/otomads/川先僧%20-%20普通肥猫魔法使.mp3?v=…`，**零失败请求** |
+
 **`wrangler.jsonc` 里为什么是那三样**：`name`（对齐 CI）、`compatibility_date`（wrangler 上传 Worker 的硬要求，
 删除会直接报错）、`assets.directory = "./dist"` + `not_found_handling = "none"`（找不到就 404，
 与老站一致 —— 这个站点只放 manifest / 媒体 / 响度表，**不能**回退成 HTML）。
@@ -136,9 +146,9 @@ cd <主仓库> && pnpm media:pack
 gh release upload media otomads-media.tar.gz --clobber -R Dustymind/touhou-music-cards-otomads-data
 ```
 
-**回滚两条**：① CF 面板里回滚到上一个 deployment（秒级）；② 把域名挂回老 Pages 项目 `otomads-cdn`，
-或跑一次数据仓库的 `deploy-cdn`（wrangler 直传，D147 那套）。**`deploy-cdn` 与那两个 CF secret
-要等新这条验证绿了再删**。
+**回滚两条**：① CF 面板 → Worker `otomads-cdn-git` → Deployments → 选上一版 **Rollback**（秒级）；
+② 重新铺一次（`gh workflow run trigger-cdn.yml -R Dustymind/touhou-music-cards-otomads-data`）。
+（D147 那套 `deploy-cdn`（wrangler 直传老 Pages 项目）已随老项目退场 —— 2026-09-25 真域名复验通过后删的。）
 
 **媒体由一个小 Worker 脚本接管**（数据仓库 `media-worker.mjs`，`wrangler.jsonc` 里
 `main` + `assets.binding` + `run_worker_first = ["/media/*"]`）：

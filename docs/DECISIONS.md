@@ -5584,3 +5584,19 @@ Retry，或用他刚配好的 Deploy Hook（`gh workflow run trigger-cdn.yml -R 
 **还没做（用户一步）**：把 `otomads-cdn.tsukinomiyako-mangesui.top` 从老 Pages 项目搬到 Worker 的
 Domains & Routes。搬完我从**真域名**再复验一遍（`*.workers.dev` 在本机直连被 DNS 污染，全程只能走代理），
 之后就能收尾：删老 Pages 项目、删 `deploy-cdn`、删那两个 CF secret。
+
+### 11. 域名搬迁与收尾（2026-09-25，用户"已更换"）
+
+**真域名复验（本机直连，不经代理）**：`build-info.json` **200**（老 Pages 项目没有这个路径 ⇒ 域名确实指向
+新 Worker）；`manifest.json` / `loudness/otomads.json` CORS `*` + `max-age=0, must-revalidate` +
+**与归档逐字节相同**（`ad0a4bf7…` / `acbc0271…`）；媒体 `accept-ranges: bytes` + CORS +
+`max-age=14400, must-revalidate`（**与老站一致**），`bytes=0-99`/`bytes=-100` → **206**、越界 → **416**；
+音频切片 500–1599 **与曲库逐字节相同**；根路径 404；
+**真浏览器、无任何覆盖**（临时探针，跑完即删）取到表并解析出
+`…/media/otomads/川先僧%20-%20普通肥猫魔法使.mp3?v=1f46946f1c0bb35e`，**零失败请求**。
+
+**收尾**：数据仓库删掉 `deploy-cdn.yml`（wrangler 直传老 Pages 项目那条路）与它依赖的两个 CF secret
+（保留 `CF_DEPLOY_HOOK`）；`trigger-cdn.yml` 的注释改准（项目名 `otomads-cdn-git`，并写明
+**push 不触发构建** ⇒ 这个按钮是必需而非可选）；`.gitignore` 补 `.wrangler/` 与 `/dist/`。
+**留给用户**：在 CF 面板删掉老 Pages 项目 `otomads-cdn`；主仓库那份旧私有 Release 资产与工作区根的
+`dist/`（326 MB 旧部署根）可删。
