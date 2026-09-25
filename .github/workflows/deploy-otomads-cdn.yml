@@ -70,12 +70,16 @@ jobs:
           echo "Pages 项目：$PAGES_PROJECT ｜ 复核地址：$CDN_HOST"
 
       - name: 取归档
+        env:
+          # 走 env 而不是直接插进命令（`${{ inputs.tag }}` 是文本插值；虽然只有维护者能触发，
+          # 但"参数进 shell"这件事本身就该过一道）
+          TAG: ${{ inputs.tag }}
         run: |
           set -euo pipefail
-          echo "Release ${{ inputs.tag }} 上的资产："
-          gh release view "${{ inputs.tag }}" --json assets \
+          echo "Release $TAG 上的资产："
+          gh release view "$TAG" --json assets \
             --jq '.assets[] | "  \(.name)  \(.size) B  更新于 \(.updatedAt)"'
-          gh release download "${{ inputs.tag }}" --pattern "$ARCHIVE" --dir .
+          gh release download "$TAG" --pattern "$ARCHIVE" --dir .
           sha256sum "$ARCHIVE" | tee archive.sha256
           echo '（本地刚打完包的话，这个 sha256 应当与 `sha256sum otomads-media.tar.gz` 一致）'
 
