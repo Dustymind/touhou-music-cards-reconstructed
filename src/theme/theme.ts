@@ -37,11 +37,97 @@ export const MD2_PALETTE = {
   },
 } as const;
 
+/** 亮/暗两种模式（默认仍是上游的**深色**）。 */
+export const THEME_MODES = ["dark", "light"] as const;
+export type ThemeMode = (typeof THEME_MODES)[number];
+export const DEFAULT_THEME_MODE: ThemeMode = "dark";
+
+/** 可选的**主题色**（MD2 500 号基准色）。深色主题下会自动提亮一档（MD2 的 200 号口径），
+ *  否则 500 号落在 #121212 上对比度不足。 */
+export const THEME_COLORS = [
+  { id: "purple", color: "#6200ee" },
+  { id: "indigo", color: "#3f51b5" },
+  { id: "blue", color: "#2196f3" },
+  { id: "teal", color: "#009688" },
+  { id: "green", color: "#4caf50" },
+  { id: "orange", color: "#ff9800" },
+  { id: "pink", color: "#e91e63" },
+  { id: "red", color: "#f44336" },
+] as const;
+
+/** 亮/暗各自的 onSurface 口径（MD2：正文 87%、次要 60%、分隔线 12%；深色下用白的不同透明度）。
+ *  这几个值会写进 `:root` 的 CSS 变量，组件只引 `ThemeTokens.*` ⇒ 切模式不必改任何组件。 */
+const MODE_TOKENS = {
+  dark: {
+    text: "#FFFFFFFF", muted: "rgba(255, 255, 255, 0.7)", divider: "rgba(255, 255, 255, 0.12)",
+    icon: "rgba(255, 255, 255, 0.6)", border: "rgba(255, 255, 255, 0.28)",
+  },
+  light: {
+    text: "rgba(0, 0, 0, 0.87)", muted: "rgba(0, 0, 0, 0.6)", divider: "rgba(0, 0, 0, 0.12)",
+    icon: "rgba(0, 0, 0, 0.6)", border: "rgba(0, 0, 0, 0.28)",
+  },
+} as const;
+
+/** 主题相关的颜色在组件里一律走这几个 token（真值由 `buildTheme()` 按模式写进 `:root`）：
+ *  "亮/暗 + 自定义主题色"只改一处，组件里不出现写死的颜色。 */
+export const ThemeTokens = {
+  text: "var(--tmc-text)",
+  muted: "var(--tmc-muted)",
+  divider: "var(--tmc-divider)",
+  icon: "var(--tmc-icon)",
+  border: "var(--tmc-border)",
+} as const;
+
+const HEX_RE = /^#[0-9a-fA-F]{6}$/;
+
+/** `#rrggbb` 校验（设置页与 store 共用一处口径）。 */
+export function isHexColor(value: unknown): value is string {
+  return typeof value === "string" && HEX_RE.test(value.trim());
+}
+
+/** 统一成小写 `#rrggbb`（比较与落盘都用它）。 */
+export function normalizeHex(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+/** 往白（`target=255`）或黑（`target=0`）方向混 `amount`（0–1）。 */
+function mix(hex: string, target: number, amount: number): string {
+  const n = parseInt(hex.slice(1), 16);
+  const channel = (shift: number): number => {
+    const value = (n >> shift) & 0xff;
+    return Math.round(value + (target - value) * amount);
+  };
+  const [r, g, b] = [channel(16), channel(8), channel(0)];
+  return `#${[r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("")}`;
+}
+
+/** 相对亮度（WCAG 口径），决定 onPrimary 用黑还是白。 */
+function luminance(hex: string): number {
+  const n = parseInt(hex.slice(1), 16);
+  const lin = (value: number): number => {
+    const c = value / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * lin((n >> 16) & 0xff) + 0.7152 * lin((n >> 8) & 0xff) + 0.0722 * lin(n & 0xff);
+}
+
+/** 主题色 → 该模式下好用的那一档：深色提亮 35%（≈ MD2 200 号），浅色太亮时压暗 20%。 */
+export function themeColorFor(color: string, mode: ThemeMode): string {
+  const hex = normalizeHex(color);
+  if (mode === "dark") return luminance(hex) > 0.5 ? hex : mix(hex, 255, 0.35);
+  return luminance(hex) > 0.6 ? mix(hex, 0, 0.2) : hex;
+}
+
+/** 主题色上的文字色（MD2 onPrimary）。 */
+export function onColorFor(color: string): string {
+  return luminance(normalizeHex(color)) > 0.5 ? "rgba(0, 0, 0, 0.87)" : "#FFFFFF";
+}
+
 const ACTIVE = MD2_PALETTE.dark;
 
 /** 深色表面上"看得见的边框"：MD2 的分隔线是 12% 白，在 #121212 上偏淡，
  *  选卡区外框与卡槽虚线框用 28%（仍属低对比，但不至于看不见）。 */
-export const MD2_BORDER = "rgba(255, 255, 255, 0.28)";
+export const MD2_BORDER = ThemeTokens.border;
 
 /** 深色主题下的表面/文字/分隔线（MD2 规定 onSurface 100%、次要文字 70%、分隔线 12%）。 */
 export const Palette = {
@@ -101,8 +187,8 @@ export const MD2 = {
     timeout: { enter: 250, exit: 200 },
     easing: "cubic-bezier(0.4, 0, 0.2, 1)",
     /** MD2：展开图标 onSurface 60%、头部与内容之间 1px 分隔线（onSurface 12%） */
-    icon: "rgba(255, 255, 255, 0.6)",
-    divider: "rgba(255, 255, 255, 0.12)",
+    icon: ThemeTokens.icon,
+    divider: ThemeTokens.divider,
   },
   listItem: { minHeight: 56 },
   field: { height: 56 },
@@ -132,19 +218,26 @@ export const MD2_TYPE_SCALE = {
 /** 卡面宽高比（上游 `Configs.ts` 的 `CardAspectRatio`）。 */
 export const CardAspectRatio = 703 / 1000;
 
-export function buildTheme(): Theme {
+/** 建主题。**不带参数时与以前逐字相同**（深色 + MD2 基准色）——
+ *  设置页把它接上 `store/appearance` 的模式与主题色；两套值都由 `MD2_PALETTE` / `MODE_TOKENS` 提供。 */
+export function buildTheme(options: { mode?: ThemeMode; primary?: string } = {}): Theme {
+  const mode = options.mode ?? DEFAULT_THEME_MODE;
+  const base = MD2_PALETTE[mode];
+  const tokens = MODE_TOKENS[mode];
+  // 没给自定义色 ⇒ 直接用 MD2 该模式的基准色（**不做提亮**，与改前逐字相同）
+  const primary = isHexColor(options.primary) ? themeColorFor(options.primary, mode) : base.primary;
+  const onPrimary = onColorFor(primary);
   return createTheme({
-    // 上游是**深色**主题：页面底 #141414、纸面 #262626、正文白、次要文字 #babcc1
     palette: {
-      mode: "dark",
-      primary: { main: Palette.primary },
-      secondary: { main: Palette.secondary },
-      background: { default: Palette.background, paper: Palette.surface },
-      text: { primary: Palette.text, secondary: Palette.muted },
-      divider: Palette.divider,
-      error: { main: Palette.error },
-      success: { main: "#03DAC6" },   // MD2 深色下用 secondary 青绿表示"成功/次要动作"
-      info: { main: "#BB86FC" },
+      mode,
+      primary: { main: primary, contrastText: onPrimary },
+      secondary: { main: base.secondary },
+      background: { default: base.background, paper: base.surface },
+      text: { primary: tokens.text, secondary: tokens.muted },
+      divider: tokens.divider,
+      error: { main: base.error },
+      success: { main: "#03DAC6" },   // MD2 用 secondary 青绿表示"成功/次要动作"
+      info: { main: primary },
     },
     // MD2 形状与类型比例（字号/字重/行高/字距；按钮与 overline 大写）
     shape: { borderRadius: MD2.shape },
@@ -247,13 +340,24 @@ export function buildTheme(): Theme {
       MuiTooltip: { styleOverrides: { tooltip: { borderRadius: MD2.shape } } },
       MuiCssBaseline: {
         styleOverrides: {
-          // `color-scheme: dark` 让浏览器把滚动条等原生控件画成深色（上游靠 MUI 深色主题拿到同一效果）
-          html: { colorScheme: "dark" },
+          // 主题相关的颜色只在这里落成 CSS 变量：组件引用 `ThemeTokens.*`（或 `MD2_BORDER` /
+          // `MD2.accordion.*`）⇒ 切亮暗、换主题色都不必改组件。`color-scheme` 让浏览器把滚动条等
+          // 原生控件按当前模式绘制。
+          ":root": {
+            "--tmc-text": tokens.text,
+            "--tmc-muted": tokens.muted,
+            "--tmc-divider": tokens.divider,
+            "--tmc-icon": tokens.icon,
+            "--tmc-border": tokens.border,
+            "--tmc-primary": primary,
+            "--tmc-on-primary": onPrimary,
+          },
+          html: { colorScheme: mode },
           // 显式钉住页面底色（与 `palette.background.default` 同值，避免任何情况下回到白底）
           body: {
-            backgroundColor: Palette.background,
-            color: Palette.text,
-            colorScheme: "dark",
+            backgroundColor: base.background,
+            color: tokens.text,
+            colorScheme: mode,
           },
         },
       },
