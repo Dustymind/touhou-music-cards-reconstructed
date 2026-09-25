@@ -254,10 +254,10 @@ manifest 所在那一层解析 ⇒ 换域名/端口/协议、换宿主与子路�
 | 命令 | 作用 |
 |---|---|
 | `pnpm typecheck` | 类型检查 |
-| `pnpm test` | 单测（真实浏览器）：**742 passed** = 371 条 × chromium + firefox；只跑一个引擎用 `pnpm test:chromium` / `pnpm test:firefox` |
-| `pnpm e2e` | 端到端：chromium + firefox + 移动端（Pixel 7），预期 **90 passed + 1 skipped**；会自己起 dev（5190）与信令（9100） |
+| `pnpm test` | 单测（真实浏览器）：**856 passed** = 428 条 × chromium + firefox（42 个文件）；只跑一个引擎用 `pnpm test:chromium` / `pnpm test:firefox` |
+| `pnpm e2e` | 端到端：chromium + firefox + 移动端（Pixel 7），预期 **95 passed + 1 skipped**；会自己起 dev（5190）与信令（9100） |
 | `pnpm e2e:perf` | 「点击长任务」性能守卫（对机器负载敏感，单独跑） |
-| `cd tools && UV_CACHE_DIR=.uv/cache uv run pytest` | 数据管线测试（**64 passed**；音频/本地源那 78 条在数据仓库：`uv run --project tools pytest`） |
+| `cd tools && UV_CACHE_DIR=.uv/cache uv run pytest` | 数据管线测试（**66 passed**；音频/本地源那 141 条在数据仓库：`uv run --project tools pytest`） |
 | `pnpm data:check` | `public/data` 与 `data/` 是否漂移（提交前必跑） |
 | `pnpm data:validate` | 数据不变量校验（分类、面次、覆盖表、曲包） |
 | `pnpm data:build` | 改了 `data/` 之后重新生成 `public/data/*.json` |
@@ -285,8 +285,8 @@ manifest 所在那一层解析 ⇒ 换域名/端口/协议、换宿主与子路�
 数据由 `pnpm data:check` 守住：**121 个角色 / 40 张专辑 / 464 条角色曲目条目（454 首去重曲目）**、
 **7 套卡面**（6 套上游 + 1 套音MAD 本地图集）；另有**音MAD 曲包 86 首（35 个角色）**，其中 84 首带 `source`（可自动抓取）、
 16 首带裁剪区间，音频走本地曲库助手。
-测试基线：`pnpm test` **742 passed**（371 条 × chromium + firefox，两个引擎都跑）、
-`cd tools && uv run pytest` **56 passed**、数据仓库 tools 的 pytest **74 passed**、e2e **90 passed + 1 skipped**。
+测试基线（2026-09-25 实测）：`pnpm test` **856 passed**（428 条 × chromium + firefox，两个引擎都跑）、
+`cd tools && uv run pytest` **66 passed**、数据仓库 tools 的 pytest **141 passed**（+ `node --test` 7 条）、e2e **95 passed + 1 skipped**。
 完整的现状表（含每一项的复现命令）与文档索引见 [`docs/README.md`](docs/README.md)。
 
 ## 怎么玩
@@ -372,20 +372,20 @@ manifest 所在那一层解析 ⇒ 换域名/端口/协议、换宿主与子路�
 
 | 命令 | 作用 |
 |---|---|
-| `pnpm typecheck` / `pnpm test` | 类型检查 / 单测（371 条 × chromium + firefox = **742 passed**） |
+| `pnpm typecheck` / `pnpm test` | 类型检查 / 单测（428 条 × chromium + firefox = **856 passed**） |
 | `pnpm test:chromium` / `pnpm test:firefox` | 只跑其中一个引擎（调试用） |
 | `pnpm e2e` | 浏览器端到端：chromium + firefox + 移动端（Pixel 7） |
 | `pnpm e2e:chromium` / `pnpm e2e:firefox` / `pnpm e2e:mobile` | 只跑其中一端（调试用） |
 | `pnpm e2e:perf` | 单独跑「点击长任务」性能守卫（对机器负载敏感，不进全量） |
 | `pnpm audio:fetch` | 抓取并裁剪曲包音频（见部署指南 §4） |
 | `pnpm data:check` / `pnpm data:validate` | 数据生成物是否漂移 / 不变量校验（`tools/` 是 Python，用 `uv` 管环境） |
-| `cd tools && UV_CACHE_DIR=.uv/cache uv run pytest` | 数据管线测试（**56 passed**；音频/本地源那 74 条在数据仓库：`uv run --project tools pytest`） |
+| `cd tools && UV_CACHE_DIR=.uv/cache uv run pytest` | 数据管线测试（**66 passed**；音频/本地源那 141 条在数据仓库：`uv run --project tools pytest`） |
 
 **e2e 的前置条件**（音MAD 用例要先起本地曲库助手、浏览器要装在仓库内）见部署指南 §6。
 
 ### 迭代时怎么快跑（全量很慢，别每次都全量）
 
-全量那两条是**提交前**的闸门，不是写代码时的循环：`pnpm test` 要 **~70 秒**（742 条 × 两个引擎，
+全量那两条是**提交前**的闸门，不是写代码时的循环：`pnpm test` 要 **~110 秒**（856 条 × 两个引擎，
 真实浏览器）、`pnpm e2e` 要 **~9 分钟**（91 条 × 三个 project，串行）。改一处就想看一眼时，按"范围从小到大"来：
 
 | 想确认什么 | 命令 | 实测耗时 |
@@ -396,7 +396,7 @@ manifest 所在那一层解析 ⇒ 换域名/端口/协议、换宿主与子路�
 | 某个 e2e 用例（两端） | `npx playwright test e2e/smoke.spec.ts --project=chromium --project=firefox -g "关于弹窗"` | **~12 秒** |
 | 某个 e2e 用例（只手机） | `npx playwright test --project=mobile -g "关于弹窗"` | **~7 秒** |
 | 某个 e2e 文件（只一端） | `npx playwright test e2e/smoke.spec.ts --project=chromium` | **~40 秒** |
-| 提交前 | `pnpm typecheck && pnpm test && pnpm e2e` | **~11 分钟**（含 e2e 前置的 `pnpm local`） |
+| 提交前 | `pnpm typecheck && pnpm test && pnpm e2e` | **~12 分钟**（含 e2e 前置的 `pnpm local`） |
 
 两个省时间的细节：① e2e 的 dev server 配了 `reuseExistingServer`，**先自己起 `pnpm dev`**（或
 `pnpm local` 起助手）就不会每次重开；② `-g` 是**按用例名过滤**，中文用例名也能匹配 —— 排错时先跑那一条。
