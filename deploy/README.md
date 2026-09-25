@@ -62,7 +62,7 @@ Vercel 用 `vercel.json` 的 `headers`；GitHub Pages **不认** `_headers`（�
    铺完站点上就有同源的 `manifest.json` + `media/otomads/*.mp3`（+ `cards-otomads/*`）。
    **素材不进仓库**：归档由 `pnpm media:pack` 生成（可复现）并发布成 Release 资产。
    这条路上"铺"是**你自己**的事（`media:stage` 铺进你自己的 `dist/`）；**项目 CDN 那一份**由数据仓库的
-   `.github/workflows/deploy-cdn.yml` 铺（D147，见 §A.3）—— 本仓库的 Pages 工作流仍然**不**拉素材。
+   **Cloudflare 那边的 Worker** 自己构建（连数据仓库，见 §A.3）—— 本仓库的 Pages 工作流仍然**不**拉素材。
    归档发在**数据仓库**的 Release（tag `media`，公开仓库 ⇒ 匿名可下）：
    `gh release download media --pattern otomads-media.tar.gz -R Dustymind/touhou-music-cards-otomads-data`，
    或本机 `pnpm media:pack` 现打一份。
@@ -81,7 +81,8 @@ Vercel 用 `vercel.json` 的 `headers`；GitHub Pages **不认** `_headers`（�
 
 默认音源指的 `otomads-cdn.tsukinomiyako-mangesui.top` 是 Cloudflare 上**独立于应用**的一个站点，
 内容就是素材归档解出来的那一份。**D148 起部署交给 CF 自己的 CI**（Git 集成连的是**数据仓库**）：
-两个仓库的 GitHub Actions 都不再经手部署 —— 数据仓库那条 `deploy-cdn`（wrangler 直传）降级成**回滚手段**。
+两个仓库的 GitHub Actions 都不再经手部署（数据仓库那条 `deploy-cdn`（wrangler 直传老 Pages 项目）
+已随老项目在 2026-09-25 退场，见 D148 §11）。
 
 **先看清是哪一种宿主**（2026-09-25 实测踩过）：CF 面板的 "Create → Connect to Git" 现在默认给的是
 **Workers Builds 项目**（一个只放静态资源的 **Worker**），不是老的 Pages 项目 —— 构建日志里会出现
