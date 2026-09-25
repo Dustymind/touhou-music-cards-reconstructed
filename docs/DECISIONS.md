@@ -4987,6 +4987,12 @@ ffmpeg -y -ss <start-0.5> -i <原件> -ss 0.5 -t <时长> -c:a libmp3lame -q:a 0
   不是"裁哪里"（`start_time` / `stop_time` / `source` 全没动）⇒ 联机两端**不用一起更新** ✓。
 - 本地曲库：16 首带区间的成品全部从各自的 `.raw/` **离线**重裁（不重新下载），状态全部记为
   `render = "encode-v1"`。
-- **⚠ 发布链路本轮没动**：`otomads-media.tar.gz`（Release 资产）与 CDN 上那份还是旧音频 ——
-  要用新的 16 首重新打包并换掉资产/CDN，两端才真正一致。**只改代码与本地曲库不会让 CDN 上的音频变。**
+- **Release 资产已换成新音频**：`pnpm media:pack` 重打归档（86 首 / 0 卡面 / 321.1 MB，
+  含响度表）、`gh release upload th09.5-260925 otomads-media.tar.gz --clobber`。
+  **336,835,277 B → 336,719,238 B**，sha256 `74e09675…` → **`f80fa36f…`**；上传后 GitHub 报的 digest
+  与本地算的一致 ✓。换之前先把归档解出来与 `.music/otomads/` **全量逐字节比对**（86 首全等，不抽样）。
+  **主仓库 `th09.5-260925` tag 没动**（仍是 `gh release create` 建的轻量 tag `295a3fc`，换的只是资产）。
+- **⚠ CDN 那份仍是旧音频**：静态音MAD 源按 D138/D141 的裁定是**手动部署**，本机也没有 wrangler/rclone/aws
+  之类的凭据 ⇒ 由用户重铺。实测差异：`【原汤化原食】已经只能听见歌声了` 在 CDN 上是 **1,624,445 B**（旧）
+  vs 新 **1,619,501 B**，CDN 的响度表里那 2 首也还是旧 dB。**CDN 重铺之前线上播放的仍是有 90 ms 偏差的旧版。**
 

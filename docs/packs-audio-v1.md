@@ -316,6 +316,21 @@ BV 号原先散在三处：`tools/ingest_otomads.py` 的 `ROWS`（61 条）、`t
   多 **1007 个采样**）；
 - 把 `render` 从签名里摘掉 ⇒ `..._render_version_invalidates_previous_trims_but_not_link_only_tracks` 红。
 
-**待办（不在本轮）**：发布链路 —— `otomads-media.tar.gz` 要用新的 16 首重新打包并换掉 Release 资产 /
-CDN 上的那份。**只改代码与本地曲库不会让 CDN 上的音频变**，两端在这件事上暂时不一致。
+**发布链路**：`otomads-media.tar.gz` 已用新的 16 首重打并**换掉 Release 资产**（`gh release upload --clobber`）：
+
+| | 大小 | sha256 |
+|---|---|---|
+| 旧 | 336,835,277 B | `74e096756c5e9989dcfa7644acae9fe3463a7a9118b89456cba1cd7018c78e02` |
+| 新 | **336,719,238 B** | **`f80fa36fbcf31196df24484e0577dbe615e21e8f85e16ce686dae4e7421cf57c`** |
+
+换之前把归档解出来与 `.music/otomads/` 做了**全量逐字节比对**（86 首全等，不是抽样），
+且上传后 GitHub 报的 digest 与本地算的一致 ✓。**主仓库的 `th09.5-260925` tag 没动**
+（它仍是 `gh release create` 建的那个轻量 tag `295a3fc`；换的只是资产）。
+
+**⚠ 还没做**：**CDN 上那份仍是旧音频** —— 静态音MAD 源按 D138/D141 的裁定是**手动部署**
+（`pnpm media:pack` → 把归档解到宿主根目录：`manifest.json` + `media/otomads/*.mp3` + `loudness/otomads.json`），
+本机没有 wrangler / rclone / aws 之类的凭据可用。实测 CDN 与本地新音频的差异（2026-09-25）：
+`【原汤化原食】已经只能听见歌声了` 在 CDN 上是 **1,624,445 B**（旧）而新的是 **1,619,501 B**；
+CDN 的 `loudness/otomads.json` 里那 2 首也还是旧 dB。**CDN 没重铺之前，线上播放的仍是有 90 ms 偏差的旧版。**
+
 根治二次有损的正路是"下载时保留原始容器（m4a/opus）、裁剪与转 mp3 合并成一遍"（见 §11 的非 mp3 容器那条）。
