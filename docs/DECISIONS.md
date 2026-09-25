@@ -5417,3 +5417,56 @@ mtime+大小，D144；曲库 377 MB 不进仓库）——这一点 D146 的结�
    铺上去 C 才真正线上生效）；
 3. 主仓库那份**旧的私有 Release 资产**（`th09.5-260925` 下的同一个归档）确认没人用了就可以删；
    工作区根的 `dist/`（326 MB 旧部署根）也可以删。
+
+## D148 素材站改由 **Cloudflare Pages 的 Git 集成**构建（CF 自己的 CI）
+
+**需求**（用户）："能否撤回部分改动，让 cloudflare pages 接入音MAD源git仓库，使 cloudflare ci 完成静态页面
+部署工作流" → 确认指**素材站**后："执行"。
+
+### 1. 一条硬约束：**现有项目改不了，只能新建**
+
+CF 官方文档写死：Direct Upload 的项目**不能**转 Git 集成（"You cannot switch to Git integration later.
+You will have to create a new project with Git integration to use automatic deployments." ——
+[Direct Upload](https://developers.cloudflare.com/pages/get-started/direct-upload/)），而 `otomads-cdn`
+正是 `wrangler pages deploy` 直传建的（工作区根 `.wrangler/cache/pages.json` 可证）
+⇒ 做法是"**新建一个 Git 集成的项目 + 把自定义域名搬过去**"（老项目先留着，回滚就是把域名挂回去）。
+
+### 2. 构建容器够用（核实过，不是猜）
+
+CF 的构建镜像（Ubuntu 22.04 / gVisor）自带 **Python 3.13.3**、Node 22、pnpm 10、pip
+（[Build image](https://developers.cloudflare.com/pages/configuration/build-image/)）⇒ 构建命令
+**不需要装任何依赖**：我们的工具是纯标准库，脚本里只补一条 `sys.path` 就够。
+
+### 3. 做了什么（仓库侧）
+
+| 位置 | 内容 |
+|---|---|
+| 数据仓库 `tools/build_cdn_site.py`（**新**） | CF 的构建入口：取 Release 归档（公开 ⇒ 无令牌；认 `file://` 便于本地演练）→ `stage_media.review`（**不过就不铺**）→ `extract` 到 `dist/` → 打印摘要。manifest **原样铺**（逐曲 `revision` 是打包机器的 mtime 指纹，容器里重算必错） |
+| 数据仓库 `stage_media.extract()` | 原来私有的 `_extract` 提成公开：**归档是不可信输入**（拒绝对路径 / `..` / 链接），这是唯一该用来铺盘的路 |
+| 数据仓库 `.python-version` = `3.13` | 钉住构建镜像的 Python（CF 官方建议 pin 关键预装件） |
+| 数据仓库 `.github/workflows/trigger-cdn.yml`（**新**） | 给"**只换了音频**、git 里没变化"的更新补一次构建：[Deploy Hook](https://developers.cloudflare.com/pages/configuration/deploy-hooks/) POST（hook URL 是 secret，别贴公开处）；不配它就去面板点 Retry |
+| 数据仓库 `tools/tests/test_build_site.py`（**新**） | 用**真子进程**跑那个脚本：产物与归档**逐字节相同**、输出目录里不多不少、自检不过时**一个文件都不建**且退出码 1 |
+| 文档 | 数据仓库 `README.ai.MD` / `tools/README.md`；主仓库 `deploy/README.md` §A.3（面板六步、触发表、回滚两条、排查三条）、`docs/packs-audio-v1.md` §16.6 |
+
+### 4. "撤回部分改动"的顺序（用户原话）
+
+**现在不撤**：数据仓库的 `deploy-cdn.yml`（wrangler 直传）与那两个 CF secret 先留着当回滚手段，
+**等 CF 这条验证绿了再删**。归档与 `media` tag **必须留**（CF 构建就是下它）；`tests`、`review` 留
+（后者从"GH 工作流里的一步"升级成"CF 构建里的一道闸"）。
+
+### 5. 验证
+
+- **构建脚本本地跑通两次**：`file://`（拿现成归档）与**真 HTTP**（从公开 Release 下 **340,517,992 B**，
+  urllib 跟随重定向 ✓）⇒ 都铺出 `dist/`；**88 个成员与归档逐字节相同**、`dist/` 里不多不少。
+- 数据仓库 pytest **135 passed**（133 → +2：构建脚本的两条）。
+- 三个工作流的 YAML 本地用 PyYAML 解析过（triggers/jobs 都对）。
+- **没做**：真正的 CF 构建（面板里的六步是用户的活；我进不去他的 CF 账号）。所以这一轮的"验证绿了"
+  指的是**仓库侧**：脚本 + 守卫 + 文档齐了，第一次 CF 构建由用户点。
+
+### 6. 还没做（要人做）
+
+1. 面板六步：新建 Git 集成项目（连数据仓库、生产分支 `main`、构建命令 `python3 tools/build_cdn_site.py`、
+   输出目录 `dist`、`SKIP_DEPENDENCY_INSTALL=1`）→ 手动跑一次 → **用 `*.pages.dev` 验证** → 搬自定义域名；
+2. 可选：加 secret `CF_DEPLOY_HOOK`（音频-only 的更新用它一键重铺）；
+3. CF 绿了之后：删 `deploy-cdn.yml`、删那两个 CF secret、删老项目 `otomads-cdn`，
+   顺便删主仓库那份旧私有 Release 资产与工作区根的 `dist/`。

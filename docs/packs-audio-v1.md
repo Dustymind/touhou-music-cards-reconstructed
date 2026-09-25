@@ -591,11 +591,11 @@ if is_anthology:
 
 - **本机助手**：改了代码即是 ✓（每次请求现读 `packs/`）；
 - **Release 归档 / 自托管**：归档已重打（`manifest.json` 带这两个键），自托管的人重取一次即可；
-- **项目 CDN**（默认源）：**要铺一次** —— D147 起由**数据仓库**的
-  `.github/workflows/deploy-cdn.yml` 从它自己的 Release（tag `media`）取归档铺到 Cloudflare Pages 项目
-  `otomads-cdn`（详见 `deploy/README.md` §A.3），不再手抄那几十 KB。老清单只会走兜底 ——
-  **不会坏，但等于没改**；工作流的最后一步拿"**线上 manifest 与归档逐字节相同**"当成功判据，
-  所以"铺没铺上"不再靠人肉核对。
+- **项目 CDN**（默认源）：**要铺一次** —— D148 起由 **Cloudflare Pages 的 Git 集成**自己构建
+  （连的是数据仓库，构建命令 `python3 tools/build_cdn_site.py`：取它 Release 里的归档 → 自检 →
+  解到 `dist/`；详见 `deploy/README.md` §A.3），不再手抄那几十 KB。老清单只会走兜底 ——
+  **不会坏，但等于没改**；构建里的 `stage_media review` 不过就**不铺**（构建失败、线上保持原样），
+  所以"铺没铺上"不靠人肉核对。数据仓库那条 `deploy-cdn`（wrangler 直传）留着当回滚手段。
 
 ### 7. 要接受的代价（用户已认）
 

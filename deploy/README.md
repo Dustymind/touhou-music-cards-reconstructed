@@ -77,59 +77,64 @@ Vercel 用 `vercel.json` 的 `headers`；GitHub Pages **不认** `_headers`（�
    回环地址被浏览器当可信来源，不算混合内容。填 `http://<私有 IP>:8011` 就**会被拦**（只有 loopback 豁免），
    那种情况要给助手套一层 TLS 反代并转发 `X-Forwarded-Proto`。
 
-### 素材站（默认 CDN）的部署（D147）
+### 素材站（默认 CDN）的部署（D148：**Cloudflare Pages 的 Git 集成自己构建**）
 
-默认音源指的 `otomads-cdn.tsukinomiyako-mangesui.top` 是一个**独立的 Cloudflare Pages 项目**
-（`otomads-cdn`），内容就是素材归档解出来的那一份（`manifest.json` + `media/otomads/*.mp3`
-+ `loudness/otomads.json`）。**工作流住在数据仓库**：CDN 上的东西就是那边的曲包（manifest 由它的工具
-生成、媒体是它 `packs/` 的成品）⇒ "谁的数据谁铺"；铺之前还能拿它的 `packs/` 当基准对一遍（别的仓库做不到）。
+默认音源指的 `otomads-cdn.tsukinomiyako-mangesui.top` 是 Cloudflare Pages 上**独立于应用**的一个站点，
+内容就是素材归档解出来的那一份。**D148 起部署交给 CF 自己的 CI**（Git 集成连的是**数据仓库**）：
+两个仓库的 GitHub Actions 都不再经手部署 —— 数据仓库那条 `deploy-cdn`（wrangler 直传）降级成**回滚手段**。
 
-```bash
-# ① 打包：只能在有曲库的机器上（逐曲版本号 = 本机文件的 mtime+大小，D144；曲库 377 MB 不在仓库里）
-cd <主仓库> && pnpm media:pack
-sha256sum otomads-media.tar.gz        # 记一下，CI 日志里会对一遍
+**为什么不能"改现有项目"**：CF 明说 Direct Upload 的项目**不能**转成 Git 集成
+（[Direct Upload 文档](https://developers.cloudflare.com/pages/get-started/direct-upload/)：
+"You cannot switch to Git integration later"），而 `otomads-cdn` 正是 `wrangler pages deploy` 直传建的
+⇒ 只能**新建一个 Git 集成的项目**，再把自定义域名搬过去。
 
-# ② 发布归档：发到**数据仓库**的 Release（tag `media`，公开仓库 ⇒ 匿名可下）
-gh release upload media otomads-media.tar.gz --clobber \
-    -R Dustymind/touhou-music-cards-otomads-data
+**面板里怎么建（一次性）**
 
-# ③ 铺到线上：数据仓库的 Actions → deploy-cdn
-gh workflow run deploy-cdn.yml -R Dustymind/touhou-music-cards-otomads-data
+1. Workers & Pages → Create → Pages → **Connect to Git** → 装/授权 CF 的 GitHub App → 选
+   `Dustymind/touhou-music-cards-otomads-data`（公开仓库，不需要额外权限）；
+2. 项目名随意（例如 `otomads-cdn-git`），**Production branch = `main`**；
+3. Build command = `python3 tools/build_cdn_site.py`；Build output directory = `dist`；
+4. 环境变量 `SKIP_DEPENDENCY_INSTALL=1`（仓库根没有 package.json / requirements.txt，本来也不会自动装，
+   写上更省心）；Python 版本由数据仓库根的 `.python-version`（3.13）钉住，CF 的构建镜像自带 3.13；
+5. 先手动触发一次（Create deployment / Retry），用 `<项目名>.pages.dev` 验证 —— **这一步不动线上**；
+6. 验证绿了再把 `otomads-cdn.tsukinomiyako-mangesui.top` 从老项目**移除**、挂到新项目上
+   （同一时刻只能挂一个项目；老项目先别删 —— 回滚就是把域名挂回去）。
+
+**构建里发生什么**（数据仓库 `tools/build_cdn_site.py`，纯标准库、不装任何依赖）：
+
+```
+取 Release（tag `media`，公开 ⇒ 无令牌）→ stage_media review（不过就不铺）→ 解到 dist/ → 打印摘要
 ```
 
-工作流（数据仓库 `.github/workflows/deploy-cdn.yml`）：取归档 → **归档自检**（清单五键、每一行都有文件；
-并对照本仓库 `packs/` —— 归档少了 = 改完 packs 忘了重打包，**只警告不拦**）→ 解到部署根 →
-读 Pages 项目的**生产分支**（不写死 `main`：写错会静默落成 preview，表现是"CI 全绿、线上没变"）→
-`npx wrangler@4 pages deploy` → **线上复核**（CDN 那份 manifest 与归档**逐字节相同**才算成功，
-带 `?ci=` 绕开边缘缓存）→ 顺手把这次的 manifest + sha256 存成一个小 artifact（`otomads-cdn-deploy-<run>`，90 天）。
+`review` 是**部署守卫**：清单五键、每一行都有对应文件，并拿**仓库里的 `packs/`** 对照
+（"归档少了 = 改完 packs 忘了重打包"，只警告不拦）。**manifest 不在构建里重生成** ——
+逐曲 `revision` 是打包那台机器的 mtime 指纹，容器里没有那些文件 ⇒ 原样铺归档里那份。
 
-一次性配置（**数据仓库** Settings → Secrets and variables → Actions）：
+**触发**
 
-| 名字 | 值 |
+| 更新类型 | 怎么触发 |
 |---|---|
-| secret `CLOUDFLARE_API_TOKEN` | Cloudflare → My Profile → API Tokens → 模板 “Edit Cloudflare Workers”，或自定义 **Account → Cloudflare Pages → Edit** |
-| secret `CLOUDFLARE_ACCOUNT_ID` | `5102f3861137b0abc1a12e2c793c19d2` |
-| variable `CF_PAGES_PROJECT`（可选） | 默认 `otomads-cdn` |
-| variable `OTOMADS_CDN_HOST`（可选） | 默认 `https://otomads-cdn.tsukinomiyako-mangesui.top` |
+| 加曲目 / 改裁量 / 改响度表（`packs/`、`loudness/` 有变化）| 数据仓库 **push** ⇒ 自动构建 |
+| **只换了音频**（D142/D143 那种：git 里没有任何变化）| `gh workflow run trigger-cdn.yml -R Dustymind/touhou-music-cards-otomads-data`（POST 一次 [Deploy Hook](https://developers.cloudflare.com/pages/configuration/deploy-hooks/)）；没配那个 secret 就去面板点 Retry deployment |
 
-**为什么打包不能也交给 CI**：曲库（377 MB）不在任何仓库里（素材不进仓库，用户裁定），而 manifest 的
-逐曲版本号来自本机文件的 mtime ⇒ 只有手上有曲库的机器打得出正确的清单。CI 只负责"把已发布的归档铺上去"。
+**打包与发布仍然是手动的**（素材不进仓库、逐曲版本号来自本机 mtime）：
 
-**为什么归档走 Release 资产，而不是 GitHub Actions 的 artifact**（D147 讨论过）：
+```bash
+cd <主仓库> && pnpm media:pack
+gh release upload media otomads-media.tar.gz --clobber -R Dustymind/touhou-music-cards-otomads-data
+```
 
-| | Release 资产 | Actions artifact |
-|---|---|---|
-| 能不能装下**本地打的**包 | ✅ `gh release upload` 随时传，从哪台机器都行 | ❌ artifact 只能由**某次 workflow run 自己**产出；CI 里没有那个 run 可挂（工作流跑的时候包早就打好了） |
-| 会不会过期 | 不会（跟着 Release） | **会**：公开仓库最长 **90 天**，过期后部署源就没了 |
-| 自托管的人怎么取 | 公开仓库**匿名** `curl -LO …/releases/download/media/otomads-media.tar.gz` | 永远要登录/令牌，还要先知道 run id |
-| 适合装什么 | 发布的、要被消费的东西 | **这次 CI 自己产出的**东西（测试报告、构建产物、部署记录）|
+**回滚两条**：① CF 面板里回滚到上一个 deployment（秒级）；② 把域名挂回老项目 `otomads-cdn`，
+或跑一次数据仓库的 `deploy-cdn`（wrangler 直传，D147 那套）。**`deploy-cdn` 与那两个 CF secret
+要等 CF 这条验证绿了再删**。
 
-所以这里的分工是：**归档 = Release 资产**（部署源 + 自托管入口），**部署记录/测试报告 = artifact**
-（`deploy-cdn` 存 manifest + sha256，`tests` 存 JUnit XML，都只留 90/30 天）。
+**排查**
 
-**为什么不自己写 `_headers`**：CDN 那套逐路径缓存（清单/响度表 `max-age=0, must-revalidate`、
-媒体 `max-age=14400`）来自 zone 级规则 / Pages 默认，**不在部署物里**（归档里没有 `_headers`）——
-CI 里加一个反而会改变现状。
+- 构建失败 ⇒ CF 面板 Deployments → 那条 → 构建日志（`review` 的报错原样打在那里，线上保持原样）；
+- 线上清单没变 ⇒ 多半是"只换了音频、没触发构建"（见上表），而不是缓存（manifest 是 `max-age=0, must-revalidate`）；
+- **切到新项目后若缓存头变了**（媒体不再 `max-age=14400`）：说明原来的策略来自老项目而不是 zone 规则 ——
+  在构建产物里加一个 `_headers`（写法见本仓库 `public/_headers`）即可。现在**故意不加**：归档里没有它，
+  加了反而会改变现状（2026-09-25 实测过：清单/响度表 `max-age=0, must-revalidate`、媒体 `max-age=14400`）。
 
 ## B. 单端口部署（方案 B）
 
