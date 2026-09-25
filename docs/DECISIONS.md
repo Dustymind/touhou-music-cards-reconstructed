@@ -5561,3 +5561,26 @@ has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is pres
 
 **⑤ 还没生效**：push 不触发构建（`build-info.json` 轮询 404 五分钟为证）⇒ 需要用户在面板点一次
 Retry，或用他刚配好的 Deploy Hook（`gh workflow run trigger-cdn.yml -R …`）触发一次。
+
+### 10. 修复上线后的复验（2026-09-25，Deploy Hook 触发）
+
+用户配好 Deploy Hook 后，用数据仓库的 `trigger-cdn` 工作流触发构建（**9 秒成功** ⇒ hook 与 secret 都对 ✓）。
+新构建上线（`build-info.json`：`builtAt 11:16:30Z`、`archiveSha256 d3e084fb…`）后逐项实测：
+
+| 项 | 结果 |
+|---|---|
+| `manifest.json` | 200 + **`access-control-allow-origin: *`** ✓ + `max-age=0, must-revalidate` ✓ + **逐字节相同**（`ad0a4bf7…`） |
+| `loudness/otomads.json` | **逐字节相同**（`acbc0271…`） |
+| 媒体（无 Range） | 200 + CORS ✓ + **`accept-ranges: bytes`** ✓ + `max-age=14400, must-revalidate` ✓ |
+| 媒体 `bytes=0-99` / `bytes=-100` | **206** + `content-range: bytes 0-99/1745964` / `bytes 1745864-1745963/1745964` ✓ |
+| 媒体越界 | **416** + `bytes */1745964` ✓ |
+| 音频切片 500–1599 | **与曲库逐字节相同** ✓ |
+| 根路径 / `_headers` | 404 / 404（后者说明它被运行时解析、没被当资源发出去 ✓） |
+| **真浏览器端到端**（临时探针，跑完即删） | ✓ 应用取到表并解析出地址 `…/media/otomads/川先僧%20-%20普通肥猫魔法使.mp3?v=1f46946f1c0bb35e` —— 相对地址按 manifest 那一层解析 ✓、`?v=` 来自清单行 ✓、**无任何失败请求** ✓ |
+
+（用户先前在 CF 那边部署的那份 Range 脚本，被这次构建覆盖成仓库里这份 —— 本来就活不过一次构建，
+所以"脚本必须在仓库里"这条也当场印了一回。）
+
+**还没做（用户一步）**：把 `otomads-cdn.tsukinomiyako-mangesui.top` 从老 Pages 项目搬到 Worker 的
+Domains & Routes。搬完我从**真域名**再复验一遍（`*.workers.dev` 在本机直连被 DNS 污染，全程只能走代理），
+之后就能收尾：删老 Pages 项目、删 `deploy-cdn`、删那两个 CF secret。
