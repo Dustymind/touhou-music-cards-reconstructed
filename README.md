@@ -111,6 +111,10 @@ pnpm local                                            # 起助手（工具在数
 （D142）——起点与时长**按采样点**对齐，不是就近取整到 mp3 帧边界（改之前 `-c copy` 实测偏过 90 ms，
 见 `docs/packs-audio-v1.md` §5）。
 
+**一条 `source` = 一首曲目**（D143）：指向 bilibili **多 P 视频**时**默认取 p1**；要别的 P 就把 `?p=N`
+写进链接（`source = "https://www.bilibili.com/video/BV…/?p=3"`），由 yt-dlp 按参数解析。
+`source` 若解析出多个条目会**直接报错**，不会随便挑一个 —— 详见 `docs/packs-audio-v1.md` §14。
+
 ```bash
 pnpm audio:fetch                                    # 抓全部缺的 / 重裁（幂等：已就绪的会 skip）
 pnpm audio:fetch --jobs 8                            # 并发数（默认 4；1 = 串行）

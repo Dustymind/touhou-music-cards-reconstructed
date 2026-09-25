@@ -64,9 +64,13 @@ cd ../.. && pnpm data:build && pnpm data:validate                     # ④ 拷�
 
 | 键 | 作用 | 语义 |
 |---|---|---|
-| `source` | 抓取来源（任意的 yt-dlp 支持的站点；当前 84/86 条是 B 站） | 缺省 ⇒ 音频由人工放进曲库，抓取命令跳过 |
+| `source` | 抓取来源（任意的 yt-dlp 支持的站点；当前 84/86 条是 B 站）。**一条 `source` = 一首曲目** | 缺省 ⇒ 音频由人工放进曲库，抓取命令跳过 |
 | `start_time` | 裁剪开始，`HH:MM:SS.mmm` | 缺省 = 文件开头（只给 `stop_time` 时按开头算） |
 | `stop_time` | 裁剪结束，格式同上 | 缺省 = 文件结尾（只给 `start_time` 时按结尾算，等于不裁） |
+
+`source` 指向 **bilibili 多 P 视频**时（D143）：**默认取 p1**；要别的 P 就把 `?p=N` 写进链接
+（`source = "https://www.bilibili.com/video/BV…/?p=3"`）—— 由 yt-dlp 自己按参数解析，本工具不改写 URL。
+解析出多个条目会**直接报错**（一条 `source` 只能对应一首曲目）。
 
 两个时间键**都只在抓取/裁剪期被读**，运行时不进 `characters.json`、前端看不到；产出的音频用
 **解码后精确切 + 重编码**裁剪（D142；`-c copy` 只能切在 mp3 帧边界、且冷启动会让头一帧解不出来，
