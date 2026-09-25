@@ -174,3 +174,29 @@ def test_pack_music_shape_matches_the_data_repo_vector():
     """`music` 条目的形状（3 / 4 / 5 位）与数据仓库那份**共享向量**一致（D145）。"""
     tracks = [dict(case, character="cirno", pack="demo") for case, _ in PACK_MUSIC_VECTOR]
     assert build._pack_music(tracks)["cirno"] == [expected for _, expected in PACK_MUSIC_VECTOR]
+
+
+# ------------------------------------------------------------------ 跨仓库耦合：曲名归一化（D147）
+
+def test_normalize_title_matches_the_data_repo_helper():
+    """曲名归一化的口径两边必须一致：`packformat.normalize_title`（数据仓库）↔
+    `src/music/sources.ts::normalizeTitle`（前端）。
+
+    为什么要有这条：清单行里的曲名是**磁盘名的 stem**（`作者 - 标题`），而曲目表 / 曲包 TOML 里作者是
+    独立字段 —— 两边要比就得先按同一条规则归一化。第三份实现还出现在**铺 CDN 之前的自检**里
+    （数据仓库 `stage_media.review` 用 `packformat` 那两个函数），所以它错一点，CI 立刻开始误报。
+    两个仓库零 import 依赖，只能按文本对字面量（与 `AUTHOR_JOIN` 那条同一个套路）；
+    没初始化 submodule 时跳过（与其它依赖曲包的用例同口径）。
+    """
+    helper = repo.ROOT / "data" / "otomads" / "tools" / "src" / "otomads" / "packformat.py"
+    if not helper.is_file():
+        pytest.skip("数据 submodule 未初始化：跳过跨仓库口径检查")
+
+    frontend = (repo.ROOT / "src" / "music" / "sources.ts").read_text(encoding="utf-8")
+    # 前缀剥离那条正则：`^[^-]{1,60}?\s+-\s+`（JS 与 Python 写法一致，字面量对得上）
+    assert re.search(r"\^\[\^-\]\{1,60\}\?\\s\+-\\s\+", frontend), "前端那条正则变了？同步数据仓库"
+    assert r'^[^-]{1,60}?\s+-\s+' in helper.read_text(encoding="utf-8"), "数据仓库那条正则变了？"
+    # 后缀那条（作者名里带 `-` 时唯一的救法）两边都要在
+    for path in (helper, repo.ROOT / "src" / "music" / "sources.ts"):
+        text = path.read_text(encoding="utf-8")
+        assert " - ${wanted}" in text or 'f" - {wanted_norm}"' in text, path

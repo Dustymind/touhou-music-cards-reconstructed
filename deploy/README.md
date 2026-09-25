@@ -61,10 +61,11 @@ Vercel 用 `vercel.json` 的 `headers`；GitHub Pages **不认** `_headers`（�
 
    铺完站点上就有同源的 `manifest.json` + `media/otomads/*.mp3`（+ `cards-otomads/*`）。
    **素材不进仓库**：归档由 `pnpm media:pack` 生成（可复现）并发布成 Release 资产。
-   这条路上"铺"是**你自己**的事（`media:stage` 铺进你自己的 `dist/`）；**项目 CDN 那一份**现在由
-   `.github/workflows/deploy-otomads-cdn.yml` 铺（D146，见 §A.3）—— 本仓库的 Pages 工作流仍然**不**拉素材。
-   主仓库是**私有**的，匿名取 Release 资产会 404，要取就带令牌：
-   `gh release download th09.5-260925 --pattern otomads-media.tar.gz`（或本机 `pnpm media:pack`）。
+   这条路上"铺"是**你自己**的事（`media:stage` 铺进你自己的 `dist/`）；**项目 CDN 那一份**由数据仓库的
+   `.github/workflows/deploy-cdn.yml` 铺（D147，见 §A.3）—— 本仓库的 Pages 工作流仍然**不**拉素材。
+   归档发在**数据仓库**的 Release（tag `media`，公开仓库 ⇒ 匿名可下）：
+   `gh release download media --pattern otomads-media.tar.gz -R Dustymind/touhou-music-cards-otomads-data`，
+   或本机 `pnpm media:pack` 现打一份。
    注意顺序永远是**先 `pnpm build` 再铺素材** —— 重新构建会清空 `dist/`。
    **验证要用真静态服务器**：`pnpm preview` 会继承 dev 的代理（`/manifest.json` 与 `/media` → 8011 助手），
    助手没跑时那两条是 **500**；用 `python3 -m http.server --directory dist` 才验得到静态素材
@@ -76,28 +77,33 @@ Vercel 用 `vercel.json` 的 `headers`；GitHub Pages **不认** `_headers`（�
    回环地址被浏览器当可信来源，不算混合内容。填 `http://<私有 IP>:8011` 就**会被拦**（只有 loopback 豁免），
    那种情况要给助手套一层 TLS 反代并转发 `X-Forwarded-Proto`。
 
-### 素材站（默认 CDN）的部署（D146）
+### 素材站（默认 CDN）的部署（D147）
 
 默认音源指的 `otomads-cdn.tsukinomiyako-mangesui.top` 是一个**独立的 Cloudflare Pages 项目**
 （`otomads-cdn`），内容就是素材归档解出来的那一份（`manifest.json` + `media/otomads/*.mp3`
-+ `loudness/otomads.json`）。以前靠人在本地解压 + `wrangler pages deploy`；现在交给 CI：
++ `loudness/otomads.json`）。**工作流住在数据仓库**：CDN 上的东西就是那边的曲包（manifest 由它的工具
+生成、媒体是它 `packs/` 的成品）⇒ "谁的数据谁铺"；铺之前还能拿它的 `packs/` 当基准对一遍（别的仓库做不到）。
 
 ```bash
-# ① 本地：打归档（**必须有曲库** —— manifest 里每首的 `revision` 是本机文件的名字+大小+mtime，D144）
-pnpm media:pack
-sha256sum otomads-media.tar.gz                 # 记一下，跑 CI 时对一遍
-gh release upload th09.5-260925 otomads-media.tar.gz --clobber
+# ① 打包：只能在有曲库的机器上（逐曲版本号 = 本机文件的 mtime+大小，D144；曲库 377 MB 不在仓库里）
+cd <主仓库> && pnpm media:pack
+sha256sum otomads-media.tar.gz        # 记一下，CI 日志里会对一遍
 
-# ② CI：部署（GitHub → Actions → deploy-otomads-cdn → Run workflow）
-gh workflow run deploy-otomads-cdn.yml         # 或加 -f dry_run=true 只下载 + 自检
+# ② 发布归档：发到**数据仓库**的 Release（tag `media`，公开仓库 ⇒ 匿名可下）
+gh release upload media otomads-media.tar.gz --clobber \
+    -R Dustymind/touhou-music-cards-otomads-data
+
+# ③ 铺到线上：数据仓库的 Actions → deploy-cdn
+gh workflow run deploy-cdn.yml -R Dustymind/touhou-music-cards-otomads-data
 ```
 
-工作流做了什么：从 Release 取归档 → **归档自检**（清单五键、每行都有文件；"曲目表里有、地址表里没有"
-只警告 —— 那是"还没抓"的合法中间态）→ 解到部署根 → 读 Pages 项目的**生产分支**（不写死 `main`，
-写错会静默落成 preview）→ `wrangler pages deploy` → **线上复核**（CDN 那份 manifest 与归档**逐字节
-相同**才算成功，带 `?ci=` 绕开边缘缓存）。
+工作流（数据仓库 `.github/workflows/deploy-cdn.yml`）：取归档 → **归档自检**（清单五键、每一行都有文件；
+并对照本仓库 `packs/` —— 归档少了 = 改完 packs 忘了重打包，**只警告不拦**）→ 解到部署根 →
+读 Pages 项目的**生产分支**（不写死 `main`：写错会静默落成 preview，表现是"CI 全绿、线上没变"）→
+`npx wrangler@4 pages deploy` → **线上复核**（CDN 那份 manifest 与归档**逐字节相同**才算成功，
+带 `?ci=` 绕开边缘缓存）→ 顺手把这次的 manifest + sha256 存成一个小 artifact（`otomads-cdn-deploy-<run>`，90 天）。
 
-一次性配置（仓库 Settings → Secrets and variables → Actions）：
+一次性配置（**数据仓库** Settings → Secrets and variables → Actions）：
 
 | 名字 | 值 |
 |---|---|
@@ -108,6 +114,19 @@ gh workflow run deploy-otomads-cdn.yml         # 或加 -f dry_run=true 只下�
 
 **为什么打包不能也交给 CI**：曲库（377 MB）不在任何仓库里（素材不进仓库，用户裁定），而 manifest 的
 逐曲版本号来自本机文件的 mtime ⇒ 只有手上有曲库的机器打得出正确的清单。CI 只负责"把已发布的归档铺上去"。
+
+**为什么归档走 Release 资产，而不是 GitHub Actions 的 artifact**（D147 讨论过）：
+
+| | Release 资产 | Actions artifact |
+|---|---|---|
+| 能不能装下**本地打的**包 | ✅ `gh release upload` 随时传，从哪台机器都行 | ❌ artifact 只能由**某次 workflow run 自己**产出；CI 里没有那个 run 可挂（工作流跑的时候包早就打好了） |
+| 会不会过期 | 不会（跟着 Release） | **会**：公开仓库最长 **90 天**，过期后部署源就没了 |
+| 自托管的人怎么取 | 公开仓库**匿名** `curl -LO …/releases/download/media/otomads-media.tar.gz` | 永远要登录/令牌，还要先知道 run id |
+| 适合装什么 | 发布的、要被消费的东西 | **这次 CI 自己产出的**东西（测试报告、构建产物、部署记录）|
+
+所以这里的分工是：**归档 = Release 资产**（部署源 + 自托管入口），**部署记录/测试报告 = artifact**
+（`deploy-cdn` 存 manifest + sha256，`tests` 存 JUnit XML，都只留 90/30 天）。
+
 **为什么不自己写 `_headers`**：CDN 那套逐路径缓存（清单/响度表 `max-age=0, must-revalidate`、
 媒体 `max-age=14400`）来自 zone 级规则 / Pages 默认，**不在部署物里**（归档里没有 `_headers`）——
 CI 里加一个反而会改变现状。

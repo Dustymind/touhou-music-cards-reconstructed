@@ -5342,3 +5342,78 @@ push 到 `main` 由 Vercel 自己构建），所以那些失败纯粹是噪音�
 2. 跑一次 `deploy-otomads-cdn` —— **这一跑同时就是 D145 的收尾**：Release 资产里已经是带
    `albums`/`characters` 的新归档（上一轮换过），铺上去之后 C 才真正生效；
 3. 工作区根的 `dist/`（326 MB 的旧部署根）可以删了。
+
+> **D147 追补（同日）**：这个工作流**搬到源仓库**了 —— 现在是数据仓库的
+> `.github/workflows/deploy-cdn.yml`，归档也搬到**数据仓库的 Release**（tag `media`，公开仓库 ⇒
+> **匿名可下**，不需要 PAT）。上面"主仓库 + 私有 Release 资产"那一套已被 D147 取代，本节只留作沿革。
+
+## D147 素材站部署搬进源仓库；归档走**公开** Release；顺手给数据仓库补上 CI
+
+**需求**（用户）："自动化cdn更新ci能否给音MAD源仓库跑，而不是主仓库"（外加：顺手给数据仓库加测试 CI，
+并问过"构建产物能否放在 GitHub CI artifacts"）。
+
+### 1. 先定"归档放哪"，再谈"工作流放哪"
+
+主仓库是**私有**仓库 ⇒ 数据仓库要读它的 Release 资产就得配一个**会过期的 PAT**。两条路：
+
+| 方案 | 代价 |
+|---|---|
+| 数据仓库 + PAT 读主仓库的私有资产 | 多一个会过期的 secret；D146 §2 的"工作流放主仓库"正是为了躲开它 |
+| **归档搬到数据仓库**（用户选这条） | 公开仓库：它自己的 workflow 用内置 `github.token` 就能下载，**零 PAT**；附带好处是自托管的人**匿名**就能取 —— D146 §2 那条"私有仓库 ⇒ 匿名 404、要带令牌"的限制就此消失 |
+
+搬的只是**发布通道**（Release 资产），**打包仍然只能在有曲库的机器上**（逐曲 `revision` = 本机文件的
+mtime+大小，D144；曲库 377 MB 不进仓库）——这一点 D146 的结论没变。
+
+### 2. 做了什么
+
+| 仓库 | 动作 |
+|---|---|
+| 数据仓库 | 新增 `.github/workflows/deploy-cdn.yml`（部署）+ `.github/workflows/tests.yml`（push/PR 跑 133 条 pytest，**这仓库第一次有 CI**）；`stage_media.review` / `packformat.normalize_title+titles_match`；`tools/tests/test_media_review.py`（10 条）；两个 README 更新；tag `th09.5-260925` **第 15 次前移**（`f8d8e83` → `f7b69d9`，tag 对象 `178e066` → `52182e6`） |
+| 数据仓库 Release | 新开 tag **`media`**（**发布通道，不动**）：`otomads-media.tar.gz` **340,517,992 B / sha256 `d3e084fb…`**（与本地逐字节一致，GitHub 报的 digest 相同） |
+| 主仓库 | 删掉 D146 那份 `.github/workflows/deploy-otomads-cdn.yml` 与 `.github/scripts/check_otomads_archive.py`；跨仓库口径守卫从 `test_ci_scripts.py` 并进 `tools/tests/test_build.py`（现在盯的是数据仓库的 `packformat.normalize_title` ↔ `sources.ts` 那条正则）；`deploy/README.md` §A.3、`docs/packs-audio-v1.md` §16.6、submodule pin |
+
+**为什么自检逻辑搬进工具包**（而不是继续当 CI 脚本）：CI 脚本没人 import、平时也不跑，最容易漂移；
+搬成 `stage_media.review` 之后它进了 pytest、本地一条命令就能跑（`python -m otomads.stage_media review
+--archive …`），而且**它能对照本仓库的 `packs/`** —— 这正是"新家"才做得到的事：归档少了 = 改完 packs
+忘了重打包（**只警告**，因为"还没抓"是合法中间态）、归档多了 = 归档比仓库旧。硬失败仍是那三条
+（清单五键、每行都有文件、曲目表非空）。
+
+### 3. CI 抓到的第一个错误假设（值得记）
+
+`tests.yml` 第一版只装 pytest —— 结果 **6 条 fetch 相关用例红**：`import yt_dlp` 虽然写在函数里
+（延迟导入），但那些用例真的会走到 `installed_ytdlp()`。修法：`pip install -e ./tools "pytest>=8.0"`
+（依赖从 `tools/pyproject.toml` 走，不写死版本）。**这就是"给源仓库补 CI"的直接收益**：
+本地 133 条全绿，是因为本地那台机器上什么都有。
+
+### 4. "构建产物能否放 CI artifacts"（用户问的）
+
+| | Release 资产 | Actions artifact |
+|---|---|---|
+| 装得下**本地打的**包吗 | ✅ `gh release upload` 随时传、哪台机器都行 | ❌ artifact 只能由**某次 workflow run 自己**产出；工作流跑的时候包早就打好了，没有 run 可以挂（也没有 API 能把本地文件挂到某个 run 上） |
+| 会过期吗 | 不会 | **会**：公开仓库最长 **90 天**（实测这次的 `pytest-report` 到期 2026-10-25） |
+| 自托管的人怎么取 | 公开仓库**匿名** `curl -LO …/releases/download/media/otomads-media.tar.gz` | 永远要鉴权，还得先知道 run id |
+| 适合装什么 | 发布的、要被别人消费的东西 | **这次 run 自己产出的**东西：部署记录、测试报告、构建产物 |
+
+所以分工写死成：**归档 = Release 资产**（部署源 + 自托管入口），**部署记录/测试报告 = artifact**
+（`deploy-cdn` 存 manifest + sha256，`tests` 存 JUnit XML）。artifacts 不是"构建产物的家"，
+是"这次跑出来的东西的临时抽屉"。
+
+### 5. 验证
+
+- **匿名取归档实测**：`curl -L …/releases/download/media/otomads-media.tar.gz` → **200 /
+  340,517,992 B**（不再 404、不用令牌）；GitHub 报的 digest 与本地 `sha256sum` **相同**。
+- **数据仓库 CI 真跑通了**：`tests` 工作流 **132 passed + 1 skipped**（20 秒），JUnit 作为 artifact
+  上传 ✓；那 1 条 skip 是**本来就有的条件跳过**（`test_fix_…` 需要真的 ffprobe，测试自己写明"故意不做替身"）。
+- **本地**：数据仓库 pytest **133 passed**（123 → +10）；主仓库 pytest **66 passed**（把 D146 的 4 条
+  CI 脚本守卫并成 1 条跨仓库口径守卫）；`review` 拿**真归档**跑过：`✅ 86 行 / 35 角色 / 86 条曲目条目
+  / 顶层 revision 743231decd5f6a44`；两个工作流的 YAML 用 PyYAML 本地解析过（triggers/jobs 都对）。
+- `pnpm data:build` 13 个文件 / `data:check` **无漂移**；submodule 切到新 tag。
+- 主仓库推送后：CDN 工作流只剩数据仓库那一份（`.github/workflows/` 里只有 `deploy-pages.yml`，仍是停用态）。
+
+### 6. 还没做（要人做）
+
+1. 在**数据仓库**加两个 secret（`CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID`）；
+2. 跑一次 `deploy-cdn` —— **这一跑同时是 D145 的收尾**（归档里已经是带 `albums`/`characters` 的新清单，
+   铺上去 C 才真正线上生效）；
+3. 主仓库那份**旧的私有 Release 资产**（`th09.5-260925` 下的同一个归档）确认没人用了就可以删；
+   工作区根的 `dist/`（326 MB 旧部署根）也可以删。
