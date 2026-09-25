@@ -70,6 +70,12 @@ export const Localization = {
   ShellTracks: u("tracks", "曲目"),
   ShellDataHash: u("Data hash", "数据指纹"),
   ShellLanguage: u("Language", "语言"),
+  ConfigAppearanceTitle: u("Appearance", "外观"),
+  ConfigAppearanceMode: u("Theme mode", "亮/暗模式"),
+  ConfigAppearanceModeLight: u("Light", "亮色"),
+  ConfigAppearanceModeDark: u("Dark", "暗色"),
+  ConfigAppearanceColor: u("Theme color", "主题色"),
+  ConfigAppearanceCustom: u("Custom", "自定义"),
   ShellNotYet: u("This screen arrives in a later milestone.", "该界面将在后续里程碑实现。"),
 
   // 「关于」弹窗的文字**不在这里** —— 全部在 `src/content/about.ts`（用户可以整篇改，含标题与关闭按钮）

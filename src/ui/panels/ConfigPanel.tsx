@@ -13,6 +13,7 @@ import { usePreset } from "../../store/preset";
 import type { TableMap } from "../../music/sources";
 import { presetStats } from "../../music/presetView";
 import { NoFontFamily } from "../../theme/theme";
+import { AppearanceSection } from "./config/AppearanceSection";
 import { CardSetSection } from "./config/CardSetSection";
 import { PresetSection } from "./config/PresetSection";
 import { SingleTrackSection } from "./config/SingleTrackSection";
@@ -55,6 +56,8 @@ function ConfigPanelInner({ bundle, tables }: {
         </Stack>
       </SectionPanel>
 
+      {/* 外观（亮/暗 + 主题色）紧挨着「数据」—— 都是全局偏好，与曲目/音源那些分开 */}
+      <AppearanceSection />
       <CardSetSection bundle={bundle} />
       <SourceSection bundle={bundle} tables={tables} />
       <PresetSection bundle={bundle} />
