@@ -107,7 +107,9 @@ pnpm local                                            # 起助手（工具在数
 ### 4. 曲包音频的抓取与裁剪（可选）
 
 音MAD 曲包的真源在主仓库外的数据 submodule（`data/otomads/packs/otomads/*.toml`，一角色一份，见 D128）：
-写了 `source` 的曲目可以自动抓，并按 `start_time` / `stop_time` 裁掉前摇：
+写了 `source` 的曲目可以自动抓，并按 `start_time` / `stop_time` 裁掉前摇。裁剪走"**解码后精确切 + 重编码**"
+（D142）——起点与时长**按采样点**对齐，不是就近取整到 mp3 帧边界（改之前 `-c copy` 实测偏过 90 ms，
+见 `docs/packs-audio-v1.md` §5）。
 
 ```bash
 pnpm audio:fetch                                    # 抓全部缺的 / 重裁（幂等：已就绪的会 skip）
@@ -116,8 +118,9 @@ pnpm audio:fetch --track 岁月 --dry-run              # 只看计划：标题�
 ```
 
 **并发（D132）**：默认 **4 路并发**。抓取的瓶颈**全在网络**（bilibili 的 playurl 往返 + 音频本体），
-本地那点活可以忽略：实测 `import yt_dlp` + `YoutubeDL()` ≈ 0.13 秒/首、`-c copy` 裁剪 ≈ 0.08 秒/首、
-4 分钟 m4a 全量重编码 ≈ 1.0 秒/首 —— 86 首的**本地**开销合计只有约 23 秒。所以并发重叠的是**网络等待**，
+本地那点活可以忽略：实测 `import yt_dlp` + `YoutubeDL()` ≈ 0.13 秒/首、4 分钟 m4a 全量重编码 ≈ 1.0 秒/首、
+**裁剪**（D142：解码后精确切 + V0 重编码）≈ 0.4–0.6 秒/首且只有带区间的 16 首付 ——
+86 首的**本地**开销合计约 30 秒。所以并发重叠的是**网络等待**，
 收益由带宽与站点风控决定：`--jobs` 给太大可能撞 bilibili 的 412 风控，**先用 4**，要更快再往上试。
 
 > yt-dlp 自己的 `--concurrent-fragments` 对这个场景**无效** —— 它只并行 HLS/DASH 的**分片**流，
@@ -269,7 +272,7 @@ manifest 所在那一层解析 ⇒ 换域名/端口/协议、换宿主与子路�
 | https 页面报"连接不完全安全" | 混合内容：最外层反代要转发 `X-Forwarded-Proto`；或 `PROTO=https node deploy/single-port-proxy.mjs`、助手 `--public-base`（详见 §5「单端口透传」与 `deploy/README.md`） |
 | `pnpm audio:fetch` 一启动就退出 | yt-dlp 的升级检查需要联网（连不上 PyPI 就中止，可加 `--skip-update`）；ffmpeg 缺失也在这里报错 |
 | 抓取个别曲目失败 | 站点限制 / 需登录 / 已下架：单条失败只跳过并计入汇总，其余照抓 |
-| 改了数据/换了裁剪，但音频还是老的 | 成品是按状态跳过的：`pnpm audio:fetch`（只改裁剪会复用原件重裁）；要**覆盖重拉**就加 `--force`，可配 `--track <子串>` 只重拉一部分（§4） |
+| 改了数据/换了裁剪，但音频还是老的 | 成品是按状态跳过的：`pnpm audio:fetch`（只改裁剪会复用原件重裁）；要**覆盖重拉**就加 `--force`，可配 `--track <子串>` 只重拉一部分（§4）。**改了裁剪实现**则靠状态里的**渲染口径**（`render`，D142）自动作废旧成品 —— 不用手工 `--force` |
 | 曲目计数突然变多 | 曲库里放了非点目录的原始件（第一层目录名 = 专辑名）→ 原件放 `<曲库>/.raw/` |
 | `fnm use` 报找不到版本文件 | 用 `fnm use 24`（仓库没有 `.node-version` 之类文件） |
 

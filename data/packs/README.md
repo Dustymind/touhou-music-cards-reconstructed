@@ -69,8 +69,10 @@ cd ../.. && pnpm data:build && pnpm data:validate                     # ④ 拷�
 | `stop_time` | 裁剪结束，格式同上 | 缺省 = 文件结尾（只给 `start_time` 时按结尾算，等于不裁） |
 
 两个时间键**都只在抓取/裁剪期被读**，运行时不进 `characters.json`、前端看不到；产出的音频用
-`ffmpeg -c copy` 裁剪（不重编码，误差 ≤ 一帧）。**注意**：`source` / `start_time` / `stop_time` 会进
-`public/data/index.json` 的 `contentHash` —— 两端音频口径不同会在联机握手期就被拒。
+**解码后精确切 + 重编码**裁剪（D142；`-c copy` 只能切在 mp3 帧边界、且冷启动会让头一帧解不出来，
+理由与实测见 `docs/packs-audio-v1.md` §5）—— 起点与时长因此是采样点级精确的。**注意**：
+`source` / `start_time` / `stop_time` 会进 `public/data/index.json` 的 `contentHash` ——
+两端音频口径不同会在联机握手期就被拒。
 
 ```bash
 pnpm audio:fetch --track 子串 --dry-run        # = 数据仓库的 otomads.fetch_audio（D130）
