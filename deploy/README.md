@@ -140,6 +140,21 @@ gh release upload media otomads-media.tar.gz --clobber -R Dustymind/touhou-music
 或跑一次数据仓库的 `deploy-cdn`（wrangler 直传，D147 那套）。**`deploy-cdn` 与那两个 CF secret
 要等新这条验证绿了再删**。
 
+**媒体由一个小 Worker 脚本接管**（数据仓库 `media-worker.mjs`，`wrangler.jsonc` 里
+`main` + `assets.binding` + `run_worker_first = ["/media/*"]`）：
+
+- 静态资源那条路**不认 `Range`**（实测三种写法都回 200 + 整份，老 Pages 项目给的是 206）⇒ 脚本自己切片：
+  `bytes=a-b` / `bytes=a-` / `bytes=-n` 回 206 + `content-range`，越界/乱写回 416，`HEAD` 只回头；
+- 脚本生成的响应**不吃 `_headers`**（CF 文档明说）⇒ CORS、`accept-ranges`、媒体缓存头都在脚本里设；
+- **只匹配 `/media/*`**：清单、响度表、404 仍走静态资源那条路（免费、走边缘、`_headers` 照旧生效）；
+- 代价：命中 `/media/*` 的请求从"静态资源（免费无限）"变成"Worker 请求"（免费额度 10 万/天，
+  超了会回 429 —— 86 首的站够用）；
+- **本地可验**（CF 上跑不了的东西在本地钉死）：
+  `node --test tools/tests/media_worker.test.mjs` 测 `Range` 解析；
+  `wrangler dev --config <数据仓库>/wrangler.jsonc` + `curl -H 'Range: bytes=0-99'` 测整条路
+  （2026-09-25 实测：206 + 切片逐字节相同；**注意本地那条路给的是流式响应、没有 `Content-Length`** ——
+  脚本因此会在必要时把正文读进来量长度，别改回去）。
+
 **为什么构建还要写一个 `_headers`**（`tools/build_cdn_site.py` 生成，2026-09-25 实测）：
 
 | 头 | 老 Pages 项目 | Workers 静态资源（默认） | 所以 |

@@ -5525,3 +5525,39 @@ HTML）、删 `.python-version`；`deploy/README.md` §A.3 重写成 Workers Bui
 （`max-age=14400, must-revalidate`）的缓存策略**显式钉住**（值取自老站实测，不再依赖 zone 规则）；
 `tools/tests/test_build_site.py` 加一条守卫（少了 CORS 就红）；`deploy/README.md` §A.3 加了
 "老站 / Workers 默认 / 所以怎么办"的对照表与 Range 的取舍。数据仓库 pytest **136 passed**（135 → +1）。
+
+### 9. 真浏览器把问题钉死，Range 修复进仓库（2026-09-25，同一天）
+
+**① 用户已配好 Deploy Hook，并"部署了 Worker 脚本修复 Range"** —— 但实测线上仍是 `200 + 整份`，
+而且**仓库里根本没有脚本** ⇒ 两个后果：修复没生效、且**下一次构建会把它冲掉**（Workers Builds 从仓库
+构建，面板/本地的代码改动活不过一次构建）。
+
+**② 用真浏览器问清楚了"到底需要哪些头"**（临时探针，跑完即删；`?localmusic=https://<worker>` 指过去）：
+
+```
+Access to fetch at 'https://otomads-cdn-git.mrl646.workers.dev/manifest.json' from origin 'http://127.0.0.1:5190'
+has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+```
+
+顺带**否掉了"预检"这个担心**：老 CDN 的 `OPTIONS` 也是 **405**（只是带 CORS 头），而应用今天是好的
+⇒ 应用的 `fetch(..., {cache:"no-cache"})` **不触发预检**，缺的就是响应上那个头。
+
+**③ 把 Range 修复做进仓库**（`media-worker.mjs` + `wrangler.jsonc` 挂 `main`/`assets.binding`/
+`run_worker_first = ["/media/*"]`）：
+
+| 改动 | 为什么 |
+|---|---|
+| 脚本按 `Range` 切 206（三种写法 + 416 + HEAD） | 静态资源不认 Range（实测） |
+| CORS / `accept-ranges` / 媒体缓存头写进脚本 | `_headers` **不作用于 Worker 生成的响应**（CF 文档明说） |
+| 只匹配 `/media/*` | 清单/响度表/404 继续走静态资源那条路：免费、走边缘、`_headers` 照旧 |
+| `node --test tools/tests/media_worker.test.mjs`（7 条） | `Range` → 闭区间是唯一自己写的协议解析，错了就是"播不出来/播一半" |
+
+**④ 本地把整条路验过**（`wrangler dev --config <数据仓库>/wrangler.jsonc`，小样本 dist）：
+无 Range → 200 + `accept-ranges: bytes` + CORS + `max-age=14400`；`bytes=0-99` / `bytes=100-` /
+`bytes=-100` → **206 + `content-range`**，且**切片与源文件逐字节相同**；越界与乱写 → 416；
+非媒体路径仍由静态资源服务（`manifest.json` 200 + CORS + `max-age=0`）。
+**踩到一个坑并写进注释**：本地 miniflare 那条路给的是**流式响应、没有 `Content-Length`**
+（第一版按长度切片 ⇒ 所有 Range 都回 416）；脚本改成"必要时把正文读进来量长度"。
+
+**⑤ 还没生效**：push 不触发构建（`build-info.json` 轮询 404 五分钟为证）⇒ 需要用户在面板点一次
+Retry，或用他刚配好的 Deploy Hook（`gh workflow run trigger-cdn.yml -R …`）触发一次。
