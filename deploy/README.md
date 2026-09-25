@@ -77,30 +77,40 @@ Vercel 用 `vercel.json` 的 `headers`；GitHub Pages **不认** `_headers`（�
    回环地址被浏览器当可信来源，不算混合内容。填 `http://<私有 IP>:8011` 就**会被拦**（只有 loopback 豁免），
    那种情况要给助手套一层 TLS 反代并转发 `X-Forwarded-Proto`。
 
-### 素材站（默认 CDN）的部署（D148：**Cloudflare Pages 的 Git 集成自己构建**）
+### 素材站（默认 CDN）的部署（D148：**Cloudflare 的 Git 集成自己构建**）
 
-默认音源指的 `otomads-cdn.tsukinomiyako-mangesui.top` 是 Cloudflare Pages 上**独立于应用**的一个站点，
+默认音源指的 `otomads-cdn.tsukinomiyako-mangesui.top` 是 Cloudflare 上**独立于应用**的一个站点，
 内容就是素材归档解出来的那一份。**D148 起部署交给 CF 自己的 CI**（Git 集成连的是**数据仓库**）：
 两个仓库的 GitHub Actions 都不再经手部署 —— 数据仓库那条 `deploy-cdn`（wrangler 直传）降级成**回滚手段**。
 
-**为什么不能"改现有项目"**：CF 明说 Direct Upload 的项目**不能**转成 Git 集成
-（[Direct Upload 文档](https://developers.cloudflare.com/pages/get-started/direct-upload/)：
-"You cannot switch to Git integration later"），而 `otomads-cdn` 正是 `wrangler pages deploy` 直传建的
-⇒ 只能**新建一个 Git 集成的项目**，再把自定义域名搬过去。
+**先看清是哪一种宿主**（2026-09-25 实测踩过）：CF 面板的 "Create → Connect to Git" 现在默认给的是
+**Workers Builds 项目**（一个只放静态资源的 **Worker**），不是老的 Pages 项目 —— 构建日志里会出现
+`Executing user deploy command: npx wrangler deploy …`。两者要的配置不同：
 
-**面板里怎么建（一次性）**
+| | Pages 项目 | **Workers Builds（现在这个）** |
+|---|---|---|
+| 资源目录 | 面板里的 "Build output directory" | 仓库里的 **`wrangler.jsonc`** → `assets.directory` |
+| 部署命令 | 面板自动处理 | 面板里的 **Deploy command**，要写 `npx wrangler deploy`（**不带** `dist` 参数 —— 位置参数会被当成 Worker 脚本路径） |
+| 域名 | Custom domains | Worker → Settings → **Domains & Routes** |
+| 旧项目能不能改造成它 | — | **不能**：Direct Upload 的项目不能转 Git 集成（[官方文档](https://developers.cloudflare.com/pages/get-started/direct-upload/)），所以是"新建一个 + 搬域名" |
 
-1. Workers & Pages → Create → Pages → **Connect to Git** → 装/授权 CF 的 GitHub App → 选
-   `Dustymind/touhou-music-cards-otomads-data`（公开仓库，不需要额外权限）；
-2. 项目名随意（例如 `otomads-cdn-git`），**Production branch = `main`**；
-3. Build command = `python3 tools/build_cdn_site.py`；Build output directory = `dist`；
-4. 环境变量 `SKIP_DEPENDENCY_INSTALL=1`（仓库根没有 package.json / requirements.txt，本来也不会自动装，
-   写上更省心）；Python 版本由数据仓库根的 `.python-version`（3.13）钉住，CF 的构建镜像自带 3.13；
-5. 先手动触发一次（Create deployment / Retry），用 `<项目名>.pages.dev` 验证 —— **这一步不动线上**；
-6. 验证绿了再把 `otomads-cdn.tsukinomiyako-mangesui.top` 从老项目**移除**、挂到新项目上
-   （同一时刻只能挂一个项目；老项目先别删 —— 回滚就是把域名挂回去）。
+**面板里要设的（一次性）**
 
-**构建里发生什么**（数据仓库 `tools/build_cdn_site.py`，纯标准库、不装任何依赖）：
+1. Workers & Pages → Create → Connect to Git → 选 `Dustymind/touhou-music-cards-otomads-data`
+   （公开仓库，不需要额外权限），生产分支 `main`；
+2. **Build command** = `python3 tools/build_cdn_site.py`；
+3. **Deploy command** = `npx wrangler deploy`；
+4. 环境变量 `SKIP_DEPENDENCY_INSTALL=1`（仓库根没有 package.json / requirements.txt，本来也不会自动装）；
+5. Worker 名 = `otomads-cdn-git`（与 `wrangler.jsonc` 里的 `name` 一致，否则 wrangler 会警告并擅自改名）；
+6. 手动跑一次 → 用 **`<worker>.<account>.workers.dev`** 验证（这一步不动线上）→ 再把
+   `otomads-cdn.tsukinomiyako-mangesui.top` 从老 Pages 项目**移除**、作为 **Custom Domain** 加到 Worker 上
+   （同一时刻只能挂一处；老项目先别删 —— 回滚就是把它挂回去）。
+
+**`wrangler.jsonc` 里为什么是那三样**：`name`（对齐 CI）、`compatibility_date`（wrangler 上传 Worker 的硬要求，
+删除会直接报错）、`assets.directory = "./dist"` + `not_found_handling = "none"`（找不到就 404，
+与老站一致 —— 这个站点只放 manifest / 媒体 / 响度表，**不能**回退成 HTML）。
+
+**构建里发生什么**（数据仓库 `tools/build_cdn_site.py`，纯标准库、不装依赖）：
 
 ```
 取 Release（tag `media`，公开 ⇒ 无令牌）→ stage_media review（不过就不铺）→ 解到 dist/ → 打印摘要
@@ -109,13 +119,15 @@ Vercel 用 `vercel.json` 的 `headers`；GitHub Pages **不认** `_headers`（�
 `review` 是**部署守卫**：清单五键、每一行都有对应文件，并拿**仓库里的 `packs/`** 对照
 （"归档少了 = 改完 packs 忘了重打包"，只警告不拦）。**manifest 不在构建里重生成** ——
 逐曲 `revision` 是打包那台机器的 mtime 指纹，容器里没有那些文件 ⇒ 原样铺归档里那份。
+（实测一次构建：Python 用镜像自带的、下 340 MB 约 15 秒、`review` + 解包 1 秒。
+所以数据仓库根**故意不放 `.python-version`** —— 钉 `3.13` 会让 CF 现装一份 Python，白等 2 分 40 秒。）
 
 **触发**
 
 | 更新类型 | 怎么触发 |
 |---|---|
 | 加曲目 / 改裁量 / 改响度表（`packs/`、`loudness/` 有变化）| 数据仓库 **push** ⇒ 自动构建 |
-| **只换了音频**（D142/D143 那种：git 里没有任何变化）| `gh workflow run trigger-cdn.yml -R Dustymind/touhou-music-cards-otomads-data`（POST 一次 [Deploy Hook](https://developers.cloudflare.com/pages/configuration/deploy-hooks/)）；没配那个 secret 就去面板点 Retry deployment |
+| **只换了音频**（D142/D143 那种：git 里没有任何变化）| `gh workflow run trigger-cdn.yml -R Dustymind/touhou-music-cards-otomads-data`（POST 一次 [Deploy Hook](https://developers.cloudflare.com/pages/configuration/deploy-hooks/)）；没配那个 secret 就去面板点 Retry |
 
 **打包与发布仍然是手动的**（素材不进仓库、逐曲版本号来自本机 mtime）：
 
@@ -124,17 +136,30 @@ cd <主仓库> && pnpm media:pack
 gh release upload media otomads-media.tar.gz --clobber -R Dustymind/touhou-music-cards-otomads-data
 ```
 
-**回滚两条**：① CF 面板里回滚到上一个 deployment（秒级）；② 把域名挂回老项目 `otomads-cdn`，
+**回滚两条**：① CF 面板里回滚到上一个 deployment（秒级）；② 把域名挂回老 Pages 项目 `otomads-cdn`，
 或跑一次数据仓库的 `deploy-cdn`（wrangler 直传，D147 那套）。**`deploy-cdn` 与那两个 CF secret
-要等 CF 这条验证绿了再删**。
+要等新这条验证绿了再删**。
+
+**为什么构建还要写一个 `_headers`**（`tools/build_cdn_site.py` 生成，2026-09-25 实测）：
+
+| 头 | 老 Pages 项目 | Workers 静态资源（默认） | 所以 |
+|---|---|---|---|
+| `Access-Control-Allow-Origin: *` | 自带 | **没有** | **必须写**：应用在别的源上 `fetch()` 读 manifest，少了它会被浏览器挡掉（"源状态一直 error、曲目表永远走兜底"）。媒体播放不受影响（`<audio>` 没设 `crossOrigin`、且 `preload="auto"`） |
+| 清单/响度表 `max-age=0, must-revalidate` | 有 | 默认就是这个 | 显式写出来，不再依赖默认值 |
+| 媒体 `max-age=14400` | 有（zone 规则） | 默认 `max-age=0` | 显式写出来恢复老行为（`?v=` 已经保证换版本必换 URL） |
+| `Range` → **206** | 支持 | **不支持**（实测：三种 `Range` 都返回 200 + 整份） | 只影响"跳到随机起播位"要多下一些字节；`preload="auto"` 本来就会下整首 ⇒ 接受，要恢复就得写 Worker 脚本（见下） |
 
 **排查**
 
-- 构建失败 ⇒ CF 面板 Deployments → 那条 → 构建日志（`review` 的报错原样打在那里，线上保持原样）；
-- 线上清单没变 ⇒ 多半是"只换了音频、没触发构建"（见上表），而不是缓存（manifest 是 `max-age=0, must-revalidate`）；
-- **切到新项目后若缓存头变了**（媒体不再 `max-age=14400`）：说明原来的策略来自老项目而不是 zone 规则 ——
-  在构建产物里加一个 `_headers`（写法见本仓库 `public/_headers`）即可。现在**故意不加**：归档里没有它，
-  加了反而会改变现状（2026-09-25 实测过：清单/响度表 `max-age=0, must-revalidate`、媒体 `max-age=14400`）。
+- 构建失败（`review` 不通过）⇒ 日志里会原样打出问题，**线上保持原样**（这次没部署）；
+- `[ERROR] A compatibility_date is required` ⇒ `wrangler.jsonc` 缺 `compatibility_date`（或 deploy 命令没走到配置）；
+- `[WARNING] Failed to match Worker name … expected "otomads-cdn-git"` ⇒ `wrangler.jsonc` 的 `name` 与面板不一致；
+- 线上清单没变 ⇒ 多半是"只换了音频、没触发构建"，而不是缓存（manifest 是 `max-age=0, must-revalidate`）；
+- 线上 manifest 取不到 / 源状态一直 error ⇒ 先看 `_headers` 有没有跟着部署上去（`curl -D - -o /dev/null <站点>/manifest.json | grep -i access-control`）；
+- **想让媒体重新支持 `Range`（206）**：Workers 静态资源不认 Range（实测）。要恢复就得加一个**很小的 Worker 脚本**
+  （`main` + `assets.binding = ASSETS` + `run_worker_first = ["/media/*"]`，在脚本里按下 `Range` 头切片返回 206）——
+  代价是媒体请求改走 Worker（免费额度 100k/天，够用），收益只是"随机起播省点字节"。**默认不做**，
+  因为 `<audio>` 的 `preload="auto"` 本来就会把整首拉下来。
 
 ## B. 单端口部署（方案 B）
 

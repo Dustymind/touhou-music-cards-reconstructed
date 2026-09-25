@@ -5470,3 +5470,58 @@ CF 的构建镜像（Ubuntu 22.04 / gVisor）自带 **Python 3.13.3**、Node 22�
 2. 可选：加 secret `CF_DEPLOY_HOOK`（音频-only 的更新用它一键重铺）；
 3. CF 绿了之后：删 `deploy-cdn.yml`、删那两个 CF secret、删老项目 `otomads-cdn`，
    顺便删主仓库那份旧私有 Release 资产与工作区根的 `dist/`。
+
+### 7. D148 追补：第一次真跑，**构建成功、部署那步红了**（2026-09-25，用户贴的 CF 日志）
+
+```
+Detected the following tools from environment: python@3.13.15
+SKIP_DEPENDENCY_INSTALL is present … Skipping automatic dependency installation.
+Executing user build command: python3 tools/build_cdn_site.py
+⬇️  取归档：… /releases/download/media/otomads-media.tar.gz
+    落盘 otomads-media.tar.gz（340517992 B）
+✅ 铺好 /opt/buildhome/repo/dist：86 行地址 / 35 个角色 / 86 条曲目条目 / 顶层 revision 743231decd5f6a44
+Success: Build command completed
+Executing user deploy command: npx wrangler deploy dist          ← 红在这里
+✘ [ERROR] A compatibility_date is required when uploading a Worker.
+```
+
+**两个发现**：
+
+1. **"Connect to Git" 现在默认给的是 Workers Builds 项目**（一个只放静态资源的 **Worker**），
+   不是老的 Pages 项目 —— 日志里的 `npx wrangler deploy …`、"the CI system expected **otomads-cdn-git**"
+   与"要 `compatibility_date`"都是这一点的证据。于是要的配置也不同：资源目录由仓库里的
+   **`wrangler.jsonc`**（`assets.directory`）说了算，面板那一格 "Build output directory" 是 Pages 才有的；
+   Deploy command 要写 **`npx wrangler deploy`**（**不带** `dist`：位置参数会被当成 Worker 脚本路径）。
+2. **`.python-version` 是自找的 2 分 40 秒**：钉 `3.13` ⇒ CF 现装一份 Python（10:27:19 → 10:30:00），
+   而镜像本来就带 3.13.3（工具只要 ≥3.11）⇒ **删掉它**。构建本体只花约 1 秒（下 340 MB 约 15 秒）。
+
+**改了什么**：数据仓库加 `wrangler.jsonc`（`name = otomads-cdn-git`、`compatibility_date = 2026-09-23`
+即 CF 建议值、`assets.directory = ./dist`、`not_found_handling = none` —— 老站根路径就是 404，不能回退成
+HTML）、删 `.python-version`；`deploy/README.md` §A.3 重写成 Workers Builds 版（含"先看清是哪一种宿主"的对照表
+与排查四条）；`README.ai.MD` 同步。**没动 tag**（改的是 CF 的配置与文档，不进 submodule 的消费面）。
+
+**下一步（用户）**：面板里把 Deploy command 改成 `npx wrangler deploy` → 重跑 → 用
+`<worker>.<account>.workers.dev` 验证（`curl` 一下 manifest 的键与行数）→ 再把自定义域名从老 Pages 项目
+搬到 Worker 的 Domains & Routes。
+
+### 8. 第一次真部署的验收（2026-09-25，`otomads-cdn-git.mrl646.workers.dev`）
+
+用户改了 Deploy command 后部署成功。逐项实测（走本机代理 —— `*.workers.dev` 在本机**直连被 DNS 污染**，
+解析到 `2a03:2880:…face:b00c…`，这本身也是"必须尽快搬自定义域名"的理由）：
+
+| 项 | 结果 |
+|---|---|
+| `manifest.json` 与归档 | **逐字节相同**（`ad0a4bf7…`，86 行 / 35 角色 / 86 条 / revision `743231decd5f6a44`） |
+| `loudness/otomads.json` | **逐字节相同**（`acbc0271…`） |
+| 抽一首音频全量下载 vs 本机曲库 | **逐字节相同**（1,745,964 B / `d877a8ce…`） |
+| 根路径 `/` | **404**（`not_found_handling: none` 生效 ✓，与老站一致） |
+| 清单/响度表缓存头 | `public, max-age=0, must-revalidate` ✓（与老站一致） |
+| **CORS** | ✗ **丢了**：Workers 静态资源默认不发 `Access-Control-Allow-Origin`，而老 Pages 项目自带 ⇒ 应用（在别的源上）`fetch()` 这份 manifest 会被浏览器挡掉（媒体不受影响：`<audio>` 没设 `crossOrigin`、且 `preload="auto"`） |
+| **Range** | ✗ **不认**：三种 `Range` 请求都返回 **200 + 整份**（老 CDN 是 206 + `content-range`）。只影响"跳到随机起播位"要多下点字节；`preload="auto"` 本来就会下整首 ⇒ 接受，恢复它要加 Worker 脚本（写在 `deploy/README.md` §A.3） |
+
+**改了什么**：`tools/build_cdn_site.py` 现在往构建产物里写一个 **`_headers`**（Workers 静态资源认它、
+且不会把它当资源发出去）：`Access-Control-Allow-Origin: *` + `Access-Control-Expose-Headers: …` +
+`X-Content-Type-Options: nosniff`，并把清单/响度表（`max-age=0, must-revalidate`）与媒体
+（`max-age=14400, must-revalidate`）的缓存策略**显式钉住**（值取自老站实测，不再依赖 zone 规则）；
+`tools/tests/test_build_site.py` 加一条守卫（少了 CORS 就红）；`deploy/README.md` §A.3 加了
+"老站 / Workers 默认 / 所以怎么办"的对照表与 Range 的取舍。数据仓库 pytest **136 passed**（135 → +1）。
