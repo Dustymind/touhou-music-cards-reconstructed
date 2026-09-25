@@ -164,6 +164,18 @@ push(main) ─▶ ① test ─▶ ② repack（变了才换 media 资产）─�
 > 否则 CI 重打的清单与本机打的永远对不上、客户端每次重下 324 MB；
 > `tools/tests/test_repack.py` 钉着"本机打包 == CI 重打（逐字节相同）"。
 
+**D150 首次上线复验**（2026-09-25，run `36178163651` 手动触发；③ 三段全跑）：
+
+| 项 | 值 |
+|---|---|
+| `build-info.json` | `builtAt 2026-09-25T19:12:46Z` / `commit 053f21d8fee0` / `branch main` / 归档 sha `c8a7d0795a3c9666…` |
+| `manifest.json` | **87 行**（86 + 新曲目）、`revision 82d65f99b835f10f`、36 角色、声明 `loudness/otomads.json` |
+| 新曲目音频 | `Range: bytes=0-99` → **206** + `content-range: bytes 0-99/4672583` + `accept-ranges: bytes` + CORS `*` |
+| 响度表 / 根路径 | `200 application/json` / **404**（照旧） |
+
+（`19:06` 那次 push 触发的 `publish` 里第③段还是 **skipped** —— 那时 `CLOUDFLARE_API_TOKEN` 刚配上，
+所以首次真正上线是紧接着的手动那次；之后的 push 都会走完三段。）
+
 **新音频仍然得在本机打包发布**（素材不进仓库，打包要读本机文件才能算内容哈希）：
 
 ```bash
