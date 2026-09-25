@@ -5712,3 +5712,30 @@ Git Repository → Manage，外加 GitHub 侧检查 App 安装）后**仍未恢�
 （`gh secret list` 只剩 `CLOUDFLARE_API_TOKEN`，创建于 `19:11:14Z`），老 Pages 项目 `otomads-cdn`
 的 `otomads-cdn.pages.dev` 也已解析不到。**删完复验**：`build-info.json` / `manifest.json` **200**、
 媒体 `Range` → **206**、根 **404** ⇒ 删构建项目**没有**把 Worker 与自定义域名带走（Worker 本身是独立资源）。
+
+---
+
+## D151 按音乐模式分键的 store 样板收进 `makeModeStores()`（2026-09-25）
+
+**背景**：`preset` / `single` / `queue` / `sources` 四个 store 各有一整套**同样的装配** ——
+`slices: Record<MusicMode, …>`、`xxxStoreFor(mode)`、`useXxx()` 的三重载（无参 = 当前模式那把 /
+传 selector 取一段），每份 15–18 行逐字相同（只差类型名与导出名）。D110 定下"状态按模式分键"之后，
+这层样板就一直是复制粘贴（一次审计里被点出来：69 行 × 4）。
+
+**做法**：`src/store/modeScope.ts` 导出 `makeModeStores(makeSlice)`（返回 `storeFor` / `currentStore` /
+`useStore` 与 `ModeStore` / `ModeHook` 类型）。各 store 只留自己的 `makeSlice`（state、行为、校验、`prune`），
+尾部样板 15–18 行 → 3 行。**对外导出名与两个可见重载签名逐字不变**；`useXxx()` 无参仍**每次现取**
+当前模式那把（缓存"上一次的模式"会在切模式后拿到旧表 —— 这是这条重构最容易踩的地方）。
+
+**没动的**：`sources.prune` 与 `single.prune` 口径一致但没抽公共 helper；`single.ts` 的布尔过滤
+（**只留 `true`**）与 `preset`/`queue` 的 `pickBooleanMap`（true + false）**语义不同，不合并**；
+D110 里"故意不分键"的 seed / sources / session.musicMode 三项没有被卷进来。
+
+**验证**：`pnpm typecheck` exit 0；`pnpm test:chromium` **428 passed**（426 + 新增的 2 条工厂用例）；
+改动面的 e2e（`smoke` / `mobile` / `multiplayer`）全绿。新增 `modeScope.test.ts` 钉两条：
+"同一个模式每次拿到同一把、改一边不动另一边"与"`useStore` / `currentStore` 跟着会话模式换表"。
+
+**顺带（同一轮）**：`GamePanel` 的"自己 / 电脑"两组 `补满+洗牌+清空` 与 `PresetSection` 三处
+"全选 / 全不选"按钮对抽成文件内组件；抽完用**归一化 `outerHTML` 哈希**与改前逐字比对
+（`c354d99a` / `24b68a80` / `ce59584b` len=16318，两边相同）⇒ DOM 与 `data-testid` 没变，
+e2e 按 testid 的断言照旧。
