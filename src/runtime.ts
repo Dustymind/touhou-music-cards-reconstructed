@@ -1,5 +1,4 @@
 /** 启动期 URL 参数（对齐上游的彩蛋入口）。 */
-import { isCheatReally } from "./cheat";
 
 function params(): URLSearchParams {
   return new URLSearchParams(typeof window === "undefined" ? "" : window.location.search);
@@ -20,4 +19,3 @@ export function preferR2Cards(): boolean {
   return params().has("r2");
 }
 
-export { isCheatReally };
