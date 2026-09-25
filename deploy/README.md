@@ -139,7 +139,7 @@ Vercel 用 `vercel.json` 的 `headers`；GitHub Pages **不认** `_headers`（�
 |---|---|---|
 | 曲目表元数据（标题/作者/附加信息/卡面、删曲目）、响度表 | 数据仓库 **push 即自动**：`repack-media` 用上一份归档的媒体重打 | **会** |
 | 站点侧文件（`wrangler.jsonc`、`media-worker.mjs`、`tools/**`、工作流）| 同上（同一条链路里会重建）| **会** |
-| **新音频**（新抓/重裁）| 只能在**本机**：`pnpm media:pack` → 传 `media` 资产 → `gh workflow run trigger-cdn.yml -R …` | **会** |
+| **新音频**（新抓/重裁）| 只能在**本机**，且**先传资产、再推源码**：`pnpm media:pack` → `gh release upload media … --clobber` → push（packs 变了才要推；没推就补 `gh workflow run trigger-cdn.yml -R …`）| **会** |
 | 只改文档 | push 触发重建，但归档逐字节没变 ⇒ 不换资产 | 站点重建一次，内容不变 |
 
 > **D149 起**：`repack-media`（push + 手动）负责"重打归档 → 变了就换 `media` 资产 → POST
