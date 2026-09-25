@@ -463,5 +463,11 @@ if is_anthology:
 **这个机制要生效，源侧的 manifest 必须已经是带版本号的那一版**：
 
 - **本机助手**：改了代码就是新的 ✓（`pnpm local` 起来即可）；
-- **CDN / 自托管**：要用新归档重铺一次（`pnpm media:pack` → 解到宿主根目录）；
-  旧 manifest 没有 `revision` ⇒ 前端照旧不拼 `?v=`，行为与改前**完全一致**（不会坏，只是没有这个能力）。
+- **Release 归档 / 自托管**：归档已用新 manifest 重打并**换掉了 Release 资产**
+  （336,719,238 → **340,516,723 B**，sha256 `f80fa36f…` → **`dcd2f98580a2634f…`**；
+  上传前把归档解出来与 `.music/otomads/` **全量逐字节比过**，上传后 GitHub 报的 digest 与本地一致 ✓）。
+  自托管的人重新取一次归档解到宿主根目录即可生效。
+- **项目 CDN**（`otomads-cdn.tsukinomiyako-mangesui.top`，默认源）：**还没重铺** ——
+  静态音MAD 源按 D138/D141 的裁定是手动部署，由用户自己挑时机铺。
+  在铺之前，CDN 那份 manifest 没有 `revision` ⇒ 前端照旧不拼 `?v=`，
+  行为与改前**完全一致**（不会坏，只是没有这个能力）。
