@@ -1,6 +1,7 @@
 /** 音乐源解析：按 fallback 顺序在已启用的源表里找 URL，并记住会话内的失败。 */
 import type { SourceRecord } from "../data/types";
 import { trackId } from "../data/types";
+import { parsePackSnapshot, type PackSnapshot } from "../data/packSnapshot";
 
 type SourceStatus = "idle" | "loading" | "ready" | "error";
 
@@ -14,6 +15,12 @@ interface SourceTable {
    * 播放层优先用它（表跟着源部署），没有才回落到注册表里那份（相对数据集目录，D130）。
    */
   loudnessUrl?: string;
+  /**
+   * 源在**自己的 manifest 里**给的"包数据"（曲目表快照，D145）；老清单没有就是 undefined。
+   * 与 `loudnessUrl` 同一个套路：**同一个 payload 里解析，不额外发请求**。
+   * 形状不对时也是 undefined（`parsePackSnapshot` 严格校验 ⇒ 走自带那份兜底，绝不半信半疑地用）。
+   */
+  snapshot?: PackSnapshot;
   error?: string;
 }
 
@@ -238,6 +245,10 @@ export async function loadSourceTables(
       if (typeof declared === "string" && declared.trim()) {
         table.loudnessUrl = sourceRelativeUrl(source.tableUrl, declared);
       }
+      // 同一个 payload 里还可能有"包数据"（曲目表跟着源走，D145）：它决定这个包有哪些曲目，
+      // 由调用方（AppShell）交给 `withPackSnapshot` 重建数据集。**不发第二个请求**。
+      const snapshot = parsePackSnapshot(payload);
+      if (snapshot !== undefined) table.snapshot = snapshot;
       table.status = "ready";
     } catch (error) {
       table.status = "error";

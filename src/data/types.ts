@@ -24,7 +24,8 @@ export interface CharacterRecord {
   music: MusicEntry[];
 }
 
-type AlbumKind = "game" | "fighting" | "hifuu" | "other";
+/** 专辑种类：`game` 游戏正作 / `fighting` 格斗作 / `hifuu` 秘封 / `other` 其它（曲包自带的多半是 other）。 */
+export type AlbumKind = "game" | "fighting" | "hifuu" | "other";
 
 export interface AlbumRecord {
   key: string;

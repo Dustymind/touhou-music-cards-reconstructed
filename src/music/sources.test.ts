@@ -263,3 +263,41 @@ describe("源自己声明的响度表：跟着源走（D139）", () => {
     expect(result.tables.mirror!.entries.size).toBe(2);
   });
 });
+
+describe("源给的曲目表快照：同一个 payload，不额外发请求（D145）", () => {
+  const LOCAL = {
+    id: "local", label: { en: "l", zh: "l" }, tableUrl: "manifest.json", kind: "local" as const,
+    order: 1, enabled: true, proxyable: false, description: { en: "", zh: "" },
+  };
+  const SNAPSHOT = {
+    albums: [{ key: "otomads", name: "otomads", kind: "other", pack: "otomads", order: 100,
+      showAlbumName: false }],
+    characters: [{ key: "cirno", music: [["otomads", "おてんば恋娘", "角色曲", "作者"]], card: ["c.png"] }],
+  };
+
+  it("解析出来挂在源表上（调用方拿去重建数据集）", async () => {
+    const payload = { schema: 1, pack: "otomads", tracks: rows, ...SNAPSHOT };
+    const fetcher = vi.fn(async () => new Response(JSON.stringify(payload), { status: 200 })) as unknown as typeof fetch;
+    const result = await loadSourceTables([LOCAL], {}, fetcher);
+    expect(result.tables.local!.status).toBe("ready");
+    expect(result.tables.local!.snapshot).toEqual(SNAPSHOT);
+    expect(fetcher).toHaveBeenCalledTimes(1);          // 快照就在同一份 payload 里
+  });
+
+  it("老清单（没有这两个键）⇒ 没有快照，行为与改前一致", async () => {
+    const fetcher = vi.fn(async () =>
+      new Response(JSON.stringify({ schema: 1, pack: "otomads", tracks: rows }), { status: 200 })) as unknown as typeof fetch;
+    const result = await loadSourceTables([LOCAL], {}, fetcher);
+    expect(result.tables.local!.snapshot).toBeUndefined();
+    expect(result.tables.local!.entries.size).toBe(2);
+  });
+
+  it("形状不对的快照整段丢掉（走自带那份兜底，绝不半信半疑地用）", async () => {
+    const payload = { schema: 1, pack: "otomads", tracks: rows, albums: SNAPSHOT.albums,
+      characters: [{ key: "cirno", music: [["otomads", "曲", "插曲"]] }] };
+    const fetcher = vi.fn(async () => new Response(JSON.stringify(payload), { status: 200 })) as unknown as typeof fetch;
+    const result = await loadSourceTables([LOCAL], {}, fetcher);
+    expect(result.tables.local!.status).toBe("ready");   // 源本身是好的
+    expect(result.tables.local!.snapshot).toBeUndefined();
+  });
+});

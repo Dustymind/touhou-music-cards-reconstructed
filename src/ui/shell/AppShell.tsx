@@ -19,7 +19,8 @@ import { sourceStoreFor, useSourceOverrides } from "../../store/sources";
 import { usePlayer } from "../../audio/usePlayer";
 import { GAME_FADE_MS } from "../../audio/fade";
 import { allowedTracks, mergeWithDefaults } from "../../music/selection";
-import { useCurrentDataset } from "../../data/useDataset";
+import { datasetFor } from "../../data/useDataset";
+import { withPackSnapshot } from "../../data/packSnapshot";
 import { effectivePin } from "../../music/presetView";
 import { singleStoreFor, useSingleTrack } from "../../store/single";
 import { useGame } from "../../game/useGame";
@@ -76,8 +77,34 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
     tab, setTab, locale, cardCollection, musicMode, localMusicUrl,
     entryRequest, setEntryRequest,
   } = useSession();
-  /** 当前音乐模式的数据集（C：两个模式各一份，切换即换这份） */
-  const dataset = useCurrentDataset(bundle);
+  /**
+   * 自带数据集（当前模式那份）：它决定**取哪些源表**。放在最前面是因为源现在也提供**曲目表**
+   * （D145）—— 数据集要等源回答之后才能定下来。`withPackSnapshot` 不换音源注册表，所以
+   * 用哪一份的 `sources` 取表都一样（这里用自带那份，依赖是同一个数组，不会自转）。
+   */
+  const bakedDataset = datasetFor(bundle, musicMode);
+  const { overrides: sourceOverrides } = useSourceOverrides();
+  const sources = useSources(bakedDataset.sources, sourceOverrides, localMusicUrl);
+
+  /** 源给的曲目表（D145）：按回退顺序取第一个拿到了的源。注册表里音MAD 只有一个源，这是保守写法。 */
+  const snapshot = useMemo(() => {
+    for (const sourceId of sources.order) {
+      const found = sources.tables[sourceId]?.snapshot;
+      if (found !== undefined) return found;
+    }
+    return undefined;
+  }, [sources.tables, sources.order]);
+
+  /**
+   * **生效的数据集** = 自带那份 + 源给的曲目表。取不到（老清单 / 源挂了 / 形状不对）就用自带那份。
+   *
+   * 中间态：首个可玩帧**不等源**（先按自带那份渲染，D145 §8.4 的裁定）；源回来之后整棵子树跟着
+   * `liveBundle` 重渲染 —— 队列、预设、单曲存档都有各自的 sync/prune 跟着新表走，而
+   * `window.__TMC_DATA_HASH__` 也在同一次重渲染里改写。建/加入房间是用户动作、必然更晚，
+   * 所以握手期拿到的一定是**生效后**的哈希。
+   */
+  const liveBundle = useMemo(() => withPackSnapshot(bundle, snapshot), [bundle, snapshot]);
+  const dataset = datasetFor(liveBundle, musicMode);
   const preset = usePreset();
   const queue = useQueue();
   const single = useSingleTrack();
@@ -91,10 +118,13 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
    */
   const gameActive = game.state !== "selecting" && game.state !== "finished";
 
-  // 联机握手要用静态数据哈希：挂在 window 上，避免层层透传
+  // 联机握手要用静态数据哈希：挂在 window 上，避免层层透传。
+  // **用生效后的那份**（D145）：源给了曲目表就按它算 —— 否则一端有源、一端只有兜底时，
+  // 明明曲目表一样却会在握手期被判"数据不一致"。
   useEffect(() => {
-    (window as unknown as { __TMC_DATA_HASH__?: Record<string, string> }).__TMC_DATA_HASH__ = dataHashes(bundle);
-  }, [bundle]);
+    (window as unknown as { __TMC_DATA_HASH__?: Record<string, string> }).__TMC_DATA_HASH__ =
+      dataHashes(liveBundle);
+  }, [liveBundle]);
 
   // 预设：持久化状态与新专辑默认勾选合并（首帧就要用它算队列，不能等 effect）
   const activePreset = useMemo(() => mergeWithDefaults(preset, dataset.albums), [preset, dataset.albums]);
@@ -105,7 +135,7 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
   useEffect(() => {
     preset.sync(dataset.albums);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bundle, musicMode]);
+  }, [liveBundle, musicMode]);
 
   /** 仅单曲模式：每角色固定一首（未手选则取预设允许的第一首）。 */
   const pinned = useMemo(() => {
@@ -136,9 +166,7 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [usableKeySignature]);
 
-  // 音源也按模式分：注册表随数据集走，开关/顺序用当前模式那把存档（契约 sources-separation-v1.md）
-  const { overrides: sourceOverrides } = useSourceOverrides();
-  const sources = useSources(dataset.sources, sourceOverrides, localMusicUrl);
+  // 音源表在上面（D145：源也提供曲目表，数据集要等它回来）—— 这里只剩"数据更新后清理死条目"。
 
   // 数据更新后清理存档里的死条目：注册表里没有的音源 id、数据集里没有的角色 key。
   // 两把 store 都按音乐模式分键，两处都取**当前模式**那一把，所以不会误删另一模式。
@@ -178,9 +206,10 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
 
   // 外置曲库（音MAD 曲包）的曲目署名：**本地曲库助手没在跑就是空数组**（`packAuthorsFor` 里判的），
   // 空数组时弹窗里那一行整行不显示。`sources.tables` 换了身份（载入进度变化）就重算。
+  // 用**生效后**的 bundle：源多给的曲目（含它们的作者）也要出现在署名里（D145）。
   const packAuthors = useMemo(
-    () => packAuthorsFor(bundle, dataset, sources.tables),
-    [bundle, dataset, sources.tables],
+    () => packAuthorsFor(liveBundle, dataset, sources.tables),
+    [liveBundle, dataset, sources.tables],
   );
 
   const player = usePlayer({
@@ -339,9 +368,11 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
       {/* MD2 响应式页边距：移动 16dp / 桌面 24dp */}
       <Container maxWidth={false} sx={{ px: { xs: 2, md: 3 }, py: 3 }}>
         <Stack spacing={3} sx={{ width: "100%" }}>
+          {/* 四个面板都拿**生效后**的 bundle（D145）：它们内部各自 `useCurrentDataset(bundle)`，
+              传自带那份的话，源多给的曲目就只在这一层可见、进不了列表/播放页/对局 */}
           {tab === "player" && (
             <PlayerPanel
-            bundle={bundle}
+            bundle={liveBundle}
             player={player}
             tables={sources.tables}
             order={queue.order}
@@ -361,16 +392,16 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
           )}
           {tab === "list" && (
             <ListPanel
-              bundle={bundle}
+              bundle={liveBundle}
               onPlayTrack={playTrack}
               playingKey={gameActive ? game.currentKey : queue.currentKey}
               playingEntry={player.entry}
             />
           )}
           {tab === "config" && (
-            <ConfigPanel bundle={bundle} tables={sources.tables} />
+            <ConfigPanel bundle={liveBundle} tables={sources.tables} />
           )}
-          {tab === "game" && <GamePanel bundle={bundle} />}
+          {tab === "game" && <GamePanel bundle={liveBundle} />}
         </Stack>
       </Container>
     </Box>

@@ -152,3 +152,25 @@ def test_author_join_matches_the_data_repo_helper():
     # `authors` 这个键两边都要认（只认一边 ⇒ 曲包一写就被另一边当成"不认识的键"拒掉）
     for path in (helper, pathlib.Path(pack_mod.__file__)):
         assert '"authors"' in path.read_text(encoding="utf-8"), path
+
+
+# ------------------------------------------------------------------ 跨仓库耦合：曲目条目形状（D145）
+
+#: **共享测试向量**：与数据仓库 `tools/tests/test_pack_audio.py::PACK_MUSIC_VECTOR` **同一份字面量**。
+#: 数据仓库那边盯着 `packformat.music_entry`（源在自己的清单里发的曲目表），这里盯着 `_pack_music`
+#: （构建期写进自带数据的曲目表）—— 两边必须**逐字同形**，否则应用按 (专辑, 曲名) 配不上地址，
+#: 表现成"看得见、点不响"（D145 的 C 路线就是靠这条同形才敢让源提供曲目表）。
+PACK_MUSIC_VECTOR = [
+    ({"album": "demo", "title": "只有附加信息", "extra": "角色曲"},
+     ["demo", "只有附加信息", "角色曲"]),
+    ({"album": "demo", "title": "单作者", "extra": "道中曲", "author": "甲"},
+     ["demo", "单作者", "道中曲", "甲"]),
+    ({"album": "demo", "title": "多作者", "extra": "秘封曲", "author": "甲 & 乙", "authors": ["甲", "乙"]},
+     ["demo", "多作者", "秘封曲", "甲 & 乙", ["甲", "乙"]]),
+]
+
+
+def test_pack_music_shape_matches_the_data_repo_vector():
+    """`music` 条目的形状（3 / 4 / 5 位）与数据仓库那份**共享向量**一致（D145）。"""
+    tracks = [dict(case, character="cirno", pack="demo") for case, _ in PACK_MUSIC_VECTOR]
+    assert build._pack_music(tracks)["cirno"] == [expected for _, expected in PACK_MUSIC_VECTOR]
