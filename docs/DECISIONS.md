@@ -5739,3 +5739,33 @@ D110 里"故意不分键"的 seed / sources / session.musicMode 三项没有被�
 "全选 / 全不选"按钮对抽成文件内组件；抽完用**归一化 `outerHTML` 哈希**与改前逐字比对
 （`c354d99a` / `24b68a80` / `ce59584b` len=16318，两边相同）⇒ DOM 与 `data-testid` 没变，
 e2e 按 testid 的断言照旧。
+
+---
+
+## D152 亮/暗模式 + 自定义主题色（设置页「外观」）（2026-09-26）
+
+**需求**（用户）：加自定义主题色与亮/暗切换；放在设置页；注意布局、格式统一、间距、MD2 规范，
+并且**不要破坏清理代码时立下的规矩**（颜色只在 `theme.ts`、组件不写死值、样板不重复、既有 `data-testid` 不动）。
+
+**做法**
+
+- 色板仍是 `theme.ts` 一处真源：`MD2_PALETTE` 本来就有亮/暗两套 ⇒ 让它成为 `buildTheme({ mode, primary })`
+  的输入。**不带参数时与改前逐字相同**（既有的"深色 + MD2 基准色"断言原样通过）。
+- **组件里不出现写死的主题色**：`MODE_TOKENS` 把亮/暗两套 onSurface（MD2：87% / 60% / 12%）写进 `:root`
+  的 CSS 变量，组件只引 `ThemeTokens.*`；`MD2_BORDER` 与 `MD2.accordion.icon` / `.divider` 也改指变量
+  ⇒ 切模式、换主题色**不用改任何组件**。
+- 主题色：`THEME_COLORS` 给 8 支 MD2 500 号基准色；深色下按 **200 号口径提亮 35%**（`themeColorFor`，
+  否则 500 号落在 `#121212` 上对比度不足），浅色下把过亮的颜色压暗 20%；`onColorFor` 按 WCAG 相对亮度
+  决定 onPrimary 用黑还是白。`isHexColor` / `normalizeHex` 是设置页与 store **共用的一处**校验口径。
+- 持久化：新 store `src/store/appearance.ts`（**全局一份**，不按音乐模式分键 —— 主题与"在听哪一支曲子"无关，
+  与 D110 里"故意不分键"的 seed / sources / musicMode 同类），沿用 `persist.ts` 的版本化存储 + 逐键校验：
+  非法颜色退回"用 MD2 基准色"，坏存档不会把界面搞黑。
+- 设置页：新分区 `id="appearance"`，复用 `SectionPanel`（默认折叠 + 惰性挂载 + 同一套 `section-*` testid 约定），
+  间距取 `MD2.grid` 的倍数；模式用 `ToggleButtonGroup`（MD2 segmented control）、色板用 32dp 色块 + 选中环、
+  自定义走 `<input type="color">`、"恢复"复用既有文案键（不新增重复文案）。位置紧挨「数据」之后 —— 都是全局偏好。
+
+**验证**：`pnpm typecheck` exit 0；`pnpm test:chromium` **439 passed**（428 + 11 条新用例：`theme` 4 / store 4 /
+分区 3；分区那三条覆盖"点亮色 ⇒ `body` 底色与正文色真的跟着变"这条链）；改动面 e2e（`smoke` + `mobile`）exit 0。
+
+**刻意没动**：`CardColors` / `CustomColors`（D83 保留项）、`Palette`（深色字面量，`AboutDialog.test.tsx` 钉着它）、
+计时器的黑底白字小方块（刻意的"秒表"观感，两种模式下都成立）、对话框 scrim（MD2 规范与模式无关）。
