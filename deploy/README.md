@@ -137,20 +137,32 @@ Vercel 用 `vercel.json` 的 `headers`；GitHub Pages **不认** `_headers`（�
 
 | 更新类型 | 怎么触发 | 线上会变吗 |
 |---|---|---|
-| 站点侧文件（`wrangler.jsonc`、`media-worker.mjs`、`tools/**`、工作流）| 数据仓库 **push 即自动重建** | **会**（这些是构建侧的输入）|
-| 加曲目 / 改裁量 / 改响度表（`packs/`、`loudness/`）| push 会重建，但**得先重打包并上传归档**才有效果 | 只重建**不会**变 |
-| 换过 `media` Release 的归档（`gh release upload` 没有 git 事件）| `gh workflow run trigger-cdn.yml -R Dustymind/touhou-music-cards-otomads-data`（POST 一次 [Deploy Hook](https://developers.cloudflare.com/pages/configuration/deploy-hooks/)），或面板点 Retry，或推一个空提交 | **会** |
+| 曲目表元数据（标题/作者/附加信息/卡面、删曲目）、响度表 | 数据仓库 **push 即自动**：`repack-media` 用上一份归档的媒体重打 | **会** |
+| 站点侧文件（`wrangler.jsonc`、`media-worker.mjs`、`tools/**`、工作流）| 同上（同一条链路里会重建）| **会** |
+| **新音频**（新抓/重裁）| 只能在**本机**：`pnpm media:pack` → 传 `media` 资产 → `gh workflow run trigger-cdn.yml -R …` | **会** |
+| 只改文档 | push 触发重建，但归档逐字节没变 ⇒ 不换资产 | 站点重建一次，内容不变 |
 
-> 2026-09-25 实测：push 本身**不会**触发 CF 那边的构建（`build-info.json` 轮询五分钟为证），
-> 所以 `trigger-cdn` 工作流在 `push` 与 `workflow_dispatch` 两条入口上都挂了 Deploy Hook；
-> 同一天验证：11:40:28 推送 → `trigger-cdn`（10 秒）→ 线上 `build-info.json` 于 **11:40:53** 换成新构建。
+> **D149 起**：`repack-media`（push + 手动）负责"重打归档 → 变了就换 `media` 资产 → POST
+> [Deploy Hook](https://developers.cloudflare.com/pages/configuration/deploy-hooks/) 让 CF 重建"；
+> `trigger-cdn` 退成"只重建站点"的手动按钮。前提是逐曲版本号改用**内容**哈希
+> （`packformat.content_revision`）—— 否则 CI 重打的清单与本机打的永远对不上、客户端每次重下 324 MB；
+> `tools/tests/test_repack.py` 钉着"本机打包 == CI 重打（逐字节相同）"。
+> 首次切换会让 86 首的 `?v=` 全变一次（客户端重下一次媒体），之后只有真变过的才变。
 
-**打包与发布仍然是手动的**（素材不进仓库、逐曲版本号来自本机 mtime）：
+**新音频仍然得在本机打包发布**（素材不进仓库，打包要读本机文件才能算内容哈希）：
 
 ```bash
 cd <主仓库> && pnpm media:pack
 gh release upload media otomads-media.tar.gz --clobber -R Dustymind/touhou-music-cards-otomads-data
+gh workflow run trigger-cdn.yml -R Dustymind/touhou-music-cards-otomads-data   # 或者再推一次数据仓库
 ```
+
+卡点是**出口 IP**，不是"有没有曲库"：2026-09-25 实测 GitHub 托管 runner 出口是数据中心
+（`130.131.55.228`），`bilibili.com` 首页回 200 但 86 条 source 随便挑三条抓都吃
+`HTTP Error 412: Precondition Failed`（风控），且 86 条**全是** bilibili ⇒ 没有"换源"退路；
+那份 ffmpeg 也**没有 `libmp3lame`**，D142 的重编码裁切会失败。想全自动只有**自托管 runner**
+（`runs-on: [self-hosted, linux]`，只挂 `push`/`workflow_dispatch`，**不要** `pull_request`）。
+纯元数据改动不需要本机 —— `repack-media` 拿上一份归档的媒体重打即可。
 
 **回滚两条**：① CF 面板 → Worker `otomads-cdn-git` → Deployments → 选上一版 **Rollback**（秒级）；
 ② 重新铺一次（`gh workflow run trigger-cdn.yml -R Dustymind/touhou-music-cards-otomads-data`）。
