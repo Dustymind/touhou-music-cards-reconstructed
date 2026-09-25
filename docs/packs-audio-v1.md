@@ -476,10 +476,131 @@ if is_anthology:
   （336,719,238 → **340,516,723 B**，sha256 `f80fa36f…` → **`dcd2f98580a2634f…`**；
   上传前把归档解出来与 `.music/otomads/` **全量逐字节比过**，上传后 GitHub 报的 digest 与本地一致 ✓）。
   自托管的人重新取一次归档解到宿主根目录即可生效。
-- **项目 CDN**（`otomads-cdn.tsukinomiyako-mangesui.top`，默认源）：**只差一个 `manifest.json`**。
-  2026-09-25 复核过：那份 CDN 的**媒体已经是最新的**（D143 变过的 6 首逐首比长度全等，抽一首 `cmp`
-  **逐字节相同**）、`loudness/otomads.json` 与数据仓库那份**逐字节相同** —— 用户早前已经铺过一次，
-  只是那次在 D144 之前，所以**清单还是旧形状**（86 行 × 3 位、没有 `revision`）。
-  于是前端照旧不拼 `?v=`，行为与改前**完全一致**（不会坏，只是这个能力还没生效）。
-  **生效只需换掉那一个 `manifest.json`**（几十 KB，从新归档里取即可），**不必重传 324 MB 素材**。
+- **项目 CDN**（`otomads-cdn.tsukinomiyako-mangesui.top`，默认源）：**已经是带 `revision` 的那一版**。
+  2026-09-25 实测 `GET /manifest.json` → 200、86 行**全是 4 位**、顶层 `revision = 797d231f6163a58a`
+  （媒体与响度表更早就跟上了）⇒ D144 这个能力**线上已经生效**。
+  （本节早先写着"只差一个 `manifest.json`"，那是 D144 刚落地时的状态；用户后来自己铺过。）
+  **顺带**：D145（§16）之后这份清单还要再换一次 —— 要带 `albums` / `characters` 那两个键。
   静态音MAD 源按 D138/D141 的裁定本来就是手动部署。
+
+## 16. D145：曲目表跟着源走（清单带 `albums` / `characters`，C 路线）
+
+**需求**（用户 2026-09-25 裁定"只做 C"）：把"音MAD 包有哪些曲目"从**随应用部署的静态文件**改成
+**运行时从源取**。做完之后：加曲目 / 改裁切 / 换音频 = **只动数据仓库 + 铺源**，
+**主仓库一个字都不用改**（连 pin 都不用动）。
+
+> 曾经的两条备选 **A（CI 里现算 `data:build`）/ B（`pnpm data:pin <tag>`）已弃用** —— 它们只是让
+> "那份会冻结的生成物"跟上 pin，C 之后没必要。
+
+### 1. 病灶：曲目表是**构建期**产物
+
+| 层 | 今天从哪来 | 数据一变要做什么 |
+|---|---|---|
+| **音MAD 曲目表**（`public/data/otomads/characters.json`） | **构建期**（`pnpm data:build` 读 submodule 的 `packs/`） | 重跑 → 提交 → **重新部署前端** |
+| 音MAD 媒体地址（manifest） | **运行时**从源取（CDN / 本机助手） | 铺源 |
+| 音MAD 音频 / 响度表 | 运行时 | 铺源 |
+| 原曲那 368 首 | 构建期 | 重跑 + 重新部署前端（**C 不管这个**） |
+
+**症状很好认**：设置页「源状态」那一行数的是 **manifest 的条目数**（今天 86）—— 在源里加一首，
+它会变成 **87**，但**曲目选不到**：`src/**` 全程遍历 `dataset.characters[].music`，而源只提供地址
+（`resolveTrack` 只做 `(专辑, 曲名) → URL`）。CI（`.github/workflows/deploy-pages.yml`）只跑
+`pnpm install && pnpm build`（不装 Python、不拉 submodule）⇒ "只在数据仓库改"这条路走不通。
+
+### 2. 契约形状：manifest 多两个**顶层**键
+
+```json
+{
+  "schema": 1,
+  "pack": "otomads",
+  "revision": "…",                       // D144 已有：整表音频版本
+  "loudness": "loudness/otomads.json",   // D139 已有
+  "albums":     [ { "key": "otomads", "name": "…", "kind": "…", "pack": "otomads",
+                    "order": 100, "showAlbumName": false } ],
+  "characters": [ { "key": "cirno",
+                    "music": [["otomads", "标题", "角色曲", "作者"]],
+                    "card": ["…"]?,                     // 可选：音MAD 侧卡面覆盖（D137）
+                    "name": "…"?, "order": 1?, "searchNames": ["…"]? } ],   // 可选：S2 用
+  "tracks":     [ ["otomads", "标题", "media/otomads/….mp3", "rev"] ]         // 形状不动（D96/D141/D144）
+}
+```
+
+硬约束：
+
+- 老前端不认这两个键就忽略 ⇒ **向后兼容**（和 D144 的 `revision` 一个道理）。
+- `music` 条目的形状**必须与 `tmc.build._pack_music` 逐字一致**：`[专辑, 曲名, extra]` + 可选第 4 位作者
+  （整串）+ 可选第 5 位多作者数组（D94/D135）。两侧测试里放的是**同一份测试向量**
+  （数据仓库 `PACK_MUSIC_VECTOR` ↔ 主仓库 `test_build.py` 里那份）。
+- **身份不搬进数据仓库**（契约 `docs/otomads-separation-v1.md` §5 S1）：应用启动时本来就把原曲数据集取全了，
+  所以快照只给"角色 → 曲目"。真要"音MAD 自有身份"（S2）时，角色条目可以**可选**地自带
+  `name` / `order` / `searchNames`（应用侧已经接收；今天数据仓库**不发**这三个字段）。
+- **`contentHash` 不由源声明**：由**应用**按"生效的数据集"算（见 §4）。
+- **清单行 = 曲库里的文件**（地址），**曲目表 = 曲包 TOML 声明**：两者不一致时**以曲目表为准**
+  （曲库里多一个没写进曲包的 mp3 ⇒ 行数会多、那一首选不到；「源状态」那一行的数字仍来自行数）。
+
+数据侧（数据仓库 `tools/`）：`packformat.pack_snapshot(albums, tracks, cards)` 出这一段；
+`local_source.build_manifest(..., snapshot=)`（助手**每次请求现读** `packs/`，加一首立刻生效）与
+`stage_media.pack` / `stage`（含 `--base` 重烘）都带上它。**不传这个参数时输出与改前逐字一致**
+（老调用方不受影响）。
+
+### 3. 应用侧：运行时拼数据集（`src/data/packSnapshot.ts`）
+
+| 步骤 | 口径 |
+|---|---|
+| 取快照 | `loadSourceTables` 从**同一个 payload** 解析（与 D139 的 `loudnessUrl` 同一个套路，**不额外发请求**），挂在 `SourceTable.snapshot` |
+| 校验 | `parsePackSnapshot` **严格**；形状不对返回 `undefined` ⇒ 走自带那份兜底，**绝不半信半疑地用** |
+| 拼装 | `withPackSnapshot(baked, snapshot)`：otomads 的 `characters` = 快照每个 key 去**原曲数据集**取身份（缺身份且快照没自带 ⇒ **跳过并记一条可读错误**，不静默）；`card` 有才覆盖；`albums` 用快照的；`sources` **沿用自带那份注册表**（注册表不归源管）；`characterByKey` / `albumByName` / `counts` / `contentHash` 跟着重算 |
+| 接线 | `AppShell` 是全站唯一装配点：`liveBundle = useMemo(() => withPackSnapshot(bundle, snapshot), …)`，**四个面板拿的都是它**（它们内部各自 `useCurrentDataset(bundle)`），`dataHashes()` 与 `window.__TMC_DATA_HASH__` 也用生效后的那份 |
+
+### 4. 握手哈希的口径（**这一条最要紧**）
+
+`packHash(albums, characters)`：`src/rng` 的 `stableHash` 跑**两个不同标签**、各 31 位拼成 16 位十六进制
+（62 位）。**不用 `crypto.subtle`**——它在非安全上下文（局域网 http，单端口部署的常见形态）不存在。
+
+- **覆盖**：专辑表（`key/name/kind/pack/order/showAlbumName`）+ 每个角色的曲目条目（`key`、`card`、
+  `music`）。两处都按 key 排序 ⇒ **与数组顺序无关**。
+- **不覆盖**：媒体地址（每台机器/每个宿主都不同）、**音频版本号**（D144 的 `revision`）、身份字段
+  （`name`/`order`/`searchNames` 属于主仓库真源，由原曲那份哈希守）、页面来源。
+
+用户 2026-09-25 裁定的两条：
+
+1. **otomads 那份哈希永远由应用算**（有快照、没快照都用 `packHash`）⇒ "有源的一边"与"只有兜底的一边"
+   在**同一份曲目表**上必然得到同一个哈希 ⇒ **一人用本机助手、一人用 CDN 也能一起玩**；
+   两端**曲目表不同**才会在握手期被拒（这正是 D107 §6 的初衷）。代价：没有快照时 otomads 的界面指纹
+   不再是构建期那个 `contentHash`（**数据集本身逐字不变**，只有哈希口径换了一套）。
+2. **不算 `revision`**：它是"这台机器上那份文件"的 mtime 指纹，算进去会让**两个各自用本机助手的人**
+   （曲库文件相同、mtime 不同）握不上手，也会让"助手 vs CDN"握不上手。音频身份仍由 URL 上的 `?v=` 保证
+   （同一个源必然同一版）。**代价明说**：曲目表相同、而两边音频字节不同（各自曲库里的同名文件不一样）
+   **不会**被握手拦住 —— 今天也拦不住（D143 之前更拦不住）。
+
+**原曲那份哈希没变**（还是构建期那个 sha256）：原曲没有"源给的数据"这回事。
+**协议版本不动**（还是 4）：线上形状没变，变的是 otomads 哈希的**取值**——那本身就是"数据不同"的判据，
+不一致照样在握手期被拒。
+
+### 5. 兜底与中间态
+
+- 快照缺失 / 校验失败 / 源 error ⇒ **完全走今天那条路**：自带数据集 + 自带那份的 counts
+  （只有 otomads 的指纹按上面第 4 条换成应用侧算的）。
+- **首个可玩帧不等源**（用户裁定：先按兜底渲染、拿到源再重建）。源慢/源挂 = 今天的样子
+  （设置页「源状态」那一行显示 loading / error）；源回来之后整棵子树跟着新数据重渲染，
+  `window.__TMC_DATA_HASH__` 在同一次重渲染里改写 —— 建/加入房间是用户动作、必然更晚
+  ⇒ **握手期拿到的一定是生效后的哈希**。
+
+### 6. 生效条件
+
+**源侧的 manifest 必须换成带这两个键的那一版**：
+
+- **本机助手**：改了代码即是 ✓（每次请求现读 `packs/`）；
+- **Release 归档 / 自托管**：归档已重打（`manifest.json` 带这两个键），自托管的人重取一次即可；
+- **项目 CDN**（默认源）：**要换掉那一个 `manifest.json`**（几十 KB）。老清单只会走兜底
+  —— 不会坏，但等于没改。
+
+### 7. 要接受的代价（用户已认）
+
+1. **兜底那份快照从此冻结**：`public/data/otomads/*.json` 停在某个时间点。影响有限 —— 源不可达时音频
+   本来就一首也放不出来（源表全 error），旧曲目表只是个"能显示、点不动"的壳。
+2. **仓库里的守卫不再覆盖线上**：`data:check` / `data:validate` 比的是"陈旧 pin 生成的东西"，
+   自洽所以不会红，但它守的不是线上那份。
+3. **联机握手语义变了**：hash 来自**生效的数据集** ⇒ 两端曲目表不同就在握手期被拒。注意这改变了今天的
+   体验：今天"一人用本机助手、一人用 CDN"能一起玩是**因为曲目表同一份**；改完之后这一点仍然成立
+   （哈希不含 URL 与版本），但**一端用的是新数据、另一端还是旧数据**时会连不上 —— 这是 fail-closed，
+   不是回归。
