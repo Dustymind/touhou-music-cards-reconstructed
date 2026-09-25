@@ -5612,7 +5612,7 @@ Domains & Routes。搬完我从**真域名**再复验一遍（`*.workers.dev` �
 **结论分两半**，一半可修、一半是原理性的：
 
 1. **push 原本不触发构建**（`trigger-cdn` 只有 `workflow_dispatch`；CF 那边的 "Git 集成"也没在 push 时构建
-   —— 早先轮询 `build-info.json` 五分钟为证）⇒ **可修**：给 `trigger-cdn.yml` 加上 `on: push: branches: [main]`，
+   —— 早先轮询 `build-info.json` 五分钟为证）⇒ **可修**：给 `trigger-cdn.yml` 加上 `on: push: branches: [main]`（当晚就被 §2 的 `repack-media` 取代 —— 现在 `trigger-cdn` 只剩手动入口），
    由它去 POST Deploy Hook（Secret 已经在用）。**实测**：`11:40:28` 推送 → 工作流 10 秒成功 →
    线上 `build-info.json` 从 `11:16:30Z` 变成 **`11:40:53Z`**（新构建 + 新部署）✓。
    ⇒ 站点侧文件（`wrangler.jsonc`、`media-worker.mjs`、`tools/**`、工作流本身）**改完推上去就自动生效**。
