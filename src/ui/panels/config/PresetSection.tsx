@@ -34,6 +34,32 @@ function triLabel(value: Tri): string {
   return t(Localization.ConfigTabTriUnset);
 }
 
+/** 「全选 / 全不选」按钮对：秘封曲 / CD / 官作三处逐字重复，只有"对谁生效"与有没有分组标题不同。
+ *
+ *  `label` 是按钮前面的分组标题（秘封曲那处没有 —— 父复选框本身就是标题）；
+ *  `testIdPrefix` 留给需要在 e2e 里固定选择器的场合：三处**现在都不传**，因为这三个按钮对
+ *  历来没有 `data-testid`（e2e 按文字取），凭空补上会平白改掉 DOM。 */
+function AllNoneButtons({ label, onAll, onNone, testIdPrefix }: {
+  label?: string;
+  onAll: () => void;
+  onNone: () => void;
+  testIdPrefix?: string;
+}) {
+  return (
+    <>
+      {label !== undefined && <Typography variant="subtitle2">{label}</Typography>}
+      <Button size="small" onClick={onAll}
+        data-testid={testIdPrefix ? `${testIdPrefix}-select-all` : undefined}>
+        {t(Localization.ConfigTabPresetSelectAll)}
+      </Button>
+      <Button size="small" onClick={onNone}
+        data-testid={testIdPrefix ? `${testIdPrefix}-select-none` : undefined}>
+        {t(Localization.ConfigTabPresetSelectNone)}
+      </Button>
+    </>
+  );
+}
+
 function AlbumRows({
   albums, checked, onToggle,
 }: {
@@ -101,12 +127,10 @@ function PresetSectionInner({ bundle }: { bundle: DataBundle }) {
         label={<Typography variant="subtitle2">{t(Localization.ConfigTabPresetHifuu)}</Typography>}
       />
       <Stack direction="row" spacing={0.5} sx={{ ml: 4, mb: 1 }}>
-        <Button size="small" onClick={() => preset.setAllHifuu(dataset.albums, true)}>
-          {t(Localization.ConfigTabPresetSelectAll)}
-        </Button>
-        <Button size="small" onClick={() => preset.setAllHifuu(dataset.albums, false)}>
-          {t(Localization.ConfigTabPresetSelectNone)}
-        </Button>
+        <AllNoneButtons
+          onAll={() => preset.setAllHifuu(dataset.albums, true)}
+          onNone={() => preset.setAllHifuu(dataset.albums, false)}
+        />
         <Chip size="small" variant="outlined" label={`${groups.hifuu.length}`} />
       </Stack>
       <Stack spacing={0} sx={{ ml: 4 }}>
@@ -156,13 +180,8 @@ function PresetSectionInner({ bundle }: { bundle: DataBundle }) {
 
       {/* 先 CD，再官作 */}
       <Stack direction="row" alignItems="center" spacing={1}>
-        <Typography variant="subtitle2">{t(Localization.ConfigTabPresetCD)}</Typography>
-        <Button size="small" onClick={() => setAll(groups.cd, true)}>
-          {t(Localization.ConfigTabPresetSelectAll)}
-        </Button>
-        <Button size="small" onClick={() => setAll(groups.cd, false)}>
-          {t(Localization.ConfigTabPresetSelectNone)}
-        </Button>
+        <AllNoneButtons label={t(Localization.ConfigTabPresetCD)}
+          onAll={() => setAll(groups.cd, true)} onNone={() => setAll(groups.cd, false)} />
       </Stack>
       <AlbumRows
         albums={groups.cd}
@@ -171,13 +190,8 @@ function PresetSectionInner({ bundle }: { bundle: DataBundle }) {
       />
 
       <Stack direction="row" sx={{ alignItems: "center", gap: 1, mt: 1, flexWrap: "wrap" }}>
-        <Typography variant="subtitle2">{t(Localization.ConfigTabPresetGame)}</Typography>
-        <Button size="small" onClick={() => setAll(groups.game, true)}>
-          {t(Localization.ConfigTabPresetSelectAll)}
-        </Button>
-        <Button size="small" onClick={() => setAll(groups.game, false)}>
-          {t(Localization.ConfigTabPresetSelectNone)}
-        </Button>
+        <AllNoneButtons label={t(Localization.ConfigTabPresetGame)}
+          onAll={() => setAll(groups.game, true)} onNone={() => setAll(groups.game, false)} />
       </Stack>
       <AlbumRows
         albums={groups.game}

@@ -74,6 +74,35 @@ const RULE_OPTIONS = [
   { value: "leisure", icon: StarRounded, label: Localization.GameModeLeisure },
 ] as const;
 
+/** 一侧牌库的三连（补满 / 洗牌 / 清空）：自己与电脑两侧逐字相同，只有"对谁操作"、文案与
+ *  `data-testid` 不同（e2e 按它们取按钮，所以 testid 由调用方给、这里原样透传）。
+ *
+ *  联机的差异（客户端发意图、主机落本地）全在 `act` 里，这里只管画。 */
+function DeckOps({ act, index, disabled, labels, testIds }: {
+  act: { fill: (player: number) => void; shuffle: (player: number) => void; clear: (player: number) => void };
+  index: 0 | 1;
+  disabled: boolean;
+  labels: readonly [string, string, string];
+  testIds: readonly [string, string, string];
+}) {
+  return (
+    <Stack sx={gameButtonsSx}>
+      <GameButton size="small" startIcon={<CasinoRounded />} disabled={disabled}
+        onClick={() => act.fill(index)} data-testid={testIds[0]}>
+        {labels[0]}
+      </GameButton>
+      <GameButton size="small" startIcon={<ShuffleRounded />} disabled={disabled}
+        onClick={() => act.shuffle(index)} data-testid={testIds[1]}>
+        {labels[1]}
+      </GameButton>
+      <GameButton size="small" startIcon={<ClearRounded />} disabled={disabled}
+        onClick={() => act.clear(index)} data-testid={testIds[2]}>
+        {labels[2]}
+      </GameButton>
+    </Stack>
+  );
+}
+
 function GamePanelInner({ bundle }: { bundle: DataBundle }) {
   const game = useGame((slice) => slice.game);
   const pool = useGame((slice) => slice.pool);
@@ -532,20 +561,13 @@ function GamePanelInner({ bundle }: { bundle: DataBundle }) {
               <Typography sx={gameLabelSx}>
                 {t(Localization.GameSideYou)}
               </Typography>
-              <Stack sx={gameButtonsSx}>
-              <GameButton size="small" startIcon={<CasinoRounded />} disabled={!building}
-                onClick={() => act.fill(myIndex)} data-testid="random-fill">
-                {t(Localization.GameRandomFill)}
-              </GameButton>
-              <GameButton size="small" startIcon={<ShuffleRounded />} disabled={!building}
-                onClick={() => act.shuffle(myIndex)} data-testid="shuffle-deck">
-                {t(Localization.GameShuffleDeck)}
-              </GameButton>
-              <GameButton size="small" startIcon={<ClearRounded />} disabled={!building}
-                onClick={() => act.clear(myIndex)} data-testid="clear-deck">
-                {t(Localization.GameClearDeck)}
-              </GameButton>
-              </Stack>
+              <DeckOps act={act} index={myIndex} disabled={!building}
+                testIds={["random-fill", "shuffle-deck", "clear-deck"]}
+                labels={[
+                  t(Localization.GameRandomFill),
+                  t(Localization.GameShuffleDeck),
+                  t(Localization.GameClearDeck),
+                ]} />
             </Stack>
 
             {/* 电脑卡组：只有"电脑"模式下本机（非客户端）能调 */}
@@ -554,20 +576,13 @@ function GamePanelInner({ bundle }: { bundle: DataBundle }) {
                 <Typography sx={gameLabelSx}>
                   {t(Localization.GameSideOpponent)}
                 </Typography>
-                <Stack sx={gameButtonsSx}>
-                <GameButton size="small" startIcon={<CasinoRounded />} disabled={!building}
-                  onClick={() => act.fill(oppIndex)} data-testid="fill-cpu-deck">
-                  {t(Localization.GameFillCPU)}
-                </GameButton>
-                <GameButton size="small" startIcon={<ShuffleRounded />} disabled={!building}
-                  onClick={() => act.shuffle(oppIndex)} data-testid="shuffle-cpu-deck">
-                  {t(Localization.GameShuffleCPUDeck)}
-                </GameButton>
-                <GameButton size="small" startIcon={<ClearRounded />} disabled={!building}
-                  onClick={() => act.clear(oppIndex)} data-testid="clear-cpu-deck">
-                  {t(Localization.GameClearCPUDeck)}
-                </GameButton>
-                </Stack>
+                <DeckOps act={act} index={oppIndex} disabled={!building}
+                  testIds={["fill-cpu-deck", "shuffle-cpu-deck", "clear-cpu-deck"]}
+                  labels={[
+                    t(Localization.GameFillCPU),
+                    t(Localization.GameShuffleCPUDeck),
+                    t(Localization.GameClearCPUDeck),
+                  ]} />
               </Stack>
             )}
           </Stack>
