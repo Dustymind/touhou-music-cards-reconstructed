@@ -29,7 +29,8 @@ export const Localization = {
     "This mode draws the cover each card's own source gives it; the art sets cannot be chosen here.",
     "这个模式的卡面由源提供，每卡一张，不能在这里更换图集。"),
   ConfigTabCardRatio: u("Card aspect ratio", "卡面比例"),
-  // 档名两种语言一样（16:9 / 4:3 是数字），但仍走 i18n 键：文案不许散在组件里
+  // 档名两个语言基本一样（数字），但仍走 i18n 键：文案不许散在组件里
+  ConfigTabCardRatioOriginal: u("Standard", "常规"),
   ConfigTabCardRatio16x9: u("16:9", "16:9"),
   ConfigTabCardRatio4x3: u("4:3", "4:3"),
   ConfigTabMusicSource: u("Music Source", "音乐源"),

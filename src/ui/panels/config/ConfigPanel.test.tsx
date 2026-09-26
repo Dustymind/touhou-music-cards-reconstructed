@@ -134,7 +134,7 @@ describe("ConfigPanel", () => {
     sourceStoreFor("originals").setState({ overrides: {} });
     useSession.setState({
       locale: "en", tab: "config", cardCollection: "dairi-sd", musicMode: "originals",
-      localMusicUrl: "", customCardRatio: "16x9",
+      localMusicUrl: "", cardRatio: "",
     });
     useNet.getState().leave();
     usePreset.getState().sync(bundle.datasets.originals.albums);
@@ -453,27 +453,54 @@ describe("ConfigPanel", () => {
     expect(useCustomSingle.getState().disabled).toEqual({ alice: true });
   });
 
-  it("模式 3：卡面设置分区 = 一行只读说明 + 两档卡面比例，图集单选一行都不列（契约 C3 + D164）", async () => {
+  it("模式 3：卡面设置分区 = 一行只读说明 + 三档画幅，图集单选一行都不列（契约 C3 + D165）", async () => {
     const { container } = await openCustomSource();
     await expand(container, "cardset");
 
     expect(container.querySelector('[data-testid="cardset-fixed"]')).not.toBeNull();
     expect(container.querySelectorAll('[data-testid^="cardset-row-"]').length).toBe(0);
-    // 两档都在，默认选中 16:9；点一下 4:3 就落盘（刷新后还在）
+    // 三档都在（常规 / 16:9 / 4:3），默认选中 16:9（合成图集的默认档）；点一下 4:3 就落盘
+    const standard = container.querySelector<HTMLInputElement>('[data-testid="card-ratio-original"]')!;
     const wide = container.querySelector<HTMLInputElement>('[data-testid="card-ratio-16x9"]')!;
     const tall = container.querySelector<HTMLInputElement>('[data-testid="card-ratio-4x3"]')!;
     expect(wide.getAttribute("aria-pressed")).toBe("true");
+    expect(standard.getAttribute("aria-pressed")).toBe("false");
     expect(tall.getAttribute("aria-pressed")).toBe("false");
 
     await click(tall);
-    expect(useSession.getState().customCardRatio).toBe("4x3");
+    expect(useSession.getState().cardRatio).toBe("4x3");
     expect(tall.getAttribute("aria-pressed")).toBe("true");
     expect(wide.getAttribute("aria-pressed")).toBe("false");
 
-    // 另两个模式**没有**这两档（比例只属于自带卡面的模式）
+    // 落盘的偏好**跨模式**有效：回到原曲是内置图集 ⇒ 不出现控件（永远原比例）
     await act(async () => { useSession.setState({ musicMode: "originals" }); });
     expect(container.querySelector('[data-testid="card-ratio-16x9"]')).toBeNull();
     expect(container.querySelector('[data-testid^="cardset-row-"]')).not.toBeNull();
+    expect(useSession.getState().cardRatio).toBe("4x3");        // 偏好没被改写
+  });
+
+  it("画幅控件只在**能换档**的图集上出现：内置六套没有，音MAD 的封面集 / 本地图集有（D165）", async () => {
+    // 默认（原曲 + 第一套内置图集）⇒ 没有控件
+    const { container } = await renderPanel();
+    await expand(container, "cardset");
+    expect(container.querySelector('[data-testid="card-ratio-16x9"]')).toBeNull();
+
+    // 音MAD 模式下选中**源封面集** ⇒ 控件出现，且默认选中常规（不动开关 = 今天的观感）
+    await act(async () => { useSession.setState({ musicMode: "otomads", cardCollection: "otomads-cover" }); });
+    const otomads = await renderPanel();
+    await expand(otomads.container, "cardset");
+    const standard = otomads.container.querySelector<HTMLInputElement>('[data-testid="card-ratio-original"]');
+    expect(standard, "封面集应该能换画幅").not.toBeNull();
+    expect(standard!.getAttribute("aria-pressed")).toBe("true");
+
+    // 换成本地图集同样有（素材也是使用者给的）
+    await act(async () => { useSession.setState({ cardCollection: "otomads" }); });
+    expect(otomads.container.querySelector('[data-testid="card-ratio-4x3"]')).not.toBeNull();
+
+    // 换回内置那套 ⇒ 控件消失
+    await act(async () => { useSession.setState({ cardCollection: "dairi-sd" }); });
+    expect(otomads.container.querySelector('[data-testid="card-ratio-4x3"]')).toBeNull();
+    await act(async () => { otomads.root.unmount(); });
   });
 
   it("自定义源：填地址 → 应用 ⇒ 落盘；取回清单后状态显示**卡数**（不是 entries.size）", async () => {

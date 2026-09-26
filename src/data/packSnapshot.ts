@@ -20,6 +20,8 @@
 import { EXTRAS, trackId, type AlbumKind, type AlbumRecord, type CharacterRecord, type DataBundle, type DataIndex, type Extra, type ModeDataset, type MusicEntry } from "./types";
 import { stableHash } from "../rng";
 import { isRecord } from "../persist";
+import { CARD_RATIOS, type CardRatio } from "../theme/cardRatio";
+import { parseCoverField } from "./coverField";
 
 /** 快照里的一个角色：**只给"角色 → 曲目"**（+ 可选卡面覆盖）。 */
 export interface PackSnapshotCharacter {
@@ -32,6 +34,9 @@ export interface PackSnapshotCharacter {
    *  形状与 `music` **一一对应**（数组是运行时形状，真源里是 per-track）；有它就是"一首一张卡"
    *  （卡池与卡面见 `cardFaces.ts`）。 */
   covers?: string[];
+  /** **逐档**封面链接（D165）：`coversByRatio[档][i]` 与 `covers[i]` / `music[i]` 一一对应。
+   *  只含源真的给了的档位；没给全的档**整档丢掉**（半有半无 = 与 music 错位）。 */
+  coversByRatio?: Partial<Record<CardRatio, string[]>>;
   /** S2 预留：原曲数据集里没有这个角色时，快照可以自带身份（今天数据仓库不发这三个字段） */
   name?: string;
   order?: number;
@@ -119,9 +124,29 @@ function parseCharacter(raw: unknown): PackSnapshotCharacter | undefined {
     character.card = card;
   }
   if (raw.covers !== undefined) {
-    const covers = stringList(raw.covers);
-    if (covers === undefined) return undefined;
+    // 逐条 `cover`：**字符串**（单链接，前端按档位运行时裁）或**对象**
+    // （`{original, 16x9, 4x3}` 的任意非空子集，D165）。
+    // 必须是**非空数组**（空数组 = 与 `music` 错位；不是数组就是坏形状）—— 这一条与旧口径一致。
+    if (!Array.isArray(raw.covers) || raw.covers.length === 0) return undefined;
+    const covers: string[] = [];
+    const byRatio: Partial<Record<CardRatio, string[]>> = {};
+    for (const ratio of CARD_RATIOS) byRatio[ratio] = [];
+    for (const entry of raw.covers as unknown[]) {
+      const parsed = parseCoverField(entry);
+      if (parsed === undefined) return undefined;
+      covers.push(parsed.primary);
+      for (const ratio of CARD_RATIOS) {
+        const url = parsed.byRatio[ratio];
+        if (url !== undefined) byRatio[ratio]!.push(url);
+      }
+    }
     character.covers = covers;
+    // **逐档数组要么每条曲目都有、要么整档不要**（与 `covers` 同一条纪律：半有半无 = 与 music 错位）。
+    // 少的那些条目这里补不上 —— 源自己得站得住，所以整档丢掉（其余照常）。
+    const complete = Object.fromEntries(CARD_RATIOS
+      .filter((ratio) => byRatio[ratio]!.length === covers.length)
+      .map((ratio) => [ratio, byRatio[ratio]!])) as Partial<Record<CardRatio, string[]>>;
+    if (Object.keys(complete).length > 0) character.coversByRatio = complete;
   }
   if (raw.name !== undefined) {
     const name = text(raw.name);
@@ -246,7 +271,10 @@ function snapshotCharacters(
         + " ⇒ 这一条整条跳过（曲目不会出现）");
       continue;
     }
-    const covers = entry.covers ?? bakedOtomads.characterByKey.get(entry.key)?.covers;
+    const baked = bakedOtomads.characterByKey.get(entry.key);
+    const covers = entry.covers ?? baked?.covers;
+    // 逐档链接（D165）同理"有才覆盖"：源给了逐档链接才带上，否则沿用自带那份（多半也没有）
+    const byRatio = entry.coversByRatio ?? (entry.covers === undefined ? baked?.coversByRatio : undefined);
     out.push({
       key: entry.key,
       name,
@@ -254,6 +282,7 @@ function snapshotCharacters(
       card,
       // 封面（D153）：源给了就用源的；源没给就沿用自带的（"有才覆盖"，与 card 同口径）
       ...(covers ? { covers } : {}),
+      ...(byRatio ? { coversByRatio: byRatio } : {}),
       searchNames: identity?.searchNames ?? entry.searchNames ?? [],
       music: entry.music,
     });
@@ -291,7 +320,7 @@ function withContentHash(
  *
  * - **专辑表**：`key/name/kind/pack/order/showAlbumName`（按 key 排序，与数组顺序无关）；
  * - **每个角色的曲目条目**：`key`、`card`（快照的卡面覆盖）、`covers`（源封面，D153）、
- *   `music`（按 key 排序）。
+ *   `coversByRatio`（逐档封面链接，D165）、`music`（按 key 排序）。
  *
  * `covers` **必须算进来**：它决定"自定义卡面"那套图集下这个角色有几张卡（一首一张），
  * 也是互斥表的**最大口径**（`maxCardCount`，见 `cardFaces.ts`）—— 也就是"桌上可能有哪些牌"的一部分，
@@ -311,7 +340,8 @@ export function packHash(
   albums: readonly AlbumRecord[], characters: readonly CharacterRecord[],
 ): string {
   return fingerprint("pack", albums, characters, (character) => [
-    character.key, character.card, character.covers ?? null, character.music,
+    character.key, character.card, character.covers ?? null,
+    character.coversByRatio ?? null, character.music,
   ]);
 }
 

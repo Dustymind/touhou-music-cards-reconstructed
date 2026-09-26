@@ -8,7 +8,7 @@ import { create } from "zustand";
 import { defineStore, isRecord, pickString } from "../persist";
 import { DEFAULT_MUSIC_MODE, MUSIC_MODES, type MusicMode } from "../music/mode";
 import type { MusicEntry } from "../data/types";
-import { CARD_RATIOS, DEFAULT_CARD_RATIO, type CardRatio } from "../theme/cardRatio";
+import { CARD_RATIOS, type CardRatio } from "../theme/cardRatio";
 import { getLocale, setLocale, type Locale } from "../i18n/localization";
 
 export const TAB_ORDER = ["player", "list", "config", "game"] as const;
@@ -32,9 +32,10 @@ interface SessionState {
    * 落盘；`?customsource=` 与主机下发的值走 `customSourceOverride`，**不写回存档**。
    */
   customSourceUrl: string;
-  /** 模式 3 的卡面比例档位（16:9 / 4:3，D164）：**全局偏好**（与 `cardCollection` 同类），
-   *  只对自带卡面的模式生效 —— 另两个模式的内置图集不写 `ratio` ⇒ 仍是原比例 703:1000。 */
-  customCardRatio: CardRatio;
+  /** 卡面画幅偏好（常规 / 16:9 / 4:3，D165）：**全局偏好**（与 `cardCollection` 同类）。
+   *  `""` = 还没选过 ⇒ 跟着**这套图集自己的默认档**走（使用者/源给的素材默认常规、
+   *  模式 3 的合成图集默认 16:9）；内置六套不能换档 ⇒ 这一项对它们无效（永远原比例 703:1000）。 */
+  cardRatio: CardRatio | "";
   /** 本次会话生效的覆盖（见 `CustomSourceOverride`）：优先级**高于**存档值 */
   customSourceOverride: CustomSourceOverride | null;
   /**
@@ -53,8 +54,8 @@ interface SessionState {
   setLocalMusicUrl: (url: string) => void;
   /** 自定义源链接（模式 3）：写存档，并**清掉会话级覆盖**（用户刚亲手指定了地址，以他为准） */
   setCustomSourceUrl: (url: string) => void;
-  /** 模式 3 的卡面比例档位（设置页「卡面设置」里切；落盘） */
-  setCustomCardRatio: (ratio: CardRatio) => void;
+  /** 卡面画幅偏好（设置页「卡面设置」里切；落盘） */
+  setCardRatio: (ratio: CardRatio) => void;
   /** 采用主机下发的源链接（联机握手期；F3：只在本次会话生效，不写回存档） */
   adoptCustomSourceUrl: (url: string) => void;
   /** 离开房间：清掉**主机给的**那份覆盖，`?customsource=` 那份留着（它跟页面走，不跟房间走） */
@@ -73,7 +74,7 @@ const sessionStore = defineStore<SessionPrefs>({
   fallback: {
     locale: "en", tab: "player", cardCollection: "dairi-sd",
     musicMode: DEFAULT_MUSIC_MODE, localMusicUrl: "", customSourceUrl: "",
-    customCardRatio: DEFAULT_CARD_RATIO,
+    cardRatio: "",
   },
   validate(raw) {
     if (!isRecord(raw)) return null;
@@ -86,10 +87,10 @@ const sessionStore = defineStore<SessionPrefs>({
     const localMusicUrl = pickString(raw.localMusicUrl) ?? "";
     // 老存档没有 customSourceUrl → 空串（= 还没填），不因为缺字段就丢弃整份偏好
     const customSourceUrl = pickString(raw.customSourceUrl) ?? "";
-    // 卡面比例同理：老存档没有 / 值认不得 → 默认档（16:9），不因为这一项就丢弃整份偏好
-    const customCardRatio = (pickString(raw.customCardRatio, CARD_RATIOS) as CardRatio | null)
-      ?? DEFAULT_CARD_RATIO;
-    return { locale, tab, cardCollection, musicMode, localMusicUrl, customSourceUrl, customCardRatio };
+    // 画幅同理：老存档没有 / 值认不得 → 空串（= 跟着每套图集自己的默认档），
+    // 不因为这一项就丢弃整份偏好
+    const cardRatio = (pickString(raw.cardRatio, CARD_RATIOS) as CardRatio | null) ?? "";
+    return { locale, tab, cardCollection, musicMode, localMusicUrl, customSourceUrl, cardRatio };
   },
 });
 
@@ -103,8 +104,8 @@ interface SessionPrefs {
   localMusicUrl: string;
   /** 自定义源链接（模式 3；空 = 还没填，这个模式没有数据） */
   customSourceUrl: string;
-  /** 模式 3 的卡面比例档位（`"16x9"` / `"4x3"`） */
-  customCardRatio: CardRatio;
+  /** 卡面画幅偏好（`""` = 跟着图集的默认档 / `"original"` / `"16x9"` / `"4x3"`） */
+  cardRatio: CardRatio | "";
 }
 
 const initial = sessionStore.load();
@@ -118,7 +119,7 @@ export const useSession = create<SessionState>((set, get) => ({
   // URL 参数优先于存档：方便同一份构建在"同源部署"和"本机 8011"之间切换
   localMusicUrl: queryUrl("localmusic") ?? initial.localMusicUrl,
   customSourceUrl: initial.customSourceUrl,
-  customCardRatio: initial.customCardRatio,
+  cardRatio: initial.cardRatio,
   // `?customsource=` **不进存档**（契约 Q8）：它是"这一次打开用的源"，关掉页面就该回到自己的存档值
   customSourceOverride: queryUrl("customsource") === null
     ? null
@@ -160,9 +161,9 @@ export const useSession = create<SessionState>((set, get) => ({
     set({ customSourceUrl, customSourceOverride: null });
     sessionStore.save({ ...pickSession(get()), customSourceUrl });
   },
-  setCustomCardRatio(customCardRatio) {
-    set({ customCardRatio });
-    sessionStore.save({ ...pickSession(get()), customCardRatio });
+  setCardRatio(cardRatio) {
+    set({ cardRatio });
+    sessionStore.save({ ...pickSession(get()), cardRatio });
   },
   adoptCustomSourceUrl(url) {
     set({ customSourceOverride: { url, from: "host" } });
@@ -178,7 +179,7 @@ export const useSession = create<SessionState>((set, get) => ({
 function pickSession(
   state: Pick<SessionState,
     "locale" | "tab" | "cardCollection" | "musicMode" | "localMusicUrl" | "customSourceUrl"
-    | "customCardRatio">,
+    | "cardRatio">,
 ) {
   return {
     locale: state.locale,
@@ -187,7 +188,7 @@ function pickSession(
     musicMode: state.musicMode,
     localMusicUrl: state.localMusicUrl,
     customSourceUrl: state.customSourceUrl,
-    customCardRatio: state.customCardRatio,
+    cardRatio: state.cardRatio,
   };
 }
 

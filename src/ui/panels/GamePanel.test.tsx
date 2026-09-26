@@ -189,30 +189,52 @@ describe("GamePanel", () => {
     expect(image?.getAttribute("src")).toBe("/cards/cover/a.png");
   });
 
-  it("模式 3：卡面比例跟着「卡面设置」的档位走，且**两份图各按档位取**（D164）", async () => {
-    // 一张卡给了两份同比例的图：16:9 档该拿 `.16x9`、4:3 档该拿 `.4x3`（真浏览器里量的是 img 的 src）
+  it("模式 3：画幅跟着「卡面设置」的档位走，**每一档取自己那份链接**（D165）", async () => {
+    // 一张卡给了三份同比例的图：常规该拿 `a.png`、16:9 该拿 `.16x9`、4:3 该拿 `.4x3`
+    // （真浏览器里量的是 img 的 src —— 也就是"切档只换图、不重建数据集"这条）
     const manifest = parseCustomManifest({
       schema: 1, mode: "custom",
       cards: [{
         id: "a", name: "卡", album: "旧作", title: "曲", audio: "media/a.mp3",
-        cover: { "16x9": "cover/a.16x9.png", "4x3": "cover/a.4x3.png" },
+        cover: {
+          original: "cover/a.png", "16x9": "cover/a.16x9.png", "4x3": "cover/a.4x3.png",
+        },
       }],
     }, "/cards/manifest.json")!;
     const source = withCustomManifest(bundle, manifest);
     await act(async () => {
-      useSession.setState({ musicMode: "custom", customCardRatio: "16x9" });
+      useSession.setState({ musicMode: "custom", cardRatio: "" });
     });
 
-    const wide = await renderWithTheme(<GamePanel bundle={source} />);
-    expect(wide.querySelector('[data-testid^="unused-card-"] img')?.getAttribute("src"))
-      .toBe("/cards/cover/a.16x9.png");
+    const src = (container: HTMLElement) =>
+      container.querySelector('[data-testid^="unused-card-"] img')?.getAttribute("src");
 
-    // 切到 4:3：同一张卡换成那一档的图（数据集**没有**重建，只换了生效图集的档位）
-    await act(async () => { root?.unmount(); });
-    await act(async () => { useSession.setState({ customCardRatio: "4x3" }); });
-    const tall = await renderWithTheme(<GamePanel bundle={source} />);
-    expect(tall.querySelector('[data-testid^="unused-card-"] img')?.getAttribute("src"))
-      .toBe("/cards/cover/a.4x3.png");
+    // 没选过 ⇒ 合成图集的默认档（16:9）
+    const byDefault = await renderWithTheme(<GamePanel bundle={source} />);
+    expect(src(byDefault)).toBe("/cards/cover/a.16x9.png");
+
+    for (const [ratio, expected] of [
+      ["4x3", "/cards/cover/a.4x3.png"],
+      ["original", "/cards/cover/a.png"],
+      ["16x9", "/cards/cover/a.16x9.png"],
+    ] as const) {
+      await act(async () => { root?.unmount(); });
+      await act(async () => { useSession.setState({ cardRatio: ratio }); });
+      const container = await renderWithTheme(<GamePanel bundle={source} />);
+      expect(src(container), ratio).toBe(expected);
+    }
+
+    // 单链接的卡：三档都是同一份（形状由前端裁），不至于切档就没图
+    const single = withCustomManifest(bundle, parseCustomManifest({
+      schema: 1, mode: "custom",
+      cards: [{ id: "b", name: "单图", album: "旧作", title: "曲", audio: "media/b.mp3", cover: "cover/b.png" }],
+    }, "/cards/manifest.json")!);
+    for (const ratio of ["original", "16x9", "4x3"] as const) {
+      await act(async () => { root?.unmount(); });
+      await act(async () => { useSession.setState({ cardRatio: ratio }); });
+      const container = await renderWithTheme(<GamePanel bundle={single} />);
+      expect(src(container), ratio).toBe("/cards/cover/b.png");
+    }
   });
 
   it("模式 3：卡池只含**可用的**卡（`cardKeys`），禁用的卡不进卡池 —— 不传即今天行为（Q5）", async () => {

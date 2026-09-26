@@ -70,11 +70,11 @@ export function creditLine(entry: MusicEntry | null, albums: readonly AlbumRecor
 function PlayerPanelInner(props: PlayerPanelProps) {
   const { bundle, player, order, temporaryDisabled, currentKey } = props;
   const dataset = useCurrentDataset(bundle);
-  // 卡面比例（模式 3 的 16:9 / 4:3，D164）直接订阅 store：这个面板是 memo 的，
+  // 画幅偏好（常规 / 16:9 / 4:3，D165）直接订阅 store：这个面板是 memo 的，
   // 订阅之后"切一档"会自己重渲染（走 props 的话还得让外壳记得传、漏了就静默不生效）
-  const customCardRatio = useSession((slice) => slice.customCardRatio);
+  const cardRatio = useSession((slice) => slice.cardRatio);
   const cardSet = resolveCardSet(
-    bundle.shared.cardSets, props.cardCollection, dataset, customCardRatio);
+    bundle.shared.cardSets, props.cardCollection, dataset, cardRatio);
   const character = dataset.characters.find((item) => item.key === currentKey) ?? null;
 
   // 播放页这张卡用**第几张**卡面：音MAD 侧是"一首一张"（D153）⇒ 跟着**正在放的那首**走

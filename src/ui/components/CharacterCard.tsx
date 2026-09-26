@@ -130,8 +130,10 @@ function CharacterCardInner({
               inset: 0,
               // 源给的图（音MAD 的 B 站封面、模式 3 的清单卡面）用 `cover` 铺满框：
               // 比例对了就是满的，比例不对也不留白边（居中裁掉多余的部分）。
-              // 内置图集用 `contain`：那是整套立绘，宁可留白也不许裁。
-              objectFit: cardSet.sourceOnly ? "cover" : "contain",
+              // 使用者自己放的那几套（localOnly）一旦切了档也是同一条：**运行时裁切**，
+              // 而不是留白（否则切 16:9 会得到左右两条白边）。
+              // 内置六套永远是 `contain`（不能换档）：那是整套立绘，宁可留白也不许裁。
+              objectFit: cardSet.sourceOnly || cardSet.ratio !== undefined ? "cover" : "contain",
               userSelect: "none",
               filter: imageFilter,
             }}

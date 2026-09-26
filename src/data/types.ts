@@ -28,12 +28,14 @@ export interface CharacterRecord {
    *  `cardCount`（卡池）/ `cardFace`（取图）/ `maxCardCount`（互斥表用的最大口径）。
    *  身份字段跨模式一致（契约 §5 S1），这个字段是**卡面那一类**的例外。 */
   covers?: string[];
-  /** 模式 3：**同一张卡面**在两种比例下的地址（清单的 `cover` 给了两份时才有，D164）。
-   *  值是**解析后的绝对 URL**；`card` / `covers` 里放的是**默认档**（16:9，没有就 4:3）那一份。
-   *  `cardFace()` 按当前生效图集的 `ratio` 取它 ⇒ 切比例只换图、不重建数据集，
-   *  数据指纹也因此与"用户选了哪一档"无关（两端比例不同也能握手）。
-   *  音MAD 那份 B 站封面（每首一张）**不带这个字段**：它的比例跟着内置原比例走。 */
-  coversByRatio?: Partial<Record<CardRatio, string>>;
+  /** **逐档卡面地址**（清单 / 曲包的 `cover` 给了对象形态时才有，D165）：`coversByRatio[档][i]`
+   *  与 `covers[i]` / `music[i]` **一一对应**（每档一张，形状与 `covers` 平行）。
+   *
+   *  值是**解析后的绝对 URL**；`card` / `covers` 里放的是**主链接**（`original` → `16x9` → `4x3`
+   *  取第一个有的）。`cardFace()` 按当前生效图集的 `ratio` 取它 ⇒ 切档只换图、不重建数据集，
+   *  数据指纹也因此与"用户选了哪一档"无关（两端档位不同也能握手）。
+   *  只给单链接的卡**不带这个字段**（那份图三个档位共用，前端按 `object-fit: cover` 运行时裁）。 */
+  coversByRatio?: Partial<Record<CardRatio, string[]>>;
   /** 每张卡**自己的**音频地址（模式 3 才有，F1）：与 `music` **一一对应**（`audio[i]` ↔ `music[i]`），
    *  与 `covers` 同一套设计。**校验阶段就解析成绝对 URL**（含 D144 的 `?v=`），播放时直接用，
    *  不再走 `(专辑, 曲名)` 查表 ⇒ 这个模式允许同名曲目、也允许两张卡共用一首。
@@ -86,9 +88,12 @@ export interface CardSetRecord {
   localPrefix: string;
   /** 远程 origin，按顺序兜底 */
   origins: string[];
-  /** 卡面比例档位：**缺省 = 内置图集的原比例 703:1000**（`theme/cardRatio.ts`）。
-   *  模式 3「自定义」由**用户偏好**决定（16:9 默认 / 4:3 可选，D164），`resolveCardSet` 把它写到
-   *  生效图集上。渲染侧一律用 `cardAspectRatio(set)` 取，不许直接写常量。 */
+  /** 这套图集**能换哪几档画幅**（`theme/cardRatio.ts` 的 `CardRatio`）：写了就以此为准，
+   *  **第一项是默认档**；不写时按"素材是不是使用者/源给的"（`localOnly` / `sourceOnly`）判定，
+   *  内置六套两种都不是 ⇒ 不能换档（判据在 `cardRatioChoices()`）。 */
+  ratios?: readonly CardRatio[];
+  /** **生效**档位（渲染时由 `resolveCardSet` 落上去的，不是数据里的键）：用户偏好能用就用，
+   *  否则回落到这套图集的默认档。渲染侧一律用 `cardAspectRatio(set)` 取，不许直接写常量。 */
   ratio?: CardRatio;
 }
 

@@ -25,7 +25,7 @@
  */
 import type { CardSetRecord, CharacterRecord, ModeDataset } from "./types";
 import { usesOwnCardFaces } from "../music/mode";
-import { DEFAULT_CARD_RATIO, type CardRatio } from "../theme/cardRatio";
+import { effectiveCardRatio, type CardRatio } from "../theme/cardRatio";
 
 /** 一个可用图集都没有时的兜底（测试里 `cardSets: []` 会走到）：不显示图，但不炸。 */
 const NO_CARD_SET: CardSetRecord = {
@@ -38,29 +38,42 @@ const NO_CARD_SET: CardSetRecord = {
  *  `sourceOnly` 让 `CharacterCard` 原样用那条 URL、并按卡面比例 `cover`（与音MAD 的 B 站封面同一套）；
  *  每卡恰好一张（`card` 与 `covers` 都是它）⇒ 卡数恒为 1，取模轮转天然安全。
  *
- *  **比例不写在这里**：这个模式的卡图由使用者自己提供（横版居多），比例是**用户偏好**
- * （设置页「卡面设置」里 16:9 / 4:3 二选一，D164），由 :func:`resolveCardSet` 落到生效图集的
- * `ratio` 上。写死在这里的话，"切一档"就得改这份常量、渲染侧还得多一条特判。 */
+ *  **画幅**：这个模式的卡图由使用者自己提供（横版居多），三档都能用、**默认 16:9**
+ *  （`ratios` 的第一项 = 默认档，D165）；实际用哪一档由用户偏好在 :func:`resolveCardSet` 里决定，
+ *  写死成"就是这个比例"的话"切一档"就得改这份常量，渲染侧还得多一条特判。 */
 export const CUSTOM_CARD_SET: CardSetRecord = {
   id: "custom-source", dir: "", label: { en: "Custom source", zh: "自定义源" },
   localPrefix: "./", origins: [], sourceOnly: true, mode: "custom",
+  // 三档都能用，**默认 16:9**（用户裁定"这个模式统一横版"；`ratios` 的第一项 = 默认档）
+  ratios: ["16x9", "4x3", "original"],
 };
 
-/** 每个档位一个**常量**合成图集（引用稳定）。
+/** 「图集 → 档位 → **带档位的那个对象**」的缓存（引用稳定）。
  *
  *  ⚠️ 这一层缓存不是优化、是正确性：`GamePanel` 把 `cardSet` 放进"重建卡池"那个 effect 的依赖里，
- *  而 `resolveCardSet` 每次调用都新建一个 `{...CUSTOM_CARD_SET, ratio}` ⇒ 每次渲染都是新身份
- *  ⇒ effect 每次都跑 ⇒ `init()` 改状态 ⇒ 再渲染 …… 实测就是 `Maximum update depth exceeded`。
- *  同一档位返回同一个对象之后，"选中的图集 / 档位没变 ⇒ `cardSet` 引用不变"这条不变量成立。 */
-const OWN_FACE_SETS = new Map<CardRatio, CardSetRecord>();
+ *  而"每次都新建 `{...set, ratio}`"⇒ 每次渲染都是新身份 ⇒ effect 每次都跑 ⇒ `init()` 改状态
+ *  ⇒ 再渲染 …… 实测就是 `Maximum update depth exceeded`。
+ *  同一（图集, 档位）返回同一个对象之后，"没切图集也没切档 ⇒ `cardSet` 引用不变"这条不变量成立。 */
+const RATIO_SETS = new WeakMap<CardSetRecord, Map<CardRatio, CardSetRecord>>();
 
-/** 模式 3 的生效图集 = 合成图集 + 用户选的档位（引用稳定，见上）。 */
-export function customCardSet(ratio: CardRatio): CardSetRecord {
-  const cached = OWN_FACE_SETS.get(ratio);
+/** 给某套图集落上生效档位（引用稳定，见上）：不能换档的图集（内置六套）**原样返回**。 */
+export function cardSetWithRatio(set: CardSetRecord, ratio: CardRatio | undefined): CardSetRecord {
+  if (ratio === undefined) return set;
+  let byRatio = RATIO_SETS.get(set);
+  if (byRatio === undefined) {
+    byRatio = new Map();
+    RATIO_SETS.set(set, byRatio);
+  }
+  const cached = byRatio.get(ratio);
   if (cached !== undefined) return cached;
-  const set: CardSetRecord = { ...CUSTOM_CARD_SET, ratio };
-  OWN_FACE_SETS.set(ratio, set);
-  return set;
+  const withRatio: CardSetRecord = { ...set, ratio };
+  byRatio.set(ratio, withRatio);
+  return withRatio;
+}
+
+/** 模式 3 的合成图集 + 档位（引用稳定）。 */
+export function customCardSet(ratio: CardRatio): CardSetRecord {
+  return cardSetWithRatio(CUSTOM_CARD_SET, ratio);
 }
 
 /** 这一条卡面是不是**完整 URL**（源封面就是）。`CharacterCard` 据此跳过"拼目录"那一步。 */
@@ -95,9 +108,9 @@ export function cardCount(character: CharacterRecord, cardSet?: CardSetRecord): 
 
 /** 第 `index` 张卡的图（越界/负数一律回到第 0 张，**绝不返回 undefined**）。
  *
- *  **模式 3 的两种比例**（D164）：清单给了两份卡图时（`coversByRatio`），按图集当前的档位取那一份；
- *  只有一份（旧清单 / 手放的图 / 绝对直链）就退回 `covers[0]` —— 那一份在两个档位下都会画，
- *  只是比例不对时由 `CharacterCard` 的 `object-fit: cover` 居中裁掉多余的部分。 */
+ *  **逐档链接**（D165）：源按档位各给了一份时（`coversByRatio`），取当前生效档位那一份；
+ *  只给了一份（旧数据 / 手放的图 / 单直链）就退回主链接 —— 那一份三个档位都会画，
+ *  画幅不对时由 `CharacterCard` 的 `object-fit: cover` 居中裁掉多余的部分。 */
 export function cardFace(
   character: CharacterRecord,
   cardSet: CardSetRecord | undefined,
@@ -107,8 +120,9 @@ export function cardFace(
   const card = character.card;
   const safe = Number.isFinite(index) && index > 0 ? Math.floor(index) : 0;
   if (cardSet?.sourceOnly) {
+    // 逐档链接（D165）：这一档有自己的那份就用它，否则回落到主链接（前端按 object-fit 裁）
     const byRatio = cardSet.ratio === undefined ? undefined : character.coversByRatio?.[cardSet.ratio];
-    return byRatio ?? covers[safe] ?? card[safe % card.length] ?? "";
+    return byRatio?.[safe] ?? covers[safe] ?? card[safe % card.length] ?? "";
   }
   return card[safe % card.length] ?? covers[safe] ?? "";
 }
@@ -152,22 +166,24 @@ export function availableCardSets(
  *  回落的只是**渲染**，用户存的偏好不动 —— 于是"音MAD 选了封面集、切回原曲"时不会白卡，
  *  切回音MAD 又自动用回封面集。
  *
- *  `ratio` 只对**自带卡面的模式**（模式 3）有意义：那个模式的卡图是使用者自己给的，
- *  比例是他在设置页选的档位（D164）—— 落在这里，于是卡牌、卡条、牌桌、底部面板、播放页
- *  五处**不用各记一遍偏好**（它们都从 `cardSet` 上读 `cardAspectRatio`）。
- *  另两个模式的内置图集不写 `ratio` ⇒ 原比例，行为逐字不变。
+ *  `preference` 是用户在设置页选的画幅（`""` = 没选过）：**能换档的图集**（素材由使用者/源给的
+ *  那几套，含模式 3 的合成图集）才把生效档位落到 `ratio` 上，于是卡牌、卡条、牌桌、底部面板、
+ *  播放页五处**不用各记一遍偏好**（它们都从 `cardSet` 上读 `cardAspectRatio` / `cardFace`）。
+ *  内置六套不能换档 ⇒ `ratio` 是 `undefined` ⇒ 原比例、行为逐字不变。
  *
  *  **返回值引用稳定**（同一个输入 ⇒ 同一个对象）：调用方（`GamePanel`）把它放进 effect 依赖，
- *  "每次都新建一个对象"会把重建卡池跑成死循环（见 `customCardSet` 的说明）。 */
+ *  "每次都新建一个对象"会把重建卡池跑成死循环（见 `cardSetWithRatio` 的说明）。 */
 export function resolveCardSet(
   sets: readonly CardSetRecord[],
   selectedId: string,
   dataset: ModeDataset,
-  ratio: CardRatio = DEFAULT_CARD_RATIO,
+  preference: CardRatio | "" = "",
 ): CardSetRecord {
-  if (usesOwnCardFaces(dataset.mode)) return customCardSet(ratio);
   const usable = availableCardSets(sets, dataset);
-  return usable.find((set) => set.id === selectedId) ?? usable[0] ?? NO_CARD_SET;
+  const chosen = usesOwnCardFaces(dataset.mode)
+    ? CUSTOM_CARD_SET
+    : usable.find((set) => set.id === selectedId) ?? usable[0] ?? NO_CARD_SET;
+  return cardSetWithRatio(chosen, effectiveCardRatio(chosen, preference));
 }
 
 /** 查一位角色的第 `cardIndex` 张卡面（:func:`cardFaces` 那张表按角色收好之后的取法）。

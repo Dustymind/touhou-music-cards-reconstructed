@@ -76,14 +76,15 @@ export function validateCharacters(raw: unknown, expected: number): CharacterRec
       || (Array.isArray(character.audio) && character.audio.length > 0
           && character.audio.every((url) => typeof url === "string" && url.trim() !== "")),
       `${character.key} 的 audio 必须是非空字符串数组`);
-    // 模式 3 的**逐比例卡面**（D164）：键必须是认得的档位、值必须是非空字符串。
+    // **逐档卡面**（D165）：键必须是认得的档位、值必须是非空字符串数组（与 `covers` 平行）。
     // 与 `audio` 同一套分工（真正的守门人是 customManifest.ts，这条是形状对称 + 兜底）。
     if (character.coversByRatio !== undefined) {
       assert(isRecord(character.coversByRatio), `${character.key} 的 coversByRatio 必须是对象`);
-      for (const [ratio, url] of Object.entries(character.coversByRatio)) {
+      for (const [ratio, urls] of Object.entries(character.coversByRatio)) {
         assert(isCardRatio(ratio), `${character.key} 的 coversByRatio 有不认得的档位：${ratio}`);
-        assert(typeof url === "string" && url.trim() !== "",
-          `${character.key} 的 coversByRatio.${ratio} 必须是非空字符串`);
+        assert(Array.isArray(urls) && urls.length > 0
+          && urls.every((url) => typeof url === "string" && url.trim() !== ""),
+        `${character.key} 的 coversByRatio.${ratio} 必须是非空字符串数组`);
       }
     }
     for (const entry of character.music) {
@@ -145,10 +146,17 @@ function validateCardSets(raw: unknown): CardSetRecord[] {
     }
     assert(set.mode === undefined || MUSIC_MODES.includes(set.mode),
       `图集 ${set.id} 的 mode 非法：${String(set.mode)}`);
-    // 卡面比例档位（D164）：**可以不写**（缺省 = 内置图集的原比例 703:1000）；写了必须是认得的档
-    // —— 认不得的档会让卡面高度无从算起（渲染层另有一道回落，这里直接拦下）。
-    assert(set.ratio === undefined || isCardRatio(set.ratio),
-      `图集 ${set.id} 的 ratio 不是认得的档位：${String(set.ratio)}`);
+    // 这套图集能换哪几档（D165）：**可以不写**（缺省时按 localOnly/sourceOnly 判，内置六套 = 不能换）；
+    // 写了就得是非空的、全是认得的档、且不重复 —— 认不得的档会让卡面高度无从算起。
+    if (set.ratios !== undefined) {
+      assert(Array.isArray(set.ratios) && set.ratios.length > 0,
+        `图集 ${set.id} 的 ratios 必须是非空数组`);
+      for (const ratio of set.ratios) {
+        assert(isCardRatio(ratio), `图集 ${set.id} 的 ratios 有认不得的档位：${String(ratio)}`);
+      }
+      assert(new Set(set.ratios).size === set.ratios.length,
+        `图集 ${set.id} 的 ratios 有重复项`);
+    }
   }
   assert(typeof payload.default === "string" && ids.has(payload.default),
     `图集默认值非法：${String(payload.default)}`);

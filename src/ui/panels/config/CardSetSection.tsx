@@ -8,10 +8,12 @@
  * 这里根本不出现（"源不提供则不显示"）；当前生效的是哪一套由 `resolveCardSet` 统一裁 ——
  * 单选组的 value 用**生效值**，否则切模式后会出现"一套都没选中"。
  *
- * **自带卡面的模式（模式 3）没有图集可选**，这个分区里换成两档**卡面比例**（16:9 / 4:3，D164）：
- * 那个模式的卡图是使用者自己给的，形状由他挑；控件下面照旧放三张示例卡 —— 切一下就能看到差别，
- * 而且示例卡走的是**同一个** `cardFace` + 生效图集，所以它显示的就是牌桌上真正会画的那张
- * （含"按比例取哪一份图"）。
+ * **画幅控件**（D165）：只要当前生效的图集**能换画幅**（素材由使用者/源给的那些：本地自放图集、
+ * 音MAD 的 B 站封面集、模式 3 的合成图集），这里就多一行「卡面比例」——
+ * 常规 703:1000 / 16:9 / 4:3 三选一。**内置六套不出现它**（`library` 原版立绘就那一个形状）。
+ * 控件下面放三张示例卡：切一下就能看到差别，而且示例卡走的是**同一个** `cardFace` + 生效图集，
+ * 所以它显示的就是牌桌上真正会画的那张（含"按档位取哪一份链接"）。
+ * 模式 3（自带卡面）没有图集可选 ⇒ 那个模式下这个分区就是那行只读说明 + 画幅控件。
  */
 import {
   Box, Divider, FormControlLabel, Radio, RadioGroup, Stack, ToggleButton, ToggleButtonGroup, Typography,
@@ -23,7 +25,7 @@ import { Localization, t } from "../../../i18n/localization";
 import { useCurrentDataset } from "../../../data/useDataset";
 import { useSession } from "../../../store/session";
 import { usesOwnCardFaces } from "../../../music/mode";
-import { CARD_RATIOS, type CardRatio } from "../../../theme/cardRatio";
+import { CARD_RATIOS, cardRatioChoices, type CardRatio } from "../../../theme/cardRatio";
 import { CharacterCard } from "../../components/CharacterCard";
 import { cardSetDescription } from "./cardSetDescriptions";
 import { SectionPanel } from "./SectionCard";
@@ -33,16 +35,47 @@ import { memoOnLocale } from "../../memoOnLocale";
 const EXAMPLE_COUNT = 3;
 const EXAMPLE_WIDTH = 64;
 
+/** 档位 → 文案键（`original` 也走 i18n：中文叫「常规」）。 */
+const RATIO_LABELS = {
+  original: "ConfigTabCardRatioOriginal",
+  "16x9": "ConfigTabCardRatio16x9",
+  "4x3": "ConfigTabCardRatio4x3",
+} as const satisfies Record<CardRatio, keyof typeof Localization>;
+
 function CardSetSectionInner({ bundle }: { bundle: DataBundle }) {
   const dataset = useCurrentDataset(bundle);
-  const { cardCollection, setCardCollection, customCardRatio, setCustomCardRatio } = useSession();
+  const { cardCollection, setCardCollection, cardRatio, setCardRatio } = useSession();
 
   /** 当前模式下能选的图集（源封面图集只有音MAD + 源真的给了封面才在里头）。 */
   const sets = availableCardSets(bundle.shared.cardSets, dataset);
-  /** 自带卡面的模式（模式 3）：没有图集可选，换成卡面比例两档。 */
+  /** 自带卡面的模式（模式 3）：没有图集可选，这个分区里只剩只读说明 + 画幅控件。 */
   const ownFaces = usesOwnCardFaces(dataset.mode);
   /** 真正生效的那一套（存的偏好可能在本模式下不可选 ⇒ 与游戏页/播放页同一口径）。 */
-  const effective = resolveCardSet(bundle.shared.cardSets, cardCollection, dataset, customCardRatio);
+  const effective = resolveCardSet(bundle.shared.cardSets, cardCollection, dataset, cardRatio);
+
+  /** 这套图集能换的画幅（内置六套没有 ⇒ 不出现控件）；数组第一项是它自己的默认档。 */
+  const choices = cardRatioChoices(effective) ?? [];
+  const ratioControl = choices.length > 1 && (
+    <Stack spacing={1} sx={{ alignItems: "flex-start" }}>
+      <Typography variant="body2">{t(Localization.ConfigTabCardRatio)}</Typography>
+      {/* MD2：多选一 ⇒ segmented control（与「外观」的模式开关同一套写法），左对齐、另起一行。
+          选项只列这套图集允许的档位，顺序照 `CARD_RATIOS`（常规 → 16:9 → 4:3）。 */}
+      <ToggleButtonGroup
+        exclusive
+        size="small"
+        value={effective.ratio ?? choices[0]}
+        onChange={(_event, next: CardRatio | null) => { if (next) setCardRatio(next); }}
+        aria-label={t(Localization.ConfigTabCardRatio)}
+        sx={{ alignSelf: "flex-start" }}
+      >
+        {CARD_RATIOS.filter((ratio) => choices.includes(ratio)).map((ratio) => (
+          <ToggleButton key={ratio} value={ratio} data-testid={`card-ratio-${ratio}`}>
+            {t(Localization[RATIO_LABELS[ratio]])}
+          </ToggleButton>
+        ))}
+      </ToggleButtonGroup>
+    </Stack>
+  );
 
   /** 示例卡：取前三名角色、每套图集各渲染各自的第一张（图是 `cardFace` 算的，不写字面文件名）。 */
   const examples = dataset.characters
@@ -68,28 +101,8 @@ function CardSetSectionInner({ bundle }: { bundle: DataBundle }) {
           <Typography variant="body2" color="text.secondary" data-testid="cardset-fixed">
             {t(Localization.ConfigTabCardSetFixed)}
           </Typography>
-          <Stack spacing={1} sx={{ alignItems: "flex-start" }}>
-            <Typography variant="body2">{t(Localization.ConfigTabCardRatio)}</Typography>
-            {/* MD2：两档互斥 ⇒ segmented control（与「外观」的模式开关同一套写法），
-                左对齐、不与标签挤一行。数字档名（16:9 / 4:3）两种语言一样，但仍走 i18n 键。 */}
-            <ToggleButtonGroup
-              exclusive
-              size="small"
-              value={customCardRatio}
-              onChange={(_event, next: CardRatio | null) => { if (next) setCustomCardRatio(next); }}
-              aria-label={t(Localization.ConfigTabCardRatio)}
-              sx={{ alignSelf: "flex-start" }}
-            >
-              {CARD_RATIOS.map((ratio) => (
-                <ToggleButton key={ratio} value={ratio} data-testid={`card-ratio-${ratio}`}>
-                  {t(ratio === "16x9"
-                    ? Localization.ConfigTabCardRatio16x9
-                    : Localization.ConfigTabCardRatio4x3)}
-                </ToggleButton>
-              ))}
-            </ToggleButtonGroup>
-          </Stack>
-          {/* 示例卡：这一行显示的就是**当前档位**下牌桌上会画的那张（含按比例取图） */}
+          {ratioControl}
+          {/* 示例卡：这一行显示的就是**当前档位**下牌桌上会画的那张（含按档位取链接） */}
           {examples.length > 0 && exampleCards()}
         </Stack>
       </SectionPanel>
@@ -149,6 +162,14 @@ function CardSetSectionInner({ bundle }: { bundle: DataBundle }) {
           ))}
         </Stack>
       </RadioGroup>
+      {/* 选中的图集能换画幅（本地自放 / 源给的封面集）⇒ 图集列表下面再给一行控件 + 示例卡 */}
+      {ratioControl && (
+        <Stack spacing={2} sx={{ alignItems: "flex-start", mt: 2 }}>
+          <Divider flexItem sx={{ width: "100%" }} />
+          {ratioControl}
+          {examples.length > 0 && exampleCards()}
+        </Stack>
+      )}
     </SectionPanel>
   );
 }

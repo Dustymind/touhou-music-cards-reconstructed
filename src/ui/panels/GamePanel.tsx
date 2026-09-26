@@ -140,9 +140,9 @@ function GamePanelInner({ bundle, cardKeys }: GamePanelProps) {
   /** 单选组里的图标：与按钮同一套图标尺寸 */
   const gameIconSx = useMemo(() => ({ fontSize: MD2.button.iconSize }), []);
 
-  /** 卡面图集 + 卡面比例（设置页「卡面设置」；比例只对模式 3 生效，D164） */
+  /** 卡面图集 + 画幅偏好（设置页「卡面设置」；画幅只对自定义卡面生效，D165） */
   const cardCollection = useSession((slice) => slice.cardCollection);
-  const customCardRatio = useSession((slice) => slice.customCardRatio);
+  const cardRatio = useSession((slice) => slice.cardRatio);
   const isClient = net.role === "client";
   /** 牌桌视角：客户端看自己的那一侧（主机/单机 = 0） */
   const myIndex: 0 | 1 = (isClient ? net.myIndex : 0) === 1 ? 1 : 0;
@@ -242,7 +242,7 @@ function GamePanelInner({ bundle, cardKeys }: GamePanelProps) {
 
   // 卡面图集跟随设置页的选择（原来写死第一套 → 设置里换图集对游戏页无效）；
   // 源封面图集只在音MAD + 源真的给了封面时可选，选不上就回落到第一套可选的（只影响渲染，不改偏好）
-  const cardSet = resolveCardSet(bundle.shared.cardSets, cardCollection, dataset, customCardRatio);
+  const cardSet = resolveCardSet(bundle.shared.cardSets, cardCollection, dataset, cardRatio);
 
   const cardFiles = useMemo(() => {
     const map: Record<string, string[]> = {};

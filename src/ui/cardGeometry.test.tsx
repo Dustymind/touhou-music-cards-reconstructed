@@ -26,7 +26,7 @@ import { UnusedCards } from "./game/UnusedCards";
 import { trayDetents } from "./game/UnusedCardsTray";
 
 /** 三种形状各自的期望值：不写死 1.778 / 1.333 / 0.703，一律从常量来。 */
-const PORTRAIT = CardAspectRatio;                  // 703 / 1000（内置图集）
+const PORTRAIT = CardAspectRatio;                  // 703 / 1000（内置图集 / 常规档）
 const WIDE = CARD_RATIO_VALUES["16x9"];            // 16 / 9（模式 3 默认档）
 const TALL = CARD_RATIO_VALUES["4x3"];             // 4 / 3（模式 3 另一档）
 
@@ -46,7 +46,7 @@ function builtInSet(): CardSetRecord {
 }
 
 /** 模式 3 的生效图集：走真正的入口（`resolveCardSet` + 用户档位），不手搓常量。 */
-function customSet(ratio: "16x9" | "4x3"): CardSetRecord {
+function customSet(ratio: "original" | "16x9" | "4x3"): CardSetRecord {
   const dataset = bundle.datasets.custom as ModeDataset;
   return resolveCardSet(bundle.shared.cardSets, "dairi-sd", dataset, ratio);
 }
@@ -101,11 +101,15 @@ describe("卡面尺寸的双比例适配", () => {
     document.body.innerHTML = "";
   });
 
-  it("卡牌本体：原比例 703:1000 竖版 / 模式 3 的 16:9 与 4:3 两档", async () => {
-    // 同一个宽度下比：竖版最高、4:3 次之、16:9 最扁（宽度是 `width` 属性给的，三张一致才好比）
+  it("卡牌本体：内置图集的常规竖版 / 模式 3 的常规、16:9、4:3 三档", async () => {
+    // 同一个宽度下比：竖版最高、4:3 次之、16:9 最扁（宽度是 `width` 属性给的，几张一致才好比）
     const original = await mount(<CharacterCard cardSet={builtInSet()} file={FILE} width="200px" />);
     const wide = await mount(<CharacterCard cardSet={customSet("16x9")} file={FILE} width="200px" />);
     const tall = await mount(<CharacterCard cardSet={customSet("4x3")} file={FILE} width="200px" />);
+    // 模式 3 选**常规**档 = 与内置图集同一个形状（竖版），但走的是自定义卡面那套图集
+    const customOriginal = await mount(
+      <CharacterCard cardSet={customSet("original")} file={FILE} width="200px" />);
+    expect(measuredRatio(faceBox(customOriginal))).toBeCloseTo(PORTRAIT, 2);
     expect(measuredRatio(faceBox(original))).toBeCloseTo(PORTRAIT, 2);
     expect(measuredRatio(faceBox(wide))).toBeCloseTo(WIDE, 2);
     expect(measuredRatio(faceBox(tall))).toBeCloseTo(TALL, 2);

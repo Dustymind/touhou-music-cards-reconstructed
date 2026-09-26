@@ -77,6 +77,11 @@ const BAD_PAYLOADS: [string, unknown][] = [
   ["封面为空数组", payload({ characters: [{ ...CHARACTER, covers: [] }] })],
   ["封面里是空串", payload({ characters: [{ ...CHARACTER, covers: [""] }] })],
   ["封面不是数组", payload({ characters: [{ ...CHARACTER, covers: "https://x/" }] })],
+  // 逐档封面（D165）：对象形态里的键与值同样严 —— 认不得的档 / 空值 / 空对象一律整份拒掉
+  ["封面对象是空对象", payload({ characters: [{ ...CHARACTER, covers: [{}] }] })],
+  ["封面对象里有认不得的档位", payload({ characters: [{ ...CHARACTER, covers: [{ "16:9": "https://x/a.jpg" }] }] })],
+  ["封面对象里有一档是空值", payload({ characters: [{ ...CHARACTER, covers: [{ "16x9": "  " }] }] })],
+  ["封面对象里有一档不是字符串", payload({ characters: [{ ...CHARACTER, covers: [{ "4x3": 7 }] }] })],
   ["自带 name 是空串", payload({ characters: [{ ...CHARACTER, name: "" }] })],
   ["自带 order 不是数", payload({ characters: [{ ...CHARACTER, order: "1" }] })],
   ["自带 searchNames 为空", payload({ characters: [{ ...CHARACTER, searchNames: [] }] })],
@@ -123,6 +128,35 @@ describe("parsePackSnapshot", () => {
     }));
     expect(withCovers?.characters[0]!.covers).toEqual(["https://i0.hdslb.com/a.jpg@703w_1000h_1c.webp"]);
     expect(parsePackSnapshot(payload())?.characters[0]).not.toHaveProperty("covers");
+  });
+
+  it("逐档封面（D165）：对象形态按档收好（`covers` 放主链接、`coversByRatio` 逐档平行），单链接的不带那个键", () => {
+    const original = "https://i0.hdslb.com/a.jpg";
+    const wide = "https://i0.hdslb.com/a.jpg@1920w_1080h_1c.webp";
+    const tall = "https://i0.hdslb.com/a.jpg@1600w_1200h_1c.webp";
+    const withFrames = parsePackSnapshot(payload({
+      characters: [{ ...CHARACTER, covers: [{ original, "16x9": wide, "4x3": tall }] }],
+    }))!;
+    const character = withFrames.characters[0]!;
+    expect(character.covers).toEqual([original]);                       // 主链接 = original
+    expect(character.coversByRatio).toEqual({
+      original: [original], "16x9": [wide], "4x3": [tall],
+    });
+
+    // 单链接的老形态：不带 `coversByRatio`（三个档位共用那一份，前端运行时裁）
+    const single = parsePackSnapshot(payload({
+      characters: [{ ...CHARACTER, covers: [wide] }],
+    }))!;
+    expect(single.characters[0]!.covers).toEqual([wide]);
+    expect(single.characters[0]).not.toHaveProperty("coversByRatio");
+
+    // 两首曲目：逐档数组与 `covers` / `music` 一样**按曲目对齐**
+    const twoTracks = parsePackSnapshot(payload({
+      characters: [{ ...CHARACTER, covers: [{ original, "16x9": wide }, original] }],
+    }))!;
+    // 第二首只有单链接 ⇒ 16:9 那一档不完整 ⇒ **整档丢掉**（半有半无就是与 music 错位）
+    expect(twoTracks.characters[0]!.covers).toEqual([original, original]);
+    expect(twoTracks.characters[0]).not.toHaveProperty("coversByRatio");
   });
 });
 
