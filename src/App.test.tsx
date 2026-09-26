@@ -89,8 +89,9 @@ describe("App 冒烟（真实数据）", () => {
     // 对局 store 是模块级单例：每个用例都从"选牌阶段"开始，免得上一个用例的
     // 倒计时/回合状态与计时器串味（GamePanel.test.tsx 同口径）
     useGame.setState({ game: emptyState() });
-    // 会话 store 同样是单例：模式 3 那条用例会切模式，这里还原成默认（否则后面的用例整套数据都换了）
-    useSession.setState({ musicMode: "originals" });
+    // 会话 store 同样是单例：别的用例会切模式、切页签、切语言，这里一律还原成默认
+    // （否则后面的用例会从"游戏页 / 模式 3 / 上一门语言"起步）
+    useSession.setState({ musicMode: "originals", tab: "player", locale: "en" });
   });
 
   afterEach(async () => {

@@ -15,7 +15,6 @@ export const Localization = {
   // 本仓库现在真有一个「关于」弹窗（文字在 `src/content/about.ts`），两者同名会一直让人看错，所以把游戏页的键改成
   // 它该有的名字（**文案一字未动**）。
   TabNameMatch: u("Match", "游戏"),
-  TabNameAlice: u("Alice!", "Alice!"),
 
   PlayerTabUpcoming: u("Upcoming (click to skip)", "接下来（点击以跳过）"),
   PlayerTabShuffle: u("Shuffle", "重新抽选"),
@@ -31,10 +30,6 @@ export const Localization = {
   ConfigTabMusicSource: u("Music Source", "音乐源"),
   ConfigTabMusicSelectionPresets: u("Music Selection Presets", "音乐选择预设"),
   ConfigTabMusicSelectionSingle: u("Single Track Mode", "仅单曲模式"),
-  ConfigTabSelected: u("Selected", "正在使用"),
-  ConfigTabSelect: u("Select", "使用"),
-  ConfigTabApply: u("Apply", "应用"),
-  ConfigTabApplied: u("Applied", "已应用"),
   ConfigTabSearchCharacter: u("Search Character", "搜索角色"),
   ConfigTabSourceEnabled: u("Enabled", "已启用"),
   ConfigTabSourceDisabled: u("Disabled", "未启用"),
@@ -79,12 +74,8 @@ export const Localization = {
     "No source is enabled in this mode, so no track can be resolved.",
     "这个模式下一个音源都没启用，曲目解析不出地址。"),
   ConfigTabSourceOrder: u("Fallback order", "回退顺序"),
-  ConfigTabSourceMoveUp: u("Move up", "上移"),
-  ConfigTabSourceMoveDown: u("Move down", "下移"),
   ConfigTabSourceLoading: u("Loading…", "载入中…"),
   ConfigTabSourceLoaded: u("Loaded {count} tracks", "已载入 {count} 首"),
-  ConfigTabSourceFailed: u("Load failed", "载入失败"),
-  ConfigTabLocalBaseUrl: u("Local helper address", "本地助手地址"),
 
   ShellLoading: u("Loading data…", "正在载入数据…"),
   ShellLoadFailed: u("Failed to load data", "数据载入失败"),
@@ -102,7 +93,6 @@ export const Localization = {
   ConfigAppearanceModeDark: u("Dark", "暗色"),
   ConfigAppearanceColor: u("Theme color", "主题色"),
   ConfigAppearanceCustom: u("Custom", "自定义"),
-  ShellNotYet: u("This screen arrives in a later milestone.", "该界面将在后续里程碑实现。"),
 
   // 「关于」弹窗的文字**不在这里** —— 全部在 `src/content/about.ts`（用户可以整篇改，含标题与关闭按钮）
 
@@ -111,7 +101,6 @@ export const Localization = {
   ConfigTabPresetGame: u("Official games", "官作"),
   ConfigTabPresetSelectAll: u("Select all", "全选"),
   ConfigTabPresetSelectNone: u("Select none", "全不选"),
-  ConfigTabPresetReset: u("Reset", "重置"),
   ConfigTabTriUnset: u("Unset", "不配置"),
   ConfigTabTriOn: u("On", "已启用"),
   ConfigTabTriOff: u("Off", "已禁用"),
@@ -137,7 +126,6 @@ export const Localization = {
   // MD2 开关标签用句首大写（不是按钮的全大写）
   GameFilterByDeck: u("Filter music by deck", "按卡组筛选音乐"),
   ChatMessageHint: u("Type a message to chat...", "输入消息以聊天..."),
-  GameUpcoming: u("Turn", "回合"),
 
   // ---- 游戏页（面板、棋盘、计时、结算）----
   GameModeSolo: u("Solo", "单人"),
@@ -146,10 +134,6 @@ export const Localization = {
   GameModeTraditional: u("Classic", "经典"),
   GameModeLeisure: u("Leisure", "休闲"),
   GameDeckSize: u("deck {rows}×{columns}", "卡组 {rows}×{columns}"),
-  GameRowDecrease: u("-row", "减行"),
-  GameRowIncrease: u("+row", "加行"),
-  GameColumnDecrease: u("-col", "减列"),
-  GameColumnIncrease: u("+col", "加列"),
   GameRandomFill: u("Random Fill", "随机补满"),
   GameShuffleCPUDeck: u("Shuffle CPU Deck", "打乱电脑卡组"),
   GameClearCPUDeck: u("Clear CPU Deck", "清空电脑卡组"),
@@ -164,7 +148,6 @@ export const Localization = {
   GameSideYou: u("You", "你"),
   GameSideOpponent: u("Opponent", "对手"),
   GameGroupTurn: u("Turn", "回合"),
-  ConfigTabSourceForced: u("Forced on by the music mode", "由音乐模式强制启用"),
   GameUnusedExpand: u("Show", "展开"),
   GameUnusedCollapse: u("Hide", "收起"),
   GameDeckBuildHint: u(
@@ -230,9 +213,6 @@ export const Localization = {
     "{tracks} in rotation · {sources} sources",
     "轮播 {tracks} 首 · 已载入音源 {sources} 个"),
 
-  ListTabOrder: u("Order", "顺序"),
-  ListTabTracks: u("Tracks", "曲目"),
-  ListTabAlbum: u("Album", "专辑"),
 } as const;
 
 let locale: Locale = "en";

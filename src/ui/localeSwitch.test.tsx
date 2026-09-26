@@ -68,6 +68,9 @@ describe("切语言：挂载着的面板都要跟着换", () => {
     await act(async () => { mounted.forEach(({ root }) => root.unmount()); });
     mounted.length = 0;
     document.body.innerHTML = "";
+    // 会话 store 是**模块级单例**（浏览器模式下各测试文件共用同一份）：这一文件会切页签、切语言，
+    // 跑完必须还原 —— 否则后面的文件会从"游戏页 + 上一门语言"起步（实测：App.test 两条直接红）。
+    useSession.setState({ tab: "player", locale: "en", musicMode: "originals" });
     vi.restoreAllMocks();
   });
 
