@@ -11,9 +11,9 @@
 | 角色曲目条目 / 去重曲目 | 484 / 474（**三份数据集**：原曲 121 角色 378 条 + 音MAD 43 角色 106 条 + 自定义 0，前两份互斥） | 同上（各份 `index.json` 的 `counts`） |
 | 卡面集 / 注册音源 | 8 / 5（含 1 套音MAD **本地图集**：素材用户自己放进 `public/cards-otomads/`；1 套音MAD 封面集 `source_only`；自定义模式用代码里的合成图集，不进这张表） | 同上 |
 | 音MAD 曲包 | 1 包：106 首 / 43 个角色；**106 条带 `source`**（可自动抓取）、**23 条带裁剪区间**（前导静音已裁） | 真源在数据 submodule：清单 `data/otomads/packs/otomads.toml` + 一角色一份 `data/otomads/packs/otomads/*.toml`（D128）；`pnpm audio:fetch --dry-run`（数据仓库的 `otomads.fetch_audio`，D130） |
-| 前端单测 | **584 passed**（chromium 与 firefox **各 584**；真实浏览器，vitest 浏览器模式） | `pnpm test` |
+| 前端单测 | **585 passed**（chromium 与 firefox **各 585**；真实浏览器，vitest 浏览器模式） | `pnpm test` |
 | 数据管线测试 | **81 passed**（主仓库）+ **199 passed**（音MAD 数据仓库 `tools/`）+ **325 passed**（自定义数据仓库 `tools/`） | `cd tools && uv run pytest` / `uv run --project tools pytest`（在各自的数据仓库） |
-| 端到端 | **90 passed + 1 skipped**（chromium 40 / firefox 39+1 / mobile 11；比 D124 多 4 = PeerJS 开关守卫 + 对局音频淡入淡出守卫，各 × 两个桌面引擎；比 D132 多 6 = 「关于」弹窗相关 5 条 + 外置曲库署名（见 D133/D134））；本机实测 `smoke.spec.ts` 两引擎 **62 passed**、`multiplayer.spec.ts` 两引擎 9 passed + 1 skipped ✓；更早的全量跑出过 78 + 2 failed + 1 skipped —— 联机那条是负载抖动（单跑 ✓），`mobile.spec.ts` 播放页居中那条曾 **HEAD 上就先红**（偏 9px > 8px 容差，见 D124） | `pnpm e2e` |
+| 端到端 | **109 passed + 1 skipped**（chromium + firefox 各 49，mobile 11；D161 起含模式 3 的 6 条 × 两个桌面引擎）。**前置：先 `pnpm local` 起本地曲库助手** | `pnpm e2e` |
 | 数据漂移 | 无 | `pnpm data:check` |
 | 数据校验 | 通过 | `pnpm data:validate` |
 | 联机协议版本 | **5** | `src/net/protocol.ts`（`SessionConfigWire` = 音乐模式 + 会话种子 + 自定义源链接；`dataHash` = 三个模式各一个） |
