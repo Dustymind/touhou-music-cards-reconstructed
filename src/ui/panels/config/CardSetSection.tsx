@@ -8,7 +8,6 @@
  * 这里根本不出现（"源不提供则不显示"）；当前生效的是哪一套由 `resolveCardSet` 统一裁 ——
  * 单选组的 value 用**生效值**，否则切模式后会出现"一套都没选中"。
  */
-import { memo } from "react";
 import { Box, Divider, FormControlLabel, Radio, RadioGroup, Stack, Typography } from "@mui/material";
 
 import type { DataBundle } from "../../../data/types";
@@ -19,6 +18,7 @@ import { useSession } from "../../../store/session";
 import { CharacterCard } from "../../components/CharacterCard";
 import { cardSetDescription } from "./cardSetDescriptions";
 import { SectionPanel } from "./SectionCard";
+import { memoOnLocale } from "../../memoOnLocale";
 
 /** 示例卡数量（上游也是三张）与宽度。 */
 const EXAMPLE_COUNT = 3;
@@ -111,4 +111,4 @@ function CardSetSectionInner({ bundle }: { bundle: DataBundle }) {
 }
 
 /** 分区之间互不牵连：展开一个分区不该把其它分区的长列表一起重渲染（memo 掉）。 */
-export const CardSetSection = memo(CardSetSectionInner);
+export const CardSetSection = memoOnLocale(CardSetSectionInner);

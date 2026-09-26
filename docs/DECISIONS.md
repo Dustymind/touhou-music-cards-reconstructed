@@ -6292,3 +6292,39 @@ git submodule add https://github.com/Dustymind/touhou-music-cards-custom-data.gi
 **验证**：`pnpm typecheck` ✓；vitest **49 文件 / 587 passed**（chromium 与 firefox 各 587）；
 e2e `custom-mode.spec.ts` **6 passed**（chromium / firefox 各 6）；
 `pnpm data:build` 17 文件 / `data:check` 无漂移 / `data:validate` ✅；主仓库 pytest **81 passed**。
+
+---
+
+### D162 切语言时挂载着的面板会卡住（`memo` × 模块级 `t()`）
+
+**用户报告**：中英文反复切换时，**部分字段卡住不切换**。
+
+**原因**（一类，不是一个点）：`t()` 读的是 `src/i18n/localization.ts` 里的**模块级** `locale`，
+而设置页的五个分区与四个页面面板全都 `memo(...)` 过。切语言走的是 `useSession.setLocale`：
+AppShell 跟着重渲染了，但这些面板的 **props 一个都没变**（`bundle` / `tables` / …）⇒ `memo` 直接把整块跳过，
+里面的文案停在旧语言 —— 要等它**因为别的原因**重渲染（切页签、展开分区、换图集…）才跟上。
+实测（e2e 式的真浏览器用例）：中文下 AppBar 与「数据」分区是中文，而「音乐选择预设」「仅单曲模式」
+与播放/列表/游戏三页仍是英文。只有当场订阅了会话的那些（`ConfigPanel`、`SourceSection`、
+`CardSetSection` —— 它们 `useSession()` 取整份 state）不会卡。
+
+**修法**：新增 `src/ui/memoOnLocale.tsx` —— `memo` 的替代品，多订阅一次 `locale`：
+
+```tsx
+export function memoOnLocale<P extends object>(Component: ComponentType<P>) {
+  return memo(function LocaleBound(props: P) {
+    useSession((slice) => slice.locale);   // 值不用：订阅它是为了"语言一变就重渲染"
+    return <Component {...props} />;
+  });
+}
+```
+
+`memo` 挡住的只是**父组件驱动**的重渲染，组件自己订阅的状态照样会重渲染它 ⇒ 一处修好整棵子树
+（含 `ListRow`、`AllNoneButtons` 这类子组件里的文案），不必把 locale 逐层透传、也不必在每个子组件里各写一遍。
+**约定**：这个仓库里凡 `memo` 过的面板/分区一律用它包（10 处），这样"新加一个文案"不会悄悄带回同一个 bug。
+
+**守卫**：新增 `src/ui/localeSwitch.test.tsx`（真数据 + 真挂载）——设置页五个分区各挑一处只在某一语言里
+出现的字，zh → en 逐个断言；再**来回切三轮**后要求每一处都回到中文；播放/列表/游戏三页各挑一处同样断言
+（列表页那一处只能读输入框的 `placeholder`：那一页只有搜索框带文案，而 placeholder 不进 `textContent`）。
+**反证**：把 `memoOnLocale` 换回 `memo` ⇒ 两条用例立刻红。
+
+**验证**：`pnpm typecheck` ✓；vitest **50 文件 / 589 passed**（chromium 与 firefox 各 589；+2 = 新用例）。

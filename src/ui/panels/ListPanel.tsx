@@ -19,6 +19,7 @@ import { Localization, t } from "../../i18n/localization";
 import { useCurrentDataset } from "../../data/useDataset";
 import { currentQueue, useQueue } from "../../store/queue";
 import { MD2, NoFontFamily } from "../../theme/theme";
+import { memoOnLocale } from "../memoOnLocale";
 
 interface ListPanelProps {
   bundle: DataBundle;
@@ -234,4 +235,4 @@ const ListRow = memo(function ListRow({
 });
 
 /** 面板级 memo：外壳状态（语言 / 音乐模式 / 分区展开）变化时不必重算整页。 */
-export const ListPanel = memo(ListPanelInner);
+export const ListPanel = memoOnLocale(ListPanelInner);

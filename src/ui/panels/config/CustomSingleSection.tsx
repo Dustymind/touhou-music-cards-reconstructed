@@ -5,7 +5,7 @@
  * 禁用的卡**不进轮播、也不进卡池** —— 卡池那一侧由 `AppShell` 把同一份可用集合交给游戏页（Q5）。
  */
 import { Chip, Stack, TextField, Typography } from "@mui/material";
-import { memo, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import type { CharacterRecord, DataBundle } from "../../../data/types";
 import { Localization, t } from "../../../i18n/localization";
@@ -14,6 +14,7 @@ import { LazyRow } from "../../components/LazyRow";
 import { useCurrentDataset } from "../../../data/useDataset";
 import { customSingleRows } from "../../../music/customSelection";
 import { useCustomSingle } from "../../../store/customSingle";
+import { memoOnLocale } from "../../memoOnLocale";
 
 function CardRow({ row, onToggle }: {
   row: { character: CharacterRecord; disabled: boolean; credit: string };
@@ -85,4 +86,4 @@ function CustomSingleSectionInner({ bundle }: { bundle: DataBundle }) {
 }
 
 /** 分区之间互不牵连：展开一个分区不该把其它分区的长列表一起重渲染（memo 掉）。 */
-export const CustomSingleSection = memo(CustomSingleSectionInner);
+export const CustomSingleSection = memoOnLocale(CustomSingleSectionInner);

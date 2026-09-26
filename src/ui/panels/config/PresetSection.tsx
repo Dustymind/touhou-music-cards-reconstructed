@@ -1,5 +1,4 @@
 /** 音乐选择预设：秘封曲多层勾选 + 三个三态开关 + 「先 CD 再官作」的专辑复选。 */
-import { memo } from "react";
 import {
   Button, Checkbox, Chip, Divider, FormControlLabel, Stack, Typography,
 } from "@mui/material";
@@ -13,6 +12,7 @@ import { groupAlbums, presetStats } from "../../../music/presetView";
 import { useCurrentDataset } from "../../../data/useDataset";
 import { hifuuParentState, usePreset } from "../../../store/preset";
 import { TriToggle } from "./TriToggle";
+import { memoOnLocale } from "../../memoOnLocale";
 
 /** MD2 复选框行：**统一行高 40dp**、控件与文字垂直居中。
  *  之前为了"多行标签时与首行对齐"用了 `mt: -0.75/1.25` 微调，导致复选框盒子（38dp）比单行行高（32dp）还高、
@@ -191,4 +191,4 @@ function PresetSectionInner({ bundle }: { bundle: DataBundle }) {
 }
 
 /** 分区之间互不牵连：展开一个分区不该把其它分区的长列表一起重渲染（memo 掉）。 */
-export const PresetSection = memo(PresetSectionInner);
+export const PresetSection = memoOnLocale(PresetSectionInner);

@@ -2,7 +2,7 @@
 import {
   Chip, FormControl, FormControlLabel, MenuItem, Select, Stack, Switch, TextField, Typography,
 } from "@mui/material";
-import { memo, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import type { DataBundle, MusicEntry } from "../../../data/types";
 import { displayTitle, trackId } from "../../../data/types";
@@ -14,6 +14,7 @@ import { usePreset } from "../../../store/preset";
 import { useSingleTrack } from "../../../store/single";
 import { singleModeRows } from "../../../music/presetView";
 import { useProgressiveRows } from "../../useProgressiveRows";
+import { memoOnLocale } from "../../memoOnLocale";
 
 function entryLabel(entry: MusicEntry): string {
   return `${displayTitle(entry[1])} (${entry[0]})`;
@@ -148,4 +149,4 @@ function SingleTrackSectionInner({ bundle }: { bundle: DataBundle }) {
 }
 
 /** 分区之间互不牵连：展开一个分区不该把其它分区的长列表一起重渲染（memo 掉）。 */
-export const SingleTrackSection = memo(SingleTrackSectionInner);
+export const SingleTrackSection = memoOnLocale(SingleTrackSectionInner);

@@ -5,7 +5,7 @@ import {
 } from "@mui/material";
 import { ArrowDownward, ArrowUpward } from "@mui/icons-material";
 
-import { memo, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { SectionPanel } from "./SectionCard";
 import type { DataBundle } from "../../../data/types";
@@ -18,6 +18,7 @@ import { effectiveOrder, useSourceOverrides } from "../../../store/sources";
 import { useCurrentDataset } from "../../../data/useDataset";
 import { MUSIC_MODES, type MusicMode } from "../../../music/mode";
 import type { TableMap } from "../../../music/sources";
+import { memoOnLocale } from "../../memoOnLocale";
 
 /** 模式的显示名（`Record` 而不是三元：漏一个模式当场不成立，D156）。 */
 const MODE_LABELS: Record<MusicMode, Localized> = {
@@ -382,4 +383,4 @@ function SourceSectionInner({ bundle, tables }: { bundle: DataBundle; tables: Ta
 }
 
 /** 分区之间互不牵连：展开一个分区不该把其它分区的长列表一起重渲染（memo 掉）。 */
-export const SourceSection = memo(SourceSectionInner);
+export const SourceSection = memoOnLocale(SourceSectionInner);

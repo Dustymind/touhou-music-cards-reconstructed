@@ -6,7 +6,7 @@
  * - 当前角色的多张卡面**叠放**（上游 `CharacterCardStacked`）；
  * - 切歌时整块卡面滑入（上游是整条 `translateX` 轮播，这里用同长的 0.3s 滑入动画，见 DECISIONS D21）。
  */
-import { memo, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Alert, Box, Button, Card, CardContent, Divider, Stack, Switch, TextField, Typography } from "@mui/material";
 import { keyframes } from "@emotion/react";
 import { UpcomingFan, fanCardWidth } from "../player/UpcomingFan";
@@ -23,6 +23,7 @@ import { fadeInSx, NoFontFamily } from "../../theme/theme";
 import { CharacterCard } from "../components/CharacterCard";
 import { glitchEnabled, preferLocalCards } from "../../runtime";
 import { PlayerControl } from "../components/PlayerControl";
+import { memoOnLocale } from "../memoOnLocale";
 
 /** 切歌时卡片滑入（上游轮播的 `transform 0.3s ease-in-out` 同长同缓动）。 */
 const slideIn = keyframes`
@@ -225,4 +226,4 @@ function PlayerPanelInner(props: PlayerPanelProps) {
 }
 
 /** 面板级 memo：外壳状态（语言 / 音乐模式 / 分区展开）变化时不必重算整页。 */
-export const PlayerPanel = memo(PlayerPanelInner);
+export const PlayerPanel = memoOnLocale(PlayerPanelInner);

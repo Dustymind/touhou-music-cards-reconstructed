@@ -5,7 +5,7 @@
  * 两维的**默认都是 `unset` = 全开**（与"专辑默认勾选"的另两个模式相反，见 `customSelection.ts` 的真值表）。
  */
 import { Divider, Stack, Typography } from "@mui/material";
-import { memo, useMemo } from "react";
+import { useMemo } from "react";
 
 import type { DataBundle } from "../../../data/types";
 import { Localization, t } from "../../../i18n/localization";
@@ -17,6 +17,7 @@ import {
 } from "../../../music/customSelection";
 import { useCustomPreset } from "../../../store/customPreset";
 import { TriToggle } from "./TriToggle";
+import { memoOnLocale } from "../../memoOnLocale";
 
 /** 一行 = 名字 + 三态控件。窄屏（320dp）下这一行会**折行**（`flexWrap`）而不是横向溢出：
  *  三档按钮本身约 220px，留给名字的空间在窄屏上不够 —— 折行是 MD2 里这种"标签 + 分段控件"的标准退让。 */
@@ -96,4 +97,4 @@ function CustomPresetSectionInner({ bundle }: { bundle: DataBundle }) {
 }
 
 /** 分区之间互不牵连：展开一个分区不该把其它分区的长列表一起重渲染（memo 掉）。 */
-export const CustomPresetSection = memo(CustomPresetSectionInner);
+export const CustomPresetSection = memoOnLocale(CustomPresetSectionInner);

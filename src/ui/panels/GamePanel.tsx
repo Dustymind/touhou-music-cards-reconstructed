@@ -1,5 +1,4 @@
 /** 对战页：模式/规则设置 + 双方牌库 + 收集数 + 计时器 + 回合操作。 */
-import { memo } from "react";
 import {
   Alert, Box, Card, CardContent, CardHeader, Chip, Divider, FormControlLabel, RadioGroup, Stack,
   Switch, TextField, Typography,
@@ -53,6 +52,7 @@ import { useSession } from "../../store/session";
 import { glitchEnabled } from "../../runtime";
 import { isCheatReally } from "../../cheat";
 import { markCountdownStart, TimerDisplay } from "../game/TimerDisplay";
+import { memoOnLocale } from "../memoOnLocale";
 
 /** 判定状态在界面上的名字（`en` 保持上游的原始枚举名，`zh` 给出中文）。 */
 const STATE_LABEL: Record<JudgeState, keyof typeof Localization> = {
@@ -777,4 +777,4 @@ function GamePanelInner({ bundle, cardKeys }: GamePanelProps) {
 }
 
 /** 面板级 memo：外壳状态（语言 / 音乐模式 / 分区展开）变化时不必重算整页。 */
-export const GamePanel = memo(GamePanelInner);
+export const GamePanel = memoOnLocale(GamePanelInner);
