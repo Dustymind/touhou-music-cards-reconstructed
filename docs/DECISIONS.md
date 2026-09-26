@@ -6234,3 +6234,48 @@ testid 一字不变）与 `useProgressiveRows`（那套"rAF → 宏任务 → �
 `useNet.test.tsx` +5 条（自动采用 + 只重发 1 次 + 重发时带上刚采用的源、有别的值时不自动采用、
 采用只改会话级覆盖、拒绝后自己的源不变、会话配置里的源只作展示且离开房间清掉），
 `GamePanel.test.tsx` +1 条（大厅那条提示的两个按钮）。
+
+---
+
+### D161 模式 3 收尾：真浏览器 e2e、契约文档、以及两个"同源地址被当成别的"的修复
+
+**e2e（新增 `e2e/custom-mode.spec.ts`，6 条 × 两个桌面引擎）**：素材是 `e2e/fixtures/custom/`
+下**真的一份源**（`manifest.json` + 自己生成的三张卡面 / 三段 1 秒静音 mp3 + 响度表，
+`?customsource=` 指向它，同源静态文件）—— 用真源而不是 `page.route` 打桩，因为
+"地址归一化 → 相对路径按清单目录解析 → 卡面渲染"这三步正是最容易出错、也最值得在真浏览器里过一遍的地方。
+六条：① 没配源 ⇒ 0 张卡 + 必填提示 + **一个请求都不发**；② 配了源 ⇒ 卡/曲目立刻出现、
+播放页画的是源给的卡面、统计跟着清单走；③ 专辑/作者三元逐档切换（默认全开、off 一票否决、
+无作者的卡不受作者维度影响）；④ 逐卡禁用 ⇒ **轮播与卡池同时**少一张；⑤ 重置 = 清空 + 刷新仍是空；
+⑥ 窄屏 320 / 412dp 那一行与整页都不横向溢出。
+
+**e2e 抓出的两个真 bug**（都在"同源"这条路上，单测与组件测试都照不到）：
+
+1. `normalizeManifestUrl` 把**相对当前页面**的地址当成了裸主机：`/cards/manifest.json` →
+   `http:///cards/manifest.json`。修法：只有"第一段看起来像主机名（有 `:` 或 `.`）"才补 `http://`，
+   根路径 / 带目录的相对路径 / 只有文件名的 `manifest.json` **原样保留**（同源静态托管是最常见的形态之一）。
+2. `CharacterCard.cardUrl` 把 `sourceOnly` 图集的卡面当成了内置图集的**文件名**：清单解析出来的
+   `/cards/faces/a.png` 被拼目录 + `encodeURIComponent`，变成 `.//%2Fcards%2Ffaces%2Fa.png`（必然 404）。
+   修法：**源给的卡面一律原样用**（它已经是解析好的地址，可能是 `https://…`、也可能是同源 `/…`）。
+   两条都补了单测（`sources.test.ts` 的归一化用例、`GamePanel.test.tsx` 的渲染断言）。
+
+**契约文档**：新增 [`docs/custom-mode-v1.md`](custom-mode-v1.md)（三段式 / 清单形状与校验 / 卡面与音频 /
+三元与逐卡禁用 / 哈希与协议 / 空源与联机采用 / 地址形态 / 界面 / 五条不变量），
+`docs/protocol-v1.md` 同步到 v5，`docs/README.md` 的现状表与契约表、根 `README.md` 的模式说明同步。
+
+**「关于」弹窗**加一行（Q8）：说明模式 3 的素材来自使用者自己的源、工具在它自己的仓库里，
+**不放外链**（那个仓库还没有公开，与"源代码仓库（暂未开放）"那一行同一个处理）。
+
+**数据仓库怎么挂**（与 Q2 的一处偏差，写清楚理由）：Q2 选的是"作为 submodule `data/custom`"。
+本轮**没有**提交 gitlink，只把地址与命令写进 `data/README.md` 与契约文档：
+`touhou-music-cards-custom-data` 现在只存在于本机（没有推送、远端还没有），
+提交一个指向不存在远端的 gitlink 会让 `git clone --recursive` 直接失败 —— 那是**坏的仓库状态**。
+Q2 的实质部分（独立仓库 + **主仓库构建不依赖它** + 工具不 import 主仓库）都已落地并有守卫；
+推送那个仓库之后，挂上去只要一条命令：
+
+```bash
+git submodule add https://github.com/Dustymind/touhou-music-cards-custom-data.git data/custom
+```
+
+**验证**：`pnpm typecheck` ✓；vitest **48 文件 / 586 passed**（chromium 与 firefox 各 586）；
+e2e `custom-mode.spec.ts` **6 passed**（chromium / firefox 各 6）；
+`pnpm data:build` 17 文件 / `data:check` 无漂移 / `data:validate` ✅；主仓库 pytest **81 passed**。

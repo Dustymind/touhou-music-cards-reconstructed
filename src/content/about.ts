@@ -89,6 +89,15 @@ export const aboutContent: AboutContent = {
       name: "Dustymind/touhou-music-cards-otomads-data",
       url: "https://github.com/Dustymind/touhou-music-cards-otomads-data",
     },
+    // 模式 3（自定义）的说明（Q8）：素材来自使用者自己的源；数据仓库里**只有工具**、没有卡数据。
+    // 那个仓库还没有公开，所以与上面那行同一个处理：写名字、不写 url。**不放外链**是有意的。
+    {
+      label: {
+        en: "Custom mode: one card is one name, one face and one track - all of them come from the source you host yourself. The tool that downloads your source files lives in its own repository.",
+        zh: "自定义模式：一张卡 = 一个卡名 + 一张卡面 + 一首曲目，全部来自你自己托管的源；负责下载源文件的工具在它自己的仓库里。",
+      },
+      name: "Dustymind/touhou-music-cards-custom-data",
+    },
     {
       label: { en: "Original version author", zh: "原版歌牌游戏作者" },
       name: "lightbulb128",
