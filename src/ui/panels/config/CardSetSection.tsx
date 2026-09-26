@@ -12,9 +12,11 @@
  * 音MAD 的 B 站封面集、模式 3 的合成图集），这里就多一行「卡面比例」——
  * 常规 703:1000 / 16:9 / 4:3 三选一。**内置六套不出现它**（`library` 原版立绘就那一个形状）。
  * 控件下面放三张示例卡：切一下就能看到差别，而且示例卡走的是**同一个** `cardFace` + 生效图集，
- * 所以它显示的就是牌桌上真正会画的那张（含"按档位取哪一份链接"）。
+ * 所以它显示的就是牌桌上真正会画的那张。**预览按实际卡面大小显示**（用户要求）——
+ * 宽度直接取播放页牌堆那同一个 `fanCardWidth`，不是缩略图。
  * 模式 3（自带卡面）没有图集可选 ⇒ 那个模式下这个分区就是那行只读说明 + 画幅控件。
  */
+import { useEffect, useState } from "react";
 import {
   Box, Divider, FormControlLabel, Radio, RadioGroup, Stack, ToggleButton, ToggleButtonGroup, Typography,
 } from "@mui/material";
@@ -27,11 +29,12 @@ import { useSession } from "../../../store/session";
 import { usesOwnCardFaces } from "../../../music/mode";
 import { CARD_RATIOS, cardRatioChoices, type CardRatio } from "../../../theme/cardRatio";
 import { CharacterCard } from "../../components/CharacterCard";
+import { fanCardWidth } from "../../player/UpcomingFan";
 import { cardSetDescription } from "./cardSetDescriptions";
 import { SectionPanel } from "./SectionCard";
 import { memoOnLocale } from "../../memoOnLocale";
 
-/** 示例卡数量（上游也是三张）与宽度。 */
+/** 图集菜单里的缩略示例卡数量（上游也是三张）与宽度 —— 那是**缩略图**，不是给人看画幅的。 */
 const EXAMPLE_COUNT = 3;
 const EXAMPLE_WIDTH = 64;
 
@@ -83,11 +86,28 @@ function CardSetSectionInner({ bundle }: { bundle: DataBundle }) {
     .filter((example) => cardFace(example.character, effective, 0) !== "")
     .slice(0, EXAMPLE_COUNT);
 
-  /** 三张示例卡（图集菜单与比例控件共用；宽度都是 `EXAMPLE_WIDTH`）。 */
-  const exampleCards = (set = effective) => (
-    <Stack direction="row" spacing={1} sx={{ alignItems: "flex-start", flexShrink: 0 }}>
+  /** 画幅预览用的宽度 = **实际显示时的卡面宽度**（用户要求：预览要和真卡一样大）。
+   *
+   *  直接用播放页牌堆 / 游戏页"未使用卡牌"区那同一个 `fanCardWidth`（`min(窗口宽 20%, 150)`）——
+   *  同一个函数 ⇒ 两边永远不会漂移；窗口变化时跟着变（与 `PlayerPanel` 的封面同一套写法）。 */
+  const [cardWidth, setCardWidth] = useState(() =>
+    fanCardWidth(typeof window === "undefined" ? 1280 : window.innerWidth));
+  useEffect(() => {
+    const update = () => setCardWidth(fanCardWidth(window.innerWidth));
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
+  /** 示例卡（图集菜单当缩略图、画幅控件当等身预览，宽度由调用方给）。 */
+  const exampleCards = (width: number, set = effective) => (
+    <Stack
+      direction="row"
+      spacing={1}
+      sx={{ alignItems: "flex-start", flexShrink: 0, flexWrap: "wrap", gap: 1 }}
+    >
       {examples.map((example) => (
-        <Box key={example.key} sx={{ width: EXAMPLE_WIDTH }}>
+        <Box key={example.key} sx={{ width }} data-testid={`example-card-${example.key}`}>
           <CharacterCard cardSet={set} file={cardFace(example.character, set, 0)} state="normal" />
         </Box>
       ))}
@@ -102,8 +122,8 @@ function CardSetSectionInner({ bundle }: { bundle: DataBundle }) {
             {t(Localization.ConfigTabCardSetFixed)}
           </Typography>
           {ratioControl}
-          {/* 示例卡：这一行显示的就是**当前档位**下牌桌上会画的那张（含按档位取链接） */}
-          {examples.length > 0 && exampleCards()}
+          {/* 预览：**按实际卡面大小**显示当前档位下牌桌上会画的那张（用户要求） */}
+          {examples.length > 0 && exampleCards(cardWidth)}
         </Stack>
       </SectionPanel>
     );
@@ -153,7 +173,7 @@ function CardSetSectionInner({ bundle }: { bundle: DataBundle }) {
                     >
                       {cardSetDescription(set.id, set.origins[0] ?? "")}
                     </Typography>
-                    {exampleCards(set)}
+                    {exampleCards(EXAMPLE_WIDTH, set)}
                   </Stack>
                 </Stack>
               }
@@ -167,7 +187,7 @@ function CardSetSectionInner({ bundle }: { bundle: DataBundle }) {
         <Stack spacing={2} sx={{ alignItems: "flex-start", mt: 2 }}>
           <Divider flexItem sx={{ width: "100%" }} />
           {ratioControl}
-          {examples.length > 0 && exampleCards()}
+          {examples.length > 0 && exampleCards(cardWidth)}
         </Stack>
       )}
     </SectionPanel>

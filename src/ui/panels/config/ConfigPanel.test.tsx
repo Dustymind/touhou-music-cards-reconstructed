@@ -15,6 +15,7 @@ const usePreset = presetStoreFor("originals");
 const useSingleTrack = singleStoreFor("originals");
 import { singleStoreFor } from "../../../store/single";
 import { sourceStoreFor } from "../../../store/sources";
+import { fanCardWidth } from "../../player/UpcomingFan";
 import { ConfigPanel } from "../ConfigPanel";
 import { parseCustomManifest, withCustomManifest } from "../../../data/customManifest";
 import { useCustomPreset } from "../../../store/customPreset";
@@ -53,6 +54,9 @@ function modeRadio(container: HTMLElement, mode: "originals" | "otomads"): HTMLI
   if (!element) throw new Error(`找不到音乐模式单选：${mode}`);
   return element;
 }
+
+/** 图集菜单里的缩略示例卡宽度（与 `CardSetSection` 的常量一致）——预览不该是它。 */
+const EXAMPLE_THUMBNAIL = 64;
 
 async function click(element: Element): Promise<void> {
   await act(async () => {
@@ -477,6 +481,27 @@ describe("ConfigPanel", () => {
     expect(container.querySelector('[data-testid="card-ratio-16x9"]')).toBeNull();
     expect(container.querySelector('[data-testid^="cardset-row-"]')).not.toBeNull();
     expect(useSession.getState().cardRatio).toBe("4x3");        // 偏好没被改写
+  });
+
+  it("画幅预览**按实际卡面大小**显示（用户要求）：宽度 = `fanCardWidth(窗口宽)`，不是缩略图", async () => {
+    // 模式 3 带 3 张卡（预览要有卡才画得出来）
+    const { container } = await openCustom("cardset", { cards: 3 });
+
+    // 真实卡面宽度：与播放页牌堆 / 游戏页"未使用卡牌"区同一个函数
+    const expected = fanCardWidth(window.innerWidth);
+    expect(expected).toBeGreaterThan(EXAMPLE_THUMBNAIL);          // 前置：它确实比缩略图大
+    const previews = [...container.querySelectorAll('[data-testid^="example-card-"]')];
+    expect(previews.length).toBeGreaterThan(0);
+    for (const preview of previews) {
+      expect(Math.round(preview.getBoundingClientRect().width)).toBe(Math.round(expected));
+    }
+
+    // 图集菜单里那三张仍是缩略图（那是给人认图集的，不是给人看画幅的）
+    // 切模式后分区仍展开着（展开状态是分区自己的），不用再点一次
+    await act(async () => { useSession.setState({ musicMode: "originals" }); });
+    const thumbs = [...container.querySelectorAll('[data-testid^="example-card-"]')];
+    expect(thumbs.length).toBeGreaterThan(0);
+    expect(Math.round(thumbs[0]!.getBoundingClientRect().width)).toBe(EXAMPLE_THUMBNAIL);
   });
 
   it("画幅控件只在**能换档**的图集上出现：内置六套没有，音MAD 的封面集 / 本地图集有（D165）", async () => {
