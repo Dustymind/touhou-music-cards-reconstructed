@@ -25,6 +25,12 @@ describe("外观偏好", () => {
     expect(localStorage.getItem("tmc.v1.appearance")).toContain("#2196f3");
   });
 
+  it("「自动」也是一条合法偏好（跟随系统由 UI 层解析）", () => {
+    useAppearance.getState().setMode("auto");
+    expect(useAppearance.getState().mode).toBe("auto");
+    expect(localStorage.getItem("tmc.v1.appearance")).toContain("\"auto\"");
+  });
+
   it("非法颜色被忽略（不把界面搞成 undefined 色）", () => {
     useAppearance.getState().setPrimary("#4caf50");
     useAppearance.getState().setPrimary("not-a-color");

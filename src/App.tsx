@@ -6,15 +6,16 @@ import { Alert, Box, CircularProgress, Stack, Typography } from "@mui/material";
 
 import { useDataBundle } from "./data/useData";
 import { Localization, t } from "./i18n/localization";
-import { useAppearance } from "./store/appearance";
+import { useAppearance, useThemeMode } from "./store/appearance";
 import { buildTheme, NoFontFamily } from "./theme/theme";
 import { AppShell } from "./ui/shell/AppShell";
 
 
 export default function App() {
   const { status, bundle, error, reload } = useDataBundle();
-  // 亮/暗与主题色来自设置页（持久化）；只在这两者变化时重建主题
-  const { mode, primary } = useAppearance();
+  // 亮/暗（`auto` 时跟随系统）与主题色来自设置页（持久化）；只在这两者变化时重建主题
+  const mode = useThemeMode();
+  const primary = useAppearance((state) => state.primary);
   const theme = useMemo(() => buildTheme({ mode, primary: primary || undefined }), [mode, primary]);
 
   return (

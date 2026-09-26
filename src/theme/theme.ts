@@ -37,10 +37,18 @@ export const MD2_PALETTE = {
   },
 } as const;
 
-/** 亮/暗两种模式（默认仍是上游的**深色**）。 */
+/** 实际生效的两种模式。 */
 export const THEME_MODES = ["dark", "light"] as const;
 export type ThemeMode = (typeof THEME_MODES)[number];
-export const DEFAULT_THEME_MODE: ThemeMode = "dark";
+/** 设置页可选的三项：跟随系统 / 亮 / 暗（默认仍是上游的**深色**，不跟着系统走）。 */
+export const THEME_PREFERENCES = ["auto", "dark", "light"] as const;
+export type ThemePreference = (typeof THEME_PREFERENCES)[number];
+export const DEFAULT_THEME_MODE: ThemePreference = "dark";
+
+/** 偏好 + 系统是否偏好深色 → 实际生效的模式（`auto` 跟随 `prefers-color-scheme`）。 */
+export function resolveThemeMode(preference: ThemePreference, prefersDark: boolean): ThemeMode {
+  return preference === "auto" ? (prefersDark ? "dark" : "light") : preference;
+}
 
 /** 可选的**主题色**（MD2 500 号基准色）。深色主题下会自动提亮一档（MD2 的 200 号口径），
  *  否则 500 号落在 #121212 上对比度不足。 */
@@ -229,7 +237,8 @@ export const CardAspectRatio = 703 / 1000;
 /** 建主题。**不带参数时与以前逐字相同**（深色 + MD2 基准色）——
  *  设置页把它接上 `store/appearance` 的模式与主题色；两套值都由 `MD2_PALETTE` / `MODE_TOKENS` 提供。 */
 export function buildTheme(options: { mode?: ThemeMode; primary?: string } = {}): Theme {
-  const mode = options.mode ?? DEFAULT_THEME_MODE;
+  // 这里只认**生效模式**（亮/暗二选一）；`auto` 的解析在 `store/appearance.useThemeMode`
+  const mode: ThemeMode = options.mode ?? "dark";
   const base = MD2_PALETTE[mode];
   const tokens = MODE_TOKENS[mode];
   // 没给自定义色 ⇒ 直接用 MD2 该模式的基准色（**不做提亮**，与改前逐字相同）

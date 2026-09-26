@@ -3,7 +3,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildTheme, isHexColor, MD2, MD2_BORDER, MD2_PALETTE, MD2_SLOT, MD2_TYPE_SCALE, NoFontFamily,
-  normalizeHex, onColorFor, Palette, themeColorFor, ThemeTokens,
+  normalizeHex, onColorFor, Palette, resolveThemeMode, themeColorFor, ThemeTokens,
+  DEFAULT_THEME_MODE, THEME_PREFERENCES,
 } from "./theme";
 
 const theme = (): ReturnType<typeof buildTheme> => buildTheme();
@@ -91,6 +92,16 @@ describe("亮/暗模式与自定义主题色", () => {
     // 组件里的 token 就是这些变量（`MD2_BORDER` / 扩展面板图标也走它）
     expect(MD2_BORDER).toBe(ThemeTokens.border);
     expect(MD2.accordion.icon).toBe(ThemeTokens.icon);
+  });
+
+  it("偏好 → 生效模式：auto 跟随系统，亮/暗原样", () => {
+    expect(resolveThemeMode("auto", true)).toBe("dark");
+    expect(resolveThemeMode("auto", false)).toBe("light");
+    expect(resolveThemeMode("dark", false)).toBe("dark");
+    expect(resolveThemeMode("light", true)).toBe("light");
+    // 默认仍是深色（上游观感不变）：不是 auto
+    expect(DEFAULT_THEME_MODE).toBe("dark");
+    expect(THEME_PREFERENCES).toContain("auto");
   });
 
   it("颜色校验与归一化（设置页与 store 共用这一处口径）", () => {

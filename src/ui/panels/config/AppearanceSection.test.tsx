@@ -5,7 +5,7 @@ import CssBaseline from "@mui/material/CssBaseline";
 import { ThemeProvider } from "@mui/material/styles";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { useAppearance } from "../../../store/appearance";
+import { useAppearance, useThemeMode } from "../../../store/appearance";
 import { MD2 } from "../../../theme/theme";
 import { buildTheme } from "../../../theme/theme";
 import { AppearanceSection } from "./AppearanceSection";
@@ -14,7 +14,9 @@ let root: Root | null = null;
 
 /** 与 `App.tsx` 同构：主题由外观偏好算出 —— 这条链正是要验证的东西。 */
 function Harness() {
-  const { mode, primary } = useAppearance();
+  // 与 `App.tsx` 同构：偏好（可能含 auto）经 `useThemeMode` 解析成生效模式
+  const mode = useThemeMode();
+  const primary = useAppearance((state) => state.primary);
   return (
     <ThemeProvider theme={buildTheme({ mode, primary: primary || undefined })}>
       <CssBaseline />
@@ -71,6 +73,24 @@ describe("外观分区", () => {
     expect(useAppearance.getState().primary).toBe("");
   });
 
+  it("三档模式：自动 / 亮色 / 暗色都在，且控件左对齐（不被 Stack 拉满）", async () => {
+    const container = await render();
+    for (const id of ["auto", "light", "dark"]) {
+      expect(container.querySelector(`[data-testid="theme-mode-${id}"]`), id).not.toBeNull();
+    }
+    const group = container.querySelector('[data-testid="theme-mode-auto"]')!.parentElement as HTMLElement;
+    const content = container.querySelector('[data-testid="section-appearance-content"]') as HTMLElement;
+    // 控件宽度明显小于内容区 ⇒ 左对齐而不是被拉满整行
+    expect(group.getBoundingClientRect().width).toBeLessThan(content.getBoundingClientRect().width * 0.9);
+    expect(getComputedStyle(group).alignSelf).toBe("flex-start");
+  });
+
+  it("「自动」写进偏好（生效模式交给 useThemeMode 解析）", async () => {
+    const container = await render();
+    await click(container, "theme-mode-auto");
+    expect(useAppearance.getState().mode).toBe("auto");
+  });
+
   it("MD2 规格：色块 32dp、内容区留白与行距都取常量（不在组件里写死数字）", async () => {
     const container = await render();
     const box = (container.querySelector('[data-testid="theme-color-blue"]') as HTMLElement).getBoundingClientRect();
@@ -82,16 +102,13 @@ describe("外观分区", () => {
     const details = content.parentElement as HTMLElement;
     expect(getComputedStyle(details).padding).toBe(`${MD2.card.padding}px`);
 
-    // 行距一律落在 MD2 的 8dp 栅格上：不写死具体像素（那是主题 / Stack 的实现细节），
-    // 但任何一处随手写的 13px 都会被这条挡下。
-    const rows = content.firstElementChild as HTMLElement;             // <Stack spacing={MD2.grid}>
-    for (const child of Array.from(rows.children)) {
-      const style = getComputedStyle(child as HTMLElement);
-      for (const value of [style.marginTop, style.marginBottom, style.rowGap]) {
-        const px = parseFloat(value);
-        if (Number.isNaN(px) || px === 0) continue;
-        expect(px % MD2.grid, `${child.tagName} 的 ${value} 不在 ${MD2.grid}dp 栅格上`).toBe(0);
-      }
+    // 行距**正好**是 MD2 的 8dp 栅格：MUI 的 `Stack spacing` 单位就是 8px，
+    // 所以 `spacing={1}` = 8px ✓ 而 `spacing={MD2.grid}`（=8）会被算成 64px ✗ —— 这条就是拦它的。
+    const rows = content.firstElementChild as HTMLElement;             // <Stack spacing={1}>
+    const children = Array.from(rows.children) as HTMLElement[];
+    expect(children.length).toBeGreaterThan(1);
+    for (const child of children.slice(1)) {
+      expect(getComputedStyle(child).marginTop, child.tagName).toBe(`${MD2.grid}px`);
     }
   });
 

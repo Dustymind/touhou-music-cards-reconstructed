@@ -72,6 +72,7 @@ export const Localization = {
   ShellLanguage: u("Language", "语言"),
   ConfigAppearanceTitle: u("Appearance", "外观"),
   ConfigAppearanceMode: u("Theme mode", "亮/暗模式"),
+  ConfigAppearanceModeAuto: u("Auto", "自动"),
   ConfigAppearanceModeLight: u("Light", "亮色"),
   ConfigAppearanceModeDark: u("Dark", "暗色"),
   ConfigAppearanceColor: u("Theme color", "主题色"),
