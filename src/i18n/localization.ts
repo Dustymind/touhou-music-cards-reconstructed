@@ -45,7 +45,7 @@ export const Localization = {
   CustomSourcePlaceholder: u("https://example.com/manifest.json", "https://example.com/manifest.json"),
   CustomSourceRequired: u(
     "Fill in a custom source link: this mode ships no data of its own.",
-    "必须填写自定义源链接：这个模式不自带任何卡片数据。"),
+    "必须填写自定义源链接：这个模式不自带任何数据。"),
   CustomSourceHint: u(
     "One card = one name + one cover + one track. Your manifest decides every card; the app only renders it.",
     "一张卡 = 一个卡名 + 一张卡面 + 一首曲目。卡表完全由你的清单决定，应用只负责渲染。"),

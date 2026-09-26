@@ -129,7 +129,7 @@ sourceOnly: true, dir: "", origins: [], localPrefix: "./" }`）：
 
 | # | 不变量 | 由谁守 |
 |---|---|---|
-| 1 | 应用**不带**这个模式的任何卡数据 | `public/data/custom/` 恒为空 + `mode.test.ts` |
+| 1 | 应用**不带**这个模式的任何数据 | `public/data/custom/` 恒为空 + `mode.test.ts` |
 | 2 | 坏清单**整份**不生效（不半信半疑地用） | `customManifest.test.ts` 的 22 条坏形状矩阵 |
 | 3 | 卡名/顺序/卡面不同 ⇒ **握手期**就拒 | `customHash` + `protocol.ts` 的三项比较 |
 | 4 | 禁用的卡不进轮播**也不进卡池** | `AppShell.isUsable` → 队列与 `GamePanel.cardKeys` |
