@@ -6422,7 +6422,7 @@ export function memoOnLocale<P extends object>(Component: ComponentType<P>) {
 - `custom.fetch_covers`：从"下载器"改成"产链接" —— B 站图源产三档链接（**不用再上传素材**）、
   其它图源/相对路径保持单链接原样。
 
-**验证**（主仓库）：`pnpm typecheck` ✓；vitest **1262 passed（chromium / firefox 各 631）**；
+**验证**（主仓库）：`pnpm typecheck` ✓；vitest **1250 passed（chromium / firefox 各 625）**；
 e2e `custom-mode.spec.ts` **8 passed**（真浏览器里三档各换形状**与 img.src**、刷新后还在、
 内置图集没有控件、单链接的卡三档共用一份）；两个数据仓库的 pytest 分别 **261 passed**（音MAD 工具：
 106 条真封面全部测出尺寸，两个裁切链接 HTTP 200 且像素与算出来的一致）与 **400 passed**

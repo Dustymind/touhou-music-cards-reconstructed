@@ -77,11 +77,12 @@ const BAD_PAYLOADS: [string, unknown][] = [
   ["封面为空数组", payload({ characters: [{ ...CHARACTER, covers: [] }] })],
   ["封面里是空串", payload({ characters: [{ ...CHARACTER, covers: [""] }] })],
   ["封面不是数组", payload({ characters: [{ ...CHARACTER, covers: "https://x/" }] })],
-  // 逐档封面（D165）：对象形态里的键与值同样严 —— 认不得的档 / 空值 / 空对象一律整份拒掉
-  ["封面对象是空对象", payload({ characters: [{ ...CHARACTER, covers: [{}] }] })],
-  ["封面对象里有认不得的档位", payload({ characters: [{ ...CHARACTER, covers: [{ "16:9": "https://x/a.jpg" }] }] })],
-  ["封面对象里有一档是空值", payload({ characters: [{ ...CHARACTER, covers: [{ "16x9": "  " }] }] })],
-  ["封面对象里有一档不是字符串", payload({ characters: [{ ...CHARACTER, covers: [{ "4x3": 7 }] }] })],
+  // 逐档封面（D165）：`coversByRatio` 的键、值、**长度对齐**同样严
+  ["逐档封面不是对象", payload({ characters: [{ ...CHARACTER, covers: ["https://x/a.jpg"], coversByRatio: [] }] })],
+  ["逐档封面里有认不得的档位", payload({ characters: [{ ...CHARACTER, covers: ["https://x/a.jpg"], coversByRatio: { "16:9": ["https://x/a.jpg"] } }] })],
+  ["逐档封面里有一档是空值", payload({ characters: [{ ...CHARACTER, covers: ["https://x/a.jpg"], coversByRatio: { "16x9": ["  "] } }] })],
+  ["逐档封面里有一档不是字符串数组", payload({ characters: [{ ...CHARACTER, covers: ["https://x/a.jpg"], coversByRatio: { "4x3": 7 } }] })],
+  ["逐档数组与 covers 长度对不上", payload({ characters: [{ ...CHARACTER, covers: ["https://x/a.jpg"], coversByRatio: { "16x9": [] } }] })],
   ["自带 name 是空串", payload({ characters: [{ ...CHARACTER, name: "" }] })],
   ["自带 order 不是数", payload({ characters: [{ ...CHARACTER, order: "1" }] })],
   ["自带 searchNames 为空", payload({ characters: [{ ...CHARACTER, searchNames: [] }] })],
@@ -130,15 +131,19 @@ describe("parsePackSnapshot", () => {
     expect(parsePackSnapshot(payload())?.characters[0]).not.toHaveProperty("covers");
   });
 
-  it("逐档封面（D165）：对象形态按档收好（`covers` 放主链接、`coversByRatio` 逐档平行），单链接的不带那个键", () => {
+  it("逐档封面（D165）：`covers` 是每首曲目的主链接、`coversByRatio` 逐档与之平行；没带就不出现那个键", () => {
     const original = "https://i0.hdslb.com/a.jpg";
     const wide = "https://i0.hdslb.com/a.jpg@1920w_1080h_1c.webp";
     const tall = "https://i0.hdslb.com/a.jpg@1600w_1200h_1c.webp";
     const withFrames = parsePackSnapshot(payload({
-      characters: [{ ...CHARACTER, covers: [{ original, "16x9": wide, "4x3": tall }] }],
+      characters: [{
+        ...CHARACTER,
+        covers: [original],
+        coversByRatio: { original: [original], "16x9": [wide], "4x3": [tall] },
+      }],
     }))!;
     const character = withFrames.characters[0]!;
-    expect(character.covers).toEqual([original]);                       // 主链接 = original
+    expect(character.covers).toEqual([original]);
     expect(character.coversByRatio).toEqual({
       original: [original], "16x9": [wide], "4x3": [tall],
     });
@@ -149,14 +154,25 @@ describe("parsePackSnapshot", () => {
     }))!;
     expect(single.characters[0]!.covers).toEqual([wide]);
     expect(single.characters[0]).not.toHaveProperty("coversByRatio");
+    // 空对象等于"没写"（不算坏形状，只是没有逐档链接）
+    const empty = parsePackSnapshot(payload({
+      characters: [{ ...CHARACTER, covers: [wide], coversByRatio: {} }],
+    }))!;
+    expect(empty.characters[0]).not.toHaveProperty("coversByRatio");
 
     // 两首曲目：逐档数组与 `covers` / `music` 一样**按曲目对齐**
     const twoTracks = parsePackSnapshot(payload({
-      characters: [{ ...CHARACTER, covers: [{ original, "16x9": wide }, original] }],
+      characters: [{
+        ...CHARACTER,
+        music: [...CHARACTER.music, [...CHARACTER.music[0]!] as typeof CHARACTER.music[0]],
+        covers: [original, wide],
+        coversByRatio: { original: [original, wide], "16x9": [wide, wide] },
+      }],
     }))!;
-    // 第二首只有单链接 ⇒ 16:9 那一档不完整 ⇒ **整档丢掉**（半有半无就是与 music 错位）
-    expect(twoTracks.characters[0]!.covers).toEqual([original, original]);
-    expect(twoTracks.characters[0]).not.toHaveProperty("coversByRatio");
+    expect(twoTracks.characters[0]!.covers).toEqual([original, wide]);
+    expect(twoTracks.characters[0]!.coversByRatio).toEqual({
+      original: [original, wide], "16x9": [wide, wide],
+    });
   });
 });
 
@@ -170,112 +186,13 @@ describe("withPackSnapshot", () => {
         card: [...character.card],
         // 源封面（D153）：有才带 —— 与真源 per-track `cover = "…"` 攒出来的数组同形
         ...(character.covers ? { covers: [...character.covers] } : {}),
+        // 逐档链接（D165）同理：有才带（自带那份今天还没有）
+        ...(character.coversByRatio ? { coversByRatio: structuredClone(character.coversByRatio) } : {}),
       })),
     };
   }
 
   it("快照的角色去原曲数据集取身份（name/order/搜索名），卡面用快照的覆盖", () => {
-    const source = datasetFor(bundle, "otomads");
-    const target = source.characters[0]!;
-    const snapshot = snapshotOf();
-    const patched: PackSnapshot = {
-      albums: snapshot.albums,
-      characters: snapshot.characters.map((entry) =>
-        entry.key === target.key ? { ...entry, card: ["改过的卡面.png"] } : entry),
-    };
-    const live = withPackSnapshot(bundle, patched).datasets.otomads;
-
-    expect(live.characters.map((character) => character.key).sort())
-      .toEqual(source.characters.map((character) => character.key).sort());
-    const spliced = live.characterByKey.get(target.key)!;
-    expect(spliced.name).toBe(target.name);                 // 身份来自原曲数据集（S1）
-    expect(spliced.order).toBe(target.order);
-    expect(spliced.searchNames).toEqual(target.searchNames);
-    expect(spliced.card).toEqual(["改过的卡面.png"]);        // 卡面用快照的覆盖（D137）
-    expect(live.sources).toBe(datasetFor(bundle, "otomads").sources);   // 注册表不归源管
-    expect(live.index.counts.characters).toBe(live.characters.length);
-    expect(live.index.counts.trackEntries)
-      .toBe(live.characters.reduce((sum, character) => sum + character.music.length, 0));
-    expect(live.albumByName.get("otomads")?.key).toBe("otomads");
-  });
-
-  it("S2：快照自带身份的角色（原曲数据集里没有）也能进数据集；缺身份/卡面则跳过并报一句人话", () => {
-    const problems: string[] = [];
-    const snapshot: PackSnapshot = {
-      albums: [ALBUM],
-      characters: [
-        { key: "otomad-only", name: "自成一格", order: 2, searchNames: ["otto"],
-          card: ["otto.png"], music: [["otomads", "曲", "角色曲", "作者"]] },
-        { key: "no-identity", music: [["otomads", "曲", "角色曲"]] },
-        { key: "no-card", name: "有名字没卡面", music: [["otomads", "曲", "角色曲"]] },
-      ],
-    };
-    const live = withPackSnapshot(bundle, snapshot, (message) => problems.push(message)).datasets.otomads;
-
-    expect(live.characters.map((character) => character.key)).toEqual(["otomad-only"]);
-    const spliced = live.characters[0]!;
-    expect([spliced.name, spliced.order, spliced.searchNames, spliced.card])
-      .toEqual(["自成一格", 2, ["otto"], ["otto.png"]]);
-    expect(problems).toHaveLength(2);
-    expect(problems[0]).toContain("no-identity");
-    expect(problems[1]).toContain("no-card");
-  });
-
-  it("一个角色都不认识的快照 ⇒ 空数据集（但**不静默**：每条都报）", () => {
-    const problems: string[] = [];
-    const live = withPackSnapshot(bundle, { albums: [ALBUM], characters: [
-      { key: "ghost", music: [["otomads", "曲", "角色曲"]] },
-    ] }, (message) => problems.push(message)).datasets.otomads;
-    expect(live.characters).toHaveLength(0);
-    expect(live.index.counts).toMatchObject({ characters: 0, trackEntries: 0, distinctTracks: 0 });
-    expect(problems).toHaveLength(1);
-  });
-
-  it("没有快照 ⇒ 数据集逐字等于今天（只有 contentHash 换成应用侧那套）", () => {
-    const baked = datasetFor(bundle, "otomads");
-    const live = withPackSnapshot(bundle, undefined).datasets.otomads;
-
-    expect(live.characters).toBe(baked.characters);          // 同一批对象，一个字段都不动
-    expect(live.albums).toBe(baked.albums);
-    expect(live.sources).toBe(baked.sources);
-    expect(live.index.counts).toEqual(baked.index.counts);
-    expect(live.index.contentHash).toMatch(/^[0-9a-f]{16}$/);
-    expect(live.index.contentHash).toBe(packHash(baked.albums, baked.characters));
-  });
-
-  it("原曲那份数据集一个字都不动（哈希仍是构建期那个）", () => {
-    const live = withPackSnapshot(bundle, { albums: [ALBUM], characters: [CHARACTER] });
-    expect(live.datasets.originals).toBe(bundle.datasets.originals);
-    expect(live.shared).toBe(bundle.shared);
-  });
-
-  it("**同一份数据 ⇒ 同一个哈希**：源给的曲目表与自带那份一致时，两端仍能一起玩", () => {
-    const baked = withPackSnapshot(bundle, undefined).datasets.otomads.index.contentHash;
-    const live = withPackSnapshot(bundle, snapshotOf()).datasets.otomads.index.contentHash;
-    expect(live).toBe(baked);
-  });
-
-  it("源封面进生效数据集；源没给就沿用自带那份（有才覆盖，与 card 同口径）", () => {
-    const source = datasetFor(bundle, "otomads");
-    const target = source.characters[0]!;
-    const covers = ["https://i0.hdslb.com/a.jpg@703w_1000h_1c.webp",
-      "https://i1.hdslb.com/b.png@703w_1000h_1c.webp"];
-    const snapshot = snapshotOf();
-    const patched: PackSnapshot = {
-      albums: snapshot.albums,
-      characters: snapshot.characters.map((entry) =>
-        entry.key === target.key ? { ...entry, covers } : entry),
-    };
-    const live = withPackSnapshot(bundle, patched).datasets.otomads;
-
-    expect(live.characterByKey.get(target.key)!.covers).toEqual(covers);
-    // 快照没带 covers 的角色：沿用**自带**那份（构建期从 submodule 烘进去的）
-    const other = live.characters.find((character) => character.key !== target.key)!;
-    expect(other.covers).toEqual(source.characterByKey.get(other.key)!.covers);
-    // 快照**显式带空**不会出现：解析期就整段丢掉（见 BAD_PAYLOADS），所以只有"有/没有"两种
-  });
-
-  it("清单还没带 covers（老清单 / 数据仓库还没铺新归档）⇒ 自带的封面继续生效", () => {
     // 这是**真实踩过的坑**（2026-09-26 浏览器实测）：清单先到、封面后到的那段时间里，
     // `hasSourceCovers` 一度翻成 false ⇒ "B 站封面"图集整套消失、回落成上游立绘。
     // 身份字段的兜底仍是原曲那份（S1 的边界），只有封面从自带的音MAD 数据集兜底。

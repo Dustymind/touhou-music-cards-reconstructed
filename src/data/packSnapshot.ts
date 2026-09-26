@@ -20,8 +20,7 @@
 import { EXTRAS, trackId, type AlbumKind, type AlbumRecord, type CharacterRecord, type DataBundle, type DataIndex, type Extra, type ModeDataset, type MusicEntry } from "./types";
 import { stableHash } from "../rng";
 import { isRecord } from "../persist";
-import { CARD_RATIOS, type CardRatio } from "../theme/cardRatio";
-import { parseCoverField } from "./coverField";
+import { isCardRatio, type CardRatio } from "../theme/cardRatio";
 
 /** 快照里的一个角色：**只给"角色 → 曲目"**（+ 可选卡面覆盖）。 */
 export interface PackSnapshotCharacter {
@@ -106,6 +105,25 @@ function parseMusicEntry(raw: unknown): MusicEntry | undefined {
   return entry;
 }
 
+/** `coversByRatio`（逐档链接，D165）→ 校验过的对象；坏形状返回 `undefined`（整份快照不用）。
+ *
+ * 规则：必须是对象；键只能是认得的档位；每档是**非空字符串数组**且长度**正好等于** `covers.length`
+ * （逐档数组与 `covers` / `music` 平行，少一条就是错位）；没有认得的档位等于"没写"。 */
+function parseRatioArrays(
+  raw: unknown,
+  expected: number,
+): Partial<Record<CardRatio, string[]>> | undefined {
+  if (!isRecord(raw)) return undefined;
+  const byRatio: Partial<Record<CardRatio, string[]>> = {};
+  for (const [key, value] of Object.entries(raw)) {
+    if (!isCardRatio(key)) return undefined;
+    const urls = stringList(value);
+    if (urls === undefined || urls.length !== expected) return undefined;
+    byRatio[key] = urls;
+  }
+  return byRatio;
+}
+
 function parseCharacter(raw: unknown): PackSnapshotCharacter | undefined {
   if (!isRecord(raw)) return undefined;
   const key = text(raw.key);
@@ -124,29 +142,19 @@ function parseCharacter(raw: unknown): PackSnapshotCharacter | undefined {
     character.card = card;
   }
   if (raw.covers !== undefined) {
-    // 逐条 `cover`：**字符串**（单链接，前端按档位运行时裁）或**对象**
-    // （`{original, 16x9, 4x3}` 的任意非空子集，D165）。
-    // 必须是**非空数组**（空数组 = 与 `music` 错位；不是数组就是坏形状）—— 这一条与旧口径一致。
-    if (!Array.isArray(raw.covers) || raw.covers.length === 0) return undefined;
-    const covers: string[] = [];
-    const byRatio: Partial<Record<CardRatio, string[]>> = {};
-    for (const ratio of CARD_RATIOS) byRatio[ratio] = [];
-    for (const entry of raw.covers as unknown[]) {
-      const parsed = parseCoverField(entry);
-      if (parsed === undefined) return undefined;
-      covers.push(parsed.primary);
-      for (const ratio of CARD_RATIOS) {
-        const url = parsed.byRatio[ratio];
-        if (url !== undefined) byRatio[ratio]!.push(url);
-      }
-    }
+    // 逐条 `cover`：运行时形状里就是**每首曲目一条主链接**（字符串数组）——
+    // 源那边的真源是"每条 `[[track]]` 一个字符串或一张表"，`pack_snapshot` 组装时已经把
+    // 表拆成了 `covers`（主链接）+ `coversByRatio`（逐档数组，D165）。
+    const covers = stringList(raw.covers);
+    if (covers === undefined) return undefined;
     character.covers = covers;
-    // **逐档数组要么每条曲目都有、要么整档不要**（与 `covers` 同一条纪律：半有半无 = 与 music 错位）。
-    // 少的那些条目这里补不上 —— 源自己得站得住，所以整档丢掉（其余照常）。
-    const complete = Object.fromEntries(CARD_RATIOS
-      .filter((ratio) => byRatio[ratio]!.length === covers.length)
-      .map((ratio) => [ratio, byRatio[ratio]!])) as Partial<Record<CardRatio, string[]>>;
-    if (Object.keys(complete).length > 0) character.coversByRatio = complete;
+    if (raw.coversByRatio !== undefined) {
+      // 逐档数组与 `covers` / `music` **必须一一对齐**：少一条就是与 music 静默错位，
+      // 所以宁可整份不用（调用方走自带那份兜底）也不半信半疑地用
+      const byRatio = parseRatioArrays(raw.coversByRatio, covers.length);
+      if (byRatio === undefined) return undefined;
+      if (Object.keys(byRatio).length > 0) character.coversByRatio = byRatio;
+    }
   }
   if (raw.name !== undefined) {
     const name = text(raw.name);
