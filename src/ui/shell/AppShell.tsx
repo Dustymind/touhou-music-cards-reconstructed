@@ -10,7 +10,7 @@ import { Localization, localized, t } from "../../i18n/localization";
 import { stableHash } from "../../rng";
 import { effectiveCustomSourceUrl, TAB_ORDER, useSession, type TabId } from "../../store/session";
 import { MD2, NoFontFamily } from "../../theme/theme";
-import { trackId, type DataBundle, type MusicEntry } from "../../data/types";
+import { trackId, type CharacterRecord, type DataBundle, type MusicEntry } from "../../data/types";
 import { usePreset } from "../../store/preset";
 import { currentQueue, useQueue } from "../../store/queue";
 import { selectSessionSeed, useSeeds } from "../../store/seeds";
@@ -24,6 +24,9 @@ import { withPackSnapshot } from "../../data/packSnapshot";
 import { withCustomManifest, type CustomManifest } from "../../data/customManifest";
 import { effectivePin } from "../../music/presetView";
 import { singleStoreFor, useSingleTrack } from "../../store/single";
+import { useCustomPreset } from "../../store/customPreset";
+import { useCustomSingle } from "../../store/customSingle";
+import { customCardEnabled } from "../../music/customSelection";
 import { useGame } from "../../game/useGame";
 import { turnSeed } from "../../game/rules";
 import { useNet } from "../../net/useNet";
@@ -126,6 +129,9 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
   const preset = usePreset();
   const queue = useQueue();
   const single = useSingleTrack();
+  /** 模式 3 的两把（形状与另两个模式不同 ⇒ 各有一把，见 `customPreset` / `customSingle`） */
+  const customPreset = useCustomPreset();
+  const customSingle = useCustomSingle();
   const net = useNet();
   /** 会话种子：单机 = 本机自己那份；联机 = **主机**下发、本机采用（D104） */
   const sessionSeed = useSeeds(selectSessionSeed);
@@ -147,10 +153,18 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
   // 预设：持久化状态与新专辑默认勾选合并（首帧就要用它算队列，不能等 effect）
   const activePreset = useMemo(() => mergeWithDefaults(preset, dataset.albums), [preset, dataset.albums]);
 
+  /** 模式 3 的**卡级**判据：专辑三元 + 作者三元（契约 C4）。播放层与可用集合共用同一个函数。 */
+  const cardEnabled = useCallback(
+    (character: CharacterRecord): boolean => customCardEnabled(customPreset, character),
+    [customPreset],
+  );
+
   // 把合并结果写回 store：配置页读的是 store，首帧之后必须与 activePreset 一致
   // （否则界面会显示"全部未勾选"，而队列却按默认全选在跑 —— 浏览器实测踩到过）
-  // 预设按模式分键（B）：切模式要 sync **新那把**，否则切过去第一眼还是"全部未勾选"
+  // 预设按模式分键（B）：切模式要 sync **新那把**，否则切过去第一眼还是"全部未勾选"。
+  // 模式 3 有自己那把（两维三元），这套"专辑勾选 + 秘封碟 + 类别"的形状对它不适用 ⇒ 不写。
   useEffect(() => {
+    if (musicMode === "custom") return;
     preset.sync(dataset.albums);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [liveBundle, musicMode]);
@@ -166,14 +180,23 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
     return pins;
   }, [single.enabled, single.pins, activePreset, dataset.characters]);
 
-  // C：数据集只含本模式有曲目的角色，所以"可用"只剩"预设允许且未被单曲模式禁用"
+  /** "这张卡现在可用吗"：**按模式分派**（契约 §4-E/18）。
+   *
+   *  - 模式 3：卡级判据 —— 专辑/作者三元允许 **且** 没被逐曲禁用（C4/C5）；
+   *  - 另两个模式：数据集只含本模式有曲目的角色 ⇒ "预设允许至少一首 + 未被单曲模式禁用"。
+   *
+   *  **轮播与卡池共用它**：禁用的卡不进轮播（队列），也**不进卡池**（游戏页拿同一份 key 集合）。 */
+  const isUsable = useCallback((character: CharacterRecord): boolean => {
+    if (musicMode === "custom") {
+      return cardEnabled(character) && !customSingle.disabled[character.key];
+    }
+    return allowedTracks(activePreset, character).entries.length > 0
+      && !single.disabledCharacters[character.key];
+  }, [activePreset, cardEnabled, customSingle.disabled, musicMode, single.disabledCharacters]);
+
   const usableKeys = useMemo(
-    () => dataset.characters
-      .filter((character) =>
-        allowedTracks(activePreset, character).entries.length > 0
-        && !single.disabledCharacters[character.key])
-      .map((character) => character.key),
-    [activePreset, dataset.characters, single.disabledCharacters],
+    () => dataset.characters.filter(isUsable).map((character) => character.key),
+    [dataset.characters, isUsable],
   );
 
   // 队列跟着"可用角色集合"走：新增角色追加到末尾，消失的剔除，保留用户顺序。
@@ -192,6 +215,8 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
   useEffect(() => {
     const characterKeys = dataset.characters.map((character) => character.key);
     singleStoreFor(musicMode).getState().prune(characterKeys);
+    // 模式 3 的逐卡禁用表也按同一份 key 清理（换源 ⇒ 卡表整份换掉）
+    useCustomSingle.getState().prune(characterKeys);
 
     // 点播请求存的是**角色 key**：那个角色已经不在数据集里了，请求就该让位（B2 的同一条原则）。
     // 按角色判，不要按音源 id 判 —— 音源注册表里永远没有角色 key，那样写会误清掉还在的角色。
@@ -239,6 +264,8 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
     pinned: pinnedWithRequest,
     // 对局中：忽略音乐预设（= 全曲库 ✓），并排除本局已播过的曲目 ✓
     ignorePreset: gameActive,
+    // 模式 3 交给卡级判据（一卡一首），别的模式不传 ⇒ 一个字都不改
+    cardEnabled: musicMode === "custom" ? cardEnabled : undefined,
     played: game.playedTracks,
     // 对局听回合角色，平时听轮播队列
     currentKey: gameActive ? game.currentKey : queue.currentKey,
@@ -419,7 +446,11 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
           {tab === "config" && (
             <ConfigPanel bundle={liveBundle} tables={sources.tables} />
           )}
-          {tab === "game" && <GamePanel bundle={liveBundle} />}
+          {/* 卡池与轮播同一口径：模式 3 把"可用的卡"交给游戏页（禁用的卡不进卡池，Q5）；
+              别的模式不传 ⇒ 游戏页与今天逐字相同 */}
+          {tab === "game" && (
+            <GamePanel bundle={liveBundle} cardKeys={musicMode === "custom" ? usableKeys : undefined} />
+          )}
         </Stack>
       </Container>
     </Box>

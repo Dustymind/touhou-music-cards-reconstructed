@@ -16,7 +16,9 @@ const useSingleTrack = singleStoreFor("originals");
 import { singleStoreFor } from "../../../store/single";
 import { sourceStoreFor } from "../../../store/sources";
 import { ConfigPanel } from "../ConfigPanel";
-import { parseCustomManifest } from "../../../data/customManifest";
+import { parseCustomManifest, withCustomManifest } from "../../../data/customManifest";
+import { useCustomPreset } from "../../../store/customPreset";
+import { useCustomSingle } from "../../../store/customSingle";
 import type { TableMap } from "../../../music/sources";
 
 let bundle: DataBundle;
@@ -82,16 +84,34 @@ async function openLocalMusicUrl(): Promise<{ container: HTMLElement }> {
   return { container };
 }
 
-/** 模式 3 的清单（用它造一份"源已经把卡表取回来了"的表）。 */
-function customTable(cards: number): TableMap {
-  const manifest = parseCustomManifest({
+const MANIFEST_URL = "https://cards.example.com/manifest.json";
+
+/** 模式 3 的清单（用它造一份"源已经把卡表取回来了"的数据）。 */
+function customManifest(cards = 3) {
+  return parseCustomManifest({
     schema: 1, mode: "custom",
-    cards: Array.from({ length: cards }, (_unused, index) => ({
-      id: `c${index}`, name: `卡 ${index}`, face: `faces/${index}.jpg`, audio: `media/${index}.mp3`,
-      album: "旧作", title: `曲 ${index}`,
-    })),
-  }, "https://cards.example.com/manifest.json")!;
-  return { custom: { id: "custom", status: "ready", entries: new Map(), custom: manifest } };
+    cards: [
+      { id: "alice", name: "爱丽丝", face: "faces/a.jpg", audio: "media/a.mp3", album: "旧作", title: "曲 a", author: "甲" },
+      { id: "marisa", name: "魔理沙", face: "faces/b.jpg", audio: "media/b.mp3", album: "新作", title: "曲 b", author: "乙" },
+      { id: "reimu", name: "灵梦", face: "faces/c.jpg", audio: "media/c.mp3", album: "新作", title: "曲 c" },
+    ].slice(0, cards),
+  }, MANIFEST_URL)!;
+}
+
+function customTable(cards = 3): TableMap {
+  return { custom: { id: "custom", status: "ready", entries: new Map(), custom: customManifest(cards) } };
+}
+
+/** 模式 3 的设置页：切模式 → 渲染 → 展开某个分区。 */
+async function openCustom(
+  id: string,
+  { tables = {}, cards = 3 }: { tables?: TableMap; cards?: number } = {},
+): Promise<{ container: HTMLElement }> {
+  useSession.setState({ musicMode: "custom", customSourceUrl: "", customSourceOverride: null });
+  bundle = withCustomManifest(bundle, customManifest(cards));
+  const { container } = await renderPanel(tables);
+  await expand(container, id);
+  return { container };
 }
 
 /** 模式 3 的源分区：只有"自定义源链接"那一行，没有开关/顺序/本地曲库地址。 */
@@ -115,6 +135,8 @@ describe("ConfigPanel", () => {
     useSession.setState({ locale: "en", tab: "config", cardCollection: "dairi-sd", musicMode: "originals", localMusicUrl: "" });
     useNet.getState().leave();
     usePreset.getState().sync(bundle.datasets.originals.albums);
+    useCustomPreset.setState({ albums: {}, authors: {} });
+    useCustomSingle.setState({ disabled: {} });
   });
 
   /** 切音乐模式是**落盘**的（`setMusicMode` 走 session 的持久化），而浏览器模式下各测试文件
@@ -387,6 +409,45 @@ describe("ConfigPanel", () => {
     expect(container.querySelector('[data-testid="custom-source-required"]')).not.toBeNull();
     expect(container.querySelector<HTMLButtonElement>('[data-testid="custom-source-reset"]')!.disabled).toBe(true);
     expect(container.querySelector('[data-testid="custom-source-loaded"]')).toBeNull();
+  });
+
+  it("模式 3：音乐选择 = 专辑三元 + 作者三元（没有类别开关、没有秘封碟、没有专辑复选）", async () => {
+    const { container } = await openCustom("preset");
+
+    expect(container.querySelector('[data-testid="custom-preset-stats"]')).not.toBeNull();
+    // 两行专辑（清单里首次出现的顺序）+ 两行作者（乙、甲按拼音/字母序）
+    expect(container.querySelector('[data-testid="custom-album-旧作-unset"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="custom-album-新作-unset"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="custom-author-甲-unset"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="custom-author-乙-unset"]')).not.toBeNull();
+    // 另两个模式那套东西一样都不出现
+    expect(container.querySelector('[data-testid="tri-角色曲-unset"]')).toBeNull();
+    expect(container.querySelector('[data-testid="hifuu-parent"]')).toBeNull();
+    expect(container.querySelector('input[aria-label^="album-"]')).toBeNull();
+    // 没有写作者的"灵梦"不进作者列表（Q7）：作者行只有两条
+    expect(container.querySelectorAll('[data-testid^="custom-author-"][data-testid$="-unset"]').length)
+      .toBe(2);
+  });
+
+  it("模式 3：点专辑/作者三态 ⇒ 写进那把 store（并落盘）", async () => {
+    const { container } = await openCustom("preset");
+    await click(container.querySelector('[data-testid="custom-album-旧作-off"]')!);
+    await click(container.querySelector('[data-testid="custom-author-甲-on"]')!);
+
+    expect(useCustomPreset.getState().albums["旧作"]).toBe("off");
+    expect(useCustomPreset.getState().authors["甲"]).toBe("on");
+  });
+
+  it("模式 3：仅单曲模式只剩逐卡禁用（没有总开关、没有下拉选曲）", async () => {
+    const { container } = await openCustom("single");
+
+    expect(container.querySelector('input[aria-label="single-mode"]')).toBeNull();
+    expect(container.querySelector('[data-testid="single-select-alice"]')).toBeNull();
+    expect(container.querySelector('[data-testid="custom-single-row-alice"]')).not.toBeNull();
+    expect(container.textContent).toContain("曲 a · 旧作 · 甲");
+
+    await click(container.querySelector('[data-testid="custom-single-disable-alice"]')!);
+    expect(useCustomSingle.getState().disabled).toEqual({ alice: true });
   });
 
   it("模式 3：卡面图集分区只留一行只读说明，图集单选一行都不列（契约 C3）", async () => {

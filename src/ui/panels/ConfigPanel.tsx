@@ -15,6 +15,8 @@ import { presetStats } from "../../music/presetView";
 import { NoFontFamily } from "../../theme/theme";
 import { AppearanceSection } from "./config/AppearanceSection";
 import { CardSetSection } from "./config/CardSetSection";
+import { CustomPresetSection } from "./config/CustomPresetSection";
+import { CustomSingleSection } from "./config/CustomSingleSection";
 import { PresetSection } from "./config/PresetSection";
 import { SingleTrackSection } from "./config/SingleTrackSection";
 import { SourceSection } from "./config/SourceSection";
@@ -70,8 +72,19 @@ function ConfigPanelInner({ bundle, tables }: {
         <CardSetSection bundle={bundle} />
       )}
       <SourceSection bundle={bundle} tables={tables} />
-      <PresetSection bundle={bundle} />
-      <SingleTrackSection bundle={bundle} />
+      {/* 选择语义按模式分派：模式 3 只有"专辑/作者三元"与"逐卡禁用"两维（契约 C4/C5），
+          另两个模式的"专辑勾选 + 类别三态 + 秘封碟"与"总开关 + 手选"在这个模式下没有意义 */}
+      {musicMode === "custom" ? (
+        <>
+          <CustomPresetSection bundle={bundle} />
+          <CustomSingleSection bundle={bundle} />
+        </>
+      ) : (
+        <>
+          <PresetSection bundle={bundle} />
+          <SingleTrackSection bundle={bundle} />
+        </>
+      )}
     </Stack>
   );
 }

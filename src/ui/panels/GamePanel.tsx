@@ -104,7 +104,19 @@ function DeckOps({ act, index, disabled, labels, testIds }: {
   );
 }
 
-function GamePanelInner({ bundle }: { bundle: DataBundle }) {
+interface GamePanelProps {
+  bundle: DataBundle;
+  /**
+   * 卡池里**允许出现**的卡 key（省略 = 当前数据集的全部角色，与今天逐字相同）。
+   *
+   * 调用方（`AppShell`）在模式 3 下传"可用的卡"：那个模式一卡一首、可以逐卡禁用，
+   * 而禁用的卡**不进卡池**（契约 C5）—— 轮播与卡池用同一份集合，口径不会分叉。
+   * 另两个模式没有"卡级禁用"这回事 ⇒ 不传，`pool` 与改动前逐字一致。
+   */
+  cardKeys?: readonly string[];
+}
+
+function GamePanelInner({ bundle, cardKeys }: GamePanelProps) {
   const game = useGame((slice) => slice.game);
   const pool = useGame((slice) => slice.pool);
   const conflicts = useGame((slice) => slice.conflicts);
@@ -237,13 +249,18 @@ function GamePanelInner({ bundle }: { bundle: DataBundle }) {
     return map;
   }, [dataset.characters, cardSet]);
 
-  // 卡池 = 当前数据集的角色 × **当前图集下的卡数**（C：数据集只含本模式有曲目的角色，
+  // 卡池 = **可用的**角色 × **当前图集下的卡数**（C：数据集只含本模式有曲目的角色，
   // "没有对应音乐的角色"已不存在）。**多重卡牌只在一套图集下生效**（用户要求的行为优化）：
   // 自定义卡面（源按曲目给的 B 站封面）⇒ 一首一张；原版/本地图集 ⇒ 一个角色 `card.length` 张。
   // 所以换图集会换卡池，`init` 要跟着重跑（它只换 `pool`/`conflicts`，**不动牌库里的牌**）。
   // 顺带把轮播顺序灌进对局状态。
+  //
+  // 依赖用 `cardKeys` 的 **JSON 签名**：数组每次渲染都可能换身份，直接进依赖会跟着空转（R7①）
+  const cardKeySignature = cardKeys ? JSON.stringify(cardKeys) : "";
   useEffect(() => {
-    const usable = dataset.characters;
+    const allowed = cardKeys ? new Set(cardKeys) : null;
+    const usable = allowed ? dataset.characters.filter((character) => allowed.has(character.key))
+      : dataset.characters;
     const cards: CardInfo[] = [];
     for (const character of usable) {
       const count = cardCount(character, cardSet);
@@ -255,7 +272,8 @@ function GamePanelInner({ bundle }: { bundle: DataBundle }) {
     // 互斥表**按数据最大口径**建（与当前图集无关）—— 否则两端选了不同图集时互斥会不一致。
     init(cards, buildSongConflicts(usable));
     setOrder(usable.map((character) => character.key));
-  }, [dataset, cardSet, init, setOrder]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataset, cardSet, init, setOrder, cardKeySignature]);
 
   // 载入上次的卡片大小与牌库尺寸（上游 localStorage 的 `gameSetting`）。
   // 牌库尺寸只在**用户自己改过**（存的不是默认值）时才套用：否则会盖掉调用方/联机同步过来的尺寸。

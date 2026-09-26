@@ -6142,3 +6142,51 @@ originals `3d83c3eb519ba812`，改动前后同值）。
 用户偏好被忽略但不改写、1:1 ⇒ 卡数恒为 1；`ConfigPanel.test.tsx` +1：图集分区只剩一行说明）。
 **反证**：把 `OWN_FACE_MODES` 改回空表 ⇒ 那两条新用例立刻红（`expected false to be true`、
 `expected 'dairi-sd' to be 'custom-source'`），其余 22 条照旧通过 —— 正是 D155 想要的那种"只动该动的"。
+
+---
+
+### D159 模式 3 的选曲：**专辑三元 + 作者三元**，以及**逐卡禁用**（卡池同口径）
+
+**用户要求**：这个模式的音乐选择只剩**专辑三元 + 作者三元**；"仅单曲模式"只剩**逐曲（= 逐卡）禁用**
+（没有总开关、没有手选），禁用的卡**不进轮播、也不进卡池**。
+
+**真值表（Q4，`src/music/customSelection.ts`）**：`启用 = 专辑 !== "off" && 作者 !== "off"`
+（只有三个取值时，这与"两者都 unset 才全开 + 任一 off 一票否决 + on 压住另一维未配置"完全等价，
+详见那张表）。关键一条与另两个模式的直觉相反：**两维都 `unset` = 全开**（那边是"专辑默认勾选"）。
+**没有作者的卡只看专辑那一维**（Q7）—— 作者维度对它不适用，不是"未配置"。
+
+**两把新 store**（形状与另两个模式不同 ⇒ **不走 `makeModeStores()`**）：
+
+| store | 键 | 内容 |
+|---|---|---|
+| `src/store/customPreset.ts` | `tmc.v1.custom-preset` | `{albums: Record<string, Tri>, authors: Record<string, Tri>}` + `setAlbumTri` / `setAuthorTri` / `reset` |
+| `src/store/customSingle.ts` | `tmc.v1.custom-single-track` | `{disabled: Record<string, true>}` + `toggle` / `prune` |
+
+**键名与另两把刻意不同**（不是 `preset.custom` / `single-track.custom`）：那两个键已经被
+`makeModeStores()` 生成的那把**模式 2 形状**的表占着（模式 3 下队列与音源仍在用它那一套键）。
+两把形状不同的 store 挤同一个键 ⇒ **谁后写谁把对方清空，而且不报错**（各自的校验器都只会把对方的
+字段读成空表）。这条有回归用例盯着（`customStores.test.ts` 的"键隔离"）。另外这两把**不需要 `sync()`**：
+另两个模式要它是因为"新专辑默认勾选"得写进表里，这里的缺省值就是 `unset`（与"键不存在"等价）。
+
+**卡池与轮播同一口径**：`AppShell` 的 `isUsable()` 按模式分派（模式 3 = 三元允许 **且** 未被逐卡禁用），
+`usableKeys` 同时喂给队列与游戏页（新增 `GamePanel` 的 `cardKeys` prop，**不传 = 今天行为**，
+有守卫用例）。禁用一张卡还会清掉它那条列表页点播（否则点播会一直盖住"已禁用"，与 `single.ts` 同一条）。
+
+**播放层**：`PlayerInputs` 多一个可选 `cardEnabled`（模式 3 传，别的模式不传）——
+这个模式一卡一首，给了它就直接取那一首，不再走 `preset` / `allowedTracks` 那套
+（"专辑勾选 + 类别三态 + 秘封碟"的语义在这里一个都没有）。手选/点播（`pinned`）仍然优先，
+**对局中忽略预设**（= 全曲库）这条也照旧生效。
+
+**界面**：`CustomPresetSection`（专辑行 + 作者行，作者空的不列）与 `CustomSingleSection`
+（一行一张卡：卡名 · 曲名 · 专辑 · 作者 + 「禁用」chip，禁用的压暗）。两处都用 `SectionPanel` 的
+`preset` / `single` id —— 设置页五个分区的节奏不变，只是模式 3 的这两个分区换了内容。
+顺带把**两个**共用件抽出来（前一个提交）：`TriToggle`（三态控件，预设的类别开关也改用它，DOM 与
+testid 一字不变）与 `useProgressiveRows`（那套"rAF → 宏任务 → 再渲染一片"的分片补齐，
+`SingleTrackSection` 继续用；模式 3 的逐卡列表行里只有文字 + chip，靠 `LazyRow` 的视口懒挂载就够，
+**没有**套这一层）。
+
+**验证**：`pnpm typecheck` ✓；vitest **48 文件 / 575 passed**（`customSelection.test.ts` 18 条 ——
+真值表**逐格** 9 条 + 空作者 + 统计 + 列表；`customStores.test.ts` 12 条 —— 落盘、`unset` 不落盘、
+坏存档收窄、键隔离、prune 的"没死条目就不写盘"、toggle 清点播；`ConfigPanel.test.tsx` +3 条模式 3 的两个分区；
+`GamePanel.test.tsx` +1 条"传 `cardKeys` 就只进那些卡、不传即今天行为"；`usePlayer.test.tsx` +3 条
+`cardEnabled` 的三个方向；`App.test.tsx` +1 条"模式 3 没配源时三个页签都渲染得出来 + 必填提示"）。

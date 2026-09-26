@@ -66,6 +66,35 @@ describe("usePlayer", () => {
     expect(decodeURIComponent(audios[0]!.src)).toContain("おてんば恋娘");
   });
 
+  it("模式 3（C4）：`cardEnabled` 说不行的卡**没有可播的曲目**；对局中忽略预设 ⇒ 照放", async () => {
+    const hook = await renderHook(() => usePlayer(inputs({ cardEnabled: () => false })));
+    expect(hook.result.current.entry).toBeNull();
+    expect(hook.result.current.error).toContain("没有可用曲目");
+
+    // 对局中忽略预设（= 全曲库）：这时不看三元，与另两个模式同一条口径
+    const during = await renderHook(() =>
+      usePlayer(inputs({ cardEnabled: () => false, ignorePreset: true })));
+    expect(during.result.current.entry?.[1]).toBe("おてんば恋娘");
+  });
+
+  it("模式 3：给了 `cardEnabled` 就**直接取那一首**（一卡一首，不走预设/类别那套）", async () => {
+    // 预设里把这张卡的专辑全关掉 —— 对模式 3 不该有任何影响（那边看的是 `cardEnabled`）
+    const hook = await renderHook(() => usePlayer(inputs({
+      cardEnabled: () => true,
+      preset: { albums: { 紅魔郷: false }, hifuu: {}, category: { 角色曲: "off", 道中曲: "off", 更多道中曲: "off" } },
+    })));
+    expect(hook.result.current.entry?.[1]).toBe("おてんば恋娘");
+  });
+
+  it("模式 3：手选 / 列表点播仍然优先（`pinned` 压过 `cardEnabled`）", async () => {
+    const pinned = marisa.music[1]!;
+    const hook = await renderHook(() => usePlayer(inputs({
+      cardEnabled: () => false,
+      pinned: { cirno: pinned },
+    })));
+    expect(hook.result.current.entry).toEqual(pinned);
+  });
+
   it("模式 3（F1）：卡自己带 audio ⇒ 直接用它的地址，**不查媒体表**", async () => {
     // 数据集的来源那条源 kind = "custom"（响度表按它取），表里**一条 tracks 都没有**
     const dataset = fakeDataset([{ ...cirno, audio: ["https://cards.example.com/media/a.mp3?v=7"] }], albums);

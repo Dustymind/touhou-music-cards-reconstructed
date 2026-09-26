@@ -14,6 +14,7 @@ import type { CardInfo } from "../../game/types";
 import { useGame } from "../../game/useGame";
 import { TURN_COUNTDOWN_MS } from "../../game/useGameLoop";
 import { useSession } from "../../store/session";
+import { parseCustomManifest, withCustomManifest } from "../../data/customManifest";
 import { GamePanel } from "./GamePanel";
 
 let bundle: DataBundle;
@@ -39,6 +40,18 @@ async function dragTo(container: HTMLElement, fromId: string, toId: string): Pro
   await fire(from, "dragstart");
   await fire(to, "dragover");
   await fire(to, "drop");
+}
+
+/** 自定义模式的一份数据集（两张卡：不同专辑、一个有作者一个没有）。 */
+function customBundle(): DataBundle {
+  const manifest = parseCustomManifest({
+    schema: 1, mode: "custom",
+    cards: [
+      { id: "a", name: "爱丽丝", face: "faces/a.jpg", audio: "media/a.mp3", album: "旧作", title: "曲 a", author: "甲" },
+      { id: "b", name: "魔理沙", face: "faces/b.jpg", audio: "media/b.mp3", album: "新作", title: "曲 b" },
+    ],
+  }, "https://cards.example.com/manifest.json")!;
+  return withCustomManifest(bundle, manifest);
 }
 
 /** 带主题壳渲染任意节点：主题相关的颜色走 CSS 变量（`:root`），裸渲染拿不到真值。 */
@@ -118,6 +131,21 @@ describe("GamePanel", () => {
     await clickTestId(container, "random-fill");
     const zunDeck = container.querySelector('[data-testid^="deck-you-card-"] img')?.getAttribute("src") ?? "";
     expect(zunDeck).toContain("/cards-zun/");
+  });
+
+  it("模式 3：卡池只含**可用的**卡（`cardKeys`），禁用的卡不进卡池 —— 不传即今天行为（Q5）", async () => {
+    const custom = customBundle();
+    useSession.setState({ musicMode: "custom" });
+    bundle = custom;
+
+    // ① 不传 `cardKeys` ⇒ 数据集里每个角色都进池（= 另两个模式的今天行为）
+    await renderWithTheme(<GamePanel bundle={custom} />);
+    expect(useGame.getState().pool.map((card) => card.characterKey).sort()).toEqual(["a", "b"]);
+
+    // ② 传"只有 a 可用" ⇒ 池里只剩它，轮播顺序也跟着只剩它（两者同一口径）
+    await act(async () => { root?.unmount(); });
+    await renderWithTheme(<GamePanel bundle={custom} cardKeys={["a"]} />);
+    expect(useGame.getState().pool.map((card) => card.characterKey)).toEqual(["a"]);
   });
 
   it("多重卡牌只在自定义卡面下生效：牌堆大小跟着图集走（行为优化）", async () => {

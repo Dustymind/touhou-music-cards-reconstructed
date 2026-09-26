@@ -9,7 +9,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { createBell, type BellHandle } from "./bell";
 import { FADE_STEP_MS, GAME_FADE_MS, rampGain } from "./fade";
-import type { ModeDataset, MusicEntry } from "../data/types";
+import type { CharacterRecord, ModeDataset, MusicEntry } from "../data/types";
 import { displayTitle, entryIndexOf, trackId } from "../data/types";
 import { pickWithSeed, randomStartPosition } from "../rng";
 import { allowedTracks, defaultPreset, type PresetState } from "../music/selection";
@@ -44,6 +44,10 @@ export interface PlayerInputs {
   pinned: Record<string, MusicEntry | undefined>;
   /** 对局中：忽略"音乐预设"，候选 = 该角色在当前音乐模式下的**全部**曲目（用户要求：默认启用全曲库） */
   ignorePreset?: boolean;
+  /** 模式 3：**这张卡能不能放**（专辑三元 + 作者三元，`customCardEnabled`）。给了它就说明
+   *  "这个模式一卡一首" ⇒ 直接取那一首，不再走 `preset` / `allowedTracks` 那条路
+   *  （那边是"专辑勾选 + 类别三态 + 秘封碟"的语义，这个模式一个都没有）。 */
+  cardEnabled?: (character: CharacterRecord) => boolean;
   /** 本局已播曲目（trackId）：候选里排除掉，避免重复 ✓ */
   played?: readonly string[];
   currentKey: string | null;
@@ -180,9 +184,16 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
   const entry = useMemo<MusicEntry | null>(() => {
     if (!character) return null;
     const pinned = inputs.pinned[character.key] ?? null;
+    // 手选 / 列表点播优先（与下面 `allowedTracks(preset, character, pinned)` 同一条规则）
+    if (pinned) return pinned;
+    if (inputs.cardEnabled) {
+      // 模式 3：一卡一首。对局中忽略预设（= 全曲库 ✓）时连三元也不看，与另两个模式的口径一致。
+      if (!inputs.ignorePreset && !inputs.cardEnabled(character)) return null;
+      return character.music[0] ?? null;
+    }
     // 对局中忽略预设（= 全曲库 ✓）；播放页仍按预设过滤 ✓。音乐模式两者都生效 ✓
     const preset = inputs.ignorePreset ? defaultPreset(inputs.dataset.albums) : inputs.preset;
-    const { entries } = allowedTracks(preset, character, pinned);
+    const { entries } = allowedTracks(preset, character, null);
     if (entries.length === 0) return null;
     if (entries.length === 1) return entries[0]!;
     // 已播过的不再选（全播过就允许重复，否则这个角色没得放 ✗）
@@ -192,7 +203,7 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
     // 由 (会话种子, 角色) 派生：不同角色落到不同曲目，而同一角色在两端的取舍完全一致（D104）
     return pickWithSeed(pool, inputs.seed, "track", character.key);
   }, [character, inputs.pinned, inputs.preset, inputs.dataset, inputs.seed,
-      inputs.ignorePreset, inputs.played]);
+      inputs.ignorePreset, inputs.played, inputs.cardEnabled]);
 
   // ---- 创建 <audio> 与铃（都不挂进 DOM 也能播） ----
   useEffect(() => {

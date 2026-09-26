@@ -89,6 +89,8 @@ describe("App 冒烟（真实数据）", () => {
     // 对局 store 是模块级单例：每个用例都从"选牌阶段"开始，免得上一个用例的
     // 倒计时/回合状态与计时器串味（GamePanel.test.tsx 同口径）
     useGame.setState({ game: emptyState() });
+    // 会话 store 同样是单例：模式 3 那条用例会切模式，这里还原成默认（否则后面的用例整套数据都换了）
+    useSession.setState({ musicMode: "originals" });
   });
 
   afterEach(async () => {
@@ -115,6 +117,25 @@ describe("App 冒烟（真实数据）", () => {
     expect(text).toContain("Forgotten Harmonic Frequencies");
     expect(text).not.toContain("所有已启用的音源都取不到");
     expect(text).toContain("121 in rotation");
+  });
+
+  it("模式 3（没配源）：三个页签都渲染得出来，设置页给出「必须填写自定义源链接」", async () => {
+    installDataFetchStub();
+    // 空兜底数据集（0 卡）：应用**不带这个模式的任何数据**，这也是它的正常起点
+    await act(async () => { useSession.setState({ musicMode: "custom" }); });
+    const { container } = await renderApp();
+    const text = await waitFor(container, (value) => value.includes("Config"));
+
+    expect(text).toContain("0 in rotation");          // 一张卡都没有
+    expect(text).not.toContain("所有已启用的音源都取不到");
+
+    // 设置页：那一行 + 红色必填提示（展开「音乐源」分区才挂载）
+    await clickIn(container, "", '[data-testid="tab-config"]');
+    await clickIn(container, "", '[data-testid="section-source-summary"]');
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 320)); });
+    const config = container.textContent ?? "";
+    expect(config).toContain("Custom source link");
+    expect(config).toContain("Fill in a custom source link");
   });
 
   it("「关于」弹窗：应用栏的入口打开、内容真源的每一行都在、「关闭」按钮关得掉", async () => {

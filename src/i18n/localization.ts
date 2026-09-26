@@ -112,6 +112,15 @@ export const Localization = {
   ConfigTabPresetStats: u(
     "Available {enabled} / {total} tracks · {characters} characters have tracks",
     "可用 {enabled} / 全库 {total} 首 · {characters} 个角色有曲目"),
+  ConfigTabCustomPresetStats: u(
+    "Available {enabled} / {total} cards · {albums} albums · {authors} authors",
+    "可用 {enabled} / 全库 {total} 张卡 · {albums} 个专辑 · {authors} 位作者"),
+  ConfigTabCustomAlbums: u("Albums", "专辑"),
+  ConfigTabCustomAuthors: u("Authors", "作者"),
+  ConfigTabCustomDisable: u("Disable", "禁用"),
+  ConfigTabCustomSingleHint: u(
+    "This mode plays exactly one track per card: disable a card to drop it from the rotation and from the card pool.",
+    "这个模式一张卡只有一首曲目：禁用的卡不进轮播、也不进卡池。"),
   ConfigTabSingleHint: u(
     "When on, each character plays exactly one track; the first preset-enabled track is used until you pick another.",
     "开启后每个角色只播一首；未手选的取预设允许的第一首。"),
