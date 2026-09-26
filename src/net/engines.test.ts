@@ -205,6 +205,17 @@ describe("联机引擎", () => {
     }
   });
 
+  it("对面发来的 dataHash 形状不对（缺第三个键）⇒ 照样被拒，而且**不在主机回调里抛**", () => {
+    // 来自网络的对象不保证是合法的 `DataHashes`：v4 的客户端、手工构造的 hello、被改过的页面。
+    // 缺字段按空串比 ⇒ 拒绝；抛异常的话会打断主机的事件回调，表现成"对面进不来、主机这边什么都没发生"。
+    const hub = new BusHub();
+    const { clientEndpoint, clientTransport } = connect(hub);
+    clientTransport.sendToHost(helloIntent(
+      "Guest", false, { originals: HASH.originals, otomads: HASH.otomads } as DataHashes));
+    expect(clientEndpoint.errors.join(" ")).toContain("静态数据不一致");
+    expect(clientEndpoint.errors.join(" ")).toContain("自定义");
+  });
+
   it("协议版本不一致 → 拒绝加入", () => {
     const hub = new BusHub();
     const { clientEndpoint, clientTransport } = connect(hub);

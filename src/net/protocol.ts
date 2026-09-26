@@ -127,9 +127,14 @@ const MODE_NAMES: Record<MusicModeWire, string> = {
   originals: "原曲", otomads: "音MAD", custom: "自定义",
 };
 
-/** 哪几个模式的数据不同（空数组 = 完全一致）。 */
+/** 哪几个模式的数据不同（空数组 = 完全一致）。
+ *
+ *  `?? ""` 不是防御性冗余：`a` 是**从网络上收下来的对象**（`hello.dataHash`），它不保证是合法的
+ *  `DataHashes`（旧版本、手工构造、被改过的页面都会发出别的形状）。缺字段按空串比即可 ——
+ *  空串与任何真实哈希都不同 ⇒ 照样在握手期被拒，而**不会在主机的事件回调里抛异常**
+ *  （抛出去会打断那个回调，表现成"对面进不来，主机这边什么也没发生"）。 */
 export function mismatchedModes(a: DataHashes, b: DataHashes): MusicModeWire[] {
-  return HASH_MODES.filter((mode) => a[mode].slice(0, 12) !== b[mode].slice(0, 12));
+  return HASH_MODES.filter((mode) => (a[mode] ?? "").slice(0, 12) !== (b[mode] ?? "").slice(0, 12));
 }
 
 /** 三个模式各比一次：**任一模式的数据不同就拒绝**（不等到切模式才发现）。 */
