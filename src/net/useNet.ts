@@ -234,6 +234,8 @@ export const useNet = create<NetApi>((set, get) => {
       resetConnection();
       // 离开房间 → 本机重新成为权威（用回自己那份种子，不再用主机下发的）
       useSeeds.getState().setAuthority("authority");
+      // 主机下发的**自定义源链接**同样作废：采用只在本次会话（= 这个房间）里生效（F3）
+      useSession.getState().clearHostCustomSource();
       set({ status: "offline", role: null, peers: [], shareCode: null, error: null, digest: "" });
     },
 
