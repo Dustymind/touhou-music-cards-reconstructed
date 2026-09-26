@@ -10,10 +10,10 @@ import type { Tri } from "../../../music/selection";
 import { NoFontFamily } from "../../../theme/theme";
 
 /** 三档的显示顺序（与 `Tri` 的声明顺序无关，这里是**界面**口径）。 */
-export const TRI_ORDER: Tri[] = ["unset", "on", "off"];
+const TRI_ORDER: Tri[] = ["unset", "on", "off"];
 
 /** 三档的文案。 */
-export function triLabel(value: Tri): string {
+function triLabel(value: Tri): string {
   if (value === "on") return t(Localization.ConfigTabTriOn);
   if (value === "off") return t(Localization.ConfigTabTriOff);
   return t(Localization.ConfigTabTriUnset);

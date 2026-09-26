@@ -120,7 +120,7 @@ export function stateDigest(state: GameState): string {
 }
 
 /** 协议里的三个模式名（顺序 = 提示文案里的顺序）。 */
-export const HASH_MODES: readonly MusicModeWire[] = ["originals", "otomads", "custom"];
+const HASH_MODES: readonly MusicModeWire[] = ["originals", "otomads", "custom"];
 
 /** 模式名的人话（"是哪个模式的数据不同"那条提示用；协议层不 import UI 模块，所以在这里写死）。 */
 const MODE_NAMES: Record<MusicModeWire, string> = {
