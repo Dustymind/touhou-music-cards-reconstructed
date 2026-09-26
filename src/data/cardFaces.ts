@@ -71,10 +71,7 @@ export function cardSetWithRatio(set: CardSetRecord, ratio: CardRatio | undefine
   return withRatio;
 }
 
-/** 模式 3 的合成图集 + 档位（引用稳定）。 */
-export function customCardSet(ratio: CardRatio): CardSetRecord {
-  return cardSetWithRatio(CUSTOM_CARD_SET, ratio);
-}
+
 
 /** 这一条卡面是不是**完整 URL**（源封面就是）。`CharacterCard` 据此跳过"拼目录"那一步。 */
 export function isCardUrl(file: string): boolean {

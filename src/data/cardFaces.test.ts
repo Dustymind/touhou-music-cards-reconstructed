@@ -15,7 +15,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  availableCardSets, cardCount, cardFace, cardFaces, cardFileAt, CUSTOM_CARD_SET, customCardSet,
+  availableCardSets, cardCount, cardFace, cardFaces, cardFileAt, CUSTOM_CARD_SET, cardSetWithRatio,
   hasSourceCovers, isCardUrl, maxCardCount, resolveCardSet, usesPerTrackFaces,
 } from "./cardFaces";
 import type { CardSetRecord, CharacterRecord, ModeDataset } from "./types";
@@ -249,8 +249,10 @@ describe("图集可选性", () => {
     }
     expect(resolveCardSet([], "x", custom, "16x9")).not.toBe(resolveCardSet([], "x", custom, "4x3"));
     // 带档位的是**另一个**（缓存里的）对象，基线常量本身不带档位
-    expect(customCardSet("16x9")).not.toBe(CUSTOM_CARD_SET);
-    expect(customCardSet("16x9").ratio).toBe("16x9");
+    expect(cardSetWithRatio(CUSTOM_CARD_SET, "16x9")).not.toBe(CUSTOM_CARD_SET);
+    expect(cardSetWithRatio(CUSTOM_CARD_SET, "16x9").ratio).toBe("16x9");
+    // 不能换档（undefined）⇒ 原样返回同一个对象，不新建
+    expect(cardSetWithRatio(CUSTOM_CARD_SET, undefined)).toBe(CUSTOM_CARD_SET);
     // 能换档的普通图集同理（封面集 / 本地图集各一份缓存）
     for (const pref of ["original", "16x9", "4x3", ""] as const) {
       expect(resolveCardSet([COVER_SET], "otomads-cover", otomads2, pref))
