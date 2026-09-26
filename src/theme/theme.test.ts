@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  buildTheme, isHexColor, MD2, MD2_BORDER, MD2_PALETTE, MD2_TYPE_SCALE, NoFontFamily,
+  buildTheme, isHexColor, MD2, MD2_BORDER, MD2_PALETTE, MD2_SLOT, MD2_TYPE_SCALE, NoFontFamily,
   normalizeHex, onColorFor, Palette, themeColorFor, ThemeTokens,
 } from "./theme";
 
@@ -84,6 +84,10 @@ describe("亮/暗模式与自定义主题色", () => {
     expect(vars(dark)["--tmc-text"]).toBe("#FFFFFFFF");
     expect(vars(light)["--tmc-text"]).toBe("rgba(0, 0, 0, 0.87)");
     expect(vars(light)["--tmc-primary"]).toBe(MD2_PALETTE.light.primary);
+    // 空卡槽的虚线框颜色也跟着模式走（用户反馈 1px/28% 太虚太细 ⇒ 现在 2dp/45%）
+    expect(vars(dark)["--tmc-slot"]).toBe("rgba(255, 255, 255, 0.45)");
+    expect(vars(light)["--tmc-slot"]).toBe("rgba(0, 0, 0, 0.45)");
+    expect(MD2_SLOT).toEqual({ color: ThemeTokens.slot, width: 2 });
     // 组件里的 token 就是这些变量（`MD2_BORDER` / 扩展面板图标也走它）
     expect(MD2_BORDER).toBe(ThemeTokens.border);
     expect(MD2.accordion.icon).toBe(ThemeTokens.icon);

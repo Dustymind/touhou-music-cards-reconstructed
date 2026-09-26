@@ -1038,6 +1038,7 @@ test("MD2 细节：下拉标签入框、搜索框居中、边框可见（用户�
       labelInside: label.top >= box.top - 1 && label.bottom <= box.bottom + 1,
       frameBorder: getComputedStyle(strip.parentElement!).borderColor,
       slotBorder: getComputedStyle(slot).borderColor,
+      slotWidth: getComputedStyle(slot).borderTopWidth,
     };
   });
   expect(game.filled).toBe(true);
@@ -1062,7 +1063,9 @@ test("MD2 细节：下拉标签入框、搜索框居中、边框可见（用户�
   // 标签就是原来写在框外的那三个 caption
   expect(cpuFields.every((field) => field.caption.length > 0)).toBe(true);
   expect(game.frameBorder).toBe("rgba(255, 255, 255, 0.28)");
-  expect(game.slotBorder).toBe("rgba(255, 255, 255, 0.28)");
+  // 空卡槽：用户反馈过两次"边框看不见/太虚太细" ⇒ 现在 2dp + 45%（值来自主题的 `--tmc-slot`）
+  expect(game.slotBorder).toBe("rgba(255, 255, 255, 0.45)");
+  expect(game.slotWidth).toBe("2px");
 
   // 设置页音乐源的顺序编号是圆形
   await page.getByRole("tab", { name: "Config", exact: true }).click();

@@ -1,15 +1,20 @@
 /** 对战页交互：随机补满 → 开局 → 抢拍 → 下一回合 → 终局（真实数据）。 */
-import { act } from "react";
-import type { Root } from "react-dom/client";
+import { act, type ReactNode } from "react";
+import CssBaseline from "@mui/material/CssBaseline";
+import { ThemeProvider } from "@mui/material/styles";
+import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { DataBundle } from "../../data/types";
 import { setLocale } from "../../i18n/localization";
 import { clickTestId, loadRealBundle, renderGamePanel } from "../../test-utils";
+import { MD2_SLOT, buildTheme } from "../../theme/theme";
+import { DeckGrid } from "../game/DeckGrid";
 import type { CardInfo } from "../../game/types";
 import { useGame } from "../../game/useGame";
 import { TURN_COUNTDOWN_MS } from "../../game/useGameLoop";
 import { useSession } from "../../store/session";
+import { GamePanel } from "./GamePanel";
 
 let bundle: DataBundle;
 let root: Root | null = null;
@@ -34,6 +39,17 @@ async function dragTo(container: HTMLElement, fromId: string, toId: string): Pro
   await fire(from, "dragstart");
   await fire(to, "dragover");
   await fire(to, "drop");
+}
+
+/** 带主题壳渲染任意节点：主题相关的颜色走 CSS 变量（`:root`），裸渲染拿不到真值。 */
+async function renderWithTheme(node: ReactNode = <GamePanel bundle={bundle} />): Promise<HTMLElement> {
+  const container = document.createElement("div");
+  document.body.appendChild(container);
+  root = createRoot(container);
+  await act(async () => {
+    root!.render(<ThemeProvider theme={buildTheme()}><CssBaseline />{node}</ThemeProvider>);
+  });
+  return container;
 }
 
 describe("GamePanel", () => {
@@ -589,5 +605,40 @@ describe("GamePanel", () => {
         expect(counts.has(other), `${key} ↔ ${other}`).toBe(false);
       }
     }
+  });
+});
+
+describe("空卡槽的虚线框", () => {
+  beforeEach(async () => {
+    localStorage.clear();
+    bundle = await loadRealBundle();
+  });
+  afterEach(async () => {
+    await act(async () => { root?.unmount(); });
+    root = null;
+    document.body.innerHTML = "";
+  });
+
+  it("够实够粗：2dp 虚线 + 主题里的卡槽色（原先是 1px + 28%，用户反馈太虚太细）", async () => {
+    // 直接渲染牌库：24 个格子全空 ⇒ 每个格子都在画"空卡槽"的虚线框
+    const container = await renderWithTheme(
+      <DeckGrid
+        deck={Array.from({ length: 24 }, () => null)}
+        rows={3}
+        columns={8}
+        width={600}
+        cardSet={bundle.shared.cardSets[0]!}
+        cardFiles={{}}
+        interactive
+        testId="deck-test"
+      />,
+    );
+    const slot = container.querySelector('[data-testid="deck-test-empty-0"]') as HTMLElement | null;
+    expect(slot, "没找到空卡槽").not.toBeNull();
+    const style = getComputedStyle(slot!);
+    expect(style.borderTopWidth).toBe(`${MD2_SLOT.width}px`);
+    expect(style.borderTopStyle).toBe("dashed");
+    // 深色模式下卡槽色 = 45% 白（走 `--tmc-slot`，说明变量确实生效了）
+    expect(style.borderTopColor).toBe("rgba(255, 255, 255, 0.45)");
   });
 });

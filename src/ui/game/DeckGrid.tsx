@@ -14,7 +14,7 @@ import { useEffect, useRef, useState } from "react";
 import type { CardSetRecord } from "../../data/types";
 import { DRAG_MIME } from "../../game/drag";
 import type { CardInfo, Slot } from "../../game/types";
-import { CardAspectRatio, MD2_BORDER } from "../../theme/theme";
+import { CardAspectRatio, MD2, MD2_SLOT } from "../../theme/theme";
 import { CharacterCard, type CardState } from "../components/CharacterCard";
 import { CheatRect } from "./CheatRect";
 
@@ -138,9 +138,10 @@ export function DeckGrid(props: DeckGridProps) {
               onDragLeave={() => setDropSlot((current) => (current === slot ? null : current))}
               onDrop={dropOn(slot)}
               sx={{
-                border: occupied ? "none" : "1px dashed",
-                borderColor: MD2_BORDER,
-                borderRadius: "4px",
+                // 空卡槽：2dp 虚线 + 主题里那一档"卡槽色"（1px/28% 太虚，用户反馈过）
+                border: occupied ? "none" : `${MD2_SLOT.width}px dashed`,
+                borderColor: MD2_SLOT.color,
+                borderRadius: MD2.shape,
                 // 拖拽时的落点提示（只在真的拖着东西时出现，不是 hover 动效）
                 outline: dropSlot === slot ? "2px dashed" : "none",
                 outlineColor: "primary.main",

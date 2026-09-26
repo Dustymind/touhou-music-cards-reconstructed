@@ -61,10 +61,12 @@ const MODE_TOKENS = {
   dark: {
     text: "#FFFFFFFF", muted: "rgba(255, 255, 255, 0.7)", divider: "rgba(255, 255, 255, 0.12)",
     icon: "rgba(255, 255, 255, 0.6)", border: "rgba(255, 255, 255, 0.28)",
+    slot: "rgba(255, 255, 255, 0.45)",
   },
   light: {
     text: "rgba(0, 0, 0, 0.87)", muted: "rgba(0, 0, 0, 0.6)", divider: "rgba(0, 0, 0, 0.12)",
     icon: "rgba(0, 0, 0, 0.6)", border: "rgba(0, 0, 0, 0.28)",
+    slot: "rgba(0, 0, 0, 0.45)",
   },
 } as const;
 
@@ -76,6 +78,8 @@ export const ThemeTokens = {
   divider: "var(--tmc-divider)",
   icon: "var(--tmc-icon)",
   border: "var(--tmc-border)",
+  /** 空卡槽的虚线框（比 `border` 更实 —— 用户反馈游戏页的卡槽"太虚太细"）。 */
+  slot: "var(--tmc-slot)",
 } as const;
 
 const HEX_RE = /^#[0-9a-fA-F]{6}$/;
@@ -124,6 +128,10 @@ export function onColorFor(color: string): string {
 }
 
 const ACTIVE = MD2_PALETTE.dark;
+
+/** 空卡槽的虚线框：颜色取自主题（亮/暗各一档），**线宽 2dp** —— 原来是 1px + 28% 白，
+ *  用户反馈"太虚太细"；两处（牌库空槽、卡面占位）共用这一份口径。 */
+export const MD2_SLOT = { color: ThemeTokens.slot, width: 2 } as const;
 
 /** 深色表面上"看得见的边框"：MD2 的分隔线是 12% 白，在 #121212 上偏淡，
  *  选卡区外框与卡槽虚线框用 28%（仍属低对比，但不至于看不见）。 */
@@ -349,6 +357,7 @@ export function buildTheme(options: { mode?: ThemeMode; primary?: string } = {})
             "--tmc-divider": tokens.divider,
             "--tmc-icon": tokens.icon,
             "--tmc-border": tokens.border,
+            "--tmc-slot": tokens.slot,
             "--tmc-primary": primary,
             "--tmc-on-primary": onPrimary,
           },

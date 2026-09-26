@@ -3,7 +3,7 @@ import { Box, Paper, type SxProps } from "@mui/material";
 import { memo, useEffect, useState } from "react";
 
 import type { CardSetRecord } from "../../data/types";
-import { CardAspectRatio, CardColors, MD2, NoFontFamily } from "../../theme/theme";
+import { CardAspectRatio, CardColors, MD2, MD2_SLOT, NoFontFamily } from "../../theme/theme";
 import { glitchTilt, isCheat, randomColor } from "../../cheat";
 
 /** 卡面圆角：卡牌本体与选卡显示区边界共用（取 MD2 形状规格，避免两处各写一遍）。 */
@@ -92,7 +92,8 @@ function CharacterCardInner({
         width,
         backgroundColor: background,
         borderRadius: bare ? CARD_BORDER_RADIUS : undefined,
-        border: isPlaceholder ? "2px dashed gray" : "none",
+        border: isPlaceholder ? `${MD2_SLOT.width}px dashed` : "none",
+        borderColor: MD2_SLOT.color,
         cursor: onClick ? "pointer" : "default",
         transition: "transform 0.3s ease, background-color 0.3s ease, filter 0.3s ease",
         transform: `${rotation ? `rotate(${rotation}deg)` : ""}${raised ? " translateY(-10%)" : ""}`.trim() || "none",
