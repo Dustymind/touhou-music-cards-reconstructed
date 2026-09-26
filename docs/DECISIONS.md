@@ -4082,6 +4082,13 @@ ring 仍会顶掉上一次 ✓、stop 打断回调且不触发 + dispose 关上�
 要么主仓库先加同名 key，要么另立 S2 契约（`docs/otomads-separation-v1.md` §5）——
 submodule 只是给了第二份名单落脚点，跨库一致性仍要新约定。
 
+**后续（2026-09-26，用户要求）：消费方 pin 的是 `commit`，不是 tag。**
+submodule 本来就只能记 commit（tag 只是给某个 commit 起个名），所以"pin 到 tag"与"pin 到 commit"在
+git 层没有区别；改的是**口径**：数据仓库改完数据**不必等打 tag**，主仓库直接
+`git -C data/otomads fetch && git -C data/otomads checkout <commit>` → `pnpm data:build` 即可。
+tag（`th09.5-*`）保留，但降级为"给人看的里程碑标记"，不再是消费方的依赖点。
+复现性不受影响：`git submodule update` 永远按 commit 校验出，跟分支才是不可复现的那种做法。
+
 ## D129 音MAD 数据的提交历史迁到数据仓库（重写 tag `th09.5`）
 
 **需求**（用户）："能否将 commit 记录搬过去" —— D128 当时按"不保留历史"执行，这一轮改成迁移。

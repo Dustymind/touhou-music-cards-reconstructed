@@ -106,7 +106,9 @@ pnpm local                                            # 起助手（工具在数
 
 ### 4. 曲包音频的抓取与裁剪（可选）
 
-音MAD 曲包的真源在主仓库外的数据 submodule（`data/otomads/packs/otomads/*.toml`，一角色一份，见 D128）：
+音MAD 曲包的真源在主仓库外的数据 submodule（`data/otomads/packs/otomads/*.toml`，一角色一份，见 D128）。
+submodule **pin 在一个 commit 上**（不是分支；tag 只是那个 commit 的名字，换成数据不必等打 tag）——
+数据仓库改完先 `git -C data/otomads fetch` 再 `git -C data/otomads checkout <commit>`，然后 `pnpm data:build`：
 写了 `source` 的曲目可以自动抓，并按 `start_time` / `stop_time` 裁掉前摇。裁剪走"**解码后精确切 + 重编码**"
 （D142）——起点与时长**按采样点**对齐，不是就近取整到 mp3 帧边界（改之前 `-c copy` 实测偏过 90 ms，
 见 `docs/packs-audio-v1.md` §5）。
