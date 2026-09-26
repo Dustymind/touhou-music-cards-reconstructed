@@ -12,6 +12,7 @@ import { Box } from "@mui/material";
 import { useEffect, useRef, useState } from "react";
 
 import type { CardSetRecord } from "../../data/types";
+import { cardFileAt } from "../../data/cardFaces";
 import { DRAG_MIME } from "../../game/drag";
 import type { CardInfo, Slot } from "../../game/types";
 import { CardAspectRatio, MD2, MD2_SLOT } from "../../theme/theme";
@@ -206,7 +207,7 @@ export function DeckGrid(props: DeckGridProps) {
             >
               <CharacterCard
                 cardSet={cardSet}
-                file={cardFiles[card.characterKey]?.[card.cardIndex] ?? ""}
+                file={cardFileAt(cardFiles, card.characterKey, card.cardIndex)}
                 state={cardStateOf?.(card) ?? "normal"}
                 width="100%"
                 glitch={Boolean(props.glitch)}

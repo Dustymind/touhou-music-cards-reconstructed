@@ -9,12 +9,12 @@
  * 3. **源封面是整条绝对 URL**：不拼目录、不做 URL 编码（`cardUrl` 那一步同理）；
  * 4. **源不提供就不显示**：`sourceOnly` 图集在没有 covers 的数据集里既不可选、也不生效
  *    （回落只影响渲染，不动用户存的偏好）；
- * 5. **可选集是唯一入口**（D155）：回落只落在 `availableCardSets` 的结果里。
+ * 5. **可选集是唯一入口**（D155）：回落只落在 `availableCardSets` 的结果里，越界查表回到第 0 张。
  */
 import { describe, expect, it } from "vitest";
 
 import {
-  availableCardSets, cardCount, cardFace, cardFaces, hasSourceCovers, isCardUrl,
+  availableCardSets, cardCount, cardFace, cardFaces, cardFileAt, hasSourceCovers, isCardUrl,
   maxCardCount, resolveCardSet, usesPerTrackFaces,
 } from "./cardFaces";
 import type { CardSetRecord, CharacterRecord, ModeDataset } from "./types";
@@ -188,5 +188,26 @@ describe("图集可选性", () => {
     // 封面集是音MAD 专用：在原曲下它不可选，而候选里只有它 ⇒ 空集（改动前会回落到它自己 = 画 B 站封面）
     expect(availableCardSets([COVER_SET], originals)).toEqual([]);
     expect(resolveCardSet([COVER_SET], "otomads-cover", originals).id).toBe("");
+  });
+});
+
+describe("越界卡面的查表（渲染表铺满之后的取法）", () => {
+  const files = { cirno: ["チルノ.png", "チルノ2.png"] };
+
+  it("正常下标逐字照旧", () => {
+    expect(cardFileAt(files, "cirno", 0)).toBe("チルノ.png");
+    expect(cardFileAt(files, "cirno", 1)).toBe("チルノ2.png");
+  });
+
+  it("越界 / 负数 / 非数字一律回到第 0 张（不白卡）", () => {
+    expect(cardFileAt(files, "cirno", 9)).toBe("チルノ.png");
+    expect(cardFileAt(files, "cirno", -1)).toBe("チルノ.png");
+    expect(cardFileAt(files, "cirno", Number.NaN)).toBe("チルノ.png");
+  });
+
+  it("表里没有这个角色才是空串（交给 `CharacterCard` 的占位行为）", () => {
+    expect(cardFileAt(files, "marisa", 0)).toBe("");
+    expect(cardFileAt({}, "cirno", 0)).toBe("");
+    expect(cardFileAt({ cirno: [] }, "cirno", 0)).toBe("");
   });
 });

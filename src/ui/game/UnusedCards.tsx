@@ -7,6 +7,7 @@ import { Box, Typography } from "@mui/material";
 import { useState } from "react";
 
 import type { CardSetRecord } from "../../data/types";
+import { cardFileAt } from "../../data/cardFaces";
 import type { CardInfo } from "../../game/types";
 import { cardKey } from "../../game/types";
 import { t, Localization } from "../../i18n/localization";
@@ -75,7 +76,7 @@ export function UnusedCards(props: UnusedCardsProps2) {
       id: cardKey(card),
       characterKey: card.characterKey,
       cardIndex: card.cardIndex,
-      file: cardFiles[card.characterKey]?.[card.cardIndex] ?? "",
+      file: cardFileAt(cardFiles, card.characterKey, card.cardIndex),
       // 游戏选卡：hover 只变底色（与播放页一致），不做抬起位移
       state: blocked ? "blocked" : "normal",
       hoverState: blocked ? "blockedHover" : "hover",
@@ -170,7 +171,7 @@ export function UnusedCards(props: UnusedCardsProps2) {
                     >
                       <CharacterCard
                         cardSet={cardSet}
-                        file={cardFiles[card.characterKey]?.[card.cardIndex] ?? ""}
+                        file={cardFileAt(cardFiles, card.characterKey, card.cardIndex)}
                         state={blocked
                           ? hovered ? "blockedHover" : "blocked"
                           : hovered ? "hover" : "normal"}

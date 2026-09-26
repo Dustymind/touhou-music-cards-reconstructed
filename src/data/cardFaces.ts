@@ -114,3 +114,18 @@ export function resolveCardSet(
   const usable = availableCardSets(sets, dataset);
   return usable.find((set) => set.id === selectedId) ?? usable[0] ?? NO_CARD_SET;
 }
+
+/** 查一位角色的第 `cardIndex` 张卡面（:func:`cardFaces` 那张表按角色收好之后的取法）。
+ *
+ *  **越界一律回到第 0 张**（D155）：表是按**数据最大口径**铺的（`maxCardCount`），但对端用着
+ *  另一套图集（一首一张）、或存档里留着旧数据时，`cardIndex` 仍可能超出本端这张表 ——
+ *  夹取之后至少画得出这个角色的第一张图，不夹取就是一张空白卡。
+ *  表里没有这个角色才是空串（仍交给 `CharacterCard` 的占位行为）。 */
+export function cardFileAt(
+  files: Readonly<Record<string, readonly string[] | undefined>>,
+  characterKey: string,
+  cardIndex: number,
+): string {
+  const list = files[characterKey];
+  return list?.[cardIndex] ?? list?.[0] ?? "";
+}
