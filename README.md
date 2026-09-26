@@ -290,8 +290,10 @@ manifest 所在那一层解析 ⇒ 换域名/端口/协议、换宿主与子路�
 数据由 `pnpm data:check` 守住：**121 个角色 / 40 张专辑 / 464 条角色曲目条目（454 首去重曲目）**、
 **7 套卡面**（6 套上游 + 1 套音MAD 本地图集）；另有**音MAD 曲包 86 首（35 个角色）**，其中 84 首带 `source`（可自动抓取）、
 16 首带裁剪区间，音频走本地曲库助手。**自定义模式**自带 0 角色 / 0 专辑 —— 它的数据由使用者自己的源提供。
-测试基线（2026-09-25 实测）：`pnpm test` **856 passed**（428 条 × chromium + firefox，两个引擎都跑）、
-`cd tools && uv run pytest` **66 passed**、数据仓库 tools 的 pytest **141 passed**（+ `node --test` 7 条）、e2e **95 passed + 1 skipped**。
+测试基线（2026-09-27 实测）：`pnpm test` **589 passed × 两个引擎**（chromium / firefox 分开跑，
+同跑会 flaky）、`cd tools && uv run pytest` **81 passed**、
+两个数据仓库 tools 的 pytest 各 **199 / 325 passed**、e2e **109 passed + 1 skipped**
+（整跑负载下 firefox 偶发一条超时，单跑 ✓）。
 完整的现状表（含每一项的复现命令）与文档索引见 [`docs/README.md`](docs/README.md)。
 
 ## 怎么玩
