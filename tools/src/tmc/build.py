@@ -75,13 +75,14 @@ def build_characters(mode: str, chars: list[dict], pack_tracks: list[dict],
     * ``custom``：**恒为空表**（一条都不生成）—— 这个模式一条自带数据都没有，
       卡名/卡面/曲目全部来自使用者自己的源清单，运行时由应用重建（契约 `docs/custom-mode-v1.md`）。
       ⚠️ 这条分支不能省：`mode != "originals"` 原来会把**其它任何模式**都当成曲包那份处理 ⇒
-      漏了它，`custom` 会安静地拿到音MAD 的 43 个角色 106 首曲目（最危险的一处）。
+      漏了它，`custom` 会安静地拿到音MAD 那份的**全部角色与曲目**（最危险的一处）。
 
     身份字段（``name``/``order``/``searchNames``）来自**同一份真源**（契约 §5 S1），两份生成物里各存一份，
     跨模式一致性由 ``tmc.validate`` 守；**卡面是例外**：音MAD 侧可以在曲包的角色文件里用
     ``card = [...]`` 覆盖（写法同 ``data/characters/*.toml``），缺省才沿用共享身份。
 
-    ``pack_covers`` 是**源封面**（D153）：``{角色 key: [绝对 URL, …]}``，每首曲目一条。
+    ``pack_covers`` 是**源封面**：``{角色 key: [封面值, …]}``，每首曲目一条 —— 值是**单链接**
+    （D153）或**逐档表**（D164：``original`` / ``16x9`` / ``4x3``，与 `tmc.packs`、应用侧同口径）。
     它只在 ``otomads`` 那份里写进 ``covers``，原曲那份**一个字段都不多**（两份的指纹口径因此不变）。
     """
     by_key = {char["key"]: char for char in chars}

@@ -515,8 +515,23 @@ def check_pending(chars: list[dict], p: Problems):
     return len(rows)
 
 
+def _cover_value_ok(item: object) -> bool:
+    """封面值合法（D164）：非空 ``https`` 字符串，或"至少一个档位、每档都是非空 ``https``"的表。
+
+    口径与曲包解析（`tmc.packs`）、数据仓库的 `packformat`、应用侧的 `parseCoverField`（D165）一致。
+    """
+    if isinstance(item, str):
+        return item.startswith("https://")
+    if not isinstance(item, dict) or not item:
+        return False
+    if set(item) - set(packs_mod.COVER_FRAMES):
+        return False
+    return all(isinstance(url, str) and url.startswith("https://") for url in item.values())
+
+
 def check_datasets(chars: list[dict], pack_tracks: list[dict], pack_albums: list[dict],
-                   pack_cards: dict[str, list[str]], pack_covers: dict[str, list[str]],
+                   pack_cards: dict[str, list[str]],
+                   pack_covers: dict[str, list[str | dict[str, str]]],
                    albums: dict[str, dict], p: "Problems") -> dict:
     """每模式数据集（契约 `docs/otomads-separation-v1.md` §2/§3）。
 
@@ -581,8 +596,9 @@ def check_datasets(chars: list[dict], pack_tracks: list[dict], pack_albums: list
         if key not in by_mode["otomads"]:
             p.error(f"曲包里的封面指向没有音MAD 曲目的角色：{key}")
         cover = pack_covers[key]
-        if not cover or not all(isinstance(item, str) and item.startswith("https://") for item in cover):
-            p.error(f"曲包里的封面非法（{key}，必须是非空的 https URL 列表）：{cover!r}")
+        if not cover or not all(_cover_value_ok(item) for item in cover):
+            p.error(f"曲包里的封面非法（{key}，必须是 https 链接或逐档表"
+                    f"（{'、'.join(packs_mod.COVER_FRAMES)}）的列表）：{cover!r}")
         entry = by_mode["otomads"].get(key)
         if entry is not None and len(cover) != len(entry["music"]):
             p.error(f"曲包里的封面数与曲目数不等（{key}：{len(cover)} vs {len(entry['music'])}）"
