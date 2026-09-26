@@ -102,6 +102,33 @@ export function LobbyPanel(_props: LobbyPanelProps) {
 
       {net.error && <Alert severity="error" sx={{ mt: 1 }} data-testid="net-error">{net.error}</Alert>}
 
+      {/* 主机用了**另一个**自定义源（F3）：本地没有自己的源时后端已经自动采用了，这里只在
+          "本地有别的值"时问一句 —— 采用只在本会话生效，用户自己填的链接一个字不改 */}
+      {net.pendingCustomSource && !net.pendingCustomSource.adopted && (
+        <Alert
+          severity="warning"
+          sx={{ mt: 1 }}
+          data-testid="net-custom-source"
+          action={
+            <Stack direction="row" spacing={1}>
+              <GameButton size="small" variant="contained" data-testid="net-custom-source-adopt"
+                onClick={() => net.adoptHostCustomSource()}>
+                {t(Localization.CustomSourceHostAdopt)}
+              </GameButton>
+              <GameButton size="small" data-testid="net-custom-source-stay"
+                onClick={() => net.dismissHostCustomSource()}>
+                {t(Localization.CustomSourceHostStay)}
+              </GameButton>
+            </Stack>
+          }
+        >
+          {t(Localization.CustomSourceHostDiffers, {
+            url: net.pendingCustomSource.url,
+            detail: net.pendingCustomSource.detail,
+          })}
+        </Alert>
+      )}
+
       {online && (
         <>
           <Divider sx={{ my: 1 }} />

@@ -30,6 +30,7 @@ import { customCardEnabled } from "../../music/customSelection";
 import { useGame } from "../../game/useGame";
 import { turnSeed } from "../../game/rules";
 import { useNet } from "../../net/useNet";
+import type { DataHashes } from "../../net/protocol";
 import { PlayerPanel } from "../panels/PlayerPanel";
 import { ConfigPanel } from "../panels/ConfigPanel";
 import { GamePanel } from "../panels/GamePanel";
@@ -64,11 +65,13 @@ export function tickDue(elapsedMs: number, offsetMs: number): boolean {
   return elapsedMs - offsetMs <= TICK_LATE_TOLERANCE_MS;
 }
 
-/** 联机握手要比的**两个**数据哈希（一个模式一个，契约 `docs/otomads-separation-v1.md` §6 C3）。 */
-export function dataHashes(bundle: DataBundle): Record<string, string> {
+/** 联机握手要比的**三个**数据哈希（一个模式一个，契约 `docs/otomads-separation-v1.md` §6 C3 /
+ *  `docs/custom-mode-v1.md` C6）。模式 3 那份是**应用算的**（`customHash`，数据来自使用者自己的源）。 */
+export function dataHashes(bundle: DataBundle): DataHashes {
   return {
     originals: bundle.datasets.originals.index.contentHash,
     otomads: bundle.datasets.otomads.index.contentHash,
+    custom: bundle.datasets.custom.index.contentHash,
   };
 }
 
@@ -146,8 +149,14 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
   // **用生效后的那份**（D145）：源给了曲目表就按它算 —— 否则一端有源、一端只有兜底时，
   // 明明曲目表一样却会在握手期被判"数据不一致"。
   useEffect(() => {
-    (window as unknown as { __TMC_DATA_HASH__?: Record<string, string> }).__TMC_DATA_HASH__ =
+    (window as unknown as { __TMC_DATA_HASH__?: DataHashes }).__TMC_DATA_HASH__ =
       dataHashes(liveBundle);
+  }, [liveBundle]);
+
+  // 采用了主机下发的自定义源之后数据会重建（`liveBundle` 换新）⇒ 把那次握手重发一次。
+  // 只重发一次（`useNet.retryHello` 里的上限）：数据要是仍然不同，再发还是同一条路。
+  useEffect(() => {
+    useNet.getState().retryHello();
   }, [liveBundle]);
 
   // 预设：持久化状态与新专辑默认勾选合并（首帧就要用它算队列，不能等 effect）

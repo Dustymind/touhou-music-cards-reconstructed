@@ -7,7 +7,7 @@
 import { create } from "zustand";
 
 import { useGame } from "../game/useGame";
-import { useSession } from "../store/session";
+import { effectiveCustomSourceUrl, useSession } from "../store/session";
 import { currentQueue, queueStoreFor } from "../store/queue";
 import { selectSessionSeed, useSeeds } from "../store/seeds";
 import { ephemeralIntBelow, randomToken } from "../rng";
@@ -23,6 +23,18 @@ interface ChatLine {
   from: string;
   text: string;
   system: boolean;
+}
+
+/** 主机说"数据不同"并且给了它自己的自定义源之后，这条 handshake 的待办（F3）。
+ *
+ *  `adopted` = 本地**空**，已经自动采用（等数据重建后重发一次 hello）；否则等用户点确认。 */
+interface PendingCustomSource {
+  url: string;
+  adopted: boolean;
+  /** 主机拒我们时说的"哪里不同"（`原曲 + 自定义` 这种），直接显示给用户 */
+  detail: string;
+  /** 已经自动重发过几次（**最多 1 次**，避免"采用 → 还是不同 → 再采用"的死循环） */
+  retries: number;
 }
 
 interface NetApi {
@@ -41,6 +53,16 @@ interface NetApi {
   leave: () => void;
   /** 把本地动作包成"主机直接执行 / 客户端发意图" */
   intent: (intent: ClientIntent) => void;
+  /** 主机给的自定义源与"本地那个不一样"：等用户点头（F3） */
+  pendingCustomSource: PendingCustomSource | null;
+  /** 主机**当前生效的**自定义源链接（会话配置下发；给设置页显示与排障用） */
+  hostCustomSourceUrl: string;
+  /** 采用主机下发的自定义源并重发 hello（只在本会话生效，不写回存档，F3） */
+  adoptHostCustomSource: () => void;
+  /** 不采用：留在房外（清掉这条待办；用户自己的源一个字不动） */
+  dismissHostCustomSource: () => void;
+  /** 数据重建之后由 `AppShell` 调：把"因为刚采用了源"而失败的那次 handshake 重发一次 */
+  retryHello: () => void;
 }
 
 /** 测试与"同页多实例"用：可替换传输工厂。 */
@@ -115,11 +137,12 @@ function resetConnection(): void {
   transport = null;
 }
 
-/** 主机下发的会话配置：音乐模式 + **会话种子**（客户端一律"采用"，不自己生成，D104）。 */
+/** 主机下发的会话配置：音乐模式 + **会话种子**（客户端一律"采用"，不自己生成，D104）+ 自定义源链接。 */
 function hostConfig(): SessionConfigWire {
   return {
     musicMode: useSession.getState().musicMode,
     sessionSeed: selectSessionSeed(useSeeds.getState()),
+    customSourceUrl: effectiveCustomSourceUrl(useSession.getState()),
   };
 }
 
@@ -128,6 +151,9 @@ function hostConfig(): SessionConfigWire {
  *  只有种子真的变了才重排轮播，否则每个快照都会把队列洗一遍 ✗。 */
 function adoptHostConfig(config: SessionConfigWire): void {
   useSession.getState().setMusicMode(config.musicMode);
+  // 主机**生效的**源链接存下来只作展示/排障（`hostCustomSourceUrl`）；这里**不**动本地那份 ——
+  // 采用与否是 `reject` 那条路上的决定（本地空 ⇒ 自动、有别的值 ⇒ 问用户，F3）
+  useNet.setState({ hostCustomSourceUrl: config.customSourceUrl ?? "" });
   const seeds = useSeeds.getState();
   const changed = selectSessionSeed(seeds) !== config.sessionSeed;
   seeds.adopt(config.sessionSeed);
@@ -138,10 +164,22 @@ function adoptHostConfig(config: SessionConfigWire): void {
 export const useNet = create<NetApi>((set, get) => {
   const pushChat = (line: ChatLine) => set((state) => ({ chat: [...state.chat, line].slice(-200) }));
 
-  /** 两个模式的数据哈希（由 `AppShell` 挂到 window，契约 §6 C3） */
+  /** 三个模式的数据哈希（由 `AppShell` 挂到 window，契约 §6 C3） */
   const dataHash = (): DataHashes =>
     (window as unknown as { __TMC_DATA_HASH__?: DataHashes }).__TMC_DATA_HASH__
-    ?? { originals: "", otomads: "" };
+    ?? { originals: "", otomads: "", custom: "" };
+
+  /** 上一次 `join` 的参数：重发 hello 时要原样再来一次（名字/观察者身份不该在中途变） */
+  let lastJoin: { name: string; observer: boolean } | null = null;
+
+  /** 发一次 hello（首次进房与"采用主机源之后重发"共用）。 */
+  const sendHello = (): void => {
+    if (!lastJoin) return;
+    transport?.sendToHost(helloIntent(
+      lastJoin.name, lastJoin.observer, dataHash(),
+      effectiveCustomSourceUrl(useSession.getState()),
+    ));
+  };
 
   return {
     status: "offline",
@@ -153,6 +191,8 @@ export const useNet = create<NetApi>((set, get) => {
     chat: [],
     error: null,
     digest: "",
+    pendingCustomSource: null,
+    hostCustomSourceUrl: "",
 
     sendChat(text) {
       if (!transport || !text.trim()) return;
@@ -207,6 +247,7 @@ export const useNet = create<NetApi>((set, get) => {
       resetConnection();
       const { roomId } = options;
       const name = options.name ?? "Guest";
+      lastJoin = { name, observer: Boolean(options.observer) };
       transport = transportFactory("client", roomId, options.peer ? "peer" : "local");
       set({ status: "connected", role: "client", roomId, shareCode: null, error: null, myIndex: 1 });
       // 进房即副本端：不再自己生成种子，等主机的 `SessionConfig`（D104）
@@ -225,18 +266,54 @@ export const useNet = create<NetApi>((set, get) => {
         onChat: (from, text, system) => pushChat({ from: `P${from}`, text, system }),
         onError: (message) => set({ error: message, status: "error" }),
         onPeers: (peers) => set({ peers }),
+        // 主机在模式 3 下给了它自己的源：本地没有源就**自动采用**（数据重建后由
+        // `AppShell` 调 `retryHello()` 重发一次）；本地有别的值就问用户（F3）
+        onCustomSourceHint: (url, detail) => {
+          const local = effectiveCustomSourceUrl(useSession.getState());
+          if (local === "") {
+            useSession.getState().adoptCustomSourceUrl(url);
+            set({ pendingCustomSource: { url, adopted: true, detail, retries: 0 } });
+            return;
+          }
+          if (local !== url) set({ pendingCustomSource: { url, adopted: false, detail, retries: 0 } });
+        },
       });
       disposeEngine = engine.dispose;
-      transport.sendToHost(helloIntent(name, Boolean(options.observer), dataHash()));
+      sendHello();
     },
 
     leave() {
       resetConnection();
+      lastJoin = null;
       // 离开房间 → 本机重新成为权威（用回自己那份种子，不再用主机下发的）
       useSeeds.getState().setAuthority("authority");
       // 主机下发的**自定义源链接**同样作废：采用只在本次会话（= 这个房间）里生效（F3）
       useSession.getState().clearHostCustomSource();
-      set({ status: "offline", role: null, peers: [], shareCode: null, error: null, digest: "" });
+      set({
+        status: "offline", role: null, peers: [], shareCode: null, error: null, digest: "",
+        pendingCustomSource: null, hostCustomSourceUrl: "",
+      });
+    },
+
+    adoptHostCustomSource() {
+      const pending = get().pendingCustomSource;
+      if (!pending) return;
+      // 采用**只写会话级覆盖**（离开房间即失效，存档一个字不改，F3）
+      useSession.getState().adoptCustomSourceUrl(pending.url);
+      set({ pendingCustomSource: { ...pending, adopted: true, retries: 0 }, error: null });
+    },
+
+    dismissHostCustomSource() {
+      set({ pendingCustomSource: null });
+    },
+
+    retryHello() {
+      const pending = get().pendingCustomSource;
+      // 只有"已经采用了主机源、等着数据重建"那一种待办需要重发，而且**只重发 1 次**：
+      // 数据要是仍然不同，主机再拒一次还是同一条路 ⇒ 不设上限就是死循环
+      if (!pending?.adopted || pending.retries >= 1 || get().role !== "client") return;
+      set({ pendingCustomSource: { ...pending, retries: pending.retries + 1 } });
+      sendHello();
     },
 
     intent(intent) {

@@ -33,6 +33,8 @@ const MODE_LABELS: Record<MusicMode, Localized> = {
  * **重置 = 清成空串**（不是"回默认值"）：这个模式的默认值本来就是空 —— 空 ⇒ 0 张卡 + 红色必填提示。 */
 function CustomSourceRow({ table }: { table?: SourceTable }) {
   const { customSourceUrl, customSourceOverride, setCustomSourceUrl } = useSession();
+  /** 主机**当前生效的**源（会话配置随快照下发）：只显示，不改本地那份（F3） */
+  const hostUrl = useNet((slice) => (slice.role === "client" ? slice.hostCustomSourceUrl : ""));
   const effective = effectiveCustomSourceUrl({ customSourceUrl, customSourceOverride });
   const [draft, setDraft] = useState<string | null>(null);
   const value = draft ?? effective;
@@ -100,6 +102,17 @@ function CustomSourceRow({ table }: { table?: SourceTable }) {
         {customSourceOverride?.from === "host" && (
           <Typography variant="caption" color="text.secondary" data-testid="custom-source-from-host">
             {t(Localization.CustomSourceFromHost)}
+          </Typography>
+        )}
+        {/* 主机在用的那份（可能是别的地址、但内容相同）：排障时一眼能对上 */}
+        {hostUrl && (
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            data-testid="custom-source-host-using"
+            sx={{ wordBreak: "break-all" }}
+          >
+            {t(Localization.CustomSourceHostUsing, { url: hostUrl })}
           </Typography>
         )}
       </Stack>

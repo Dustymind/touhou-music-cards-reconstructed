@@ -53,6 +53,12 @@ export const Localization = {
   CustomSourceInvalid: u(
     "The manifest was rejected: its shape is not valid, so nothing from it is in use.",
     "清单不合法（形状不对），整份都没有生效。"),
+  CustomSourceHostUsing: u("The host is using: {url}", "主机在用：{url}"),
+  CustomSourceHostDiffers: u(
+    "The host uses a different custom source: {url} (data differs in: {detail}). Use it for this session? Your own link is not changed either way.",
+    "主机使用了不同的自定义源：{url}（数据不同的地方：{detail}）。本次会话采用它吗？无论选哪个，你自己填的链接都不会被改写。"),
+  CustomSourceHostAdopt: u("Use the host's source", "采用主机的源"),
+  CustomSourceHostStay: u("Stay out", "留在房外"),
   CustomSourceFromHost: u(
     "The link in use was sent by the host (this session only).",
     "当前生效的链接来自主机（只在本会话生效）。"),

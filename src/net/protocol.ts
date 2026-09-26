@@ -10,14 +10,17 @@
 import type { CardInfo, GameState, MatchMode } from "../game/types";
 import type { Seed } from "../rng";
 
-/** 4：数据按音乐模式分成两份数据集 ⇒ 握手要交换**两个**数据哈希（契约 `docs/otomads-separation-v1.md` §6 C3）。
+/** 5：多了第三个模式（自定义）⇒ 握手要交换**三个**数据哈希，且主机把**自定义源链接**一起下发
+ *     （契约 `docs/custom-mode-v1.md` C6：这个模式的数据由使用者自己托管，两端必须同一个源）。
+ *  4：数据按音乐模式分成两份数据集 ⇒ 握手交换两个哈希（契约 `docs/otomads-separation-v1.md` §6 C3）。
  *  3：`SessionConfig`（音乐模式 + 会话种子）替代原来的 `musicMode` 字段；新增 `rerollQueue` 意图。 */
-export const PROTOCOL_VERSION = 4;
+export const PROTOCOL_VERSION = 5;
 
-/** 两个模式各自的数据哈希：任一不同都拒绝，且都在**握手期**拒（D107 §6 的初衷）。 */
+/** 三个模式各自的数据哈希：任一不同都拒绝，且都在**握手期**拒（D107 §6 的初衷）。 */
 export interface DataHashes {
   originals: string;
   otomads: string;
+  custom: string;
 }
 
 /** 主机下发的会话配置：客户端**采用**它，而不是自己决定这些值。 */
@@ -26,6 +29,9 @@ export interface SessionConfigWire {
   musicMode: MusicModeWire;
   /** 会话种子：主机生成（`useSeeds`），客户端采用后两端派生结果一致 */
   sessionSeed: Seed;
+  /** 主机**当前生效的**自定义源链接（模式 3）：给客户端做展示与排障用。
+   *  真正"要不要采用它"的决定走下面 `reject` 那条路（本地空 ⇒ 自动采用、有别的值 ⇒ 问用户，F3）。 */
+  customSourceUrl?: string;
 }
 
 export interface PeerInfo {
@@ -39,7 +45,11 @@ export interface PeerInfo {
 
 /** 客户端 → 主机的意图（主机负责校验与落地）。 */
 export type ClientIntent =
-  | { kind: "hello"; name: string; isObserver: boolean; dataHash: DataHashes; protocol: number }
+  | {
+    kind: "hello"; name: string; isObserver: boolean; dataHash: DataHashes; protocol: number;
+    /** 客户端自己**当前生效的**自定义源链接（空 = 还没配）：主机据此决定拒的时候给不给提示（F3） */
+    customSourceUrl?: string;
+  }
   | { kind: "pick"; side: 0 | 1; slot: number; timestamp: number }
   | { kind: "confirmStart" }
   | { kind: "confirmNext" }
@@ -70,7 +80,11 @@ export type HostMessage =
   | { kind: "snapshot"; state: GameState; seq: number; config?: SessionConfigWire }
   | { kind: "peers"; peers: PeerInfo[] }
   | { kind: "chat"; from: number; text: string; system?: boolean }
-  | { kind: "reject"; reason: "protocol" | "data" | "full"; detail: string }
+  | {
+    kind: "reject"; reason: "protocol" | "data" | "full"; detail: string;
+    /** 主机在**模式 3**下且自己有源时，把它一起发过来：客户端本地空就自动采用、有别的值就问用户（F3） */
+    customSourceUrl?: string;
+  }
   | { kind: "goodbye"; reason: string };
 
 /** 音乐模式（原曲 / 音MAD / 自定义）的协议表示：与 `src/music/mode.ts` 的 `MusicMode` 同形，
@@ -105,8 +119,25 @@ export function stateDigest(state: GameState): string {
   return parts.join(" ");
 }
 
-/** 两个模式各比一次：**任一模式的数据不同就拒绝**（不等到切模式才发现）。 */
+/** 协议里的三个模式名（顺序 = 提示文案里的顺序）。 */
+export const HASH_MODES: readonly MusicModeWire[] = ["originals", "otomads", "custom"];
+
+/** 模式名的人话（"是哪个模式的数据不同"那条提示用；协议层不 import UI 模块，所以在这里写死）。 */
+const MODE_NAMES: Record<MusicModeWire, string> = {
+  originals: "原曲", otomads: "音MAD", custom: "自定义",
+};
+
+/** 哪几个模式的数据不同（空数组 = 完全一致）。 */
+export function mismatchedModes(a: DataHashes, b: DataHashes): MusicModeWire[] {
+  return HASH_MODES.filter((mode) => a[mode].slice(0, 12) !== b[mode].slice(0, 12));
+}
+
+/** 三个模式各比一次：**任一模式的数据不同就拒绝**（不等到切模式才发现）。 */
 export function dataHashMismatch(a: DataHashes, b: DataHashes): boolean {
-  return a.originals.slice(0, 12) !== b.originals.slice(0, 12)
-    || a.otomads.slice(0, 12) !== b.otomads.slice(0, 12);
+  return mismatchedModes(a, b).length > 0;
+}
+
+/** 该拒的"人话"：指明是**哪个模式**的数据不同（`原曲 + 自定义` 这种）。 */
+export function mismatchDetail(a: DataHashes, b: DataHashes): string {
+  return mismatchedModes(a, b).map((mode) => MODE_NAMES[mode]).join(" + ");
 }

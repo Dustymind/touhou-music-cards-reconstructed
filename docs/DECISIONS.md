@@ -6190,3 +6190,47 @@ testid 一字不变）与 `useProgressiveRows`（那套"rAF → 宏任务 → �
 坏存档收窄、键隔离、prune 的"没死条目就不写盘"、toggle 清点播；`ConfigPanel.test.tsx` +3 条模式 3 的两个分区；
 `GamePanel.test.tsx` +1 条"传 `cardKeys` 就只进那些卡、不传即今天行为"；`usePlayer.test.tsx` +3 条
 `cardEnabled` 的三个方向；`App.test.tsx` +1 条"模式 3 没配源时三个页签都渲染得出来 + 必填提示"）。
+
+---
+
+### D160 协议 v5：**第三个数据哈希** + 主机把自定义源随会话下发给客户端
+
+**用户要求**：模式 3 支持联机（Q6）——协议升 v5 加第三个数据哈希，**主机把源链接随会话配置下发给客户端**，
+客户端"本地空就自动采用、本地有别的值就弹确认"，采用**只在本会话生效**（F3）。
+
+**协议（`docs/protocol-v1.md` 已同步）**：`DataHashes` 三项；`MusicModeWire` 三项；
+`SessionConfigWire.customSourceUrl?`；`hello.customSourceUrl?`；`reject.customSourceUrl?`；版本 4 → 5。
+`dataHashMismatch` 拆成 `mismatchedModes` + `mismatchDetail`：拒绝时的 `detail` 变成**人话**
+（"原曲 + 自定义"这种点名），不再是一句笼统的 "static data hash mismatch"。
+
+**握手流程**（主机权威）：
+
+```
+客户端 hello{protocol:5, dataHash{3}, customSourceUrl}
+  ├─ 三个哈希全同 → welcome（config 里带着主机那份源，供展示/排障）
+  ├─ 不同，且主机在 custom 模式、主机有链接 → reject{reason:"data", detail, customSourceUrl:主机的}
+  │     ├─ 客户端本地空       → **自动采用** → 拉清单 → 数据集重建 → 重发 hello（**只自动重试 1 次**）
+  │     └─ 本地有别的值       → 大厅里问一句（采用 / 留在房外）
+  └─ 其他不同 → 照旧 reject{reason:"data"}，只是 detail 点名了模式
+```
+
+**为什么"只重试 1 次"**：采用的是"数据还没到"的那一刻决定的，重发要等**数据重建**（由 `AppShell` 在
+`liveBundle` 换新时调 `retryHello()` 驱动 —— 与 `window.__TMC_DATA_HASH__` 同一次重渲染，D145 那条口径）。
+若不设上限，"采用 → 还是不同 → 再采用"就是死循环。
+
+**采用只写会话级覆盖**（`customSourceUrlOverride`，D157 那三个层次里的中间层）：存档一个字不改，
+`useNet.leave()` 只在 `from === "host"` 时清它 ⇒ 离开房间即恢复自己的源（F3 落在代码上）。
+
+**会话配置里的 `customSourceUrl` 只作展示**：`adoptHostConfig` **不**顺手改本地那份 ——
+"两端数据相同"的常见情形是同一个源的不同写法（本机 vs CDN），这时悄悄改掉用户填的地址只会让人困惑。
+它落在 `useNet.hostCustomSourceUrl`，设置页那行在房内显示"主机在用：…"（排障时一眼能对上）。
+
+**人话**：`src/i18n` 新增 `CustomSourceHostUsing` / `CustomSourceHostDiffers` / `CustomSourceHostAdopt` /
+`CustomSourceHostStay`；大厅里那条用 MD2 的 `Alert`（warning）+ 两个按钮（主操作"采用"是 contained，
+"留在房外"是文字按钮），与「关于」弹窗同一套排版口径。
+
+**验证**：`pnpm typecheck` ✓；vitest **48 文件 / 582 passed**（chromium 与 firefox **各 582**）——
+`engines.test.ts` +3 条（主机在模式 3 且自己有源时随 reject 下发、两个反例不下发、detail 点名模式），
+`useNet.test.tsx` +5 条（自动采用 + 只重发 1 次 + 重发时带上刚采用的源、有别的值时不自动采用、
+采用只改会话级覆盖、拒绝后自己的源不变、会话配置里的源只作展示且离开房间清掉），
+`GamePanel.test.tsx` +1 条（大厅那条提示的两个按钮）。

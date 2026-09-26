@@ -15,6 +15,7 @@ import { useGame } from "../../game/useGame";
 import { TURN_COUNTDOWN_MS } from "../../game/useGameLoop";
 import { useSession } from "../../store/session";
 import { parseCustomManifest, withCustomManifest } from "../../data/customManifest";
+import { useNet } from "../../net/useNet";
 import { GamePanel } from "./GamePanel";
 
 let bundle: DataBundle;
@@ -131,6 +132,45 @@ describe("GamePanel", () => {
     await clickTestId(container, "random-fill");
     const zunDeck = container.querySelector('[data-testid^="deck-you-card-"] img')?.getAttribute("src") ?? "";
     expect(zunDeck).toContain("/cards-zun/");
+  });
+
+  it("联机：主机用了不同的自定义源 ⇒ 大厅里问一句，采用后才动会话级覆盖（F3）", async () => {
+    await act(async () => { useGame.setState({ game: { ...useGame.getState().game, mode: "multi" } }); });
+    await act(async () => {
+      useNet.setState({
+        role: "client",
+        pendingCustomSource: {
+          url: "https://host.example.com/manifest.json", adopted: false, detail: "自定义", retries: 0,
+        },
+      });
+    });
+    const container = await renderWithTheme();
+
+    const alert = container.querySelector('[data-testid="net-custom-source"]');
+    expect(alert).not.toBeNull();
+    expect(alert!.textContent).toContain("https://host.example.com/manifest.json");
+    expect(alert!.textContent).toContain("自定义");                    // 哪里不同
+
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('[data-testid="net-custom-source-adopt"]')!.click();
+    });
+    expect(useSession.getState().customSourceOverride)
+      .toEqual({ url: "https://host.example.com/manifest.json", from: "host" });
+
+    // 拒绝那条路：清掉待办，自己的源一个字不改
+    await act(async () => {
+      useNet.setState({
+        pendingCustomSource: { url: "https://other.example.com/m.json", adopted: false, detail: "自定义", retries: 0 },
+      });
+    });
+    await act(async () => {
+      container.querySelector<HTMLButtonElement>('[data-testid="net-custom-source-stay"]')!.click();
+    });
+    expect(useNet.getState().pendingCustomSource).toBeNull();
+    expect(useSession.getState().customSourceUrl).toBe("");
+
+    await act(async () => { useNet.getState().leave(); });
+    expect(useSession.getState().customSourceOverride).toBeNull();
   });
 
   it("模式 3：卡池只含**可用的**卡（`cardKeys`），禁用的卡不进卡池 —— 不传即今天行为（Q5）", async () => {

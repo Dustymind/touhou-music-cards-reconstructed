@@ -7,8 +7,10 @@ import { createRng } from "../rng";
 import { createClientEngine, createHostEngine, helloIntent } from "./engines";
 import type { DataHashes } from "./protocol";
 
-/** 握手比的是**两个模式各一个**哈希（协议 v4 / 契约 §6 C3）。 */
-const HASH: DataHashes = { originals: "hash-aaaaaaaaaaaa", otomads: "hash-cccccccccccc" };
+/** 握手比的是**三个模式各一个**哈希（协议 v5 / 契约 §6 C3）。 */
+const HASH: DataHashes = {
+  originals: "hash-aaaaaaaaaaaa", otomads: "hash-cccccccccccc", custom: "hash-dddddddddddd",
+};
 import { stateDigest, type ClientIntent, type PeerInfo, type SessionConfigWire } from "./protocol";
 import { peerServerOptions } from "./useNet";
 import { BusHub } from "./transport";
@@ -22,6 +24,12 @@ class Endpoint {
   /** 主机端：本机生成的权威种子；客户端：采用主机下发的种子（D104） */
   seed: number;
   config: SessionConfigWire | null = null;
+  /** 主机端：当前"生效的自定义源链接"（模式 3 才随 reject/config 下发，F3） */
+  customSourceUrl = "";
+  /** 主机端：当前音乐模式 */
+  musicMode: SessionConfigWire["musicMode"] = "originals";
+  /** 客户端：主机给过来的自定义源提示（url + detail） */
+  sourceHints: [string, string][] = [];
 
   constructor(readonly name: string, state?: GameState, seed = 1) {
     this.state = state ?? rules.adjustDeckSize(emptyState(), 2, 2);
@@ -43,6 +51,7 @@ class Endpoint {
       onChat: (_from: number, text: string) => this.chat.push(text),
       onError: (message: string) => this.errors.push(message),
       onPeers: (peers: PeerInfo[]) => { this.peers = peers; },
+      onCustomSourceHint: (url: string, detail: string) => this.sourceHints.push([url, detail]),
     };
   }
 
@@ -50,7 +59,9 @@ class Endpoint {
   hostDeps() {
     return {
       ...this.deps(),
-      getConfig: (): SessionConfigWire => ({ musicMode: "originals", sessionSeed: this.seed }),
+      getConfig: (): SessionConfigWire => ({
+        musicMode: this.musicMode, sessionSeed: this.seed, customSourceUrl: this.customSourceUrl,
+      }),
     };
   }
 
@@ -132,7 +143,9 @@ describe("联机引擎", () => {
 
     clientTransport.sendToHost(helloIntent("Guest", false, HASH));
 
-    expect(clientEndpoint.config).toEqual({ musicMode: "originals", sessionSeed: 987654 });
+    // 会话配置里还带着主机当前生效的自定义源链接（模式 3 才非空；这里是空串）
+    expect(clientEndpoint.config)
+      .toEqual({ musicMode: "originals", sessionSeed: 987654, customSourceUrl: "" });
     expect(clientEndpoint.seed).toBe(987654);        // 客户端换成主机的种子
   });
 
@@ -163,7 +176,33 @@ describe("联机引擎", () => {
     const { clientEndpoint, clientTransport } = connect(hub);
     clientTransport.sendToHost(helloIntent("Guest", false, { ...HASH, otomads: "hash-bbbbbbbbbbbb" }));
     expect(clientEndpoint.errors.join(" ")).toContain("静态数据不一致");
+    expect(clientEndpoint.errors.join(" ")).toContain("音MAD");     // 点名是哪个模式
     expect(clientEndpoint.peers).toEqual([]);
+  });
+
+  it("模式 3 + 主机有源：拒的时候把它一起发过来，人话里点名是哪个模式不同（F3）", () => {
+    const hub = new BusHub();
+    const { hostEndpoint, clientEndpoint, clientTransport } = connect(hub);
+    hostEndpoint.musicMode = "custom";
+    hostEndpoint.customSourceUrl = "https://host.example.com/manifest.json";
+    clientTransport.sendToHost(helloIntent(
+      "Guest", false, { ...HASH, custom: "other-custom-hash" }, "https://mine.example.com/x.json"));
+
+    expect(clientEndpoint.errors.join(" ")).toContain("自定义");
+    expect(clientEndpoint.sourceHints)
+      .toEqual([["https://host.example.com/manifest.json", "自定义"]]);
+  });
+
+  it("主机**没有**源 / 不在模式 3 ⇒ 拒的时候不带那个字段（客户端没有可采用的）", () => {
+    for (const [mode, url] of [["custom", ""], ["originals", "https://host.example.com/m.json"]] as const) {
+      const hub = new BusHub();
+      const { hostEndpoint, clientEndpoint, clientTransport } = connect(hub);
+      hostEndpoint.musicMode = mode;
+      hostEndpoint.customSourceUrl = url;
+      clientTransport.sendToHost(helloIntent("Guest", false, { ...HASH, custom: "other-custom-hash" }));
+      expect(clientEndpoint.errors.join(" ")).toContain("静态数据不一致");
+      expect(clientEndpoint.sourceHints).toEqual([]);
+    }
   });
 
   it("协议版本不一致 → 拒绝加入", () => {

@@ -6,7 +6,7 @@
 import type { GameState } from "../game/types";
 import {
   PROTOCOL_VERSION, type ClientIntent, type DataHashes, type HostMessage, type PeerInfo, type SessionConfigWire,
-  dataHashMismatch,
+  dataHashMismatch, mismatchDetail,
 } from "./protocol";
 import type { Transport } from "./transport";
 
@@ -24,6 +24,9 @@ interface EngineDeps {
   onChat?: (from: number, text: string, isSystem: boolean) => void;
   onError?: (message: string) => void;
   onPeers?: (peers: PeerInfo[]) => void;
+  /** 客户端：主机说"数据不同"时**顺便给过来的**自定义源链接（F3）——
+   *  "本地空就自动采用、本地有别的值就问用户"这两条路都由调用方（`useNet`）决定。 */
+  onCustomSourceHint?: (url: string, detail: string) => void;
 }
 
 /** 主机引擎的依赖：比客户端多一项"**读**会话配置" —— 快照要带着它下发（音乐模式 + 会话种子，D104）。
@@ -87,7 +90,16 @@ export function createHostEngine(transport: Transport, deps: HostEngineDeps): Ho
           return;
         }
         if (dataHashMismatch(intent.dataHash, deps.dataHash)) {
-          transport.sendTo(from, { kind: "reject", reason: "data", detail: "static data hash mismatch" });
+          // 人话：指明是哪个模式的数据不同（两个模式都不同就都列出来）
+          const detail = mismatchDetail(intent.dataHash, deps.dataHash);
+          // 模式 3 的数据由使用者自己托管 ⇒ 光说"不一致"没法自救：主机**自己有源**时把它一起发过去
+          // （客户端本地空就自动采用、有别的值就问用户，F3）。别的模式没有这回事 ⇒ 不带这个字段。
+          const config = deps.getConfig();
+          const ownSource = config.musicMode === "custom" ? (config.customSourceUrl ?? "") : "";
+          transport.sendTo(from, {
+            kind: "reject", reason: "data", detail,
+            ...(ownSource ? { customSourceUrl: ownSource } : {}),
+          });
           return;
         }
         const used = new Set(indexByFrom.values());
@@ -184,8 +196,12 @@ export function createClientEngine(transport: Transport, deps: EngineDeps): Clie
       }
       case "reject": {
         deps.onError?.(host.reason === "data"
-          ? "静态数据不一致（两端的 public/data 必须相同）"
+          ? `静态数据不一致：${host.detail}（两端的 public/data 或自定义源必须相同）`
           : host.reason === "protocol" ? `协议版本不一致：${host.detail}` : `无法加入：${host.detail}`);
+        // 主机给了它自己的自定义源 ⇒ 交给调用方决定"自动采用"还是"问用户"（F3）
+        if (host.reason === "data" && host.customSourceUrl) {
+          deps.onCustomSourceHint?.(host.customSourceUrl, host.detail);
+        }
         return;
       }
       case "goodbye": {
@@ -202,6 +218,12 @@ export function createClientEngine(transport: Transport, deps: EngineDeps): Clie
   };
 }
 
-export function helloIntent(name: string, isObserver: boolean, dataHash: DataHashes): ClientIntent {
-  return { kind: "hello", name, isObserver, dataHash, protocol: PROTOCOL_VERSION };
+export function helloIntent(
+  name: string, isObserver: boolean, dataHash: DataHashes, customSourceUrl = "",
+): ClientIntent {
+  return {
+    kind: "hello", name, isObserver, dataHash, protocol: PROTOCOL_VERSION,
+    // 空串不发：主机据此判"对面还没配源"（F3 的自动采用那条路）
+    ...(customSourceUrl ? { customSourceUrl } : {}),
+  };
 }
