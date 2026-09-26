@@ -6328,3 +6328,78 @@ export function memoOnLocale<P extends object>(Component: ComponentType<P>) {
 **反证**：把 `memoOnLocale` 换回 `memo` ⇒ 两条用例立刻红。
 
 **验证**：`pnpm typecheck` ✓；vitest **50 文件 / 589 passed**（chromium 与 firefox 各 589；+2 = 新用例）。
+
+---
+
+### D163 卡面比例收成一个入口：「两套比例并存」的适配（模式 3 从 703:1000 竖版改成横版）
+
+**用户要求**：给自定义模式启用横版卡面；**所有涉及卡面的代码都要"原比例 + 16:9"双适配**。
+
+**为什么需要**：模式 3 的卡图由使用者自己提供。第一张真卡的封面是 B 站原图 **1920×1200**，
+而卡面比例一直是内置图集那条 **703:1000（竖版）** ⇒ 应用按 `object-fit: cover` 居中裁掉**左右约 63%**
+（上一轮交接里"卡面比例的待办"就是这个）。
+
+**改法（一处真源 + 六处适配）**：
+
+1. **比例跟着图集走**：`CardSetRecord.ratio?`（档位名，缺省 = 原比例）。`cardsets.json` 里那 8 套
+   **一个字节都没动**（不写 ⇒ 原比例）—— 原曲/音MAD 的行为逐字不变。
+2. **取法只有一条**：新增叶子模块 `src/theme/cardRatio.ts`（**不引 MUI**，所以数据层的
+   `cardFaces.ts` 也能引它），导出档位常量与 `cardAspectRatio(cardSet)`；缺省/认不得的档一律回落
+   原比例 703:1000（坏数据不许把卡面高度算成 0 / `NaN`）。数据边界另有一道硬校验：
+   `validateCardSets` 对 `ratio` 只认 `CARD_RATIOS` 里那两档，非法就是**整份数据报错**。
+3. **六处调用点全部改成 `cardAspectRatio(cardSet)`**（原来各写一遍 `CardAspectRatio`，
+   漏一处就会出现同一页两种形状的卡）：
+   `CharacterCard`（`aspect-ratio`）、`CardStrip`（可视窗口高）、`DeckGrid`（卡槽高 + 彩蛋框）、
+   `UnusedCards`（网格占位高）、`UnusedCardsTray`（三档高度）、`UpcomingFan`（牌堆高）。
+   顺带把 `UnusedCardsTray` 的档位算式提成纯函数 `trayDetents(viewportHeight, cardHeight)`（可单测），
+   `+ 4` 改回引用 `DECK_GAP`（同一个值）。
+4. **`resolveCardSet` 必须返回引用稳定的对象**：`GamePanel` 把 `cardSet` 放进"重建卡池"那个 effect
+   的依赖里，而"每次都新建 `{...CUSTOM_CARD_SET, ratio}`"会让 effect 每渲染都跑、`init()` 改状态、
+   再渲染 —— 实测就是 `Maximum update depth exceeded`（三条既有用例当场红）。现在每个档位缓存一个
+   常量图集（`customCardSet(ratio)`），并有一条单测钉住"同图集/同档 ⇒ 同一个对象"。
+
+**验证**（实测，全部真浏览器）：`pnpm typecheck` ✓；新增 `src/theme/cardRatio.test.ts`（5 条）+
+`src/ui/cardGeometry.test.tsx`（6 条，**逐个面量像素**：卡牌本体 / 占位卡 / 卡条窗口 + 条里的卡 /
+牌桌空槽 + 整块牌桌 / 未使用卡牌网格 / 底部面板档位）；vitest chromium **620 passed**（589 → +31）。
+
+---
+
+### D164 「卡面设置」分区：模式 3 加 **16:9 / 4:3** 两档开关；封面按两种比例各抓一份（工具侧）
+
+**用户要求**（两条一起）：①「这个模式加个开关，在 4:3 和 16:9 之间切」，并且**全局**把「卡面图集」
+改名成「卡面设置」；②「封面拉取**自动**把 16:9 和 4:3 都拉下来（**原分辨率**）」。
+
+**① 应用侧**
+
+- **分区改名**（全局、两个语言）：`ConfigTabCardCollection`（"Card Collection" / "卡面图集"）→
+  `ConfigTabCardSettings`（"Card Settings" / "卡面设置"）。改名不是文字游戏：这个分区现在管两件事 ——
+  **图集**（原曲 / 音MAD）与**卡面比例**（模式 3），所以模式 3 不再走"另一条只读分支"，
+  三个模式渲染**同一个分区**（`ConfigPanel` 里那段 `musicMode === "custom" ? … : …` 直接删掉）。
+- **两档**：`CardRatio = "16x9" | "4x3"`，**默认 16:9**（沿用上一轮"模式 3 用横版"的裁定），
+  控件用 MD2 分段控件（`ToggleButtonGroup`，与「外观」的模式开关同一套写法，左对齐、另起一行）。
+  控件下面照旧放三张示例卡 —— 它们走**同一个** `cardFace` + 生效图集，所以切一下就能看到
+  牌桌上真正会画的那张。
+- **存档**：`session.customCardRatio`（落盘、`pickString(..., CARD_RATIOS)` 逐键校验、
+  认不得的值回落默认档）。它是**全局偏好**（与 `cardCollection` 同类，不按模式分键）——
+  但它只对自带卡面的模式生效：另两个模式的内置图集不写 `ratio`。
+- **切档不重建数据集**：清单给两份图时，两份都在校验阶段解析成绝对地址存进
+  `CharacterRecord.coversByRatio`，`card` / `covers` 放默认档那一份；`cardFace()` 按当前档取。
+  于是 `customHash` 与"用户在看哪一档"无关（两份都进哈希）⇒ **两端各选各的比例照样能握手**。
+- **一个真 bug（当场被既有用例抓住）**：`resolveCardSet` 若每次新建 `{...CUSTOM_CARD_SET, ratio}`，
+  `GamePanel` 那个以 `cardSet` 为依赖的 effect 会每渲染都跑 ⇒ `init()` 改状态 ⇒ 死循环
+  （`Maximum update depth exceeded`，三条模式 3 用例红）。改成**每个档位缓存一个常量图集**
+  （`customCardSet(ratio)`）+ 一条"引用稳定"的单测（见 D163 第 4 条）。
+
+**② 数据侧（另一个仓库：自定义数据仓库）**
+
+- `custom.fetch_covers` 抓完原图后**再派生两份**：`cover/<名>.16x9.<ext>` 与 `cover/<名>.4x3.<ext>`，
+  用 ffmpeg **居中裁切、不缩放**（`crop=w='min(iw,ih*16/9)':h='min(ih,iw*9/16)'`，4:3 同理）
+  ⇒ **原分辨率**（1920×1200 的封面 ⇒ 1920×1080 与 1600×1200）。命名规则收在 `cardformat.py` 一处，
+  抓取与清单两边都从那里取（不许各写一遍）。
+- 清单 `cover` 因此有两种形态：单图（绝对直链 / 手放的图 / 还没有派生件）与
+  `{"16x9": …, "4x3": …}`（两份都在磁盘上时）。应用两种都吃，旧清单**不用改**也能继续用。
+
+**验证**：`pnpm typecheck` ✓；vitest chromium **620 passed**（D163 收尾时 603 → +17：比例档位解析、
+清单两形态与坏形状矩阵、`coversByRatio` 取图、会话存档、设置页控件、牌桌换图）；
+e2e `custom-mode.spec.ts` **8 passed**（新增"切 4:3 ⇒ 形状与 img.src 都换、刷新后还在、
+另两个模式没有这个开关"）；数据仓库那边的 pytest 见提交说明。
