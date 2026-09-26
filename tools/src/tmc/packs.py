@@ -77,9 +77,12 @@ ALBUM_KEYS = {"key", "name", "kind", "pack", "order", "show_album_name"}
 #: `cover` 是**可选**的该曲目封面：**单链接**（D153 修订：写在 `[[track]]` 里，不再是顶层数组）
 #: 或**逐档表**（D164：`original` / `16x9` / `4x3`，与应用的 `parseCoverField` 同口径）
 TRACK_KEYS = {"album", "author", "authors", "title", "extra", "source", "start_time", "stop_time",
-              "cover"}
+              "bitrate", "cover"}
 #: 角色文件的顶层键（`track` 之外）：`card` 是**可选**的卡面覆盖（写法同 `data/characters/*.toml`）
 CHARACTER_KEYS = {"key", "card"}
+
+#: `bitrate`（可选的成品 CBR 码率，kbps）允许的范围 —— 与数据仓库的 `packformat.BITRATE_RANGE` 同口径
+BITRATE_RANGE = (32, 320)
 
 
 #: 裁剪时间的格式：`HH:MM:SS.mmm`（时:分:秒.毫秒）
@@ -358,7 +361,7 @@ def _read_authors(entry: dict, track: dict, where: str) -> None:
 
 
 def _read_audio_keys(entry: dict, track: dict, where: str) -> None:
-    """`source` / `start_time` / `stop_time`：解析 + 就地校验（构建期就能发现写错）。"""
+    """`source` / `start_time` / `stop_time` / `bitrate`：解析 + 就地校验（构建期就能发现写错）。"""
     source = (entry.get("source") or "").strip()
     if source:
         if not source.lower().startswith(("http://", "https://")):
@@ -375,6 +378,16 @@ def _read_audio_keys(entry: dict, track: dict, where: str) -> None:
         except ValueError as error:
             raise SystemExit(f"{where}：{field} {error}") from None
         track[field] = value
+    bitrate = entry.get("bitrate")
+    if bitrate is not None:
+        # 成品 CBR 码率（kbps）：数据仓库那侧用它把长曲压到 CDN 的单文件上限（25 MiB）以下。
+        # 这里只校验，不进生成物（与 source / 两个时间键同类）。
+        if isinstance(bitrate, bool) or not isinstance(bitrate, int):
+            raise SystemExit(f"{where}：bitrate 必须是整数 kbps，收到 {bitrate!r}")
+        if not BITRATE_RANGE[0] <= bitrate <= BITRATE_RANGE[1]:
+            raise SystemExit(f"{where}：bitrate 必须在 {BITRATE_RANGE[0]}–{BITRATE_RANGE[1]} kbps 之间，"
+                             f"收到 {bitrate}")
+        track["bitrate"] = bitrate
     try:
         trim_seconds(track)          # 只给一侧也合法；两侧都给时校验先后
     except ValueError as error:

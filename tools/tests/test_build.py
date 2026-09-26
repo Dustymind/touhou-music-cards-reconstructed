@@ -243,8 +243,9 @@ PACK_KEYS_VECTOR = {
     "pack": {"id", "label_en", "label_zh", "kind", "order"},
     "album": {"key", "name", "kind", "pack", "order", "show_album_name"},
     # `cover` = 这一首曲目的封面直链（D153 修订：写在 `[[track]]` 里，不再是角色文件顶层的数组）
+    # `bitrate` = 可选成品 CBR 码率（kbps）：长曲压到 CDN 单文件上限以下时才写
     "track": {"album", "author", "authors", "title", "extra", "source", "start_time", "stop_time",
-              "cover"},
+              "bitrate", "cover"},
     "character": {"key", "card"},
 }
 
