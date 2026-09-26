@@ -6434,3 +6434,59 @@ e2e `custom-mode.spec.ts` **8 passed**（真浏览器里三档各换形状**与 
 **一个真 bug（被既有用例当场抓住）**：`resolveCardSet` 若每次新建 `{...set, ratio}`，`GamePanel`
 那个以 `cardSet` 为依赖的 effect 会每渲染都跑 ⇒ `init()` 改状态 ⇒ 死循环
 （`Maximum update depth exceeded`）。现在按 (图集, 档位) 缓存一个对象，并有单测钉"引用稳定"。
+
+### D166 并入 fork 的音MAD 数据（106 → 191 首 / 43 → 80 角色）；补上 D164 的"数据刷新"未做项；`cover` 收三档表、新增逐曲 `bitrate`
+
+**用户要求**：先在数据仓库 commit 本地在写的那 49 首（**不推送**）→ 把 fork（`ydzrds/touhou-music-cards-otomads-data`）
+的提交**原封不动**并进来 → 之后走完整发布路径（补封面 / 抓音频 / 量响度 → 打包自检 → **先换归档资产** → 推源码 →
+`pnpm data:roster` + submodule pin → 验收线上）。
+
+> 编号说明：日志里最后一条记录是 D164，而 `custom-mode-v1.md` 已经引用了 D165（尚无对应记录）—— 所以这一条编 D166。
+
+**① 合并形态**：fork `main` 与主线**已分叉**（ahead 7 / behind 8，merge base `69a13bb`）⇒ 不是快进。
+那 7 个提交（th14–th17、凭依华等）改了 28 个曲包、**新增 36 首**，但**一个 cover、一行响度、一个音频都没带**。
+fork 另有 `patch-1/2/3` 三条一次性分支：逐字比对后确认那三首**已经逐字在 fork `main` 里**
+（只多几行残留的骨架注释）⇒ `cherry-pick --skip`，**没有丢任何一首**。
+文本冲突破在 `kishin-sagume` 一处：主线给已有曲目**补了 cover 行**、fork 在**同一位置追加新曲目** ⇒ 两侧都留。
+合并后 191 首 = 106（已发布）+ 49（本地在写）+ 36（fork）。
+
+**② 补齐派生数据**（D164 里"数据留给下一轮"的那件事）：`fetch_covers` **新增 85 条 / 失败 0**
+（`kishin-sagume` / `kochiya-sanae` / `shameimaru-aya` 三个"半有半无"的角色跟着同角色已有的**字符串**形状写，
+其余 37 个角色写三档表）；`fetch_audio` 抓齐 **191/191**（`.raw` 也是 191 份）；`measure_loudness`
+**106 → 191 键、旧值一个没动**。
+
+**③ 三处数据毛病（本地那批从没跑过校验，这一轮才露出来）**
+
+- `mizuhashi-parsee` 的 `authors = "EarthSky"`（数组键写成了字符串）⇒ 改成 `author`；
+- `reiuji-utsuho` 的 `extra = " 角色曲"`（前导空格，不在四种 `extra` 里）⇒ 去掉；
+- `kochiya-sanae` 下**两条同名 `Otto Remote`**（两个不同投稿：鞍山侯国玉电乐团 / `xHGNz_`，BV 不同、时长 195/194 秒）。
+  按维护者指定的写法把第二条改成 **`Otto Remote - xHGNz`**：曲包、曲库文件名（作者前缀 + 新曲名）与响度表键同步。
+  **为什么必须不同名**：清单行的曲名是磁盘名 `作者 - 曲名`，而曲包条目的身份是 `(专辑, 曲名)` ——
+  `sources.ts` 的 `resolveTrack` 兜底扫描会给两条同名条目返回**同一条**媒体行 ⇒ 两张卡播同一个文件、
+  另一首永远取不到（`(角色, 专辑, 曲名)` 唯一性那条不变量正是为这个立的）。
+
+**④ `tmc` 跟上 D164**（此前只有它停在 D153 的"只认字符串"）：`cover` 现在收**单链接**或**逐档表**
+（`original` / `16x9` / `4x3`，至少一档、值都是非空 https），并补上"**同角色档位集合必须一致**"
+（否则快照里的 `coversByRatio` 会与 `covers` / `music` 静默错位）；`tmc.validate` 的封面检查同口径。
+
+**⑤ 新键 `bitrate`（逐曲 CBR 码率，32–320 kbps）**：第一次上线时 `wrangler deploy` 直接失败 ——
+Cloudflare Workers 静态资产**单文件上限 25 MiB**，而 `ふゆこけ - セックスの杖刀人` 是 22.6 分钟 / 36.9 MB。
+按维护者的选择**整首保留、这一首降到 128 kbps**（20.6 MiB，1352 秒一秒没少；响度 −8.1 → −8.5）。
+键落在数据仓库的 `packformat`（校验）+ `fetch_audio.render`（整首重编码，**可与裁剪同时用**），
+**状态签名与"孪生键"都带上它** ⇒ 改码率会重渲染、同 source 同参数仍只产出一份；
+主仓库 `tmc.packs` 同步收这个键（校验但**不进生成物**，与 `source` / 两个时间键同类）。
+
+**验证**
+
+- 数据仓库 pytest **271 passed**（新增 `track_bitrate` 的取值/报错用例、共享键集合向量补 `bitrate`）；
+  主仓库 pytest **81 passed**（含"主仓库键集合 == 数据仓库 literals"那条交叉校验）；`data:check` 无漂移。
+- 归档 **191 首 / 719.4 MB**；`stage_media review` ✅（**191 行地址 / 80 角色 / 191 条曲目条目**，最大文件 20.6 MiB）。
+- 顺序照 UPDATING §3：**先** `gh release upload media … --clobber`（754,356,665 B）**再** `git push`；
+  CI ② 打的是"**归档逐字节没变 ⇒ 不换资产**"（本机打包 == CI 重打，可复现性没破）；③ 构建 + 部署 + 线上复验全绿。
+- 线上：`build-info.json` `commit = 1cc6db5`、`archiveSha256 = 03733130…`（与本地 `sha256sum` 一致）、
+  `manifest.json` **191 行 / 80 角色**、`revision c1b165a2d431fab5`（与归档顶层一致）、媒体 `Range` → **206**、根 404。
+- 主仓库：`data/otomads` gitlink `eb15152` → `4b441a6`（roster）→ `1cc6db5`（bitrate）；
+  `pnpm data:roster` 写出 **80 个角色**（原 43 + 新 37）；`data:build` 重烤 17 个文件（`data:check` 无漂移）。
+
+**未做 / 留给下一轮**：主仓库的**前端单测与 e2e 这一轮没跑**（只动了 Python 工具与数据，`src/` 一个字节没动）；
+`docs/README.md` 里的 e2e / vitest 计数沿用上一轮实测值。
