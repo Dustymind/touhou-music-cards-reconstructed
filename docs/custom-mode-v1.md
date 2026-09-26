@@ -67,28 +67,33 @@
 ## 4. C3 卡面与音频地址
 
 生效图集 = 代码里的**合成图集**（`CUSTOM_CARD_SET`：`{ id: "custom-source", mode: "custom",
-sourceOnly: true, dir: "", origins: [], localPrefix: "./" }`）**+ 用户选的档位**
-（`cardSet.ratio` = `"16x9"` 默认 / `"4x3"`，由 `resolveCardSet(..., ratio)` 落上去，D164）：
+sourceOnly: true, dir: "", origins: [], localPrefix: "./", ratios: ["16x9","4x3","original"] }`）
+**+ 用户选的档位**（`cardSet.ratio`，由 `resolveCardSet(..., preference)` 落上去，D165）：
 
 - `cardsets.json` 里的任何图集在这个模式下**都不列出**，用户存下的 `cardCollection` 偏好**被忽略但不改写**；
 - 每卡恰好一张卡面（`covers.length === 1`），`cardCount` / `maxCardCount` 恒为 1；
-- **卡面形状 = 两档横版**（`"16x9"` 默认 / `"4x3"`，设置页「卡面设置」里切，D163/D164），
-  **全模式统一、没有逐卡的选择**。渲染侧一律用 `theme/cardRatio.ts` 的 `cardAspectRatio(cardSet)` 取 ——
-  `CharacterCard`（`aspect-ratio`）、`CardStrip`（可视窗口高）、`DeckGrid`（卡槽高 + 彩蛋框）、
-  `UnusedCards` / `UnusedCardsTray`（占位与档位）、`UpcomingFan`（牌堆高）全部跟着它走。
-  另两个模式的图集**不写** `ratio` ⇒ 仍是原比例 703:1000 竖版，行为逐字不变；
-  数据侧若要写这个键，它必须是认得的档（`validateCardSets` 会拦下非法值）。
+- **卡面形状 = 三档**（`"16x9"` **默认** / `"4x3"` / `"original"` 常规，设置页「卡面设置」里切，
+  D165），**这个模式统一、没有逐卡的选择**。渲染侧一律用 `theme/cardRatio.ts` 的
+  `cardAspectRatio(cardSet)` 取 —— `CharacterCard`（`aspect-ratio`）、`CardStrip`（可视窗口高）、
+  `DeckGrid`（卡槽高 + 彩蛋框）、`UnusedCards` / `UnusedCardsTray`（占位与档位）、
+  `UpcomingFan`（牌堆高）全部跟着它走。内置六套原版图集**不能换档** ⇒ 永远是原比例 703:1000
+  竖版、`object-fit: contain`，行为逐字不变；数据侧若要写 `ratios`，值必须是认得的档
+  （`validateCardSets` 会拦下非空校验以外的非法值）。
 - 相对路径在**校验阶段**就按清单目录解析成绝对地址（`sourceRelativeUrl`）；绝对 URL 原样用；
 - 卡面缺字段 ⇒ 整份清单不合法（不出现"空卡面"）；运行时图片 404 ⇒ 走 `CharacterCard` 现有占位行为；
-- **`cover` 可以给两份**（`{"16x9": "cover/a.16x9.jpg", "4x3": "cover/a.4x3.jpg"}`，D164）：两份都在
-  校验阶段解析成绝对地址、存进 `CharacterRecord.coversByRatio`，`card` / `covers` 里放**默认档**那一份。
-  切档位只换图、**不重建数据集** ⇒ 数据指纹与"用户在看哪一档"无关，两端各选各的照样能握手（C6）；
-  只写一档也合法（另一档回落到它），单图形态（旧清单 / 手放的图 / 绝对直链）同样合法；
+- **`cover` 可以给逐档链接**（`{"original": "cover/a.jpg", "16x9": "cover/a.16x9.jpg",
+  "4x3": "cover/a.4x3.jpg"}` 的任意**非空子集**，D165）：写了的档位都在校验阶段解析成绝对地址、
+  存进 `CharacterRecord.coversByRatio`（每档一张，与 `covers` 平行），`card` / `covers` 里放
+  **主链接**（`original` → `16x9` → `4x3` 第一个有的）。切档只换图、**不重建数据集** ⇒
+  数据指纹与"用户在看哪一档"无关，两端各选各的照样能握手（C6）；
+  只写一档也合法（其余档回落到主链接），**单链接形态**（旧清单 / 手放的图 / 绝对直链）同样合法 ——
+  那一份三个档位共用，形状由 `object-fit: cover` **运行时裁**；
 - **合成图集的卡面一律"原样用"**：它可能是 `https://…`、也可能是同源的 `/cards/cover/a.png`
   （清单挂在同源时就是这样）—— 这两种都不是"内置图集的文件名"，不能拼目录、也不能
   `encodeURIComponent`（第 5 节那条修复就是这个）；
 - 卡面按 `object-fit: cover` 铺满当前档位的框：比例正好就不裁，比例不对就居中裁掉多余的部分
-  （**两份图各自是 16:9 / 4:3 最合适**；单图形态就按 object-fit 裁，不会拉伸）；
+  （**逐档链接各自是那一档最合适**：`original` = 源分辨率原图，16:9 / 4:3 = 图床按源分辨率现裁；
+  单链接形态就按 `object-fit` 裁，不会拉伸）；
 - **音频同理**：`audio` 也在校验阶段解析成绝对地址，按**每张卡**存进数据集（`CharacterRecord.audio`，
   与 `music` 一一对应），播放时**不再走 `(专辑, 曲名)` 查表**；版本号用 `revision` 拼 `?v=`。
 
@@ -112,7 +117,8 @@ sourceOnly: true, dir: "", origins: [], localPrefix: "./" }`）**+ 用户选的�
 卡 key / 卡名 / 顺序 / 卡面 URL（**解析后的绝对串**；清单给了两份就**两份都算**，见 `coversByRatio`）/
 专辑（key/name/order/kind/pack）/ 作者 / 曲名。
 **不覆盖**：**音频地址与版本号**（同 D145：换 CDN/换宿主不该把两端拆开）、清单来源 URL、页面来源，
-以及 **"用户此刻选了 16:9 还是 4:3"**（那是显示偏好，不是数据 —— 两端各选各的照样能握手，D164）。
+以及 **"用户此刻选了哪一档"**（16:9 / 4:3 / 常规都是显示偏好，不是数据 ——
+两端各选各的照样能握手，D165）。
 
 协议 **v5**（`docs/protocol-v1.md`）：`DataHashes` 三项、`MusicModeWire` 三项、
 `SessionConfigWire.customSourceUrl`、`hello.customSourceUrl`、`reject.customSourceUrl`。
@@ -136,10 +142,10 @@ sourceOnly: true, dir: "", origins: [], localPrefix: "./" }`）**+ 用户选的�
 
 - 「音乐源」分区在模式 3 下只渲染**一行**：输入框 → 重置 → 应用，外加状态（**卡数**，不是 `entries.size`）、
   红色必填提示、"清单不合法"、以及房内的"主机在用：…"；
-- 「卡面设置」分区（D164 从「卡面图集」改名，两个模式同一个分区、同一个标题）= 一行只读说明
-  （图集在该模式下不可用）+ **两档卡面比例**（`16:9` / `4:3`，分段控件）+ 三张示例卡
+- 「卡面设置」分区（D164 从「卡面图集」改名，三个模式同一个分区、同一个标题）= 一行只读说明
+  （图集在该模式下不可用）+ **三档画幅**（常规 / 16:9 / 4:3，分段控件）+ 三张示例卡
   （示例卡走同一个 `cardFace`，所以切一下就能看到牌桌上真正会画的那张）+ 存档键
-  `session.customCardRatio`（落盘、逐键校验、认不得的值回落默认档）；
+  `session.cardRatio`（落盘、逐键校验、`""` = 跟着图集的默认档）；
 - 「音乐选择预设」= 专辑三元 + 作者三元；「仅单曲模式」= 逐卡禁用列表；
 - 间距与尺寸全部沿用既有 MD2 常量（8dp 栅格 / 32dp small 按钮 / 40dp 行高），一个都没改。
 

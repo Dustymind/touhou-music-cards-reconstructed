@@ -6331,7 +6331,7 @@ export function memoOnLocale<P extends object>(Component: ComponentType<P>) {
 
 ---
 
-### D163 卡面比例收成一个入口：「两套比例并存」的适配（模式 3 从 703:1000 竖版改成横版）
+### D163 卡面比例收成一个入口：「多套比例并存」的适配（模式 3 从 703:1000 竖版改成横版）
 
 **用户要求**：给自定义模式启用横版卡面；**所有涉及卡面的代码都要"原比例 + 16:9"双适配**。
 
@@ -6341,12 +6341,13 @@ export function memoOnLocale<P extends object>(Component: ComponentType<P>) {
 
 **改法（一处真源 + 六处适配）**：
 
-1. **比例跟着图集走**：`CardSetRecord.ratio?`（档位名，缺省 = 原比例）。`cardsets.json` 里那 8 套
-   **一个字节都没动**（不写 ⇒ 原比例）—— 原曲/音MAD 的行为逐字不变。
+1. **比例跟着图集走**：`CardSetRecord.ratios?`（能换哪几档；缺省时按
+   `localOnly` / `sourceOnly` 判，内置六套两种都不是 ⇒ 不能换）。`cardsets.json` 里那 8 套
+   **一个字节都没动** —— 原曲/音MAD 两个模式的内置图集行为逐字不变。
 2. **取法只有一条**：新增叶子模块 `src/theme/cardRatio.ts`（**不引 MUI**，所以数据层的
    `cardFaces.ts` 也能引它），导出档位常量与 `cardAspectRatio(cardSet)`；缺省/认不得的档一律回落
    原比例 703:1000（坏数据不许把卡面高度算成 0 / `NaN`）。数据边界另有一道硬校验：
-   `validateCardSets` 对 `ratio` 只认 `CARD_RATIOS` 里那两档，非法就是**整份数据报错**。
+   `validateCardSets` 对 `ratios` 只认 `CARD_RATIOS` 里那三档（非空、去重），非法就是**整份数据报错**。
 3. **六处调用点全部改成 `cardAspectRatio(cardSet)`**（原来各写一遍 `CardAspectRatio`，
    漏一处就会出现同一页两种形状的卡）：
    `CharacterCard`（`aspect-ratio`）、`CardStrip`（可视窗口高）、`DeckGrid`（卡槽高 + 彩蛋框）、
@@ -6358,48 +6359,78 @@ export function memoOnLocale<P extends object>(Component: ComponentType<P>) {
    再渲染 —— 实测就是 `Maximum update depth exceeded`（三条既有用例当场红）。现在每个档位缓存一个
    常量图集（`customCardSet(ratio)`），并有一条单测钉住"同图集/同档 ⇒ 同一个对象"。
 
-**验证**（实测，全部真浏览器）：`pnpm typecheck` ✓；新增 `src/theme/cardRatio.test.ts`（5 条）+
-`src/ui/cardGeometry.test.tsx`（6 条，**逐个面量像素**：卡牌本体 / 占位卡 / 卡条窗口 + 条里的卡 /
-牌桌空槽 + 整块牌桌 / 未使用卡牌网格 / 底部面板档位）；vitest chromium **620 passed**（589 → +31）。
+**验证**（实测，全部真浏览器）：`pnpm typecheck` ✓；新增 `src/theme/cardRatio.test.ts` +
+`src/ui/cardGeometry.test.tsx`（**逐个面量像素**：卡牌本体 / 占位卡 / 卡条窗口 + 条里的卡 /
+牌桌空槽 + 整块牌桌 / 未使用卡牌网格 / 底部面板档位，三种形状都量过）。
+（三档与"逐档链接"的部分见下一条 D164 —— 这一条只管"比例从常量收成一个入口"这件事。）
 
 ---
 
-### D164 「卡面设置」分区：模式 3 加 **16:9 / 4:3** 两档开关；封面按两种比例各抓一份（工具侧）
+### D164 「卡面设置」分区 + **三档画幅**（常规 / 16:9 / 4:3）；`cover` 收两种形态，工具改产源分辨率链接
 
-**用户要求**（两条一起）：①「这个模式加个开关，在 4:3 和 16:9 之间切」，并且**全局**把「卡面图集」
-改名成「卡面设置」；②「封面拉取**自动**把 16:9 和 4:3 都拉下来（**原分辨率**）」。
+**用户要求**（两条消息合起来）：①「这个模式加个开关，在 4:3 和 16:9 之间切」，并且**全局**把「卡面图集」
+改名成「卡面设置」；②「封面拉取自动把 16:9 和 4:3 都拉下来（原分辨率）」；③ 随后把范围钉成
+**所有"非内置六套"的卡面**（模式 3 的自定义卡面 + 音MAD 的 B 站封面集 + 本地自放图集），
+三档都要支持，`cover` 允许"16:9 + 4:3 两份或单份（单份由前端运行时裁）"，并且
+**通过 source 生成 cover 链接的脚本改成自动产源分辨率的 16:9 / 4:3 链接**。
 
-**① 应用侧**
+> 这条落地的过程中先在同一个分支上做过"两档（16:9 / 4:3）+ 本地裁两份文件"的版本；
+> 用户把范围与形态定下之后，那一版**被本条取代**（`75ce969` 的本地裁切在数据仓库里保留为历史，
+> 行为改成产链接）。
 
-- **分区改名**（全局、两个语言）：`ConfigTabCardCollection`（"Card Collection" / "卡面图集"）→
-  `ConfigTabCardSettings`（"Card Settings" / "卡面设置"）。改名不是文字游戏：这个分区现在管两件事 ——
-  **图集**（原曲 / 音MAD）与**卡面比例**（模式 3），所以模式 3 不再走"另一条只读分支"，
-  三个模式渲染**同一个分区**（`ConfigPanel` 里那段 `musicMode === "custom" ? … : …` 直接删掉）。
-- **两档**：`CardRatio = "16x9" | "4x3"`，**默认 16:9**（沿用上一轮"模式 3 用横版"的裁定），
-  控件用 MD2 分段控件（`ToggleButtonGroup`，与「外观」的模式开关同一套写法，左对齐、另起一行）。
-  控件下面照旧放三张示例卡 —— 它们走**同一个** `cardFace` + 生效图集，所以切一下就能看到
-  牌桌上真正会画的那张。
-- **存档**：`session.customCardRatio`（落盘、`pickString(..., CARD_RATIOS)` 逐键校验、
-  认不得的值回落默认档）。它是**全局偏好**（与 `cardCollection` 同类，不按模式分键）——
-  但它只对自带卡面的模式生效：另两个模式的内置图集不写 `ratio`。
-- **切档不重建数据集**：清单给两份图时，两份都在校验阶段解析成绝对地址存进
-  `CharacterRecord.coversByRatio`，`card` / `covers` 放默认档那一份；`cardFace()` 按当前档取。
-  于是 `customHash` 与"用户在看哪一档"无关（两份都进哈希）⇒ **两端各选各的比例照样能握手**。
-- **一个真 bug（当场被既有用例抓住）**：`resolveCardSet` 若每次新建 `{...CUSTOM_CARD_SET, ratio}`，
-  `GamePanel` 那个以 `cardSet` 为依赖的 effect 会每渲染都跑 ⇒ `init()` 改状态 ⇒ 死循环
-  （`Maximum update depth exceeded`，三条模式 3 用例红）。改成**每个档位缓存一个常量图集**
-  （`customCardSet(ratio)`）+ 一条"引用稳定"的单测（见 D163 第 4 条）。
+**① 谁能换档（判据只有一处）**
 
-**② 数据侧（另一个仓库：自定义数据仓库）**
+- **内置六套**（dairi / dairi-sd / enbu / enbu-dolls / thbwiki-sd / zun）**不能换**：它们是整套原版立绘，
+  永远 703:1000、永远 `object-fit: contain`（宁可留白也不许裁）。判据在 `cardRatioChoices()`：
+  `localOnly || sourceOnly` 才是"素材由使用者/源给的"，内置六套两种都不是 ⇒ 出不了画幅控件。
+  出厂数据上有一条单测逐个点名（`load.test.ts`）。
+- **自定义卡面**能换三档：本地自放图集、音MAD 的 B 站封面集、模式 3 的合成图集。
+  默认档写在图集自己的 `ratios` 第一项里 —— 模式 3 是 **16:9**（沿用"这个模式统一横版"那条裁定），
+  其余是**常规**（不动开关 = 今天的观感）。
+- 用户偏好存 `session.cardRatio`（全局、落盘、逐键校验，`""` = 没选过 ⇒ 跟着图集的默认档）。
 
-- `custom.fetch_covers` 抓完原图后**再派生两份**：`cover/<名>.16x9.<ext>` 与 `cover/<名>.4x3.<ext>`，
-  用 ffmpeg **居中裁切、不缩放**（`crop=w='min(iw,ih*16/9)':h='min(ih,iw*9/16)'`，4:3 同理）
-  ⇒ **原分辨率**（1920×1200 的封面 ⇒ 1920×1080 与 1600×1200）。命名规则收在 `cardformat.py` 一处，
-  抓取与清单两边都从那里取（不许各写一遍）。
-- 清单 `cover` 因此有两种形态：单图（绝对直链 / 手放的图 / 还没有派生件）与
-  `{"16x9": …, "4x3": …}`（两份都在磁盘上时）。应用两种都吃，旧清单**不用改**也能继续用。
+**② 形状与图：一条回落链**
 
-**验证**：`pnpm typecheck` ✓；vitest chromium **620 passed**（D163 收尾时 603 → +17：比例档位解析、
-清单两形态与坏形状矩阵、`coversByRatio` 取图、会话存档、设置页控件、牌桌换图）；
-e2e `custom-mode.spec.ts` **8 passed**（新增"切 4:3 ⇒ 形状与 img.src 都换、刷新后还在、
-另两个模式没有这个开关"）；数据仓库那边的 pytest 见提交说明。
+`CharacterRecord.coversByRatio` = **逐档数组**（`coversByRatio[档][i]` 与 `covers[i]` / `music[i]` 平行）。
+`cardFace()` 取当前档那一份，没有就回落到主链接（`covers[i]`，即 `original` → `16x9` → `4x3`
+里第一个有的）—— 单链接的旧数据因此照旧能用：三个档位共用那一张，形状由
+`object-fit: cover` **运行时裁**（切了档就不再 `contain`，否则 16:9 会得到两条白边）。
+`resolveCardSet()` 把生效档位落到图集的 `ratio` 上，于是卡牌 / 卡条 / 牌桌 / 底部面板 / 播放页
+五处都不用各记一遍偏好。
+
+**③ 数据形态（两个仓库同一套契约）**
+
+```jsonc
+"cover": "https://…/x.jpg"                                  // 单链接：三档共用，前端运行时裁
+"cover": { "original": "https://…/x.jpg",                    // 任意非空子集；键只有这三个
+           "16x9":     "https://…/x.jpg@1920w_1080h_1c.webp",
+           "4x3":      "https://…/x.jpg@1600w_1200h_1c.webp" }
+```
+
+- `original` = 源分辨率原图（B 站 `data.pic` 原样）；两个裁切档 = **图床按源分辨率现裁**
+  （`W = min(OW, ⌊OH·rw/rh⌋)`、`H = min(OH, ⌊OW·rh/rw⌋)`，不放大）⇒ 对 1920×1200 的封面就是
+  1920×1080 / 1600×1200。
+- 解析只有一处：`src/data/coverField.ts`（清单与曲包共用）。认不得的键、空值、空对象 ⇒ 整份拒掉。
+- **逐档数组要么每条曲目都有、要么整档不要**（与 `covers` 同一条纪律：半有半无 = 与 music 错位）。
+- 哈希把**所有**档位算进去，而"用户现在看哪一档"**不进哈希**（显示偏好）⇒ 两端各选各的也能握手。
+
+**④ 工具（两个数据仓库）**
+
+- `otomads.fetch_covers`：逐条把 `source` 的 B 站封面测出原始尺寸（下载一次原图、stdlib 解
+  JPEG/PNG/WebP/GIF 头，尺寸进缓存），写成一行内联表 `{ original, 16x9, 4x3 }`；测不出来就回落成
+  单链接字符串并逐条报错（可续跑）。
+- `custom.fetch_covers`：从"下载器"改成"产链接" —— B 站图源产三档链接（**不用再上传素材**）、
+  其它图源/相对路径保持单链接原样。
+
+**验证**（主仓库）：`pnpm typecheck` ✓；vitest **1262 passed（chromium / firefox 各 631）**；
+e2e `custom-mode.spec.ts` **8 passed**（真浏览器里三档各换形状**与 img.src**、刷新后还在、
+内置图集没有控件、单链接的卡三档共用一份）；两个数据仓库的 pytest 分别 **261 passed**（音MAD 工具：
+106 条真封面全部测出尺寸，两个裁切链接 HTTP 200 且像素与算出来的一致）与 **400 passed**
+（自定义工具：改成产链接，真卡三档链接实测 200，`cover/` 里一个字节都没多）。
+**未做（要人拍板 / 有并行改动）**：音MAD 曲包那 106 条的**数据刷新**（`--force` 会重写全部
+`packs/otomads/*.toml`）—— 那三个（后来四个）文件当时正有**别人未提交的新曲目**在改，所以只落了工具，
+数据留给下一轮；同理主仓库的 `public/data/otomads/*` 重烤与归档重打也还没做。
+
+**一个真 bug（被既有用例当场抓住）**：`resolveCardSet` 若每次新建 `{...set, ratio}`，`GamePanel`
+那个以 `cardSet` 为依赖的 effect 会每渲染都跑 ⇒ `init()` 改状态 ⇒ 死循环
+（`Maximum update depth exceeded`）。现在按 (图集, 档位) 缓存一个对象，并有单测钉"引用稳定"。
