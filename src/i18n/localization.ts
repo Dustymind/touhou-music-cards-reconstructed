@@ -38,6 +38,21 @@ export const Localization = {
   LocalMusicUrl: u("Local library manifest", "本地曲库地址"),
   LocalMusicApply: u("Apply", "应用"),
   LocalMusicReset: u("Reset", "重置"),
+  CustomSourceUrl: u("Custom source link", "自定义源链接"),
+  CustomSourcePlaceholder: u("https://example.com/manifest.json", "https://example.com/manifest.json"),
+  CustomSourceRequired: u(
+    "Fill in a custom source link: this mode ships no data of its own.",
+    "必须填写自定义源链接：这个模式不自带任何卡片数据。"),
+  CustomSourceHint: u(
+    "One card = one name + one face + one track. Your manifest decides every card; the app only renders it.",
+    "一张卡 = 一个卡名 + 一张卡面 + 一首曲目。卡表完全由你的清单决定，应用只负责渲染。"),
+  CustomSourceLoaded: u("Loaded {count} cards", "已载入 {count} 张卡"),
+  CustomSourceInvalid: u(
+    "The manifest was rejected: its shape is not valid, so nothing from it is in use.",
+    "清单不合法（形状不对），整份都没有生效。"),
+  CustomSourceFromHost: u(
+    "The link in use was sent by the host (this session only).",
+    "当前生效的链接来自主机（只在本会话生效）。"),
   MusicMode: u("Music Mode", "音乐模式"),
   MusicModeOriginals: u("Originals", "原曲"),
   MusicModeOtomads: u("Otomads", "音MAD"),

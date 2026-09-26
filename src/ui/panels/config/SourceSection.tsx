@@ -9,9 +9,11 @@ import { memo, useMemo, useState } from "react";
 
 import { SectionPanel } from "./SectionCard";
 import type { DataBundle } from "../../../data/types";
+import type { CustomManifest } from "../../../data/customManifest";
+import type { SourceTable } from "../../../music/sources";
 import { Localization, localized, t, type Localized } from "../../../i18n/localization";
 import { useNet } from "../../../net/useNet";
-import { useSession } from "../../../store/session";
+import { effectiveCustomSourceUrl, useSession } from "../../../store/session";
 import { effectiveOrder, useSourceOverrides } from "../../../store/sources";
 import { useCurrentDataset } from "../../../data/useDataset";
 import { MUSIC_MODES, type MusicMode } from "../../../music/mode";
@@ -23,6 +25,93 @@ const MODE_LABELS: Record<MusicMode, Localized> = {
   otomads: Localization.MusicModeOtomads,
   custom: Localization.MusicModeCustom,
 };
+
+/** 模式 3 的一行：使用者自己填的源链接（**只有这一条源** ⇒ 没有开关、没有顺序、没有回落）。
+ *
+ * 与「本地曲库地址」那一行同一套规格：输入框 → 重置（低强调，空值置灰）→ 应用（outlined，主操作最右）；
+ * 三控件一行、`spacing={1}` = 8dp、`alignItems: center` 中线对齐（MD2 的 8dp 栅格，间距常量一个没动）。
+ * **重置 = 清成空串**（不是"回默认值"）：这个模式的默认值本来就是空 —— 空 ⇒ 0 张卡 + 红色必填提示。 */
+function CustomSourceRow({ table }: { table?: SourceTable }) {
+  const { customSourceUrl, customSourceOverride, setCustomSourceUrl } = useSession();
+  const effective = effectiveCustomSourceUrl({ customSourceUrl, customSourceOverride });
+  const [draft, setDraft] = useState<string | null>(null);
+  const value = draft ?? effective;
+  const empty = value.trim() === "";
+
+  const status = (() => {
+    if (empty) return null;                                  // 没填就不发请求（C7）⇒ 不显示源状态
+    if (table?.status === "error") {
+      return { color: "error" as const, label: `✗ ${table.error ?? ""}`, testId: "custom-source-error" };
+    }
+    if (table?.status !== "ready") return { color: "default" as const, label: t(Localization.ConfigTabSourceLoading), testId: "custom-source-loading" };
+    const manifest: CustomManifest | undefined = table.custom;
+    // 抓到了但形状不对 ⇒ **整份不生效**（fail-closed），界面必须说清楚，不能静默空着
+    if (manifest === undefined) {
+      return { color: "error" as const, label: t(Localization.CustomSourceInvalid), testId: "custom-source-invalid" };
+    }
+    return {
+      color: "default" as const, testId: "custom-source-loaded",
+      label: t(Localization.CustomSourceLoaded, { count: String(manifest.characters.length) }),
+    };
+  })();
+
+  return (
+    <Stack spacing={1} sx={{ mb: 2 }} data-testid="custom-source">
+      <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+        <TextField
+          size="small"
+          fullWidth
+          label={t(Localization.CustomSourceUrl)}
+          placeholder={t(Localization.CustomSourcePlaceholder)}
+          value={value}
+          onChange={(event) => setDraft(event.target.value)}
+          slotProps={{ htmlInput: { "aria-label": "custom-source-url" } }}
+        />
+        <Button
+          size="small"
+          sx={{ flexShrink: 0 }}
+          disabled={empty}
+          data-testid="custom-source-reset"
+          onClick={() => { setCustomSourceUrl(""); setDraft(null); }}
+        >
+          {t(Localization.LocalMusicReset)}
+        </Button>
+        <Button
+          size="small"
+          variant="outlined"
+          sx={{ flexShrink: 0 }}
+          data-testid="custom-source-apply"
+          onClick={() => { setCustomSourceUrl(value.trim()); setDraft(null); }}
+        >
+          {t(Localization.LocalMusicApply)}
+        </Button>
+      </Stack>
+      <Stack direction="row" spacing={1} sx={{ alignItems: "center", flexWrap: "wrap", rowGap: 1 }}>
+        {status && (
+          <Chip
+            size="small"
+            variant="outlined"
+            color={status.color}
+            label={status.label}
+            data-testid={status.testId}
+          />
+        )}
+        {/* 生效值来自主机（F3）：采用只在本会话生效，离开房间就回到自己的源 */}
+        {customSourceOverride?.from === "host" && (
+          <Typography variant="caption" color="text.secondary" data-testid="custom-source-from-host">
+            {t(Localization.CustomSourceFromHost)}
+          </Typography>
+        )}
+      </Stack>
+      {empty && (
+        <Typography variant="caption" color="error.main" data-testid="custom-source-required">
+          {t(Localization.CustomSourceRequired)}
+        </Typography>
+      )}
+      <Typography variant="caption" color="text.secondary">{t(Localization.CustomSourceHint)}</Typography>
+    </Stack>
+  );
+}
 
 function SourceSectionInner({ bundle, tables }: { bundle: DataBundle; tables: TableMap }) {
   const {
@@ -50,6 +139,8 @@ function SourceSectionInner({ bundle, tables }: { bundle: DataBundle; tables: Ta
   /** 注册表里的默认开关（按模式，见各自的 toml）——重排时必须沿用，不能被当成"开着"。 */
   const defaultEnabled = Object.fromEntries(dataset.sources.map((source) => [source.id, source.enabled]));
   const localSource = dataset.sources.find((source) => source.kind === "local");
+  /** 模式 3 的源：**按 kind 认**，不按模式名认（数据里有什么就渲染什么） */
+  const customSource = dataset.sources.find((source) => source.kind === "custom");
   const labelOf = (id: string): string => {
     const source = byId.get(id);
     return source ? localized(source.label, locale) : id;
@@ -99,173 +190,180 @@ function SourceSectionInner({ bundle, tables }: { bundle: DataBundle; tables: Ta
         )}
       </Stack>
 
-      {/* 本地曲库地址：只有**本数据集的注册表里有本地源**时才出现（原曲那边没有本地源，留空即默认）。
-       *  三个控件一行（输入框 → 重置 → 应用）：MD2 的间距是 8dp 栅格 ⇒ `spacing={1}`；
-       *  按钮 small = 32dp、filled 输入框 small = **48dp**（实测），`alignItems: "center"` 让两者中线对齐、
-       *  行高仍由输入框决定（按钮不会把这一行撑高）。
-       *  主操作「应用」放最右（MD2 惯例），「重置」是低强调的文字按钮（outlined 留给应用）。
-       *  窄屏实测（412/360/320dp × zh/en）：三个控件始终一行、间隙 8dp，行右边缘离视口 32dp，不溢出。 */}
-      {localSource && (
-      <Stack direction="row" spacing={1} sx={{ mb: 2, alignItems: "center" }} data-testid="local-music-url">
-        <TextField
-          size="small"
-          fullWidth
-          label={t(Localization.LocalMusicUrl)}
-          placeholder={localSource?.tableUrl ?? "/manifest.json"}
-          value={urlValue}
-          onChange={(event) => setDraftUrl(event.target.value)}
-          slotProps={{ htmlInput: { "aria-label": "local-music-url" } }}
-        />
-        <Button
-          size="small"
-          sx={{ flexShrink: 0 }}
-          // 所见即所得：框里不是默认值（含还没应用的草稿）就可点；空着时无事可做 ⇒ 灰掉
-          disabled={urlValue.trim() === ""}
-          data-testid="local-music-reset"
-          // 重置 = 清掉存档里的覆盖 + 丢弃草稿 ⇒ 回到**数据里的默认**（注册表 `table_url`，同源形态下即本站
-          // `/manifest.json`）。**值只能是空串**：把 `manifest.json` 填进框里会被 `normalizeLocalManifestUrl`
-          // 当成 host:port 补成 `http://manifest.json` ✗；写一个具体地址则会破坏"默认同源"（单端口 / 静态站形态）。
-          // 地址栏里的 `?localmusic=` 不动 —— "URL 参数优先于存档"那条规则没变（D55）。
-          onClick={() => {
-            if (localMusicUrl !== "") setLocalMusicUrl("");
-            setDraftUrl(null);
-          }}
-        >
-          {t(Localization.LocalMusicReset)}
-        </Button>
-        <Button
-          size="small"
-          variant="outlined"
-          sx={{ flexShrink: 0 }}
-          data-testid="local-music-apply"
-          // 应用后清掉草稿 → 输入框回到"跟着 store 走"（写的也必须是 store 将要持有的那个值）
-          onClick={() => { setLocalMusicUrl(urlValue.trim()); setDraftUrl(null); }}
-        >
-          {t(Localization.LocalMusicApply)}
-        </Button>
-      </Stack>
-      )}
+      {/* 模式 3：这个模式**只有**使用者自己填的一条源 —— 开关 / 上移下移 / 本地曲库地址那几块都不渲染 */}
+      {customSource ? (
+        <CustomSourceRow table={tables[customSource.id]} />
+      ) : (
+        <>
+        {/* 本地曲库地址：只有**本数据集的注册表里有本地源**时才出现（原曲那边没有本地源，留空即默认）。
+         *  三个控件一行（输入框 → 重置 → 应用）：MD2 的间距是 8dp 栅格 ⇒ `spacing={1}`；
+         *  按钮 small = 32dp、filled 输入框 small = **48dp**（实测），`alignItems: "center"` 让两者中线对齐、
+         *  行高仍由输入框决定（按钮不会把这一行撑高）。
+         *  主操作「应用」放最右（MD2 惯例），「重置」是低强调的文字按钮（outlined 留给应用）。
+         *  窄屏实测（412/360/320dp × zh/en）：三个控件始终一行、间隙 8dp，行右边缘离视口 32dp，不溢出。 */}
+        {localSource && (
+        <Stack direction="row" spacing={1} sx={{ mb: 2, alignItems: "center" }} data-testid="local-music-url">
+          <TextField
+            size="small"
+            fullWidth
+            label={t(Localization.LocalMusicUrl)}
+            placeholder={localSource?.tableUrl ?? "/manifest.json"}
+            value={urlValue}
+            onChange={(event) => setDraftUrl(event.target.value)}
+            slotProps={{ htmlInput: { "aria-label": "local-music-url" } }}
+          />
+          <Button
+            size="small"
+            sx={{ flexShrink: 0 }}
+            // 所见即所得：框里不是默认值（含还没应用的草稿）就可点；空着时无事可做 ⇒ 灰掉
+            disabled={urlValue.trim() === ""}
+            data-testid="local-music-reset"
+            // 重置 = 清掉存档里的覆盖 + 丢弃草稿 ⇒ 回到**数据里的默认**（注册表 `table_url`，同源形态下即本站
+            // `/manifest.json`）。**值只能是空串**：把 `manifest.json` 填进框里会被 `normalizeLocalManifestUrl`
+            // 当成 host:port 补成 `http://manifest.json` ✗；写一个具体地址则会破坏"默认同源"（单端口 / 静态站形态）。
+            // 地址栏里的 `?localmusic=` 不动 —— "URL 参数优先于存档"那条规则没变（D55）。
+            onClick={() => {
+              if (localMusicUrl !== "") setLocalMusicUrl("");
+              setDraftUrl(null);
+            }}
+          >
+            {t(Localization.LocalMusicReset)}
+          </Button>
+          <Button
+            size="small"
+            variant="outlined"
+            sx={{ flexShrink: 0 }}
+            data-testid="local-music-apply"
+            // 应用后清掉草稿 → 输入框回到"跟着 store 走"（写的也必须是 store 将要持有的那个值）
+            onClick={() => { setLocalMusicUrl(urlValue.trim()); setDraftUrl(null); }}
+          >
+            {t(Localization.LocalMusicApply)}
+          </Button>
+        </Stack>
+        )}
 
-      {/* 一个启用的源都没有：曲目解析不出地址（用户自己关掉时的提示，不拦着） */}
-      {noneEnabled && (
-        <Typography variant="caption" color="error.main" data-testid="source-none-enabled" sx={{ display: "block", mt: 1 }}>
-          {t(Localization.ConfigTabSourceNoneEnabled)}
-        </Typography>
-      )}
+        {/* 一个启用的源都没有：曲目解析不出地址（用户自己关掉时的提示，不拦着） */}
+        {noneEnabled && (
+          <Typography variant="caption" color="error.main" data-testid="source-none-enabled" sx={{ display: "block", mt: 1 }}>
+            {t(Localization.ConfigTabSourceNoneEnabled)}
+          </Typography>
+        )}
 
-      {/* 回退顺序显示：编号 + 实际名称（原来直接把内部 id 拼成字符串，既不可读也不随语言变） */}
-      <Stack
-        direction="row"
-        spacing={1}
-        sx={{ alignItems: "center", flexWrap: "wrap", rowGap: 1, mt: 1 }}
-        data-testid="source-fallback-order"
-      >
-        <Typography variant="caption" color="text.secondary">
-          {t(Localization.ConfigTabSourceOrder)}
-        </Typography>
-        {order.map((id, index) => (
-          <Stack key={id} direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
-            <Avatar
-              sx={{
-                width: 20,
-                height: 20,
-                fontSize: "0.6875rem",
-                bgcolor: isEnabled(id) ? "primary.main" : "action.disabledBackground",
-                color: isEnabled(id) ? "primary.contrastText" : "text.disabled",
-              }}
-            >
-              {index + 1}
-            </Avatar>
-            <Typography
-              variant="caption"
-              sx={{ color: isEnabled(id) ? "text.primary" : "text.disabled" }}
-            >
-              {labelOf(id)}
-            </Typography>
-            {index < order.length - 1 && (
-              <Typography variant="caption" color="text.secondary" sx={{ ml: 0.5 }}>→</Typography>
-            )}
-          </Stack>
-        ))}
-      </Stack>
-      <Stack spacing={1} sx={{ mt: 1 }}>
-        {rows.map((source) => {
-          const override = sourceOverrides[source.id];
-          // 音源层已按模式拆（契约 sources-separation-v1.md）：音MAD 注册表里只有本地源、它默认就是开的，
-          // 所以这里没有"强制打开"这回事了，用户想关也能关（关了就给下面那条提示）。
-          const enabled = override?.enabled ?? source.enabled;
-          const table = tables[source.id];
-          const status = !enabled ? "off"
-            : table?.status === "ready" ? `${table.entries.size}`
-            : table?.status === "error" ? `✗ ${table.error ?? ""}`
-            : "…";
-          return (
-            <Box key={source.id} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, p: 1 }}>
-              <Stack
-                direction="row"
-                spacing={1}
-                // MD2 行高 40dp、垂直居中：控件盒子不再比行高还高（与预设分区同一套规格）
-                sx={{ minHeight: 40, alignItems: "center" }}
+        {/* 回退顺序显示：编号 + 实际名称（原来直接把内部 id 拼成字符串，既不可读也不随语言变） */}
+        <Stack
+          direction="row"
+          spacing={1}
+          sx={{ alignItems: "center", flexWrap: "wrap", rowGap: 1, mt: 1 }}
+          data-testid="source-fallback-order"
+        >
+          <Typography variant="caption" color="text.secondary">
+            {t(Localization.ConfigTabSourceOrder)}
+          </Typography>
+          {order.map((id, index) => (
+            <Stack key={id} direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
+              <Avatar
+                sx={{
+                  width: 20,
+                  height: 20,
+                  fontSize: "0.6875rem",
+                  bgcolor: isEnabled(id) ? "primary.main" : "action.disabledBackground",
+                  color: isEnabled(id) ? "primary.contrastText" : "text.disabled",
+                }}
               >
-                {/* 顺序编号：MD2 圆形头像（停用的源用灰色） */}
-                <Avatar
-                  data-testid={`source-order-${source.id}`}
-                  sx={{
-                    width: 24,
-                    height: 24,
-                    fontSize: "0.75rem",
-                    fontWeight: 500,
-                    bgcolor: enabled ? "primary.main" : "action.disabledBackground",
-                    color: enabled ? "primary.contrastText" : "text.disabled",
-                  }}
-                >
-                  {order.indexOf(source.id) + 1}
-                </Avatar>
-                <Typography variant="body2" sx={{ flex: 1 }}>{labelOf(source.id)}</Typography>
-                <Chip
-                  size="small"
-                  variant="outlined"
-                  color={table?.status === "error" ? "error" : "default"}
-                  label={status}
-                  data-testid={`source-status-${source.id}`}
-                />
-                <FormControlLabel
-                  control={
-                    <Switch
-                      size="small"
-                      checked={enabled}
-                      onChange={(event) => toggleSource(source.id, event.target.checked, ids)}
-                      // MUI v7 用 slotProps.input（旧的 inputProps 已经不再落到 input 上）
-                      slotProps={{ input: { "aria-label": `${source.id}-enabled` } }}
-                    />
-                  }
-                  label={t(enabled ? Localization.ConfigTabSourceEnabled : Localization.ConfigTabSourceDisabled)}
-                  data-testid={`source-state-${source.id}`}
-                />
-                <IconButton
-                  size="small"
-                  onClick={() => moveSource(source.id, -1, ids, defaultEnabled)}
-                  disabled={order.indexOf(source.id) === 0}
-                  aria-label={`${source.id}-up`}
-                >
-                  <ArrowUpward fontSize="small" />
-                </IconButton>
-                <IconButton
-                  size="small"
-                  onClick={() => moveSource(source.id, 1, ids, defaultEnabled)}
-                  disabled={order.indexOf(source.id) === order.length - 1}
-                  aria-label={`${source.id}-down`}
-                >
-                  <ArrowDownward fontSize="small" />
-                </IconButton>
-              </Stack>
-              <Typography variant="caption" color="text.secondary">
-                {localized(source.description, locale)}
+                {index + 1}
+              </Avatar>
+              <Typography
+                variant="caption"
+                sx={{ color: isEnabled(id) ? "text.primary" : "text.disabled" }}
+              >
+                {labelOf(id)}
               </Typography>
-            </Box>
-          );
-        })}
-      </Stack>
+              {index < order.length - 1 && (
+                <Typography variant="caption" color="text.secondary" sx={{ ml: 0.5 }}>→</Typography>
+              )}
+            </Stack>
+          ))}
+        </Stack>
+        <Stack spacing={1} sx={{ mt: 1 }}>
+          {rows.map((source) => {
+            const override = sourceOverrides[source.id];
+            // 音源层已按模式拆（契约 sources-separation-v1.md）：音MAD 注册表里只有本地源、它默认就是开的，
+            // 所以这里没有"强制打开"这回事了，用户想关也能关（关了就给下面那条提示）。
+            const enabled = override?.enabled ?? source.enabled;
+            const table = tables[source.id];
+            const status = !enabled ? "off"
+              : table?.status === "ready" ? `${table.entries.size}`
+              : table?.status === "error" ? `✗ ${table.error ?? ""}`
+              : "…";
+            return (
+              <Box key={source.id} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, p: 1 }}>
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  // MD2 行高 40dp、垂直居中：控件盒子不再比行高还高（与预设分区同一套规格）
+                  sx={{ minHeight: 40, alignItems: "center" }}
+                >
+                  {/* 顺序编号：MD2 圆形头像（停用的源用灰色） */}
+                  <Avatar
+                    data-testid={`source-order-${source.id}`}
+                    sx={{
+                      width: 24,
+                      height: 24,
+                      fontSize: "0.75rem",
+                      fontWeight: 500,
+                      bgcolor: enabled ? "primary.main" : "action.disabledBackground",
+                      color: enabled ? "primary.contrastText" : "text.disabled",
+                    }}
+                  >
+                    {order.indexOf(source.id) + 1}
+                  </Avatar>
+                  <Typography variant="body2" sx={{ flex: 1 }}>{labelOf(source.id)}</Typography>
+                  <Chip
+                    size="small"
+                    variant="outlined"
+                    color={table?.status === "error" ? "error" : "default"}
+                    label={status}
+                    data-testid={`source-status-${source.id}`}
+                  />
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        size="small"
+                        checked={enabled}
+                        onChange={(event) => toggleSource(source.id, event.target.checked, ids)}
+                        // MUI v7 用 slotProps.input（旧的 inputProps 已经不再落到 input 上）
+                        slotProps={{ input: { "aria-label": `${source.id}-enabled` } }}
+                      />
+                    }
+                    label={t(enabled ? Localization.ConfigTabSourceEnabled : Localization.ConfigTabSourceDisabled)}
+                    data-testid={`source-state-${source.id}`}
+                  />
+                  <IconButton
+                    size="small"
+                    onClick={() => moveSource(source.id, -1, ids, defaultEnabled)}
+                    disabled={order.indexOf(source.id) === 0}
+                    aria-label={`${source.id}-up`}
+                  >
+                    <ArrowUpward fontSize="small" />
+                  </IconButton>
+                  <IconButton
+                    size="small"
+                    onClick={() => moveSource(source.id, 1, ids, defaultEnabled)}
+                    disabled={order.indexOf(source.id) === order.length - 1}
+                    aria-label={`${source.id}-down`}
+                  >
+                    <ArrowDownward fontSize="small" />
+                  </IconButton>
+                </Stack>
+                <Typography variant="caption" color="text.secondary">
+                  {localized(source.description, locale)}
+                </Typography>
+              </Box>
+            );
+          })}
+        </Stack>
+        </>
+      )}
     </SectionPanel>
   );
 }

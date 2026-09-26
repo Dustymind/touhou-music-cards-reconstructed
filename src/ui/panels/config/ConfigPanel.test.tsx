@@ -16,6 +16,8 @@ const useSingleTrack = singleStoreFor("originals");
 import { singleStoreFor } from "../../../store/single";
 import { sourceStoreFor } from "../../../store/sources";
 import { ConfigPanel } from "../ConfigPanel";
+import { parseCustomManifest } from "../../../data/customManifest";
+import type { TableMap } from "../../../music/sources";
 
 let bundle: DataBundle;
 
@@ -27,12 +29,12 @@ async function expand(container: HTMLElement, id: string): Promise<void> {
   await act(async () => { await new Promise((resolve) => setTimeout(resolve, 320)); });
 }
 
-async function renderPanel(): Promise<{ container: HTMLElement; root: Root }> {
+async function renderPanel(tables: TableMap = {}): Promise<{ container: HTMLElement; root: Root }> {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const root = createRoot(container);
   await act(async () => {
-    root.render(<ConfigPanel bundle={bundle} tables={{}} />);
+    root.render(<ConfigPanel bundle={bundle} tables={tables} />);
   });
   return { container, root };
 }
@@ -76,6 +78,26 @@ async function type(element: HTMLInputElement, value: string): Promise<void> {
 async function openLocalMusicUrl(): Promise<{ container: HTMLElement }> {
   useSession.setState({ musicMode: "otomads" });
   const { container } = await renderPanel();
+  await expand(container, "source");
+  return { container };
+}
+
+/** 模式 3 的清单（用它造一份"源已经把卡表取回来了"的表）。 */
+function customTable(cards: number): TableMap {
+  const manifest = parseCustomManifest({
+    schema: 1, mode: "custom",
+    cards: Array.from({ length: cards }, (_unused, index) => ({
+      id: `c${index}`, name: `卡 ${index}`, face: `faces/${index}.jpg`, audio: `media/${index}.mp3`,
+      album: "旧作", title: `曲 ${index}`,
+    })),
+  }, "https://cards.example.com/manifest.json")!;
+  return { custom: { id: "custom", status: "ready", entries: new Map(), custom: manifest } };
+}
+
+/** 模式 3 的源分区：只有"自定义源链接"那一行，没有开关/顺序/本地曲库地址。 */
+async function openCustomSource(tables: TableMap = {}): Promise<{ container: HTMLElement }> {
+  useSession.setState({ musicMode: "custom", customSourceUrl: "", customSourceOverride: null });
+  const { container } = await renderPanel(tables);
   await expand(container, "source");
   return { container };
 }
@@ -349,5 +371,55 @@ describe("ConfigPanel", () => {
 
     expect(input(container, "local-music-url").value).toBe("");
     expect(useSession.getState().localMusicUrl).toBe("");     // 没有被草稿写进去
+  });
+
+  // ---- 模式 3（自定义）：一条源、一行地址、没有开关（契约 custom-mode-v1 C7 / D157）----
+
+  it("自定义源：只挂载那一行（没有开关 / 上移下移 / 本地曲库地址），空值时给红色必填提示", async () => {
+    const { container } = await openCustomSource();
+
+    expect(container.querySelector('[data-testid="custom-source"]')).not.toBeNull();
+    expect(container.querySelector('[data-testid="local-music-url"]')).toBeNull();
+    expect(container.querySelector('[data-testid="source-fallback-order"]')).toBeNull();
+    expect(container.querySelector('[data-testid="source-state-custom"]')).toBeNull();
+
+    // 空 = 还没填：红色提示 + 「重置」无事可做 ⇒ 灰掉；也没发过请求 ⇒ 不显示源状态
+    expect(container.querySelector('[data-testid="custom-source-required"]')).not.toBeNull();
+    expect(container.querySelector<HTMLButtonElement>('[data-testid="custom-source-reset"]')!.disabled).toBe(true);
+    expect(container.querySelector('[data-testid="custom-source-loaded"]')).toBeNull();
+  });
+
+  it("自定义源：填地址 → 应用 ⇒ 落盘；取回清单后状态显示**卡数**（不是 entries.size）", async () => {
+    const { container } = await openCustomSource(customTable(3));
+    await type(input(container, "custom-source-url"), "https://cards.example.com");
+    await click(container.querySelector('[data-testid="custom-source-apply"]')!);
+
+    expect(useSession.getState().customSourceUrl).toBe("https://cards.example.com");
+    expect(container.querySelector('[data-testid="custom-source-required"]')).toBeNull();
+    expect(container.querySelector('[data-testid="custom-source-loaded"]')!.textContent)
+      .toContain("3");
+  });
+
+  it("自定义源：「重置」只把值清成空串（不是回默认值 —— 这里的默认值本来就是空）", async () => {
+    useSession.setState({ musicMode: "custom", customSourceUrl: "https://cards.example.com" });
+    const { container } = await renderPanel();
+    await expand(container, "source");
+    expect(input(container, "custom-source-url").value).toBe("https://cards.example.com");
+
+    await click(container.querySelector('[data-testid="custom-source-reset"]')!);
+    expect(input(container, "custom-source-url").value).toBe("");
+    expect(useSession.getState().customSourceUrl).toBe("");
+  });
+
+  it("自定义源：主机下发的值显示在框里，并注明「来自主机」（F3：只在本会话生效）", async () => {
+    useSession.setState({ musicMode: "custom", customSourceUrl: "https://mine.example.com" });
+    useSession.getState().adoptCustomSourceUrl("https://host.example.com");
+    const { container } = await renderPanel();
+    await expand(container, "source");
+
+    expect(input(container, "custom-source-url").value).toBe("https://host.example.com");
+    expect(container.querySelector('[data-testid="custom-source-from-host"]')).not.toBeNull();
+    // 存档没被改写：离开房间就回到自己的源
+    expect(useSession.getState().customSourceUrl).toBe("https://mine.example.com");
   });
 });
