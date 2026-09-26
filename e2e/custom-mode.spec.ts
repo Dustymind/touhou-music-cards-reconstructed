@@ -92,7 +92,7 @@ test("配了源：卡与曲目立刻出现，画的是源给的卡面", async ({
   // 播放页：当前这张卡画的是**源给的那张图**（相对地址按清单目录解析成绝对地址）
   await page.getByRole("tab", { name: "Player", exact: true }).click();
   await expect(page.getByTestId("current-card-image").locator("img"))
-    .toHaveAttribute("src", /\/e2e\/fixtures\/custom\/cover\/[abc]\.png/);
+    .toHaveAttribute("src", /\/e2e\/fixtures\/custom\/cover\/[abc](\.(16x9|4x3))?\.png/);
   await expect.poll(() => rotationCount(page)).toBe(cards.length);
 });
 
@@ -219,4 +219,73 @@ test("窄屏（320 / 412dp）：模式 3 的设置页不横向溢出", async ({ 
       document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(page_, `${width}dp 的整页`).toBeLessThanOrEqual(1);
   }
+});
+
+test("卡面形状（D163/D164）：模式 3 默认 16:9、可切 4:3，原曲仍是 703:1000 竖版", async ({ page }) => {
+  /** 量一个元素的宽高比（真浏览器、真布局）。 */
+  const ratioOf = async (testId: string): Promise<number> => {
+    const box = await page.getByTestId(testId).boundingBox();
+    if (!box) throw new Error(`量不到 ${testId}`);
+    return box.width / box.height;
+  };
+
+  // ① 原曲（默认模式）：播放页那张卡还是**竖版**，与改动前逐字相同
+  await page.goto("/");
+  await page.getByRole("tab", { name: "Player", exact: true }).click();
+  await expect.poll(() => ratioOf("current-card-image")).toBeCloseTo(703 / 1000, 2);
+
+  // ② 模式 3：**同一处**变成 16:9 横版（数量级差别很大，不是"略窄略宽"）
+  await page.goto(`/?customsource=${SOURCE}`);
+  await selectCustomMode(page);
+  await page.getByRole("tab", { name: "Player", exact: true }).click();
+  await expect.poll(() => ratioOf("current-card-image")).toBeCloseTo(16 / 9, 2);
+
+  // ③ 牌桌的卡槽同口径（空槽与卡牌同尺寸：格子高度也是按 16:9 算的）
+  await page.getByRole("tab", { name: "Match", exact: true }).click();
+  await expect.poll(() => ratioOf("deck-you-empty-0")).toBeCloseTo(16 / 9, 2);
+  // 未使用卡牌区（宽屏是单行卡条）里的卡也是 16:9 —— 卡条窗口本身是"可视宽度 : 一张卡高"，
+  // 所以要量**卡**那个节点（`unused-card-<id>`），别量卡条容器
+  const firstCard = await page.locator('[data-testid^="unused-card-"]').first().boundingBox();
+  expect(firstCard).not.toBeNull();
+  expect(firstCard!.width / firstCard!.height).toBeCloseTo(16 / 9, 2);
+});
+
+test("卡面比例开关（D164）：切到 4:3 ⇒ 形状与**图**都换，刷新后还在；另两个模式没有这个开关", async ({ page }) => {
+  const ratioOf = async (testId: string): Promise<number> => {
+    const box = await page.getByTestId(testId).boundingBox();
+    if (!box) throw new Error(`量不到 ${testId}`);
+    return box.width / box.height;
+  };
+
+  await page.goto(`/?customsource=${SOURCE}`);
+  await selectCustomMode(page);
+  await page.getByRole("tab", { name: "Player", exact: true }).click();
+
+  // 默认 16:9：用的是清单里 `cover.16x9` 那一份（fixture 里爱丽丝那张卡给了两份图）
+  await expect(page.getByTestId("current-card-image").locator("img"))
+    .toHaveAttribute("src", /cover\/a\.16x9\.png$/);
+  await expect.poll(() => ratioOf("current-card-image")).toBeCloseTo(16 / 9, 2);
+
+  // 「卡面设置」里切到 4:3：形状变、图也换成 `cover.4x3` 那一份（数据集没有重建）
+  await openCustomSection(page, "cardset");
+  await page.getByTestId("card-ratio-4x3").click();
+  await page.getByRole("tab", { name: "Player", exact: true }).click();
+  await expect(page.getByTestId("current-card-image").locator("img"))
+    .toHaveAttribute("src", /cover\/a\.4x3\.png$/);
+  await expect.poll(() => ratioOf("current-card-image")).toBeCloseTo(4 / 3, 2);
+
+  // 档位落盘：刷新（依旧带着源参数）之后还是 4:3
+  await page.goto(`/?customsource=${SOURCE}`);
+  await page.getByRole("tab", { name: "Player", exact: true }).click();
+  await expect.poll(() => ratioOf("current-card-image")).toBeCloseTo(4 / 3, 2);
+  await openCustomSection(page, "cardset");
+  await expect(page.getByTestId("card-ratio-4x3")).toHaveAttribute("aria-pressed", "true");
+
+  // 另两个模式**没有**这两档（比例只属于自带卡面的模式）：图集单选照旧在
+  await page.getByRole("tab", { name: "Config", exact: true }).click();
+  await expandSection(page, "source");
+  await page.getByTestId("music-mode-originals").click();
+  await expandSection(page, "cardset");
+  await expect(page.getByTestId("card-ratio-16x9")).toHaveCount(0);
+  await expect(page.locator('[data-testid^="cardset-row-"]').first()).toBeVisible();
 });

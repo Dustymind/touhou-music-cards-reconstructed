@@ -132,7 +132,10 @@ describe("ConfigPanel", () => {
     });
     useSingleTrack.setState({ enabled: false, pins: {}, disabledCharacters: {} });
     sourceStoreFor("originals").setState({ overrides: {} });
-    useSession.setState({ locale: "en", tab: "config", cardCollection: "dairi-sd", musicMode: "originals", localMusicUrl: "" });
+    useSession.setState({
+      locale: "en", tab: "config", cardCollection: "dairi-sd", musicMode: "originals",
+      localMusicUrl: "", customCardRatio: "16x9",
+    });
     useNet.getState().leave();
     usePreset.getState().sync(bundle.datasets.originals.albums);
     useCustomPreset.setState({ albums: {}, authors: {} });
@@ -153,7 +156,7 @@ describe("ConfigPanel", () => {
       expect(container.querySelector(`[data-testid="section-${id}-content"]`)).toBeNull();   // 折叠时不挂载
     }
     // 标题始终可见（五个分区标题）
-    expect(container.textContent).toContain("Card Collection");
+    expect(container.textContent).toContain("Card Settings");
     expect(container.textContent).toContain("Music Source");
 
     await expand(container, "single");
@@ -450,12 +453,27 @@ describe("ConfigPanel", () => {
     expect(useCustomSingle.getState().disabled).toEqual({ alice: true });
   });
 
-  it("模式 3：卡面图集分区只留一行只读说明，图集单选一行都不列（契约 C3）", async () => {
+  it("模式 3：卡面设置分区 = 一行只读说明 + 两档卡面比例，图集单选一行都不列（契约 C3 + D164）", async () => {
     const { container } = await openCustomSource();
     await expand(container, "cardset");
 
     expect(container.querySelector('[data-testid="cardset-fixed"]')).not.toBeNull();
     expect(container.querySelectorAll('[data-testid^="cardset-row-"]').length).toBe(0);
+    // 两档都在，默认选中 16:9；点一下 4:3 就落盘（刷新后还在）
+    const wide = container.querySelector<HTMLInputElement>('[data-testid="card-ratio-16x9"]')!;
+    const tall = container.querySelector<HTMLInputElement>('[data-testid="card-ratio-4x3"]')!;
+    expect(wide.getAttribute("aria-pressed")).toBe("true");
+    expect(tall.getAttribute("aria-pressed")).toBe("false");
+
+    await click(tall);
+    expect(useSession.getState().customCardRatio).toBe("4x3");
+    expect(tall.getAttribute("aria-pressed")).toBe("true");
+    expect(wide.getAttribute("aria-pressed")).toBe("false");
+
+    // 另两个模式**没有**这两档（比例只属于自带卡面的模式）
+    await act(async () => { useSession.setState({ musicMode: "originals" }); });
+    expect(container.querySelector('[data-testid="card-ratio-16x9"]')).toBeNull();
+    expect(container.querySelector('[data-testid^="cardset-row-"]')).not.toBeNull();
   });
 
   it("自定义源：填地址 → 应用 ⇒ 落盘；取回清单后状态显示**卡数**（不是 entries.size）", async () => {

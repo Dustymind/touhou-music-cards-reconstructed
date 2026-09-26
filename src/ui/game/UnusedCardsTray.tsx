@@ -23,7 +23,9 @@ import ExpandMoreRounded from "@mui/icons-material/ExpandMoreRounded";
 import type { CardSetRecord } from "../../data/types";
 import type { CardInfo } from "../../game/types";
 import { Localization, t } from "../../i18n/localization";
-import { CardAspectRatio, MD2 } from "../../theme/theme";
+import { cardAspectRatio } from "../../theme/cardRatio";
+import { MD2 } from "../../theme/theme";
+import { DECK_GAP } from "./DeckGrid";
 import { UnusedCards } from "./UnusedCards";
 
 interface UnusedCardsTrayProps {
@@ -62,6 +64,18 @@ function useViewportHeight(): number {
   return height;
 }
 
+/** 面板的三个档位高度（px）：由**卡面高度**（跟着图集比例走，D163）与设置里的"卡牌大小"换算，
+ *  再夹在视口的 `MIN/MAX_HEIGHT_RATIO` 之间。
+ *
+ *  导出是为了单测：卡面比例一变（内置图集 703:1000 竖版 → 模式 3 的 16:9 横版），档位就得跟着变，
+ *  否则面板会按"竖版卡"的高度留白。 */
+export function trayDetents(viewportHeight: number, cardHeight: number): number[] {
+  const rowHeight = cardHeight + DECK_GAP;
+  return DETENT_ROWS.map((rows) => Math.round(
+    Math.min(viewportHeight * MAX_HEIGHT_RATIO,
+      Math.max(viewportHeight * MIN_HEIGHT_RATIO, CHROME_PX + rows * rowHeight))));
+}
+
 export function UnusedCardsTray({ columns, ...props }: UnusedCardsTrayProps) {
   const theme = useTheme();
   const narrow = useMediaQuery(theme.breakpoints.down("sm"));
@@ -70,11 +84,8 @@ export function UnusedCardsTray({ columns, ...props }: UnusedCardsTrayProps) {
   const viewportHeight = useViewportHeight();
 
   // 档位高度（px）：跟卡面高度与设置里的"卡牌大小"联动
-  const cardHeight = Math.round(props.width / CardAspectRatio);
-  const rowHeight = cardHeight + 4;   // DECK_GAP
-  const detents = DETENT_ROWS.map((rows) => Math.round(
-    Math.min(viewportHeight * MAX_HEIGHT_RATIO,
-      Math.max(viewportHeight * MIN_HEIGHT_RATIO, CHROME_PX + rows * rowHeight))));
+  const cardHeight = Math.round(props.width / cardAspectRatio(props.cardSet));
+  const detents = trayDetents(viewportHeight, cardHeight);
   const [heightPx, setHeightPx] = useState<number>(detents[0]!);
   // 卡片尺寸变化（用户点"放大/缩小"）时，当前档位跟着换算到新高度
   const appliedCardWidth = useRef(props.width);

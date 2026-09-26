@@ -5,7 +5,7 @@
   {
    "id": "e2e-alice",
    "name": "E2E 爱丽丝",
-   "cover": "cover/a.png",
+   "cover": { "16x9": "cover/a.16x9.png", "4x3": "cover/a.4x3.png" },
    "audio": "media/a.mp3",
    "album": "E2E 旧作",
    "author": "E2E 甲",

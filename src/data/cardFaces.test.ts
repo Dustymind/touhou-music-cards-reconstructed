@@ -9,16 +9,18 @@
  * 3. **源封面是整条绝对 URL**：不拼目录、不做 URL 编码（`cardUrl` 那一步同理）；
  * 4. **源不提供就不显示**：`sourceOnly` 图集在没有 covers 的数据集里既不可选、也不生效
  *    （回落只影响渲染，不动用户存的偏好）；
- * 5. **可选集是唯一入口**（D155）：回落只落在 `availableCardSets` 的结果里，越界查表回到第 0 张。
+ * 5. **可选集是唯一入口**（D155）：回落只落在 `availableCardSets` 的结果里，越界查表回到第 0 张；
+ * 6. **形状也跟着图集走**（D163）：模式 3 的合成图集声明 16:9 横版，其余图集缺省 = 原比例 703:1000。
  */
 import { describe, expect, it } from "vitest";
 
 import {
-  availableCardSets, cardCount, cardFace, cardFaces, cardFileAt, CUSTOM_CARD_SET, hasSourceCovers,
-  isCardUrl, maxCardCount, resolveCardSet, usesPerTrackFaces,
+  availableCardSets, cardCount, cardFace, cardFaces, cardFileAt, CUSTOM_CARD_SET, customCardSet,
+  hasSourceCovers, isCardUrl, maxCardCount, resolveCardSet, usesPerTrackFaces,
 } from "./cardFaces";
 import type { CardSetRecord, CharacterRecord, ModeDataset } from "./types";
 import { usesOwnCardFaces, type MusicMode } from "../music/mode";
+import { cardAspectRatio, CardAspectRatio, CARD_RATIO_VALUES } from "../theme/cardRatio";
 
 /** 源封面图集（`data/card-sets.toml` 里那套 `otomads-cover` 的形状）。 */
 const COVER_SET: CardSetRecord = {
@@ -205,6 +207,65 @@ describe("图集可选性", () => {
     expect(maxCardCount(card)).toBe(1);
     expect(cardFaces(card, CUSTOM_CARD_SET)).toEqual([face]);
     expect(cardFace(card, CUSTOM_CARD_SET, 7)).toBe(face);       // 取模轮转在 1 张下天然安全
+  });
+
+  it("卡面形状跟着图集走（D163/D164）：合成的图集不写比例（由用户档位决定），内置那几套 = 原比例 703:1000", () => {
+    // 合成图集自己**不带**比例：模式 3 的档位是用户偏好，由 `resolveCardSet` 落上去
+    expect(CUSTOM_CARD_SET.ratio).toBeUndefined();
+    const custom = dataset("custom", [character({ card: ["https://x/a.jpg"], covers: ["https://x/a.jpg"] })]);
+    expect(cardAspectRatio(resolveCardSet([], "dairi-sd", custom, "16x9")))
+      .toBeCloseTo(CARD_RATIO_VALUES["16x9"], 12);
+    expect(cardAspectRatio(resolveCardSet([], "dairi-sd", custom, "4x3")))
+      .toBeCloseTo(CARD_RATIO_VALUES["4x3"], 12);
+    for (const set of [UPSTREAM_SET, COVER_SET, LOCAL_SET]) {
+      expect(set.ratio, set.id).toBeUndefined();
+      expect(cardAspectRatio(set), set.id).toBe(CardAspectRatio);
+    }
+    // 另两个模式即便传了档位也不受影响：档位只落在**自带卡面**的模式上
+    const originals2 = dataset("originals", [character()]);
+    expect(resolveCardSet([UPSTREAM_SET], "dairi-sd", originals2, "4x3").ratio).toBeUndefined();
+    expect(cardAspectRatio(resolveCardSet([UPSTREAM_SET], "dairi-sd", originals2, "4x3")))
+      .toBe(CardAspectRatio);
+    // 音MAD 的 B 站封面集**不在**这一轮里：它仍是原比例（703×1000 的裁切图就是按它裁的）
+    expect(cardAspectRatio(COVER_SET)).toBeLessThan(1);
+  });
+
+  it("`resolveCardSet` 的返回**引用稳定**（同图集/同档 ⇒ 同一个对象）—— `GamePanel` 靠它不空转", () => {
+    const custom = dataset("custom", [character()]);
+    const originals2 = dataset("originals", [character()]);
+    // 模式 3：同一档位两次调用必须**同一个对象**（改了这里 GamePanel 会 "Maximum update depth exceeded"）
+    expect(resolveCardSet([], "x", custom, "16x9")).toBe(resolveCardSet([], "x", custom, "16x9"));
+    expect(resolveCardSet([], "x", custom, "4x3")).toBe(resolveCardSet([], "x", custom, "4x3"));
+    expect(resolveCardSet([], "x", custom, "16x9")).not.toBe(resolveCardSet([], "x", custom, "4x3"));
+    // 带档位的是**另一个**（缓存里的）对象，基线常量本身不带档位
+    expect(customCardSet("16x9")).not.toBe(CUSTOM_CARD_SET);
+    expect(customCardSet("16x9").ratio).toBe("16x9");
+    // 另两个模式：返回的就是 `bundled` 里那一套（身份也是稳定的）
+    expect(resolveCardSet([UPSTREAM_SET], "dairi-sd", originals2))
+      .toBe(resolveCardSet([UPSTREAM_SET], "dairi-sd", originals2));
+    // 空图集同样是同一个常量
+    expect(resolveCardSet([], "x", originals2)).toBe(resolveCardSet([], "x", originals2));
+  });
+
+  it("逐比例的两份卡图（D164）：按当前档取那一份，只有一份时两档都用它", () => {
+    const wide = "https://x/a.16x9.jpg";
+    const tall = "https://x/a.4x3.jpg";
+    const both = character({ card: [wide], covers: [wide], coversByRatio: { "16x9": wide, "4x3": tall } });
+    const wideSet = resolveCardSet([], "dairi-sd", dataset("custom", [both]), "16x9");
+    const tallSet = resolveCardSet([], "dairi-sd", dataset("custom", [both]), "4x3");
+    expect(cardFace(both, wideSet, 0)).toBe(wide);
+    expect(cardFace(both, tallSet, 0)).toBe(tall);
+    expect(cardFaces(both, tallSet)).toEqual([tall]);
+    // 只有一份（旧清单 / 手放的图 / 绝对直链）：两个档位都画它，比例不对时交给 `object-fit: cover` 裁
+    const single = character({ card: [wide], covers: [wide] });
+    const singleSet = resolveCardSet([], "dairi-sd", dataset("custom", [single]), "4x3");
+    expect(cardFace(single, singleSet, 0)).toBe(wide);
+    // 只写了 4:3 一份：16:9 档回落到它（`card` / `covers` 里放的就是"默认档那一份"）
+    const onlyTall = character({ card: [tall], covers: [tall], coversByRatio: { "4x3": tall } });
+    const backToWide = resolveCardSet([], "dairi-sd", dataset("custom", [onlyTall]), "16x9");
+    expect(cardFace(onlyTall, backToWide, 0)).toBe(tall);
+    // 音MAD 的封面集（没有 coversByRatio）不受影响
+    expect(cardFace(character({ covers: [wide] }), COVER_SET, 0)).toBe(wide);
   });
 
   it("一套可选的都没有 ⇒ **空图集**，不再回头用原始 `sets[0]` 那套内置立绘", () => {

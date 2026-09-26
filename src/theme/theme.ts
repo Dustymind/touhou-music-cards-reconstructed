@@ -231,8 +231,8 @@ export const MD2_TYPE_SCALE = {
   overline: { fontSize: 10, fontWeight: 400, lineHeight: 2.66, letterSpacing: "1.5px", textTransform: "uppercase" as const },
 } as const;
 
-/** 卡面宽高比（上游 `Configs.ts` 的 `CardAspectRatio`）。 */
-export const CardAspectRatio = 703 / 1000;
+// 卡面比例不在这里：它跟着**图集**走（内置图集原比例 / 模式 3 的 16:9），
+// 见 `src/theme/cardRatio.ts` —— 那个模块不引 MUI，数据层的 `cardFaces.ts` 也要用它。
 
 /** 建主题。**不带参数时与以前逐字相同**（深色 + MD2 基准色）——
  *  设置页把它接上 `store/appearance` 的模式与主题色；两套值都由 `MD2_PALETTE` / `MODE_TOKENS` 提供。 */

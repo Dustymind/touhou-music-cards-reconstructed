@@ -60,17 +60,9 @@ function ConfigPanelInner({ bundle, tables }: {
 
       {/* 外观（亮/暗 + 主题色）紧挨着「数据」—— 都是全局偏好，与曲目/音源那些分开 */}
       <AppearanceSection />
-      {musicMode === "custom" ? (
-        // 模式 3：卡面就是清单里那张（每卡一张、不可更换）⇒ 图集菜单在这个模式下不可用（契约 C3）。
-        // 分区照旧保留一行标题：设置页的节奏（五个可折叠分区）不变，用户也不会以为"这里坏了"。
-        <SectionPanel id="cardset" title={t(Localization.ConfigTabCardCollection)}>
-          <Typography variant="body2" color="text.secondary" data-testid="cardset-fixed">
-            {t(Localization.ConfigTabCardSetFixed)}
-          </Typography>
-        </SectionPanel>
-      ) : (
-        <CardSetSection bundle={bundle} />
-      )}
+      {/* 「卡面设置」：两个共用内置图集的模式在这里挑图集；模式 3（自带卡面）在这里挑**卡面比例**
+          （16:9 / 4:3，D164）+ 一行只读说明 —— 分区、标题、位置三个模式完全一致 */}
+      <CardSetSection bundle={bundle} />
       <SourceSection bundle={bundle} tables={tables} />
       {/* 选择语义按模式分派：模式 3 只有"专辑/作者三元"与"逐卡禁用"两维（契约 C4/C5），
           另两个模式的"专辑勾选 + 类别三态 + 秘封碟"与"总开关 + 手选"在这个模式下没有意义 */}

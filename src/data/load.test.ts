@@ -5,6 +5,7 @@ import {
   validateSources,
 } from "./load";
 import { displayTitle, splitTrackId, trackId, type CharacterRecord } from "./types";
+import { cardAspectRatio, CardAspectRatio, CARD_RATIO_VALUES } from "../theme/cardRatio";
 
 const character = (overrides: Partial<CharacterRecord> = {}): CharacterRecord => ({
   key: "cirno",
@@ -48,6 +49,23 @@ describe("data validators", () => {
     expect(() => validateCharacters(wrap([character({ audio: [] })]), 1)).toThrow(/audio/);
     expect(() => validateCharacters(wrap([character({ audio: ["  "] })]), 1)).toThrow(/audio/);
     expect(() => validateCharacters(wrap([character({ audio: "x" as never })]), 1)).toThrow(/audio/);
+  });
+
+  it("`coversByRatio`（模式 3 的逐比例卡面，D164）要写就得是「认得的档 → 非空字符串」", () => {
+    const wrap = (list: unknown) => ({ schema: 1, characters: list });
+    // 不写 = 单图形态（旧清单 / 手放的图）：原曲 / 音MAD 两份都不带这个字段
+    expect(validateCharacters(wrap([character()]), 1)).toHaveLength(1);
+    expect(validateCharacters(wrap([character({ coversByRatio: { "16x9": "https://x/w.jpg" } })]), 1))
+      .toHaveLength(1);
+    expect(validateCharacters(wrap([character({ coversByRatio: { "4x3": "https://x/t.jpg" } })]), 1))
+      .toHaveLength(1);
+    // 认不得的档 / 空值 / 不是对象 —— 一律报错（这是个"按档位查表"的结构，键错等于查不到）
+    expect(() => validateCharacters(wrap([character({ coversByRatio: { "16:9": "https://x/w.jpg" } as never })]), 1))
+      .toThrow(/coversByRatio/);
+    expect(() => validateCharacters(wrap([character({ coversByRatio: { "16x9": "  " } })]), 1))
+      .toThrow(/coversByRatio/);
+    expect(() => validateCharacters(wrap([character({ coversByRatio: [] as never })]), 1))
+      .toThrow(/coversByRatio/);
   });
 
   it("合法角色通过", () => {
@@ -98,6 +116,41 @@ describe("loadDataBundle", () => {
     // 同一个 `url()`：带尾斜杠的 base 归一化之后还是同一个地址（不该出现 `//`）
     const trailing = await loadDataBundle("/sub/dir/");
     expect(table(trailing)).toBe("/sub/dir/otomads/loudness/otomads.json");
+  });
+
+  it("卡面比例档位（D164）：可以不写；写了必须是认得的档，非法就整份数据报错", async () => {
+    const realFetch = globalThis.fetch.bind(globalThis);
+    /** 给 `cardsets.json` 的第一套图集塞一个 `ratio`（其余照旧）。 */
+    const stub = (ratio: unknown) => vi.stubGlobal("fetch", (async (input: RequestInfo | URL, init?: RequestInit) => {
+      const response = await realFetch(input as RequestInfo, init);
+      if (!String(input).includes("cardsets.json")) return response;
+      const payload = await response.json();
+      payload.cardSets[0].ratio = ratio;
+      return new Response(JSON.stringify(payload), { headers: { "content-type": "application/json" } });
+    }) as typeof fetch);
+
+    // 认得的档原样带进数据集（渲染侧靠 `cardAspectRatio(set)` 取它）
+    stub("4x3");
+    const bundle = await loadDataBundle("./data");
+    expect(bundle.shared.cardSets[0]!.ratio).toBe("4x3");
+    expect(cardAspectRatio(bundle.shared.cardSets[0])).toBeCloseTo(CARD_RATIO_VALUES["4x3"], 12);
+    vi.unstubAllGlobals();
+
+    // 认不得的档 / 数字 / 空 ⇒ 直接拦下（不许让卡面高度无从算起）
+    for (const bad of ["16:9", "16X9", "", 1.7778, 0, null, {}]) {
+      stub(bad);
+      await expect(loadDataBundle("./data"), String(bad)).rejects.toThrow(/ratio/);
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("出厂数据：原曲/音MAD 的图集都不写档位 ⇒ 仍是原比例 703:1000（两档横版不该漏到这两个模式）", async () => {
+    const bundle = await loadDataBundle("./data");
+    expect(bundle.shared.cardSets.length).toBeGreaterThan(0);
+    for (const set of bundle.shared.cardSets) {
+      expect(set.ratio, set.id).toBeUndefined();
+      expect(cardAspectRatio(set), set.id).toBe(CardAspectRatio);
+    }
   });
 });
 

@@ -1,6 +1,8 @@
 /** 模式 3「自定义」的源清单 → 运行时数据集（契约 `docs/custom-mode-v1.md` C2/C3）。
  *
  * 清单是**使用者自己托管**的一份 JSON（`manifest.json`），一张卡一项：卡名 + 一张卡面 + 一首曲目。
+ * 卡面可以是**一份图**（两种卡面比例共用），也可以是**逐比例两份**（`{"16x9": …, "4x3": …}`，D164：
+ * 设置页「卡面设置」里切比例，两份都留在数据集里 ⇒ 切档只换图、不重建数据集）。
  * 与 `packSnapshot.ts`（D145）同一个套路、同一种严格：**任何一条不满足 ⇒ 整份 `undefined`**，
  * 调用方回到空兜底（界面提示"必须填写自定义源链接"）—— 半信半疑地用一份坏清单，
  * 表现是"卡少了几张 / 看得见点不响"这种最难查的故障，fail-closed 至少是"这个模式空着"。
@@ -16,6 +18,7 @@
 import { isRecord } from "../persist";
 import { stableHash } from "../rng";
 import { sourceRelativeUrl, versionedUrl } from "../music/manifestUrl";
+import { DEFAULT_CARD_RATIO, isCardRatio, type CardRatio } from "../theme/cardRatio";
 import type { AlbumRecord, CharacterRecord, DataBundle, DataIndex, Extra, ModeDataset, MusicEntry } from "./types";
 import { bits, fingerprint } from "./packSnapshot";
 
@@ -45,16 +48,46 @@ function optionalText(raw: Record<string, unknown>, key: string): string | undef
 
 /** 清单里的一张卡（字段都校验过了）。 */
 interface ParsedCard {
-  id?: string; name: string; cover: string; audio: string; revision?: string;
+  id?: string; name: string; cover: ParsedCover; audio: string; revision?: string;
   album: string; author?: string; title: string; source?: string;
+}
+
+/** 清单里的 `cover`：**单图**（两种比例共用）或**逐比例**两份（D164）。
+ *
+ *  `primary` 是"默认档那一份"的原始串（相对路径或绝对直链，**还没解析**）：
+ *  它进派生的卡 key，也是 `card` / `covers` 里放的那一份。 */
+interface ParsedCover {
+  primary: string;
+  byRatio?: Partial<Record<CardRatio, string>>;
 }
 
 const OPTIONAL_CARD_KEYS = ["id", "revision", "author", "source"] as const;
 
+/** `cover` 的两种形态。认不得的键、空值、非字符串 ⇒ **整份清单不合法**（fail-closed）。
+ *
+ *  - `"cover/alice.jpg"` / `"https://…"`：一份图，两种比例都用它；
+ *  - `{ "16x9": "…", "4x3": "…" }`：两份图（工具抓封面时会按原分辨率裁出这两份）。
+ *    只写一把键也合法（另一档回落到这一份）。 */
+function parseCover(raw: unknown): ParsedCover | undefined {
+  const single = text(raw);
+  if (single !== undefined) return { primary: single };
+  if (!isRecord(raw)) return undefined;
+  const byRatio: Partial<Record<CardRatio, string>> = {};
+  for (const [key, value] of Object.entries(raw)) {
+    if (!isCardRatio(key)) return undefined;
+    const url = text(value);
+    if (url === undefined) return undefined;
+    byRatio[key] = url;
+  }
+  const primary = byRatio[DEFAULT_CARD_RATIO]
+    ?? (Object.keys(byRatio).length > 0 ? byRatio[Object.keys(byRatio)[0] as CardRatio] : undefined);
+  return primary === undefined ? undefined : { primary, byRatio };
+}
+
 function parseCard(raw: unknown): ParsedCard | undefined {
   if (!isRecord(raw)) return undefined;
   const name = text(raw.name);
-  const cover = text(raw.cover);
+  const cover = parseCover(raw.cover);
   const audio = text(raw.audio);
   const album = text(raw.album);
   const title = text(raw.title);
@@ -70,9 +103,12 @@ function parseCard(raw: unknown): ParsedCard | undefined {
   return card;
 }
 
-/** 派生 key：`(卡名|专辑|曲名|卡面)` 的稳定哈希 —— 与数组顺序无关，所以两端必然同值。 */
+/** 派生 key：`(卡名|专辑|曲名|卡面)` 的稳定哈希 —— 与数组顺序无关，所以两端必然同值。
+ *
+ *  卡面用**默认档那一份**的原始串：单图清单因此与改动前逐字相同（同一张卡在两版应用里派生出同一个 key）。 */
 function derivedKey(card: ParsedCard): string {
-  return DERIVED_KEY_PREFIX + bits(stableHash(`custom\n${[card.name, card.album, card.title, card.cover].join("\u0001")}`));
+  return DERIVED_KEY_PREFIX
+    + bits(stableHash(`custom\n${[card.name, card.album, card.title, card.cover.primary].join("\u0001")}`));
 }
 
 /**
@@ -115,14 +151,21 @@ export function parseCustomManifest(payload: unknown, manifestUrl: string): Cust
     const entry: MusicEntry = [album.name, card.title, CUSTOM_EXTRA];
     if (card.author !== undefined) entry.push(card.author);   // 空作者不入列表（Q7），非空才写第 4 位
 
-    // 卡面与音频都在**校验阶段**解析成绝对地址：相对 ⇒ 按清单目录拼，绝对 ⇒ 原样（C3）
-    const cover = sourceRelativeUrl(manifestUrl, card.cover);
+    // 卡面与音频都在**校验阶段**解析成绝对地址：相对 ⇒ 按清单目录拼，绝对 ⇒ 原样（C3）。
+    // 卡面给了两份（逐比例）就都解析好存进 `coversByRatio`：切比例只换图、不重建数据集，
+    // 数据指纹也因此在两个档位下**同一个值**（两端选了不同档也能握手，D164）。
+    const cover = sourceRelativeUrl(manifestUrl, card.cover.primary);
+    const byRatio = card.cover.byRatio === undefined ? undefined : Object.fromEntries(
+      Object.entries(card.cover.byRatio).map(
+        ([ratio, url]) => [ratio, sourceRelativeUrl(manifestUrl, url)]),
+    ) as Partial<Record<CardRatio, string>>;
     characters.push({
       key,
       name: card.name,
       order: characters.length,
       card: [cover],
       covers: [cover],
+      ...(byRatio === undefined ? {} : { coversByRatio: byRatio }),
       searchNames: [card.name],
       music: [entry],
       audio: [versionedUrl(sourceRelativeUrl(manifestUrl, card.audio), card.revision ?? fallbackRevision)],
@@ -186,13 +229,15 @@ function withContentHash(
  *
  * - **专辑表**：`key/name/kind/pack/order`（与 `packHash` 同一套投影）；
  * - **每张卡**：`key`、**卡名**、**顺序**、`card` / `covers`（= 解析后的卡面绝对地址）、
- *   `music`（专辑 / 曲名 / 作者）。
+ *   `coversByRatio`（两种比例那两份地址，如果清单给了）、`music`（专辑 / 曲名 / 作者）。
  *
  * 卡名与顺序**必须算进来**：这个模式的身份不像音MAD 那样由原曲数据集守（S1），
  * 它**就是**清单给的 —— 两端卡名/顺序不同，桌上的牌就不同。
  *
  * **不覆盖**：**音频地址与版本号**（换 CDN / 换宿主不该把两端拆开，与 D145 同口径）、
- * 清单来源 URL、页面来源。于是"同一份卡表 ⇒ 同一个哈希"，一人挂本机、一人挂 CDN 也能一起玩。
+ * 清单来源 URL、页面来源，以及——注意——**当前选的是哪一档卡面比例**：两种比例的地址都算进去了，
+ * 但"用户此刻在看 16:9 还是 4:3"是**显示偏好**，两端各选各的照样能一起玩（D164）。
+ * 于是"同一份卡表 ⇒ 同一个哈希"，一人挂本机、一人挂 CDN 也能一起玩。
  *
  * 算法与标签（`custom`）**冻结在应用里**：改它 = 改握手口径，两端必须一起更新。
  */
@@ -201,6 +246,7 @@ export function customHash(
 ): string {
   return fingerprint("custom", albums, characters, (character) => [
     character.key, character.name, character.order, character.card, character.covers ?? null,
+    character.coversByRatio ?? null,
     character.music,
   ]);
 }

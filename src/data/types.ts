@@ -1,5 +1,6 @@
 /** 运行时数据形状（对应 `tools` 生成的 `public/data/*.json`）。 */
 import type { MusicMode } from "../music/mode";
+import type { CardRatio } from "../theme/cardRatio";
 
 export const EXTRAS = ["角色曲", "道中曲", "更多道中曲", "秘封曲"] as const;
 export type Extra = (typeof EXTRAS)[number];
@@ -27,6 +28,12 @@ export interface CharacterRecord {
    *  `cardCount`（卡池）/ `cardFace`（取图）/ `maxCardCount`（互斥表用的最大口径）。
    *  身份字段跨模式一致（契约 §5 S1），这个字段是**卡面那一类**的例外。 */
   covers?: string[];
+  /** 模式 3：**同一张卡面**在两种比例下的地址（清单的 `cover` 给了两份时才有，D164）。
+   *  值是**解析后的绝对 URL**；`card` / `covers` 里放的是**默认档**（16:9，没有就 4:3）那一份。
+   *  `cardFace()` 按当前生效图集的 `ratio` 取它 ⇒ 切比例只换图、不重建数据集，
+   *  数据指纹也因此与"用户选了哪一档"无关（两端比例不同也能握手）。
+   *  音MAD 那份 B 站封面（每首一张）**不带这个字段**：它的比例跟着内置原比例走。 */
+  coversByRatio?: Partial<Record<CardRatio, string>>;
   /** 每张卡**自己的**音频地址（模式 3 才有，F1）：与 `music` **一一对应**（`audio[i]` ↔ `music[i]`），
    *  与 `covers` 同一套设计。**校验阶段就解析成绝对 URL**（含 D144 的 `?v=`），播放时直接用，
    *  不再走 `(专辑, 曲名)` 查表 ⇒ 这个模式允许同名曲目、也允许两张卡共用一首。
@@ -79,6 +86,10 @@ export interface CardSetRecord {
   localPrefix: string;
   /** 远程 origin，按顺序兜底 */
   origins: string[];
+  /** 卡面比例档位：**缺省 = 内置图集的原比例 703:1000**（`theme/cardRatio.ts`）。
+   *  模式 3「自定义」由**用户偏好**决定（16:9 默认 / 4:3 可选，D164），`resolveCardSet` 把它写到
+   *  生效图集上。渲染侧一律用 `cardAspectRatio(set)` 取，不许直接写常量。 */
+  ratio?: CardRatio;
 }
 
 export interface DataIndex {

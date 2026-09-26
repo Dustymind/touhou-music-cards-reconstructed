@@ -23,10 +23,15 @@ export const Localization = {
   PlayerTabCountdown: u("Countdown", "倒计时"),
   PlayerTabPlaybackDurationLabel: u("Playback Duration (s; 0 = inf)", "播放时长（秒；0 = 无限）"),
 
-  ConfigTabCardCollection: u("Card Collection", "卡面图集"),
+  // D164：「卡面图集」→「卡面设置」——这个分区现在不只管图集，还管**卡面比例**（模式 3 的 16:9 / 4:3）
+  ConfigTabCardSettings: u("Card Settings", "卡面设置"),
   ConfigTabCardSetFixed: u(
-    "This mode draws the one cover each card's own source gives it; the art sets cannot be chosen here.",
+    "This mode draws the cover each card's own source gives it; the art sets cannot be chosen here.",
     "这个模式的卡面由源提供，每卡一张，不能在这里更换图集。"),
+  ConfigTabCardRatio: u("Card aspect ratio", "卡面比例"),
+  // 档名两种语言一样（16:9 / 4:3 是数字），但仍走 i18n 键：文案不许散在组件里
+  ConfigTabCardRatio16x9: u("16:9", "16:9"),
+  ConfigTabCardRatio4x3: u("4:3", "4:3"),
   ConfigTabMusicSource: u("Music Source", "音乐源"),
   ConfigTabMusicSelectionPresets: u("Music Selection Presets", "音乐选择预设"),
   ConfigTabMusicSelectionSingle: u("Single Track Mode", "仅单曲模式"),

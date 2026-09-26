@@ -13,7 +13,7 @@ import { cardKey } from "../../game/types";
 import { t, Localization } from "../../i18n/localization";
 import { CardStrip, type StripCard } from "../components/CardStrip";
 import { CharacterCard } from "../components/CharacterCard";
-import { CardAspectRatio } from "../../theme/theme";
+import { cardAspectRatio } from "../../theme/cardRatio";
 import { DECK_GAP } from "./DeckGrid";
 import { LazyRow } from "../components/LazyRow";
 
@@ -64,7 +64,8 @@ export function UnusedCards(props: UnusedCardsProps2) {
   const [over, setOver] = useState(false);
   /** 网格布局下的 hover（只变底色，不做位移——与播放页、卡槽一致） */
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
-  const cardHeight = Math.round(width / CardAspectRatio);
+  // 网格布局的占位高度跟卡面走：原比例 703:1000（竖版）/ 模式 3 的 16:9（横版，D163）
+  const cardHeight = Math.round(width / cardAspectRatio(cardSet));
 
   /** 曲目互斥被挡下的卡：可见但压暗（保留配色），且不能点/拖（D108） */
   const isBlocked = (card: CardInfo): boolean => blockedKeys?.has(cardKey(card)) ?? false;

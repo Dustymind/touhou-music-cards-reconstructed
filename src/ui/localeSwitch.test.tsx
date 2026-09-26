@@ -84,7 +84,7 @@ describe("切语言：挂载着的面板都要跟着换", () => {
     // 每个分区挑一处只在某一语言里出现的字
     const probes: [string, string][] = [
       ["数据指纹", "Data hash"],              // 数据分区
-      ["卡面图集", "Card Collection"],         // 卡面分区
+      ["卡面设置", "Card Settings"],           // 卡面分区（D164 从「卡面图集」改名）
       ["回退顺序", "Fallback order"],          // 音源分区
       ["可用", "Available"],                   // 预设分区的统计行
       ["开启后每个角色只播一首", "each character plays exactly one track"],   // 单曲分区

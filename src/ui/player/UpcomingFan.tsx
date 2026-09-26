@@ -11,7 +11,7 @@ import { useElementWidth } from "../useElementWidth";
 import type { CardSetRecord, DataBundle, ModeDataset } from "../../data/types";
 import { cardCount, cardFace } from "../../data/cardFaces";
 import { useCurrentDataset } from "../../data/useDataset";
-import { CardAspectRatio } from "../../theme/theme";
+import { cardAspectRatio } from "../../theme/cardRatio";
 import { CardStrip, type StripCard } from "../components/CardStrip";
 
 interface UpcomingFanProps {
@@ -56,7 +56,7 @@ export function fanLayout(
       });
     }
   }
-  return { cards, cardWidth, cardHeight: cardWidth / CardAspectRatio };
+  return { cards, cardWidth, cardHeight: cardWidth / cardAspectRatio(cardSet) };
 }
 
 export function UpcomingFan(props: UpcomingFanProps) {

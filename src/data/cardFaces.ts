@@ -19,9 +19,13 @@
  * 5. **可选集是唯一的入口**（D155）：`availableCardSets` 决定"这个模式能选哪几套"，`resolveCardSet`
  *    的回落**只允许落在它的结果里** —— 没有可用图集就是**空图集**（不画图），不再回头去用 `sets[0]`。
  *    同理"哪些模式共用内置图集"由 `src/music/mode.ts` 的 `usesOwnCardFaces()` 明写。
+ * 6. **卡面形状也跟着图集走**（D163）：模式 3 的合成图集声明 `aspectRatio` = 16:9 横版，
+ *    其余图集不写就是原比例 703:1000。取法只有 `theme/cardRatio.ts` 的 `cardAspectRatio(set)`
+ *    —— 卡条、牌桌、未使用卡牌区、底部面板、播放页的尺寸全部由它算，两种比例都要能画。
  */
 import type { CardSetRecord, CharacterRecord, ModeDataset } from "./types";
 import { usesOwnCardFaces } from "../music/mode";
+import { DEFAULT_CARD_RATIO, type CardRatio } from "../theme/cardRatio";
 
 /** 一个可用图集都没有时的兜底（测试里 `cardSets: []` 会走到）：不显示图，但不炸。 */
 const NO_CARD_SET: CardSetRecord = {
@@ -32,11 +36,32 @@ const NO_CARD_SET: CardSetRecord = {
  *  也不进 `cardsets.json`（它是代码里的常量，不是一条数据 —— 契约 C3）。
  *
  *  `sourceOnly` 让 `CharacterCard` 原样用那条 URL、并按卡面比例 `cover`（与音MAD 的 B 站封面同一套）；
- *  每卡恰好一张（`card` 与 `covers` 都是它）⇒ 卡数恒为 1，取模轮转天然安全。 */
+ *  每卡恰好一张（`card` 与 `covers` 都是它）⇒ 卡数恒为 1，取模轮转天然安全。
+ *
+ *  **比例不写在这里**：这个模式的卡图由使用者自己提供（横版居多），比例是**用户偏好**
+ * （设置页「卡面设置」里 16:9 / 4:3 二选一，D164），由 :func:`resolveCardSet` 落到生效图集的
+ * `ratio` 上。写死在这里的话，"切一档"就得改这份常量、渲染侧还得多一条特判。 */
 export const CUSTOM_CARD_SET: CardSetRecord = {
   id: "custom-source", dir: "", label: { en: "Custom source", zh: "自定义源" },
   localPrefix: "./", origins: [], sourceOnly: true, mode: "custom",
 };
+
+/** 每个档位一个**常量**合成图集（引用稳定）。
+ *
+ *  ⚠️ 这一层缓存不是优化、是正确性：`GamePanel` 把 `cardSet` 放进"重建卡池"那个 effect 的依赖里，
+ *  而 `resolveCardSet` 每次调用都新建一个 `{...CUSTOM_CARD_SET, ratio}` ⇒ 每次渲染都是新身份
+ *  ⇒ effect 每次都跑 ⇒ `init()` 改状态 ⇒ 再渲染 …… 实测就是 `Maximum update depth exceeded`。
+ *  同一档位返回同一个对象之后，"选中的图集 / 档位没变 ⇒ `cardSet` 引用不变"这条不变量成立。 */
+const OWN_FACE_SETS = new Map<CardRatio, CardSetRecord>();
+
+/** 模式 3 的生效图集 = 合成图集 + 用户选的档位（引用稳定，见上）。 */
+export function customCardSet(ratio: CardRatio): CardSetRecord {
+  const cached = OWN_FACE_SETS.get(ratio);
+  if (cached !== undefined) return cached;
+  const set: CardSetRecord = { ...CUSTOM_CARD_SET, ratio };
+  OWN_FACE_SETS.set(ratio, set);
+  return set;
+}
 
 /** 这一条卡面是不是**完整 URL**（源封面就是）。`CharacterCard` 据此跳过"拼目录"那一步。 */
 export function isCardUrl(file: string): boolean {
@@ -68,7 +93,11 @@ export function cardCount(character: CharacterRecord, cardSet?: CardSetRecord): 
   return character.covers?.length ?? character.card.length;
 }
 
-/** 第 `index` 张卡的图（越界/负数一律回到第 0 张，**绝不返回 undefined**）。 */
+/** 第 `index` 张卡的图（越界/负数一律回到第 0 张，**绝不返回 undefined**）。
+ *
+ *  **模式 3 的两种比例**（D164）：清单给了两份卡图时（`coversByRatio`），按图集当前的档位取那一份；
+ *  只有一份（旧清单 / 手放的图 / 绝对直链）就退回 `covers[0]` —— 那一份在两个档位下都会画，
+ *  只是比例不对时由 `CharacterCard` 的 `object-fit: cover` 居中裁掉多余的部分。 */
 export function cardFace(
   character: CharacterRecord,
   cardSet: CardSetRecord | undefined,
@@ -77,7 +106,10 @@ export function cardFace(
   const covers = character.covers ?? [];
   const card = character.card;
   const safe = Number.isFinite(index) && index > 0 ? Math.floor(index) : 0;
-  if (cardSet?.sourceOnly) return covers[safe] ?? card[safe % card.length] ?? "";
+  if (cardSet?.sourceOnly) {
+    const byRatio = cardSet.ratio === undefined ? undefined : character.coversByRatio?.[cardSet.ratio];
+    return byRatio ?? covers[safe] ?? card[safe % card.length] ?? "";
+  }
   return card[safe % card.length] ?? covers[safe] ?? "";
 }
 
@@ -118,12 +150,22 @@ export function availableCardSets(
  *
  *  回落**只落在 `availableCardSets` 的结果里**，这个模式下可选集为空就是空图集（不画图，D155）。
  *  回落的只是**渲染**，用户存的偏好不动 —— 于是"音MAD 选了封面集、切回原曲"时不会白卡，
- *  切回音MAD 又自动用回封面集。 */
+ *  切回音MAD 又自动用回封面集。
+ *
+ *  `ratio` 只对**自带卡面的模式**（模式 3）有意义：那个模式的卡图是使用者自己给的，
+ *  比例是他在设置页选的档位（D164）—— 落在这里，于是卡牌、卡条、牌桌、底部面板、播放页
+ *  五处**不用各记一遍偏好**（它们都从 `cardSet` 上读 `cardAspectRatio`）。
+ *  另两个模式的内置图集不写 `ratio` ⇒ 原比例，行为逐字不变。
+ *
+ *  **返回值引用稳定**（同一个输入 ⇒ 同一个对象）：调用方（`GamePanel`）把它放进 effect 依赖，
+ *  "每次都新建一个对象"会把重建卡池跑成死循环（见 `customCardSet` 的说明）。 */
 export function resolveCardSet(
   sets: readonly CardSetRecord[],
   selectedId: string,
   dataset: ModeDataset,
+  ratio: CardRatio = DEFAULT_CARD_RATIO,
 ): CardSetRecord {
+  if (usesOwnCardFaces(dataset.mode)) return customCardSet(ratio);
   const usable = availableCardSets(sets, dataset);
   return usable.find((set) => set.id === selectedId) ?? usable[0] ?? NO_CARD_SET;
 }

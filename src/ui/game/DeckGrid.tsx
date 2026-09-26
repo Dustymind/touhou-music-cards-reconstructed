@@ -15,7 +15,8 @@ import type { CardSetRecord } from "../../data/types";
 import { cardFileAt } from "../../data/cardFaces";
 import { DRAG_MIME } from "../../game/drag";
 import type { CardInfo, Slot } from "../../game/types";
-import { CardAspectRatio, MD2, MD2_SLOT } from "../../theme/theme";
+import { cardAspectRatio } from "../../theme/cardRatio";
+import { MD2, MD2_SLOT } from "../../theme/theme";
 import { CharacterCard, type CardState } from "../components/CharacterCard";
 import { CheatRect } from "./CheatRect";
 
@@ -62,7 +63,9 @@ export function DeckGrid(props: DeckGridProps) {
   const [moving, setMoving] = useState<readonly string[]>([]);
   const previousSlots = useRef<Map<string, number>>(new Map());
 
-  const cardHeight = width / CardAspectRatio;
+  /** 卡槽高度 = 卡宽 ÷ 这套图集的比例（原比例 703:1000 / 模式 3 的 16:9，D163）——
+   *  格子层、卡片层的纵向位置、卡牌层高度全由它算。 */
+  const cardHeight = width / cardAspectRatio(cardSet);
   const total = rows * columns;
   const keyOf = (card: CardInfo): string => `${card.characterKey}-${card.cardIndex}`;
   const left = (slot: number): number => (slot % columns) * (width + GAP);
@@ -215,7 +218,7 @@ export function DeckGrid(props: DeckGridProps) {
                 bare
               />
               {props.cheatSlot === slot && (
-                <CheatRect width={width - 4} height={(width - 4) / CardAspectRatio} />
+                <CheatRect width={width - 4} height={(width - 4) / cardAspectRatio(cardSet)} />
               )}
             </Box>
           );

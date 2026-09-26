@@ -21,6 +21,7 @@ import type { TableMap } from "../../music/sources";
 import { formatAuthors } from "../../music/authorOrder";
 import { fadeInSx, NoFontFamily } from "../../theme/theme";
 import { CharacterCard } from "../components/CharacterCard";
+import { useSession } from "../../store/session";
 import { glitchEnabled, preferLocalCards } from "../../runtime";
 import { PlayerControl } from "../components/PlayerControl";
 import { memoOnLocale } from "../memoOnLocale";
@@ -69,7 +70,11 @@ export function creditLine(entry: MusicEntry | null, albums: readonly AlbumRecor
 function PlayerPanelInner(props: PlayerPanelProps) {
   const { bundle, player, order, temporaryDisabled, currentKey } = props;
   const dataset = useCurrentDataset(bundle);
-  const cardSet = resolveCardSet(bundle.shared.cardSets, props.cardCollection, dataset);
+  // 卡面比例（模式 3 的 16:9 / 4:3，D164）直接订阅 store：这个面板是 memo 的，
+  // 订阅之后"切一档"会自己重渲染（走 props 的话还得让外壳记得传、漏了就静默不生效）
+  const customCardRatio = useSession((slice) => slice.customCardRatio);
+  const cardSet = resolveCardSet(
+    bundle.shared.cardSets, props.cardCollection, dataset, customCardRatio);
   const character = dataset.characters.find((item) => item.key === currentKey) ?? null;
 
   // 播放页这张卡用**第几张**卡面：音MAD 侧是"一首一张"（D153）⇒ 跟着**正在放的那首**走

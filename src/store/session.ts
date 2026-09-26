@@ -8,6 +8,7 @@ import { create } from "zustand";
 import { defineStore, isRecord, pickString } from "../persist";
 import { DEFAULT_MUSIC_MODE, MUSIC_MODES, type MusicMode } from "../music/mode";
 import type { MusicEntry } from "../data/types";
+import { CARD_RATIOS, DEFAULT_CARD_RATIO, type CardRatio } from "../theme/cardRatio";
 import { getLocale, setLocale, type Locale } from "../i18n/localization";
 
 export const TAB_ORDER = ["player", "list", "config", "game"] as const;
@@ -31,6 +32,9 @@ interface SessionState {
    * 落盘；`?customsource=` 与主机下发的值走 `customSourceOverride`，**不写回存档**。
    */
   customSourceUrl: string;
+  /** 模式 3 的卡面比例档位（16:9 / 4:3，D164）：**全局偏好**（与 `cardCollection` 同类），
+   *  只对自带卡面的模式生效 —— 另两个模式的内置图集不写 `ratio` ⇒ 仍是原比例 703:1000。 */
+  customCardRatio: CardRatio;
   /** 本次会话生效的覆盖（见 `CustomSourceOverride`）：优先级**高于**存档值 */
   customSourceOverride: CustomSourceOverride | null;
   /**
@@ -49,6 +53,8 @@ interface SessionState {
   setLocalMusicUrl: (url: string) => void;
   /** 自定义源链接（模式 3）：写存档，并**清掉会话级覆盖**（用户刚亲手指定了地址，以他为准） */
   setCustomSourceUrl: (url: string) => void;
+  /** 模式 3 的卡面比例档位（设置页「卡面设置」里切；落盘） */
+  setCustomCardRatio: (ratio: CardRatio) => void;
   /** 采用主机下发的源链接（联机握手期；F3：只在本次会话生效，不写回存档） */
   adoptCustomSourceUrl: (url: string) => void;
   /** 离开房间：清掉**主机给的**那份覆盖，`?customsource=` 那份留着（它跟页面走，不跟房间走） */
@@ -67,6 +73,7 @@ const sessionStore = defineStore<SessionPrefs>({
   fallback: {
     locale: "en", tab: "player", cardCollection: "dairi-sd",
     musicMode: DEFAULT_MUSIC_MODE, localMusicUrl: "", customSourceUrl: "",
+    customCardRatio: DEFAULT_CARD_RATIO,
   },
   validate(raw) {
     if (!isRecord(raw)) return null;
@@ -79,7 +86,10 @@ const sessionStore = defineStore<SessionPrefs>({
     const localMusicUrl = pickString(raw.localMusicUrl) ?? "";
     // 老存档没有 customSourceUrl → 空串（= 还没填），不因为缺字段就丢弃整份偏好
     const customSourceUrl = pickString(raw.customSourceUrl) ?? "";
-    return { locale, tab, cardCollection, musicMode, localMusicUrl, customSourceUrl };
+    // 卡面比例同理：老存档没有 / 值认不得 → 默认档（16:9），不因为这一项就丢弃整份偏好
+    const customCardRatio = (pickString(raw.customCardRatio, CARD_RATIOS) as CardRatio | null)
+      ?? DEFAULT_CARD_RATIO;
+    return { locale, tab, cardCollection, musicMode, localMusicUrl, customSourceUrl, customCardRatio };
   },
 });
 
@@ -93,6 +103,8 @@ interface SessionPrefs {
   localMusicUrl: string;
   /** 自定义源链接（模式 3；空 = 还没填，这个模式没有数据） */
   customSourceUrl: string;
+  /** 模式 3 的卡面比例档位（`"16x9"` / `"4x3"`） */
+  customCardRatio: CardRatio;
 }
 
 const initial = sessionStore.load();
@@ -106,6 +118,7 @@ export const useSession = create<SessionState>((set, get) => ({
   // URL 参数优先于存档：方便同一份构建在"同源部署"和"本机 8011"之间切换
   localMusicUrl: queryUrl("localmusic") ?? initial.localMusicUrl,
   customSourceUrl: initial.customSourceUrl,
+  customCardRatio: initial.customCardRatio,
   // `?customsource=` **不进存档**（契约 Q8）：它是"这一次打开用的源"，关掉页面就该回到自己的存档值
   customSourceOverride: queryUrl("customsource") === null
     ? null
@@ -147,6 +160,10 @@ export const useSession = create<SessionState>((set, get) => ({
     set({ customSourceUrl, customSourceOverride: null });
     sessionStore.save({ ...pickSession(get()), customSourceUrl });
   },
+  setCustomCardRatio(customCardRatio) {
+    set({ customCardRatio });
+    sessionStore.save({ ...pickSession(get()), customCardRatio });
+  },
   adoptCustomSourceUrl(url) {
     set({ customSourceOverride: { url, from: "host" } });
   },
@@ -160,7 +177,8 @@ export const useSession = create<SessionState>((set, get) => ({
  *  `customSourceOverride` **不在**其中：它只活这一次会话（F3）。 */
 function pickSession(
   state: Pick<SessionState,
-    "locale" | "tab" | "cardCollection" | "musicMode" | "localMusicUrl" | "customSourceUrl">,
+    "locale" | "tab" | "cardCollection" | "musicMode" | "localMusicUrl" | "customSourceUrl"
+    | "customCardRatio">,
 ) {
   return {
     locale: state.locale,
@@ -169,6 +187,7 @@ function pickSession(
     musicMode: state.musicMode,
     localMusicUrl: state.localMusicUrl,
     customSourceUrl: state.customSourceUrl,
+    customCardRatio: state.customCardRatio,
   };
 }
 

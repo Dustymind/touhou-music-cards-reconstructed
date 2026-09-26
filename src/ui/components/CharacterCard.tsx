@@ -4,7 +4,8 @@ import { memo, useEffect, useState } from "react";
 
 import type { CardSetRecord } from "../../data/types";
 import { isCardUrl } from "../../data/cardFaces";
-import { CardAspectRatio, CardColors, MD2, MD2_SLOT, NoFontFamily } from "../../theme/theme";
+import { cardAspectRatio } from "../../theme/cardRatio";
+import { CardColors, MD2, MD2_SLOT, NoFontFamily } from "../../theme/theme";
 import { glitchTilt, isCheat, randomColor } from "../../cheat";
 
 /** 卡面圆角：卡牌本体与选卡显示区边界共用（取 MD2 形状规格，避免两处各写一遍）。 */
@@ -109,7 +110,9 @@ function CharacterCardInner({
         ...sx,
       }}
     >
-      <Box sx={{ width: "100%", position: "relative", aspectRatio: CardAspectRatio }}>
+      {/* 卡面框的形状**跟着图集走**（D163）：内置图集 = 原比例 703:1000 竖版，
+          模式 3 的合成图集 = 16:9 横版。取法只有 `cardAspectRatio`，别在这里写死常量。 */}
+      <Box sx={{ width: "100%", position: "relative", aspectRatio: cardAspectRatio(cardSet) }}>
         {!isPlaceholder && (
           <Box
             component="img"
@@ -125,8 +128,9 @@ function CharacterCardInner({
               height: "100%",
               position: "absolute",
               inset: 0,
-              // 源封面是 703×1000 的裁切图（正好卡面比例）⇒ contain 也是满的；
-              // 万一被人工覆写成别的比例，`cover` 至少不会留两条白边。
+              // 源给的图（音MAD 的 B 站封面、模式 3 的清单卡面）用 `cover` 铺满框：
+              // 比例对了就是满的，比例不对也不留白边（居中裁掉多余的部分）。
+              // 内置图集用 `contain`：那是整套立绘，宁可留白也不许裁。
               objectFit: cardSet.sourceOnly ? "cover" : "contain",
               userSelect: "none",
               filter: imageFilter,

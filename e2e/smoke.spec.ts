@@ -271,7 +271,7 @@ test("中文界面：游戏页（含联机大厅）全部是中文，不留英�
 
   // 设置页：分区标题始终可见（内容折叠）
   await page.getByRole("tab", { name: "设置", exact: true }).click();
-  for (const label of ["数据", "卡面图集", "音乐源", "音乐选择预设", "仅单曲模式"]) {
+  for (const label of ["数据", "卡面设置", "音乐源", "音乐选择预设", "仅单曲模式"]) {
     await expect(page.getByText(label, { exact: false }).first()).toBeVisible();
   }
   await page.getByRole("tab", { name: "游戏", exact: true }).click();

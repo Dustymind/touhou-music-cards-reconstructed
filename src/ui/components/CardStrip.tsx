@@ -17,7 +17,7 @@ import { useElementWidth } from "../useElementWidth";
 
 import type { CardSetRecord } from "../../data/types";
 import { DRAG_MIME } from "../../game/drag";
-import { CardAspectRatio } from "../../theme/theme";
+import { cardAspectRatio } from "../../theme/cardRatio";
 import { MD2_BORDER } from "../../theme/theme";
 import { CARD_BORDER_RADIUS, CharacterCard, type CardState } from "./CharacterCard";
 
@@ -195,7 +195,8 @@ export function CardStrip(props: CardStripProps) {
           sx={{
             position: "relative",
             width: visibleWidth,
-            height: width / CardAspectRatio,
+            // 卡条高度 = 卡宽 ÷ 这套图集的比例（原比例 703:1000 / 模式 3 的 16:9，见 cardRatio.ts）
+            height: width / cardAspectRatio(cardSet),
             maxWidth: "100%",
             overflow: "hidden",
             // 与卡牌同款圆角：滚动到边界时被裁掉的卡片不会露出直角
