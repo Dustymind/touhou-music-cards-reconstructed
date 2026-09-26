@@ -67,8 +67,8 @@ export const Localization = {
   MusicModeOtomads: u("Otomads", "音MAD"),
   MusicModeCustom: u("Custom", "自定义"),
   MusicModeHint: u(
-    "Originals uses the mirrors below; Otomads uses the local album source only; Custom uses the card list you host yourself. It only filters what you can pick next - the track playing right now is not interrupted.",
-    "「原曲」只用下面选中的镜像；「音MAD」只用本地专辑源；「自定义」只用你自己托管的卡表。它只过滤你接下来能选哪些曲目，不会打断正在播放的这一首。"),
+    "Originals uses the mirrors below; Otomads uses the local album source only; Custom uses the card list you host yourself.",
+    "「原曲」只用下面选中的镜像；「音MAD」只用本地专辑源；「自定义」只用你自己托管的卡表。"),
   MusicModeHostControlled: u(
     "Set by the host while you are in a room.",
     "联机时由主机决定（当前房间使用主机的音乐模式）。"),
