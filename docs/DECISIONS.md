@@ -5947,3 +5947,66 @@ e2e（`smoke` + `mode-separation` + `pack-snapshot`）chromium **38 passed** / f
 **顺带**：主仓库 `.music/` 与数据仓库 `.music/` 是**两份独立拷贝**，而 `pnpm local`（e2e 的助手）吃的是前者 ⇒
 曲包加歌后不同步，助手 manifest 的 `tracks` 行数（87）会与应用统计的曲目数（106）对不上，
 两条 e2e 就是这么红的 —— 加完歌记得把新 mp3 同步进主仓库那份曲库（本次已同步 19 首）。
+
+---
+
+### D155 共享卡面层的结构性清理 + 越界卡面的夹取（模式 3 的地基，2026-09-26）
+
+**背景**：第三个音乐模式（自定义）要求"卡面**只有**源给的那一张、内置图集在该模式下不可用"。落地前先把
+`src/data/cardFaces.ts` 里两处**今天看不出来、加新模式就会出事**的写法改成结构性的（① ②），
+再顺手补掉一个越界白卡（④）。三块**不依赖模式 3**，所以先独立做一轮：这样"另两个模式行为不变"
+可以在**没有模式 3 噪声**的情况下被证明。
+
+**① `resolveCardSet` 的回落穿透（`?? sets[0]`）**
+
+改动前候选为空时会回落到**原始** `sets[0]`，也就是"偷偷用第一套内置立绘"。今天走不到（两个模式永远有
+`mode === undefined` 的内置图集可选），但模式 3 正好会走到 —— 那个模式下**一套内置图集都不该列**，
+却会画出上游立绘。改成**回落链只允许落在 `availableCardSets` 的结果里**：
+
+```ts
+const usable = availableCardSets(sets, dataset);
+return usable.find((set) => set.id === selectedId) ?? usable[0] ?? NO_CARD_SET;
+```
+
+语义因此变成"这个模式下没有可用图集 ⇒ 空图集（不画图）"，**永不再看原始 `sets`**。
+反证：改动前 `resolveCardSet([COVER_SET], "otomads-cover", 原曲数据集)` 得到 `otomads-cover`
+（在原曲模式里画 B 站封面），改动后得到空图集。
+
+**② "哪些模式共用内置图集"收进模式侧的一处判定**
+
+`availableCardSets` 原来的条件是 `set.mode === undefined || set.mode === dataset.mode`。
+而 `set.mode === undefined` 对**所有**内置图集都成立 ⇒ 任何新模式都会自动把它们列出来。
+判据移到 `src/music/mode.ts`：
+
+```ts
+export const OWN_FACE_MODES: readonly MusicMode[] = [];      // 模式 3 落地时加 "custom"
+export function usesOwnCardFaces(mode: MusicMode): boolean { return OWN_FACE_MODES.includes(mode); }
+```
+
+过滤条件变成 `set.mode === undefined ? !ownFaces : set.mode === dataset.mode`。
+**判据放在 `mode.ts` 而不是 `cardFaces.ts`**：它回答的是"这个模式怎么拿卡面"（模式的性质），
+而不是"这张表长什么样"；将来"哪些图集能在哪些模式选"再复杂也只看这一个函数。
+今天列表为空 ⇒ 两个模式**逐字不变**（`cardFaces.test.ts` 原有 4 条"图集可选性"用例一条没改）。
+
+**④ 越界 `cardIndex` 从"白卡"改成"第 0 张"**
+
+`DeckGrid.tsx` 与 `UnusedCards.tsx`（两处）原先直接 `cardFiles[key]?.[cardIndex] ?? ""`：渲染表虽然按
+**数据最大**口径铺满（`maxCardCount`），但对端用着另一套图集、或存档里留着旧数据时下标仍可能越界 ⇒
+**画出一张空白卡**。新增纯函数（放 data 层、只收原始值，不把 `CardInfo` 引进 data 层）：
+
+```ts
+export function cardFileAt(files, characterKey, cardIndex): string {
+  const list = files[characterKey];
+  return list?.[cardIndex] ?? list?.[0] ?? "";
+}
+```
+
+正常路径（渲染表按 `maxCardCount` 铺满）走不到这条兜底 ⇒ 现有用例不受影响；越界那条从白卡变成第 0 张，
+对现有两个模式也是改进。**没做**的事：不去 `useGame` / 状态采用处夹取 `cardIndex` —— 那动的是协议同步的
+状态，两端不一致的风险比白卡大。
+
+**影响面**：三个模式共用这一层，模式 3 落地时只需要在 `OWN_FACE_MODES` 里加一个 `"custom"`
+（R3 再加合成图集），不需要在卡面层打任何模式专用补丁。
+
+**验证**：`pnpm typecheck` ✓；`cardFaces.test.ts` **16 → 21 条**（新增：两套内置模式都共用内置图集、
+用完可选集不再回落 `sets[0]`、越界/负数/非数字回到第 0 张、表里没这个角色才是空串）。

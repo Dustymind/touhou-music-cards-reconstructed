@@ -8,16 +8,17 @@
  *    `cardIndex` 也画得出图，不会变成空卡面；
  * 3. **源封面是整条绝对 URL**：不拼目录、不做 URL 编码（`cardUrl` 那一步同理）；
  * 4. **源不提供就不显示**：`sourceOnly` 图集在没有 covers 的数据集里既不可选、也不生效
- *    （回落只影响渲染，不动用户存的偏好）。
+ *    （回落只影响渲染，不动用户存的偏好）；
+ * 5. **可选集是唯一入口**（D155）：回落只落在 `availableCardSets` 的结果里。
  */
 import { describe, expect, it } from "vitest";
 
 import {
-  availableCardSets, cardCount, cardFace, cardFaces, hasSourceCovers, isCardUrl, maxCardCount,
-  resolveCardSet, usesPerTrackFaces,
+  availableCardSets, cardCount, cardFace, cardFaces, hasSourceCovers, isCardUrl,
+  maxCardCount, resolveCardSet, usesPerTrackFaces,
 } from "./cardFaces";
 import type { CardSetRecord, CharacterRecord, ModeDataset } from "./types";
-import type { MusicMode } from "../music/mode";
+import { MUSIC_MODES, usesOwnCardFaces, type MusicMode } from "../music/mode";
 
 /** 源封面图集（`data/card-sets.toml` 里那套 `otomads-cover` 的形状）。 */
 const COVER_SET: CardSetRecord = {
@@ -172,5 +173,20 @@ describe("图集可选性", () => {
   it("一套都没有时不炸（测试里 `cardSets: []` 的形态）", () => {
     expect(resolveCardSet([], "whatever", originals).id).toBe("");
     expect(availableCardSets([], originals)).toEqual([]);
+  });
+
+  it("两套内置模式都**共用**内置图集（`mode` 缺省的那几套照旧列出）", () => {
+    // 判据只有一处（`usesOwnCardFaces`）：它今天对两个模式都为假 ⇒ 上面几条用例的行为逐字不变
+    for (const mode of MUSIC_MODES) {
+      expect(usesOwnCardFaces(mode)).toBe(false);
+      expect(availableCardSets([UPSTREAM_SET, LOCAL_SET], dataset(mode, [character()])))
+        .toEqual([UPSTREAM_SET, LOCAL_SET]);
+    }
+  });
+
+  it("一套可选的都没有 ⇒ **空图集**，不再回头用原始 `sets[0]` 那套内置立绘", () => {
+    // 封面集是音MAD 专用：在原曲下它不可选，而候选里只有它 ⇒ 空集（改动前会回落到它自己 = 画 B 站封面）
+    expect(availableCardSets([COVER_SET], originals)).toEqual([]);
+    expect(resolveCardSet([COVER_SET], "otomads-cover", originals).id).toBe("");
   });
 });

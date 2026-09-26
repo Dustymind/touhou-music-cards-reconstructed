@@ -15,8 +15,13 @@
  * **互斥表不看当前图集**（`maxCardCount`）：一个角色"最多可能贡献几张卡"按**两种口径取最大**算。
  * 若按当前图集算，两端选了不同图集时会出现一边能放第二张、另一边不能 —— 那就破了
  * "一个角色在整张桌子上最多一张卡"这条不变式（D108）。
+ *
+ * 5. **可选集是唯一的入口**（D155）：`availableCardSets` 决定"这个模式能选哪几套"，`resolveCardSet`
+ *    的回落**只允许落在它的结果里** —— 没有可用图集就是**空图集**（不画图），不再回头去用 `sets[0]`。
+ *    同理"哪些模式共用内置图集"由 `src/music/mode.ts` 的 `usesOwnCardFaces()` 明写。
  */
 import type { CardSetRecord, CharacterRecord, ModeDataset } from "./types";
+import { usesOwnCardFaces } from "../music/mode";
 
 /** 一个可用图集都没有时的兜底（测试里 `cardSets: []` 会走到）：不显示图，但不炸。 */
 const NO_CARD_SET: CardSetRecord = {
@@ -89,13 +94,16 @@ export function availableCardSets(
   dataset: ModeDataset,
 ): CardSetRecord[] {
   const covers = hasSourceCovers(dataset);
+  // `mode` 缺省 = 共享图集（上游那几套、用户本地自放那套）：**自带卡面的模式不列它们**（D155）
+  const ownFaces = usesOwnCardFaces(dataset.mode);
   return sets.filter((set) =>
-    (set.mode === undefined || set.mode === dataset.mode)
+    (set.mode === undefined ? !ownFaces : set.mode === dataset.mode)
     && (!set.sourceOnly || covers));
 }
 
 /** 生效的图集：选中的那套在当前模式/当前源下可选就用它，否则回落到第一套可选的。
  *
+ *  回落**只落在 `availableCardSets` 的结果里**，这个模式下可选集为空就是空图集（不画图，D155）。
  *  回落的只是**渲染**，用户存的偏好不动 —— 于是"音MAD 选了封面集、切回原曲"时不会白卡，
  *  切回音MAD 又自动用回封面集。 */
 export function resolveCardSet(
@@ -104,5 +112,5 @@ export function resolveCardSet(
   dataset: ModeDataset,
 ): CardSetRecord {
   const usable = availableCardSets(sets, dataset);
-  return usable.find((set) => set.id === selectedId) ?? usable[0] ?? sets[0] ?? NO_CARD_SET;
+  return usable.find((set) => set.id === selectedId) ?? usable[0] ?? NO_CARD_SET;
 }
