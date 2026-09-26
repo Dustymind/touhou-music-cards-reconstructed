@@ -5909,3 +5909,41 @@ e2e（`smoke` + `mode-separation`）**36 passed**；部署实测：牌堆 87、�
 （**期望值跟着数据算**：`sum(covers)` vs `sum(card.length)`）+ 换图集后牌库不丢且都有图。
 文件级 `beforeEach` 补了 session 归零（图集现在真的会影响卡池，不再是可以忽略的偏好）。
 vitest **90 文件 / 942 passed**。
+
+### D154 音MAD 曲包扩到 **106 首 / 43 角色**（19 首新曲目，2026-09-26）
+
+**用户要求**：跑一次数据仓库的更新推送（含封面链接拉取）。落在数据侧是**九份角色文件里手填的 19 条曲目**
+（其中 7 个角色原本只有空骨架：秋静葉 / 秋穣子 / 鍵山雛 / 河城にとり / 犬走椛 / 東風谷早苗 / 洩矢諏訪子），
+走完 `fetch_covers` → `fetch_audio` → `measure` → `pack` → **先换 Release 资产、再 push** 那条链。
+
+**结果**：归档 **413,139,403 B / sha256 `88b3c577…`**（上一份 343,469,436 B / `4f5be065…`），
+`stage_media review` ✅（106 行地址 / 43 角色 / 106 条曲目条目 / 顶层 `revision fb506be454c1b956`）；
+CI 重打与本机那份**逐字节相同** ⇒ ② 段没换资产（D149 那条不变式又验了一次）；
+线上 `build-info.json` 的 `archiveSha256` 与本地一致，`manifest.json` **106 行 / revision `fb506be454c1b956`**。
+
+**三个真踩到的坑（都值得记）**：
+
+1. **数组写到 `author` 键上**：`author = ["甲", "乙"]`（正确写法是 `authors = [...]`）。
+   `_read_authors()` 只校验 `authors`，不校验 `author` 的类型 ⇒ 它会一路活着走到
+   `author_of()` 才炸成 `AttributeError: 'list' object has no attribute 'strip'`，而且是在 `fetch_audio`
+   的**线程池里跑到 50/106 处整条崩**、报错既不点名曲目也看不出是哪一份文件。**19 条新条目里有 2 条**
+   是这个写法 ⇒ 不是罕见笔误。现在 `load_packs()` 直接报错并指路 `authors = [...]`（数据仓库 +1 用例，199 passed）。
+2. **空骨架填上曲目后要跑 `pnpm data:roster`**：数据仓库的 `characters.toml` 是**派生**的（= 有曲目的角色），
+   不跑就漏掉这 7 个角色的 `name` / `order`（36 → 43）；顺序是"数据仓库提交 roster → 主仓库 pin"。
+   漏跑的表现很安静：`data:build` 照样出 43 个角色，只是那 7 个没有名字与排序。
+3. **`fetch_covers` 是 `fetch_audio` 的前置闸门**：严格读法下 `cover` 对一个角色**全有或全无**
+   （半有半无在运行时的 `covers` 数组里是空洞 ⇒ 与曲目静默错位），所以新加条目没封面时
+   `fetch_audio`（连 `--dry-run`）**连 packs 都读不动**，报错指路 `fetch_covers`。
+
+**数据侧的连带变化**：`loudness/otomads.json` 87 → 106 个键（**旧值一个都没动**；`targetDb` -11.2 → -11.3，
+= 中位数随曲库整体移动 0.1 dB）；`contentHash` `153efed2456b` → **`0911e4f51422`**；
+pin `398abc7` → **`eb15152`**（commit，不是 tag —— D128 那条口径）。
+
+**验证**：`pnpm data:build` + `data:check` 无漂移；`data:validate` ✅（曲包 106 条、带 source 106 条、带区间 23 条）；
+数据仓库 pytest **199 passed**；应用侧 pytest **77 passed**（`test_data_invariants_hold` 那组**当前数据快照**
+跟着更新：otomads 36/87/87 → **43/106/106**，并集 465/455 → **484/474**）；vitest **90 文件 / 942 passed**；
+e2e（`smoke` + `mode-separation` + `pack-snapshot`）chromium **38 passed** / firefox **38 passed**。
+
+**顺带**：主仓库 `.music/` 与数据仓库 `.music/` 是**两份独立拷贝**，而 `pnpm local`（e2e 的助手）吃的是前者 ⇒
+曲包加歌后不同步，助手 manifest 的 `tracks` 行数（87）会与应用统计的曲目数（106）对不上，
+两条 e2e 就是这么红的 —— 加完歌记得把新 mp3 同步进主仓库那份曲库（本次已同步 19 首）。
