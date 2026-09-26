@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { applyLocalManifestUrl, normalizeLocalManifestUrl, buildEntries, countResolvable, loadSourceTables,
+import { applyManifestOverrides, normalizeManifestUrl, buildEntries, countResolvable, loadSourceTables,
   resolveTrack, sourceRelativeUrl, tableRevision, versionedUrl } from "./sources";
 import { trackId } from "../data/types";
 
@@ -134,6 +134,40 @@ describe("sources resolver", () => {
       .toBe("https://cdn.example.com/media/otomads/a.mp3?v=rev-42");
   });
 
+  it("模式 3：**同一个 payload** 里同时解析自定义清单与它声明的响度表（不发第二个请求）", async () => {
+    const fetcher = vi.fn(async () => new Response(JSON.stringify({
+      schema: 1, mode: "custom",
+      cards: [{ name: "爱丽丝", face: "faces/a.jpg", audio: "media/a.mp3", album: "旧作", title: "第一首" }],
+      loudness: "loudness/custom.json",
+    }), { status: 200 })) as unknown as typeof fetch;
+    const result = await loadSourceTables([
+      { id: "custom", label: { en: "c", zh: "c" }, tableUrl: "https://cards.example.com/manifest.json",
+        kind: "custom", order: 1, enabled: true, proxyable: false, description: { en: "", zh: "" } },
+    ], {}, fetcher);
+
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    const table = result.tables.custom!;
+    expect(table.status).toBe("ready");
+    expect(table.custom!.characters).toHaveLength(1);
+    // 这个模式**没有 tracks 行**（音频地址在每张卡自己身上）⇒ `entries` 为空是正常的
+    expect(table.entries.size).toBe(0);
+    // 响度表由清单自己声明、按**清单那一层**解析（D139 的同一套规则）
+    expect(table.loudnessUrl).toBe("https://cards.example.com/loudness/custom.json");
+  });
+
+  it("模式 3：清单形状不对 ⇒ 不留下 `custom`（整份不生效），源本身仍是 ready 的", async () => {
+    const fetcher = vi.fn(async () => new Response(JSON.stringify({
+      schema: 1, mode: "custom", cards: [{ name: "缺音频" }],
+    }), { status: 200 })) as unknown as typeof fetch;
+    const result = await loadSourceTables([
+      { id: "custom", label: { en: "c", zh: "c" }, tableUrl: "https://cards.example.com/manifest.json",
+        kind: "custom", order: 1, enabled: true, proxyable: false, description: { en: "", zh: "" } },
+    ], {}, fetcher);
+
+    expect(result.tables.custom!.status).toBe("ready");
+    expect(result.tables.custom!.custom).toBeUndefined();
+  });
+
   it("清单里没有 `revision` 键时也不拼（否则会把远程镜像的地址全改掉）", async () => {
     const fetcher = vi.fn(async () => new Response(JSON.stringify({
       schema: 1, pack: "otomads", tracks: [["otomads", "a", "media/otomads/a.mp3"]],
@@ -147,38 +181,49 @@ describe("sources resolver", () => {
   });
 });
 
-describe("本地曲库地址（单端口同源 / 本机分离两种形态）", () => {
+describe("源清单地址的运行时覆盖（本地曲库 / 自定义源两种 kind）", () => {
   const sources = [
     { id: "netease163", kind: "remote", tableUrl: "data/sources/netease163.json" },
     { id: "local", kind: "local", tableUrl: "manifest.json" },
-  ] as unknown as Parameters<typeof applyLocalManifestUrl>[0];
+    { id: "custom", kind: "custom", tableUrl: "" },
+  ] as unknown as Parameters<typeof applyManifestOverrides>[0];
 
   it("归一化：空 → null；基地址补 manifest.json；host:port 补协议；完整 json 原样", () => {
-    expect(normalizeLocalManifestUrl("")).toBeNull();
-    expect(normalizeLocalManifestUrl("   ")).toBeNull();
-    expect(normalizeLocalManifestUrl("127.0.0.1:8011")).toBe("http://127.0.0.1:8011/manifest.json");
-    expect(normalizeLocalManifestUrl("127.0.0.1:8011/")).toBe("http://127.0.0.1:8011/manifest.json");
-    expect(normalizeLocalManifestUrl("http://127.0.0.1:8011")).toBe("http://127.0.0.1:8011/manifest.json");
-    expect(normalizeLocalManifestUrl("https://cards.example.com/music/"))
+    expect(normalizeManifestUrl("")).toBeNull();
+    expect(normalizeManifestUrl("   ")).toBeNull();
+    expect(normalizeManifestUrl("127.0.0.1:8011")).toBe("http://127.0.0.1:8011/manifest.json");
+    expect(normalizeManifestUrl("127.0.0.1:8011/")).toBe("http://127.0.0.1:8011/manifest.json");
+    expect(normalizeManifestUrl("http://127.0.0.1:8011")).toBe("http://127.0.0.1:8011/manifest.json");
+    expect(normalizeManifestUrl("https://cards.example.com/music/"))
       .toBe("https://cards.example.com/music/manifest.json");
-    expect(normalizeLocalManifestUrl("https://x/y/table.json")).toBe("https://x/y/table.json");
+    expect(normalizeManifestUrl("https://x/y/table.json")).toBe("https://x/y/table.json");
   });
 
-  it("默认（空覆盖）保持数据里的相对路径 = 同源", () => {
-    const applied = applyLocalManifestUrl(sources, "");
+  it("默认（空覆盖）保持数据里的原值 —— 自定义源那个空串是**合法**的（还没填）", () => {
+    const applied = applyManifestOverrides(sources, {});
     expect(applied.find((source) => source.id === "local")!.tableUrl).toBe("manifest.json");
+    expect(applied.find((source) => source.id === "custom")!.tableUrl).toBe("");
     expect(applied.find((source) => source.id === "netease163")!.tableUrl)
       .toBe("data/sources/netease163.json");
   });
 
-  it("给了覆盖值：只改 local 源，镜像源不受影响", () => {
-    const applied = applyLocalManifestUrl(sources, "127.0.0.1:8011");
+  it("给了覆盖值：只改**那一类**源，其它源不受影响", () => {
+    const applied = applyManifestOverrides(sources, { local: "127.0.0.1:8011" });
     expect(applied.find((source) => source.id === "local")!.tableUrl)
       .toBe("http://127.0.0.1:8011/manifest.json");
+    expect(applied.find((source) => source.id === "custom")!.tableUrl).toBe("");
     expect(applied.find((source) => source.id === "netease163")!.tableUrl)
       .toBe("data/sources/netease163.json");
     // 不改写入参
     expect(sources[1]!.tableUrl).toBe("manifest.json");
+  });
+
+  it("自定义源覆盖：只动 kind=custom 那一条（本地曲库与镜像都不动）", () => {
+    const applied = applyManifestOverrides(sources, { custom: "https://cards.example.com/manifest.json" });
+    expect(applied.find((source) => source.id === "custom")!.tableUrl)
+      .toBe("https://cards.example.com/manifest.json");
+    expect(applied.find((source) => source.id === "local")!.tableUrl).toBe("manifest.json");
+    expect(sources[2]!.tableUrl).toBe("");
   });
 });
 

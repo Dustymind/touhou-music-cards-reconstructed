@@ -27,6 +27,11 @@ export interface CharacterRecord {
    *  `cardCount`（卡池）/ `cardFace`（取图）/ `maxCardCount`（互斥表用的最大口径）。
    *  身份字段跨模式一致（契约 §5 S1），这个字段是**卡面那一类**的例外。 */
   covers?: string[];
+  /** 每张卡**自己的**音频地址（模式 3 才有，F1）：与 `music` **一一对应**（`audio[i]` ↔ `music[i]`），
+   *  与 `covers` 同一套设计。**校验阶段就解析成绝对 URL**（含 D144 的 `?v=`），播放时直接用，
+   *  不再走 `(专辑, 曲名)` 查表 ⇒ 这个模式允许同名曲目、也允许两张卡共用一首。
+   *  原曲 / 音MAD 两份数据**不带这个字段** ⇒ 两边口径与哈希都不变。 */
+  audio?: string[];
   searchNames: string[];
   music: MusicEntry[];
 }
@@ -112,6 +117,17 @@ export function trackId(album: string, title: string): string {
 export function splitTrackId(id: string): [string, string] {
   const at = id.indexOf("\u0001");
   return [id.slice(0, at), id.slice(at + 1)];
+}
+
+/** 这条曲目在这个角色的 `music` 里的下标（找不到 = `-1`）。
+ *
+ *  `covers[i]`（源封面，D153）与 `audio[i]`（模式 3 的逐卡音频，F1）都按这个下标与 `music[i]` 对齐 ——
+ *  三处（播放页取卡面、播放层取音频、以后可能还有别的）必须是**同一个算法**，所以收在这里。 */
+export function entryIndexOf(
+  character: CharacterRecord | null | undefined, entry: MusicEntry | null | undefined,
+): number {
+  if (!character || !entry) return -1;
+  return character.music.findIndex((item) => item[0] === entry[0] && item[1] === entry[1]);
 }
 
 /** 界面显示用的曲名：去掉 `NN. ` 序号（存档里保留原文）。 */

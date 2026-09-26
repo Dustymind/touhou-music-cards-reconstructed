@@ -1,11 +1,21 @@
-/** 音乐源解析：按 fallback 顺序在已启用的源表里找 URL，并记住会话内的失败。 */
+/** 音乐源解析：按 fallback 顺序在已启用的源表里找 URL，并记住会话内的失败。
+ *
+ *  **清单地址的语义**（相对 manifest 解析 / 媒体版本号）搬去了 `manifestUrl.ts`：模式 3 的
+ *  自定义清单也要用同一套，留在这里会与 `data/customManifest.ts` 互相 import。
+ *  这里原样再导出 ⇒ 调用方仍然只认 `music/sources.ts` 这一个入口。
+ */
 import type { SourceRecord } from "../data/types";
 import { trackId } from "../data/types";
 import { parsePackSnapshot, type PackSnapshot } from "../data/packSnapshot";
+import { parseCustomManifest, type CustomManifest } from "../data/customManifest";
+import { normalizeManifestUrl, sourceRelativeUrl, tableRevision, versionedUrl } from "./manifestUrl";
+
+// 再导出：调用方（含测试）仍然只认 `music/sources.ts` 这一个入口
+export { normalizeManifestUrl, sourceRelativeUrl, tableRevision, versionedUrl };
 
 type SourceStatus = "idle" | "loading" | "ready" | "error";
 
-interface SourceTable {
+export interface SourceTable {
   id: string;
   status: SourceStatus;
   /** `trackId → URL` */
@@ -21,6 +31,13 @@ interface SourceTable {
    * 形状不对时也是 undefined（`parsePackSnapshot` 严格校验 ⇒ 走自带那份兜底，绝不半信半疑地用）。
    */
   snapshot?: PackSnapshot;
+  /**
+   * 模式 3 的**自定义清单**（契约 `docs/custom-mode-v1.md` C2）：与 `snapshot` 同一个套路 ——
+   * **同一个 payload 里解析，不额外发请求**。形状不对时是 `undefined`（严格校验 ⇒ 整份不生效、
+   * 走空兜底，绝不半信半疑地用）。这个模式**没有 `entries`**（音频地址在每张卡自己身上，F1），
+   * 所以界面上"源状态"显示的是**卡数**，而不是 `entries.size`。
+   */
+  custom?: CustomManifest;
   error?: string;
 }
 
@@ -31,57 +48,25 @@ interface ResolvedTrack {
   url: string;
 }
 
-/** 本地曲库 manifest 的固定文件名（助手与 v2 的约定）。 */
-const LOCAL_MANIFEST_FILE = "manifest.json";
-
-/** 媒体地址上的**数据版本**参数名（D144）。 */
-const REVISION_PARAM = "v";
-
-/**
- * 归一化本地曲库地址：
- * - 空 → `null`（用数据里的默认值，单端口部署时就是同源的 `/manifest.json`）；
- * - 带 `.json` → 视为完整 manifest 地址；
- * - 否则视为基地址，补上 `manifest.json`（`127.0.0.1:8011` 这种也认，自动补 `http://`）。
+/** 运行时覆盖：`local` 只改 `kind === "local"` 的源、`custom` 只改 `kind === "custom"` 的源（D140/D157）。
+ *
+ *  两者走同一套归一化（空 ⇒ 那一类不动；带 `.json` ⇒ 整条；否则补 `manifest.json`）——
+ *  对使用者来说它们是同一件事：**在设置页里填一行地址**。
+ *
+ *  `custom` 为空是**常态**（模式 3 默认就没配源）⇒ 源记录原样返回，前端也就不会去请求它（契约 C7）。
  */
-export function normalizeLocalManifestUrl(raw: string | null | undefined): string | null {
-  let value = (raw ?? "").trim();
-  if (value === "") return null;
-  if (!/^https?:\/\//i.test(value)) value = `http://${value}`;
-  if (value.endsWith(".json")) return value;
-  return value.endsWith("/") ? `${value}${LOCAL_MANIFEST_FILE}` : `${value}/${LOCAL_MANIFEST_FILE}`;
-}
-
-/** 应用覆盖值：只改 `kind === "local"` 的源，其余源原样。 */
-export function applyLocalManifestUrl(
+export function applyManifestOverrides(
   sources: readonly SourceRecord[],
-  raw: string | null | undefined,
+  overrides: { local?: string | null; custom?: string | null },
 ): SourceRecord[] {
-  const url = normalizeLocalManifestUrl(raw);
-  if (!url) return [...sources];
-  return sources.map((source) => (source.kind === "local" ? { ...source, tableUrl: url } : source));
-}
-
-/**
- * 把源声明的相对路径解析到 **manifest 所在的目录**（纯字符串，不做 URL 规范化）。
- *
- * **相对 manifest 本身就是有意的**：`manifest.json` 在域名根与子目录（GitHub Pages 项目页）下都成立，
- * 于是"响度表跟着源走"（D139）在两种部署形态下都不用改数据。三种输入：
- * 绝对地址（`http(s)://…` / `//…`）与根绝对路径（`/…`）原样返回，
- * 其余按 manifest 的目录拼接（`./` 前缀会去掉）。
- *
- * 曲目地址也走它（D141）：**源可以挂在别的域名上**，而相对地址在 `<audio>.src` 里是按**页面**解析的，
- * 那样会去应用自己那台主机上找音频（404）⇒ manifest 是绝对地址时这里就得到绝对地址 ✓；
- * manifest 本身是相对路径（同源 / 子目录形态）时结果仍是相对形式 ⇒ 与改前逐字一致 ✓。
- */
-export function sourceRelativeUrl(manifestUrl: string, relative: string): string {
-  const value = relative.trim();
-  if (/^[a-z][a-z0-9+.-]*:/i.test(value) || value.startsWith("//") || value.startsWith("/")) {
-    return value;
-  }
-  const path = manifestUrl.replace(/[?#].*$/, "");
-  const slash = path.lastIndexOf("/");
-  const directory = slash >= 0 ? path.slice(0, slash + 1) : "";
-  return directory + value.replace(/^\.\//, "");
+  const local = normalizeManifestUrl(overrides.local);
+  const custom = normalizeManifestUrl(overrides.custom);
+  if (!local && !custom) return [...sources];
+  return sources.map((source) => {
+    if (local && source.kind === "local") return { ...source, tableUrl: local };
+    if (custom && source.kind === "custom") return { ...source, tableUrl: custom };
+    return source;
+  });
 }
 
 /** 归一化曲名：去掉开头的 `作者 - ` 前缀，再压空白、统一小写。
@@ -89,32 +74,6 @@ export function sourceRelativeUrl(manifestUrl: string, relative: string): string
  *  曲名已经不带前缀 ✓ —— 两边比较前必须同一口径，否则音MAD 匹配不上、播不出声。 */
 function normalizeTitle(title: string): string {
   return title.replace(/^[^-]{1,60}?\s+-\s+/, "").replace(/\s+/g, " ").trim().toLowerCase();
-}
-
-/**
- * 源表里的**数据版本**：行里的第 4 位（逐曲，优先）> 顶层的 `revision`（整表兜底）> 空串。
- *
- * 为什么要有它（D144）：媒体地址在"数据变了但**链接没变**"时是不变的，而 CDN 给 `.mp3` 发的是
- * `max-age=14400` ⇒ 浏览器与边缘节点会拿旧的顶最多 4 小时（实测：重裁过的曲子仍播旧音频）。
- * 把版本拼进 URL 之后**版本一变 = URL 一变**，缓存键跟着音频走，而不是跟着链接走。
- *
- * 版本号由**源自己的清单**算（数据仓库 `packformat.media_revision`：文件名+大小+mtime）；
- * 逐曲那一位尤其重要 —— 只让变过的那几首换 URL，不会让整包 321 MB 全部重下 ✓。
- *
- * 空串 = **这个源没有声明版本**（三个远程镜像的裸数组就是这种）⇒ 一个字节都不拼，与改前逐字一致。
- * 它们不需要这个机制：表本身是**同源数据集文件**、每次都 `no-cache` 重新校验，而媒体在别人的
- * 主机上、内容不变（真换了 URL 也就换了地址，缓存自然不命中）。
- */
-export function tableRevision(payload: unknown): string {
-  const declared = (payload as { revision?: unknown } | null)?.revision;
-  return typeof declared === "string" ? declared.trim() : "";
-}
-
-/** 把数据版本拼进媒体地址（已有查询串就用 `&`）。`revision` 为空 ⇒ **原样返回**（与改前逐字一致）。 */
-export function versionedUrl(url: string, revision: string | undefined): string {
-  if (!revision) return url;
-  const value = encodeURIComponent(revision);
-  return url.includes("?") ? `${url}&${REVISION_PARAM}=${value}` : `${url}?${REVISION_PARAM}=${value}`;
 }
 
 /**
@@ -194,7 +153,10 @@ interface SourceLoadResult {
   order: string[];
 }
 
-/** 只在需要时加载选中的源（默认开启 + 用户覆盖），并记录每个源的状态。 */
+/** 只在需要时加载选中的源（默认开启 + 用户覆盖），并记录每个源的状态。
+ *
+ *  **地址为空 = 跳过**（不发请求、不算失败）：模式 3 的源默认就是空的。 */
+
 export async function loadSourceTables(
   sources: readonly SourceRecord[],
   overrides: Record<string, { enabled: boolean; order: number }>,
@@ -215,7 +177,11 @@ export async function loadSourceTables(
     tables[source.id] = { id: source.id, status: "idle", entries: new Map() };
   }
 
-  await Promise.all(enabled.map(async (source) => {
+  // **地址为空的源一个请求都不发**（模式 3 默认就是这样：还没填源不是错误，契约 C7）。
+  // 其余模式的注册表由守卫挡着，不会出现空地址，所以这一步对它们没有影响。
+  const fetchable = enabled.filter((source) => source.tableUrl.trim() !== "");
+
+  await Promise.all(fetchable.map(async (source) => {
     const table = tables[source.id]!;
     table.status = "loading";
     try {
@@ -239,6 +205,10 @@ export async function loadSourceTables(
       // 由调用方（AppShell）交给 `withPackSnapshot` 重建数据集。**不发第二个请求**。
       const snapshot = parsePackSnapshot(payload);
       if (snapshot !== undefined) table.snapshot = snapshot;
+      // 模式 3 的自定义清单也在**同一个 payload** 里（`{schema, mode, cards, …}`，契约 C2）：
+      // 同样不发第二个请求。它不是曲目表快照（没有 albums/characters 那两个键），两者互不干扰。
+      const custom = parseCustomManifest(payload, source.tableUrl);
+      if (custom !== undefined) table.custom = custom;
       table.status = "ready";
     } catch (error) {
       table.status = "error";

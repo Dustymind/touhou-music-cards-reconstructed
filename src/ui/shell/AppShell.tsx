@@ -8,7 +8,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Localization, localized, t } from "../../i18n/localization";
 import { stableHash } from "../../rng";
-import { TAB_ORDER, useSession, type TabId } from "../../store/session";
+import { effectiveCustomSourceUrl, TAB_ORDER, useSession, type TabId } from "../../store/session";
 import { MD2, NoFontFamily } from "../../theme/theme";
 import { trackId, type DataBundle, type MusicEntry } from "../../data/types";
 import { usePreset } from "../../store/preset";
@@ -21,6 +21,7 @@ import { GAME_FADE_MS } from "../../audio/fade";
 import { allowedTracks, mergeWithDefaults } from "../../music/selection";
 import { datasetFor } from "../../data/useDataset";
 import { withPackSnapshot } from "../../data/packSnapshot";
+import { withCustomManifest, type CustomManifest } from "../../data/customManifest";
 import { effectivePin } from "../../music/presetView";
 import { singleStoreFor, useSingleTrack } from "../../store/single";
 import { useGame } from "../../game/useGame";
@@ -73,10 +74,13 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
   const isSmallScreen = useMediaQuery("(max-width: 599.95px)");
   /** 「关于」弹窗的开合：纯界面状态（不落盘、不进联机快照），所以留在组件里 */
   const [aboutOpen, setAboutOpen] = useState(false);
+  const session = useSession();
   const {
     tab, setTab, locale, cardCollection, musicMode, localMusicUrl,
     entryRequest, setEntryRequest,
-  } = useSession();
+  } = session;
+  /** 自定义源链接的**生效值**（模式 3）：主机下发的会话级覆盖 > `?customsource=` > 存档（F3） */
+  const customSourceUrl = effectiveCustomSourceUrl(session);
   /**
    * 自带数据集（当前模式那份）：它决定**取哪些源表**。放在最前面是因为源现在也提供**曲目表**
    * （D145）—— 数据集要等源回答之后才能定下来。`withPackSnapshot` 不换音源注册表，所以
@@ -84,12 +88,23 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
    */
   const bakedDataset = datasetFor(bundle, musicMode);
   const { overrides: sourceOverrides } = useSourceOverrides();
-  const sources = useSources(bakedDataset.sources, sourceOverrides, localMusicUrl);
+  const sources = useSources(bakedDataset.sources, sourceOverrides, {
+    local: localMusicUrl, custom: customSourceUrl,
+  });
 
   /** 源给的曲目表（D145）：按回退顺序取第一个拿到了的源。注册表里音MAD 只有一个源，这是保守写法。 */
   const snapshot = useMemo(() => {
     for (const sourceId of sources.order) {
       const found = sources.tables[sourceId]?.snapshot;
+      if (found !== undefined) return found;
+    }
+    return undefined;
+  }, [sources.tables, sources.order]);
+
+  /** 模式 3 的清单（与曲目表快照同一个 payload、同一条回退顺序）：取第一个拿到了的源。 */
+  const customManifest = useMemo<CustomManifest | undefined>(() => {
+    for (const sourceId of sources.order) {
+      const found = sources.tables[sourceId]?.custom;
       if (found !== undefined) return found;
     }
     return undefined;
@@ -103,7 +118,10 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
    * `window.__TMC_DATA_HASH__` 也在同一次重渲染里改写。建/加入房间是用户动作、必然更晚，
    * 所以握手期拿到的一定是**生效后**的哈希。
    */
-  const liveBundle = useMemo(() => withPackSnapshot(bundle, snapshot), [bundle, snapshot]);
+  const liveBundle = useMemo(
+    () => withCustomManifest(withPackSnapshot(bundle, snapshot), customManifest),
+    [bundle, snapshot, customManifest],
+  );
   const dataset = datasetFor(liveBundle, musicMode);
   const preset = usePreset();
   const queue = useQueue();

@@ -310,19 +310,35 @@ function withContentHash(
 export function packHash(
   albums: readonly AlbumRecord[], characters: readonly CharacterRecord[],
 ): string {
-  const canonical = JSON.stringify([
-    [...albums]
-      .sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0))
-      .map((album) => [album.key, album.name, album.kind, album.pack, album.order,
-        album.showAlbumName !== false]),
-    [...characters]
-      .sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0))
-      .map((character) => [character.key, character.card, character.covers ?? null, character.music]),
+  return fingerprint("pack", albums, characters, (character) => [
+    character.key, character.card, character.covers ?? null, character.music,
   ]);
-  return bits(stableHash(`pack-a\n${canonical}`)) + bits(stableHash(`pack-b\n${canonical}`));
+}
+
+/**
+ * 数据指纹的**骨架**：同一套算法 + 一个**冻结的标签**，两个 31 位哈希拼成 62 位（16 位十六进制）。
+ *
+ * `project` 决定"一个角色里哪些字段算数"—— 两个模式覆盖的东西不同（音MAD 的身份由原曲数据集守，
+ * 所以 `packHash` 不算 `name`/`order`；模式 3 的身份**就是**清单给的，所以 `customHash` 要算），
+ * 但"排序 → 序列化 → 两个标签各哈希一次"这部分必须逐字相同：它就是握手口径本身。
+ *
+ * **标签与投影都是冻的**：改任何一个 = 改握手口径，两端必须一起更新（与 D142/D143 的状态签名同理）。
+ */
+export function fingerprint(
+  tag: string, albums: readonly AlbumRecord[], characters: readonly CharacterRecord[],
+  project: (character: CharacterRecord) => unknown[],
+): string {
+  const byKey = (a: { key: string }, b: { key: string }): number =>
+    (a.key < b.key ? -1 : a.key > b.key ? 1 : 0);
+  const canonical = JSON.stringify([
+    [...albums].sort(byKey).map((album) => [album.key, album.name, album.kind, album.pack, album.order,
+      album.showAlbumName !== false]),
+    [...characters].sort(byKey).map(project),
+  ]);
+  return bits(stableHash(`${tag}-a\n${canonical}`)) + bits(stableHash(`${tag}-b\n${canonical}`));
 }
 
 /** 31 位 → 8 位十六进制（固定宽度，"拼起来"才是稳定字符串）。 */
-function bits(value: number): string {
+export function bits(value: number): string {
   return (value >>> 0).toString(16).padStart(8, "0");
 }

@@ -14,7 +14,7 @@ import { UpcomingFan, fanCardWidth } from "../player/UpcomingFan";
 import type { AlbumRecord, DataBundle, MusicEntry } from "../../data/types";
 import { cardFace, resolveCardSet } from "../../data/cardFaces";
 import { useCurrentDataset } from "../../data/useDataset";
-import { displayTitle } from "../../data/types";
+import { displayTitle, entryIndexOf } from "../../data/types";
 import { Localization, t } from "../../i18n/localization";
 import type { PlayerApi } from "../../audio/usePlayer";
 import type { TableMap } from "../../music/sources";
@@ -73,13 +73,10 @@ function PlayerPanelInner(props: PlayerPanelProps) {
 
   // 播放页这张卡用**第几张**卡面：音MAD 侧是"一首一张"（D153）⇒ 跟着**正在放的那首**走
   // （没在放 / 播的是别的模式的曲目 ⇒ 第 0 张）。原曲那份没有 covers，下标取模后仍是第 0 张，
-  // 与改动前逐字一致。
-  const faceIndex = useMemo(() => {
-    if (!character || !player.entry) return 0;
-    const index = character.music.findIndex(
-      (entry) => entry[0] === player.entry![0] && entry[1] === player.entry![1]);
-    return index >= 0 ? index : 0;
-  }, [character, player.entry]);
+  // 与改动前逐字一致。同一个下标也被模式 3 用来取**这张卡自己的音频**（`audio[i]`，F1）。
+  const faceIndex = useMemo(
+    () => Math.max(entryIndexOf(character, player.entry), 0),
+    [character, player.entry]);
 
   // 卡面尺寸 = **卡牌选择器（"接下来"卡条）的卡宽 × 120%** —— 直接用选择器自己的尺寸函数，
   // 保证两边永远同一个口径（选择器 = `min(窗口宽×20%, 150)`，见 UpcomingFan.fanCardWidth）；

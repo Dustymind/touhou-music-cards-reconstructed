@@ -10,7 +10,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createBell, type BellHandle } from "./bell";
 import { FADE_STEP_MS, GAME_FADE_MS, rampGain } from "./fade";
 import type { ModeDataset, MusicEntry } from "../data/types";
-import { displayTitle, trackId } from "../data/types";
+import { displayTitle, entryIndexOf, trackId } from "../data/types";
 import { pickWithSeed, randomStartPosition } from "../rng";
 import { allowedTracks, defaultPreset, type PresetState } from "../music/selection";
 import { resolveTrack, type TableMap } from "../music/sources";
@@ -126,6 +126,13 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
   const character = useMemo(
     () => inputs.dataset.characters.find((item) => item.key === inputs.currentKey) ?? null,
     [inputs.dataset.characters, inputs.currentKey],
+  );
+
+  /** 模式 3 那条源（`kind = "custom"`）：卡自带的音频地址归它，**响度表也按它取**（C6 的口径）。
+   *  别的模式没有这种源 ⇒ 空串，与改动前逐字一致。 */
+  const ownAudioSourceId = useMemo(
+    () => inputs.dataset.sources.find((source) => source.kind === "custom")?.id ?? "",
+    [inputs.dataset.sources],
   );
 
   /** 当前角色在本预设下选中的曲目：多首时按种子取一首（联机同种子 → 同曲目）。 */
@@ -275,6 +282,13 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
       applyResolved(null, character ? "当前预设下这个角色没有可用曲目" : null);
       return;
     }
+    // 模式 3（F1）：**卡自己带音频地址** ⇒ 先看 `audio[i]`（`i` = 这一首在 `music` 里的下标），
+    // 命中就不再查媒体表。原曲 / 音MAD 两份数据不带这个字段 ⇒ 一个字都不改。
+    const own = character?.audio?.[entryIndexOf(character, entry)];
+    if (own) {
+      applyResolved({ url: own, sourceId: ownAudioSourceId }, null);
+      return;
+    }
     const [album, title] = entry;
     const found = resolveTrack(inputs.tables, inputs.sourceOrder, album, title, failedRef.current);
     if (!found) {
@@ -282,7 +296,7 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
       return;
     }
     applyResolved(found, null);
-  }, [entry, inputs.tables, inputs.sourceOrder, character, version, applyResolved]);
+  }, [entry, inputs.tables, inputs.sourceOrder, character, version, applyResolved, ownAudioSourceId]);
 
   useEffect(() => {
     const audio = audioRef.current;

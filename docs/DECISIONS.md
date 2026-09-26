@@ -6055,3 +6055,59 @@ export function cardFileAt(files, characterKey, cardIndex): string {
 （注册音源 4 → 5，每模式数据集多一行"自定义 0 角色"）；`tools` pytest **81 passed**（77 → +4）；
 `pnpm typecheck` ✓；vitest **45 文件 / 478 passed**（+2：三份数据集两两哈希不同 + 自定义那份为空兜底；
 另加一条 session 选中 `custom` 后落盘）。
+
+---
+
+### D157 自定义模式的**源链接**与清单：默认空 / 重置 = 清空 / 严格校验 / 运行时整体重建
+
+**用户要求**：模式 3 的数据全部来自"使用者自己填的自定义源链接"（浏览器本地保存，**默认空、重置 = 清空**）。
+链接为空 ⇒ **不发请求、不报错**，界面提示"必须填写自定义源链接"。清单合法 ⇒ 卡与曲目立刻出现。
+
+**源链接（`src/store/session.ts`）**：三个层次，优先级从高到低 ——
+
+| 层 | 从哪来 | 落盘？ |
+|---|---|---|
+| `customSourceOverride` | ① 联机时主机下发（F3，只在本会话生效）② `?customsource=`（启动时读一次） | **不落盘** |
+| `customSourceUrl` | 使用者在设置页填（「应用」写它、「重置」写成**空串**） | 落盘 |
+
+- 覆盖带了 `from: "query" \| "host"` 标记：`useNet.leave()` 只清**主机那份**（离开房间即恢复自己的源），
+  `?customsource=` 那份跟着页面走、留着 —— 一个字段同时表达"谁给的"与"什么时候失效"，不必再存两份。
+- 与 D140 的「本地曲库地址」**故意不同**：那里的「重置」是"回到数据里的默认值"，这里默认值本来就是空 ⇒
+  「重置」就是**清空**；空值时按钮置灰（无事可做）。
+- 归一化两个 kind **共用一套**（`manifestUrl.ts::normalizeManifestUrl`，D140 那条原样搬过来并改名）：
+  空 ⇒ 不覆盖；带 `.json` ⇒ 整条；否则补 `manifest.json`、无协议补 `http://`。
+  `applyLocalManifestUrl` 因此长成 `applyManifestOverrides(sources, {local, custom})`（只改**对应 kind** 的源）。
+
+**清单 → 数据集（新增 `src/data/customManifest.ts`）**：严格校验，**任何一条不满足 ⇒ 整份 `undefined`**
+（fail-closed，与 `packSnapshot` 同一个哲学）：`schema === 1` / `mode === "custom"` / `cards` 非空 /
+每张卡 `name`·`album`·`title`·`face`·`audio` 非空 / 可选字段写了就得非空 / `id` 唯一
+（不写则用 `(卡名|专辑|曲名|卡面)` 的稳定哈希派生，**与数组顺序无关**）。**缺音频 = 整份不合法**（F2）：
+宁可整份不生效，也不要"看得见、点不响"。`(专辑, 曲名)` **不要求**唯一 —— 两张卡共用一首是允许的
+（`songConflicts` 会把它们判成互斥，一局里只允许一张在场，**这是有意的**）。
+
+- **卡面与音频在校验阶段解析成绝对地址**：相对 ⇒ 按**清单目录**拼（`sourceRelativeUrl`，D141 的口径），
+  绝对 ⇒ 原样；逐卡 `revision` 拼 `?v=`、顶层 `revision` 兜底（D144 的口径）。
+- 形状：一条卡 ⇒ 一条 `CharacterRecord`（`card` 与 `covers` 都写这一张面 ⇒ 1:1 在数据里就写死了，
+  卡数恒为 1），专辑按**首次出现顺序**建（`kind: "other"`、`pack: "custom"`）。
+- **卡自己带音频**（F1）：`CharacterRecord.audio` 与 `music` 一一对应，播放层**不再查 `(专辑, 曲名)` 表**；
+  取哪一格用 `entryIndexOf()`（与 D153 的 `covers[i]` 同一个下标算法，两处共用）。
+- 响度表：清单顶层 `loudness` 走的是 **D139 那条通用路径**（`loadSourceTables` 对任何 payload 都读它，
+  按清单那一层解析）⇒ 不需要在自定义这条路上再写一遍；增益键仍是 `作者 - 曲名` 那个 stem。
+- `loadSourceTables` 里**地址为空的源一个请求都不发**（模式 3 默认就是空的；其余模式有守卫挡着）。
+
+**指纹 `customHash`（契约 C6）**：覆盖 卡 key / **卡名** / **顺序** / 卡面（解析后的绝对串）/ 专辑 / 作者 / 曲名；
+**不覆盖** 音频地址与版本号（换 CDN / 换宿主不该把两端拆开，与 D145 同口径）、清单来源 URL。
+与 `packHash` 共用同一套**骨架**（`packSnapshot.ts::fingerprint`：排序 → 序列化 → 两个冻结标签各哈希一次），
+只是投影不同：音MAD 的身份由原曲数据集守（S1）所以不算 `name`/`order`，模式 3 的身份**就是**清单给的、
+必须算。**`packHash` 的输出逐字未变**（重构时用真实数据集实测：otomads `5a7e836113e3c1e2`、
+originals `3d83c3eb519ba812`，改动前后同值）。
+
+**界面**：设置页的「音乐源」分区在模式 3 下只渲染**一行**（输入框 → 重置 → 应用 + 状态 + 提示），
+不渲染开关 / 上移下移 / 本地曲库地址；状态显示的是**卡数**（这个模式没有 `entries`，F1），
+清单被拒时给红色"清单不合法"，生效值来自主机时给一行说明。间距沿用同一套常量（`spacing={1}` = 8dp、
+按钮 small 32dp、输入框 48dp、`alignItems: "center"`），一个都没动。
+
+**验证**：`pnpm typecheck` ✓；vitest **46 文件 / 531 passed**（新增 `customManifest.test.ts` 39 条 ——
+合法清单、22 条坏形状矩阵、`withCustomManifest`、`customHash` 覆盖/不覆盖；`sources.test.ts` +2 条
+自定义清单与响度表；`useSources.test.ts` +1 条"空地址不发请求、改地址会重载"；`usePlayer.test.tsx` +3 条
+逐卡音频；`ConfigPanel.test.tsx` +4 条那一行；`session.test.ts` +4 条优先级与落盘边界）。

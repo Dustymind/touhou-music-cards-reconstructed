@@ -40,6 +40,16 @@ describe("data validators", () => {
       wrap([character({ music: [["a", "b", "非法" as never]] })]), 1)).toThrow(/附加信息/);
   });
 
+  it("`audio`（模式 3 的逐卡音频，F1）要写就得是非空字符串数组", () => {
+    const wrap = (list: unknown) => ({ schema: 1, characters: list });
+    // 不写 = 原曲 / 音MAD 两份的形状（一个字段都不多）
+    expect(validateCharacters(wrap([character()]), 1)).toHaveLength(1);
+    expect(validateCharacters(wrap([character({ audio: ["https://x/a.mp3?v=1"] })]), 1)).toHaveLength(1);
+    expect(() => validateCharacters(wrap([character({ audio: [] })]), 1)).toThrow(/audio/);
+    expect(() => validateCharacters(wrap([character({ audio: ["  "] })]), 1)).toThrow(/audio/);
+    expect(() => validateCharacters(wrap([character({ audio: "x" as never })]), 1)).toThrow(/audio/);
+  });
+
   it("合法角色通过", () => {
     expect(validateCharacters({ schema: 1, characters: [character()] }, 1)).toHaveLength(1);
   });

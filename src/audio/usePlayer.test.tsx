@@ -66,6 +66,36 @@ describe("usePlayer", () => {
     expect(decodeURIComponent(audios[0]!.src)).toContain("おてんば恋娘");
   });
 
+  it("模式 3（F1）：卡自己带 audio ⇒ 直接用它的地址，**不查媒体表**", async () => {
+    // 数据集的来源那条源 kind = "custom"（响度表按它取），表里**一条 tracks 都没有**
+    const dataset = fakeDataset([{ ...cirno, audio: ["https://cards.example.com/media/a.mp3?v=7"] }], albums);
+    dataset.sources = [{
+      id: "custom", label: { en: "Custom", zh: "自定义" }, tableUrl: "https://cards.example.com/manifest.json",
+      kind: "custom", order: 1, enabled: true, proxyable: false, description: { en: "", zh: "" },
+    }];
+    const hook = await renderHook(() => usePlayer(inputs({ dataset, tables: {}, sourceOrder: [] })));
+    expect(hook.result.current.error).toBeNull();
+    expect(hook.result.current.url).toBe("https://cards.example.com/media/a.mp3?v=7");
+    expect(hook.result.current.sourceId).toBe("custom");     // 响度表跟着这个模式唯一那条源
+    expect(audios[0]!.src).toBe("https://cards.example.com/media/a.mp3?v=7");
+  });
+
+  it("模式 3：`audio` 与 `music` 一一对应（多首时取的是**正在放的那一首**那一格）", async () => {
+    const dataset = fakeDataset([{
+      ...marisa,
+      audio: ["https://cards.example.com/media/1.mp3", "https://cards.example.com/media/2.mp3"],
+    }], albums);
+    const hook = await renderHook(() => usePlayer(inputs({ dataset, tables: {}, sourceOrder: [], currentKey: "kirisame-marisa" })));
+    const index = marisa.music.findIndex((entry) => entry[1] === hook.result.current.entry?.[1]);
+    expect(hook.result.current.url).toBe(`https://cards.example.com/media/${index + 1}.mp3`);
+  });
+
+  it("同一份数据：`audio` 存在就**不再**回落查表（表里有地址也不动它）", async () => {
+    const dataset = fakeDataset([{ ...cirno, audio: ["https://cards.example.com/media/own.mp3"] }], albums);
+    const hook = await renderHook(() => usePlayer(inputs({ dataset })));
+    expect(hook.result.current.url).toBe("https://cards.example.com/media/own.mp3");
+  });
+
   it("所有源都取不到时给出可读错误", async () => {
     const hook = await renderHook(() => usePlayer(inputs({ tables: fakeTables([]) })));
     expect(hook.result.current.url).toBeNull();

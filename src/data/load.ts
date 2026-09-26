@@ -67,6 +67,13 @@ export function validateCharacters(raw: unknown, expected: number): CharacterRec
       || (Array.isArray(character.covers) && character.covers.length > 0
           && character.covers.every((url) => typeof url === "string" && url.trim() !== "")),
       `${character.key} 的 covers 必须是非空字符串数组`);
+    // 每张卡**自己的**音频地址（模式 3 才有，F1）：与 `covers` 同一套形状断言。
+    // 分工要说清：模式 3 真正的守门人是 `customManifest.ts` 的严格校验（这份"构建期生成物"
+    // 在模式 3 恒为空），这里这条只是**形状对称** + 万一将来把清单烘进生成物时的兜底。
+    assert(character.audio === undefined
+      || (Array.isArray(character.audio) && character.audio.length > 0
+          && character.audio.every((url) => typeof url === "string" && url.trim() !== "")),
+      `${character.key} 的 audio 必须是非空字符串数组`);
     for (const entry of character.music) {
       // `[专辑, 曲名, extra]`，第 4 位是**可选**的作者（音MAD 这类曲目才有）
       assert(Array.isArray(entry) && entry.length >= 3 && entry.length <= 5,

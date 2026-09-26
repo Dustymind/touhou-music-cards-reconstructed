@@ -38,7 +38,7 @@ describe("useSources", () => {
 
     const sources = [source("a", 1), source("b", 2)];
     let overrides: Overrides = {};
-    const hook = await renderHook(() => useSources(sources, overrides, ""));
+    const hook = await renderHook(() => useSources(sources, overrides, { local: "" }));
     await settleUntil(() => hook.result.current.status === "ready");
     expect(calls).toEqual(["/tables/a.json", "/tables/b.json"]);
     expect(hook.result.current.order).toEqual(["a", "b"]);
@@ -55,6 +55,28 @@ describe("useSources", () => {
     await settleUntil(() => hook.result.current.order.length === 1);
     expect(calls).toEqual(["/tables/a.json", "/tables/b.json", "/tables/a.json"]);
     expect(hook.result.current.order).toEqual(["a"]);
+
+    await hook.unmount();
+  });
+
+  it("自定义源链接变了也会重新载入（它和本地曲库地址走同一个入口）", async () => {
+    const calls: string[] = [];
+    vi.stubGlobal("fetch", (async (input: RequestInfo | URL) => {
+      calls.push(String(input));
+      return new Response("[]", { status: 200 });
+    }) as typeof fetch);
+
+    const sources: SourceRecord[] = [{ ...source("custom", 1), kind: "custom", tableUrl: "" }];
+    let manifests = { custom: "" };
+    const hook = await renderHook(() => useSources(sources, {}, manifests));
+    await settleUntil(() => hook.result.current.status === "ready");
+    // 空地址 ⇒ **一个请求都不发**（契约 C7：没配源不是错误）
+    expect(calls).toEqual([]);
+
+    manifests = { custom: "https://cards.example.com" };
+    await hook.rerender();
+    await settleUntil(() => calls.length > 0);
+    expect(calls).toEqual(["https://cards.example.com/manifest.json"]);
 
     await hook.unmount();
   });
