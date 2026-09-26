@@ -92,7 +92,7 @@ test("配了源：卡与曲目立刻出现，画的是源给的卡面", async ({
   // 播放页：当前这张卡画的是**源给的那张图**（相对地址按清单目录解析成绝对地址）
   await page.getByRole("tab", { name: "Player", exact: true }).click();
   await expect(page.getByTestId("current-card-image").locator("img"))
-    .toHaveAttribute("src", /\/e2e\/fixtures\/custom\/faces\/[abc]\.png/);
+    .toHaveAttribute("src", /\/e2e\/fixtures\/custom\/cover\/[abc]\.png/);
   await expect.poll(() => rotationCount(page)).toBe(cards.length);
 });
 

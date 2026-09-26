@@ -45,7 +45,7 @@ function optionalText(raw: Record<string, unknown>, key: string): string | undef
 
 /** 清单里的一张卡（字段都校验过了）。 */
 interface ParsedCard {
-  id?: string; name: string; face: string; audio: string; revision?: string;
+  id?: string; name: string; cover: string; audio: string; revision?: string;
   album: string; author?: string; title: string; source?: string;
 }
 
@@ -54,14 +54,14 @@ const OPTIONAL_CARD_KEYS = ["id", "revision", "author", "source"] as const;
 function parseCard(raw: unknown): ParsedCard | undefined {
   if (!isRecord(raw)) return undefined;
   const name = text(raw.name);
-  const face = text(raw.face);
+  const cover = text(raw.cover);
   const audio = text(raw.audio);
   const album = text(raw.album);
   const title = text(raw.title);
   // 五项必填（Q7：专辑必填；F1/F2：卡面与音频必填 —— 缺音频就是整份不合法）
-  if (name === undefined || face === undefined || audio === undefined
+  if (name === undefined || cover === undefined || audio === undefined
     || album === undefined || title === undefined) return undefined;
-  const card: ParsedCard = { name, face, audio, album, title };
+  const card: ParsedCard = { name, cover, audio, album, title };
   for (const key of OPTIONAL_CARD_KEYS) {
     const value = optionalText(raw, key);
     if (value === null) return undefined;
@@ -72,7 +72,7 @@ function parseCard(raw: unknown): ParsedCard | undefined {
 
 /** 派生 key：`(卡名|专辑|曲名|卡面)` 的稳定哈希 —— 与数组顺序无关，所以两端必然同值。 */
 function derivedKey(card: ParsedCard): string {
-  return DERIVED_KEY_PREFIX + bits(stableHash(`custom\n${[card.name, card.album, card.title, card.face].join("\u0001")}`));
+  return DERIVED_KEY_PREFIX + bits(stableHash(`custom\n${[card.name, card.album, card.title, card.cover].join("\u0001")}`));
 }
 
 /**
@@ -116,13 +116,13 @@ export function parseCustomManifest(payload: unknown, manifestUrl: string): Cust
     if (card.author !== undefined) entry.push(card.author);   // 空作者不入列表（Q7），非空才写第 4 位
 
     // 卡面与音频都在**校验阶段**解析成绝对地址：相对 ⇒ 按清单目录拼，绝对 ⇒ 原样（C3）
-    const face = sourceRelativeUrl(manifestUrl, card.face);
+    const cover = sourceRelativeUrl(manifestUrl, card.cover);
     characters.push({
       key,
       name: card.name,
       order: characters.length,
-      card: [face],
-      covers: [face],
+      card: [cover],
+      covers: [cover],
       searchNames: [card.name],
       music: [entry],
       audio: [versionedUrl(sourceRelativeUrl(manifestUrl, card.audio), card.revision ?? fallbackRevision)],

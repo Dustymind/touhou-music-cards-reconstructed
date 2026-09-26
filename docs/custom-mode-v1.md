@@ -39,7 +39,7 @@
     {
       "id": "alice-01",              // 可选；缺省 = 由 (卡名|专辑|曲名|卡面) 派生的稳定 key
       "name": "卡名（显示名）",        // 必填、非空
-      "face": "faces/alice-01.jpg",  // 必填；**相对清单目录** 或 **http(s):// 绝对直链**
+      "cover": "cover/alice-01.jpg", // 必填；**相对清单目录** 或 **http(s):// 绝对直链**
       "audio": "media/alice-01.mp3", // 必填；同上两种形态
       "revision": "…",               // 可选：这一首的版本号（拼进音频 URL 的 `?v=`）
       "album": "专辑名",              // 必填、非空
@@ -56,7 +56,7 @@
 **校验规则**（`src/data/customManifest.ts`；任何一条不满足 ⇒ 整份 `undefined`，走空兜底，绝不半信半疑地用）：
 
 1. `schema === 1`、`mode === "custom"`；
-2. `cards` 非空；每张卡 `name/album/title/face/audio` 是非空字符串，`author/id/source/revision`
+2. `cards` 非空；每张卡 `name/album/title/cover/audio` 是非空字符串，`author/id/source/revision`
    若存在须非空；
 3. `id` 若写了必须**唯一**；没写就用内容哈希派生（跨端同值、与数组顺序无关）；
 4. **不要求 `(专辑, 曲名)` 唯一**：同名曲目允许，两张卡也可以共用一首 —— 后者会被
@@ -73,7 +73,7 @@ sourceOnly: true, dir: "", origins: [], localPrefix: "./" }`）：
 - 每卡恰好一张卡面（`covers.length === 1`），`cardCount` / `maxCardCount` 恒为 1；
 - 相对路径在**校验阶段**就按清单目录解析成绝对地址（`sourceRelativeUrl`）；绝对 URL 原样用；
 - 卡面缺字段 ⇒ 整份清单不合法（不出现"空卡面"）；运行时图片 404 ⇒ 走 `CharacterCard` 现有占位行为；
-- **合成图集的卡面一律"原样用"**：它可能是 `https://…`、也可能是同源的 `/cards/faces/a.png`
+- **合成图集的卡面一律"原样用"**：它可能是 `https://…`、也可能是同源的 `/cards/cover/a.png`
   （清单挂在同源时就是这样）—— 这两种都不是"内置图集的文件名"，不能拼目录、也不能
   `encodeURIComponent`（第 5 节那条修复就是这个）；
 - **音频同理**：`audio` 也在校验阶段解析成绝对地址，按**每张卡**存进数据集（`CharacterRecord.audio`，

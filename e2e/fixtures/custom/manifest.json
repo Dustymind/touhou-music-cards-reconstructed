@@ -5,7 +5,7 @@
   {
    "id": "e2e-alice",
    "name": "E2E 爱丽丝",
-   "face": "faces/a.png",
+   "cover": "cover/a.png",
    "audio": "media/a.mp3",
    "album": "E2E 旧作",
    "author": "E2E 甲",
@@ -15,7 +15,7 @@
   {
    "id": "e2e-marisa",
    "name": "E2E 魔理沙",
-   "face": "faces/b.png",
+   "cover": "cover/b.png",
    "audio": "media/b.mp3",
    "album": "E2E 旧作",
    "author": "E2E 乙",
@@ -24,7 +24,7 @@
   {
    "id": "e2e-reimu",
    "name": "E2E 灵梦",
-   "face": "faces/c.png",
+   "cover": "cover/c.png",
    "audio": "media/c.mp3",
    "album": "E2E 新作",
    "title": "E2E 第三首",

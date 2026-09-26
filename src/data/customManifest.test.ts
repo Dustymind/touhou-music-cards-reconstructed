@@ -25,7 +25,7 @@ const MANIFEST_URL = "https://cards.example.com/music/manifest.json";
 /** 一张最普通的卡：相对卡面 / 相对音频 / 有专辑、曲名、作者。 */
 function card(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
-    name: "爱丽丝", face: "faces/01.jpg", audio: "media/01.mp3",
+    name: "爱丽丝", cover: "cover/01.jpg", audio: "media/01.mp3",
     album: "旧作", title: "第一首", author: "甲", ...overrides,
   };
 }
@@ -44,7 +44,7 @@ describe("parseCustomManifest：合法清单 → 数据集（1 卡 = 1 名 + 1 �
     expect(character.order).toBe(0);
     expect(character.searchNames).toEqual(["爱丽丝"]);
     // 相对路径按**清单目录**解析成绝对地址（D141 的口径）
-    expect(character.card).toEqual(["https://cards.example.com/music/faces/01.jpg"]);
+    expect(character.card).toEqual(["https://cards.example.com/music/cover/01.jpg"]);
     expect(character.covers).toEqual(character.card);             // 1:1 ⇒ 卡池与卡面都只有这一张
     expect(character.music).toEqual([["旧作", "第一首", "角色曲", "甲"]]);
     expect(character.audio).toEqual(["https://cards.example.com/music/media/01.mp3"]);
@@ -62,7 +62,7 @@ describe("parseCustomManifest：合法清单 → 数据集（1 卡 = 1 名 + 1 �
 
   it("绝对 URL 原样用（Q3：清单写 https 就热链，不拼目录）", () => {
     const manifest = parseCustomManifest(payload({
-      cards: [card({ face: "https://img.example.com/a.jpg", audio: "https://cdn.example.com/a.mp3" })],
+      cards: [card({ cover: "https://img.example.com/a.jpg", audio: "https://cdn.example.com/a.mp3" })],
     }), MANIFEST_URL)!;
     expect(manifest.characters[0]!.card).toEqual(["https://img.example.com/a.jpg"]);
     expect(manifest.characters[0]!.audio).toEqual(["https://cdn.example.com/a.mp3"]);
@@ -122,7 +122,7 @@ const BAD_PAYLOADS: [string, unknown][] = [
   ["卡片不是对象", payload({ cards: ["alice"] })],
   ["缺卡名", payload({ cards: [card({ name: undefined })] })],
   ["卡名空串", payload({ cards: [card({ name: "  " })] })],
-  ["缺卡面（C2：不出现空卡面）", payload({ cards: [card({ face: undefined })] })],
+  ["缺卡面（C2：不出现空卡面）", payload({ cards: [card({ cover: undefined })] })],
   ["缺音频（F2：缺音频整份不合法）", payload({ cards: [card({ audio: undefined })] })],
   ["缺专辑（Q7：专辑必填）", payload({ cards: [card({ album: undefined })] })],
   ["缺曲名", payload({ cards: [card({ title: undefined })] })],

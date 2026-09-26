@@ -26,7 +26,7 @@ export const Localization = {
 
   ConfigTabCardCollection: u("Card Collection", "卡面图集"),
   ConfigTabCardSetFixed: u(
-    "This mode draws the one face each card's own source gives it; the art sets cannot be chosen here.",
+    "This mode draws the one cover each card's own source gives it; the art sets cannot be chosen here.",
     "这个模式的卡面由源提供，每卡一张，不能在这里更换图集。"),
   ConfigTabMusicSource: u("Music Source", "音乐源"),
   ConfigTabMusicSelectionPresets: u("Music Selection Presets", "音乐选择预设"),
@@ -47,7 +47,7 @@ export const Localization = {
     "Fill in a custom source link: this mode ships no data of its own.",
     "必须填写自定义源链接：这个模式不自带任何卡片数据。"),
   CustomSourceHint: u(
-    "One card = one name + one face + one track. Your manifest decides every card; the app only renders it.",
+    "One card = one name + one cover + one track. Your manifest decides every card; the app only renders it.",
     "一张卡 = 一个卡名 + 一张卡面 + 一首曲目。卡表完全由你的清单决定，应用只负责渲染。"),
   CustomSourceLoaded: u("Loaded {count} cards", "已载入 {count} 张卡"),
   CustomSourceInvalid: u(

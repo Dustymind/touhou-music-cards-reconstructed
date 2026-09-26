@@ -6280,6 +6280,15 @@ git submodule add https://github.com/Dustymind/touhou-music-cards-custom-data.gi
 那个仓库里**不放文档**（用户要求）：`README.md` / `README.ai.MD` / `tools/README.md` 已经移出、
 合并成工作区根的 `local-docs/custom-data-repo.md`，初始提交因此**从第一个字节起**就没有 `.md`。
 
-**验证**：`pnpm typecheck` ✓；vitest **48 文件 / 586 passed**（chromium 与 firefox 各 586）；
+**收尾之后的一处改名**（用户要求）：清单里那张卡面的键从 `face` 改成 **`cover`** ——
+自定义数据仓库那边一并改（目录 `faces/` → `cover/`、卡表键 `face`/`face_source` → `cover`/`cover_source`、
+模块 `custom.fetch_faces` → `custom.fetch_covers`、助手白名单、`.gitignore`、全部测试），
+应用侧 `customManifest.ts` 与 e2e 夹具跟着改。理由：同一个概念在本项目里已经叫 `cover`（音MAD 的
+`[[track]] cover`、`CharacterRecord.covers`），没必要为模式 3 另起一个名字。
+另外那个仓库**不放文档、也不提别的仓库**（用户要求）：三份说明合并进工作区根的
+`local-docs/custom-data-repo.md`；代码注释里"某数据仓库怎么怎么样"的来源说明全部改写成实测结论
+（技术理由一条没少，只是不再指向另一个仓库）。
+
+**验证**：`pnpm typecheck` ✓；vitest **49 文件 / 587 passed**（chromium 与 firefox 各 587）；
 e2e `custom-mode.spec.ts` **6 passed**（chromium / firefox 各 6）；
 `pnpm data:build` 17 文件 / `data:check` 无漂移 / `data:validate` ✅；主仓库 pytest **81 passed**。

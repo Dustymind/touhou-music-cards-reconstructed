@@ -18,8 +18,8 @@ import { useSession } from "../../store/session";
 import { AppShell } from "./AppShell";
 
 const CARDS = [
-  { id: "alice", name: "爱丽丝", face: "faces/a.png", audio: "media/a.mp3", album: "旧作", title: "曲 a", author: "甲" },
-  { id: "marisa", name: "魔理沙", face: "faces/b.png", audio: "media/b.mp3", album: "新作", title: "曲 b" },
+  { id: "alice", name: "爱丽丝", cover: "cover/a.png", audio: "media/a.mp3", album: "旧作", title: "曲 a", author: "甲" },
+  { id: "marisa", name: "魔理沙", cover: "cover/b.png", audio: "media/b.mp3", album: "新作", title: "曲 b" },
 ];
 
 function customBundle(bundle: DataBundle): DataBundle {

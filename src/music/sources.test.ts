@@ -137,7 +137,7 @@ describe("sources resolver", () => {
   it("模式 3：**同一个 payload** 里同时解析自定义清单与它声明的响度表（不发第二个请求）", async () => {
     const fetcher = vi.fn(async () => new Response(JSON.stringify({
       schema: 1, mode: "custom",
-      cards: [{ name: "爱丽丝", face: "faces/a.jpg", audio: "media/a.mp3", album: "旧作", title: "第一首" }],
+      cards: [{ name: "爱丽丝", cover: "cover/a.jpg", audio: "media/a.mp3", album: "旧作", title: "第一首" }],
       loudness: "loudness/custom.json",
     }), { status: 200 })) as unknown as typeof fetch;
     const result = await loadSourceTables([

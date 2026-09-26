@@ -91,9 +91,9 @@ function customManifest(cards = 3) {
   return parseCustomManifest({
     schema: 1, mode: "custom",
     cards: [
-      { id: "alice", name: "爱丽丝", face: "faces/a.jpg", audio: "media/a.mp3", album: "旧作", title: "曲 a", author: "甲" },
-      { id: "marisa", name: "魔理沙", face: "faces/b.jpg", audio: "media/b.mp3", album: "新作", title: "曲 b", author: "乙" },
-      { id: "reimu", name: "灵梦", face: "faces/c.jpg", audio: "media/c.mp3", album: "新作", title: "曲 c" },
+      { id: "alice", name: "爱丽丝", cover: "cover/a.jpg", audio: "media/a.mp3", album: "旧作", title: "曲 a", author: "甲" },
+      { id: "marisa", name: "魔理沙", cover: "cover/b.jpg", audio: "media/b.mp3", album: "新作", title: "曲 b", author: "乙" },
+      { id: "reimu", name: "灵梦", cover: "cover/c.jpg", audio: "media/c.mp3", album: "新作", title: "曲 c" },
     ].slice(0, cards),
   }, MANIFEST_URL)!;
 }

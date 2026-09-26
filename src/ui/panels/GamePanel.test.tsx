@@ -48,8 +48,8 @@ function customBundle(): DataBundle {
   const manifest = parseCustomManifest({
     schema: 1, mode: "custom",
     cards: [
-      { id: "a", name: "爱丽丝", face: "faces/a.jpg", audio: "media/a.mp3", album: "旧作", title: "曲 a", author: "甲" },
-      { id: "b", name: "魔理沙", face: "faces/b.jpg", audio: "media/b.mp3", album: "新作", title: "曲 b" },
+      { id: "a", name: "爱丽丝", cover: "cover/a.jpg", audio: "media/a.mp3", album: "旧作", title: "曲 a", author: "甲" },
+      { id: "b", name: "魔理沙", cover: "cover/b.jpg", audio: "media/b.mp3", album: "新作", title: "曲 b" },
     ],
   }, "https://cards.example.com/manifest.json")!;
   return withCustomManifest(bundle, manifest);
@@ -174,19 +174,19 @@ describe("GamePanel", () => {
   });
 
   it("模式 3：源给的卡面是**根路径 / 相对路径**时也原样用（不当成文件名去拼目录 + 编码）", async () => {
-    // e2e 实测踩到的：清单挂在同源 `/cards/manifest.json`、卡面写 `faces/a.png` ⇒ 解析成
-    // `/cards/faces/a.png`；`CharacterCard` 若按"内置图集的裸文件名"处理，会编成
-    // `.//%2Fcards%2Ffaces%2Fa.png`（必然 404 的地址）。
+    // e2e 实测踩到的：清单挂在同源 `/cards/manifest.json`、卡面写 `cover/a.png` ⇒ 解析成
+    // `/cards/cover/a.png`；`CharacterCard` 若按"内置图集的裸文件名"处理，会编成
+    // `.//%2Fcards%2Fcover%2Fa.png`（必然 404 的地址）。
     const manifest = parseCustomManifest({
       schema: 1, mode: "custom",
-      cards: [{ id: "a", name: "卡", face: "faces/a.png", audio: "media/a.mp3", album: "旧作", title: "曲" }],
+      cards: [{ id: "a", name: "卡", cover: "cover/a.png", audio: "media/a.mp3", album: "旧作", title: "曲" }],
     }, "/cards/manifest.json")!;
     await act(async () => { useSession.setState({ musicMode: "custom" }); });
     const container = await renderWithTheme(
       <GamePanel bundle={withCustomManifest(bundle, manifest)} />);
 
     const image = container.querySelector('[data-testid^="unused-card-"] img');
-    expect(image?.getAttribute("src")).toBe("/cards/faces/a.png");
+    expect(image?.getAttribute("src")).toBe("/cards/cover/a.png");
   });
 
   it("模式 3：卡池只含**可用的**卡（`cardKeys`），禁用的卡不进卡池 —— 不传即今天行为（Q5）", async () => {
