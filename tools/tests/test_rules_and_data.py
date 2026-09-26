@@ -78,15 +78,15 @@ def test_data_invariants_hold():
     # C：数据按模式分成两份，`entries` 是**原曲数据集**（曲包曲目不再并进来）
     modes = stats["modes"]
     assert modes["originals"] == {"characters": 121, "entries": 378, "distinctTracks": 368}
-    assert modes["otomads"] == {"characters": 43, "entries": 106, "distinctTracks": 106}
+    assert modes["otomads"] == {"characters": 80, "entries": 191, "distinctTracks": 191}
     # 模式 3「自定义」的自带数据集**恒为空**（数据全部来自使用者自己的源，契约 custom-mode-v1）
     assert modes["custom"] == {"characters": 0, "entries": 0, "distinctTracks": 0}
-    # 并集与分离前逐字节同义：378 + 106 = 484 条 / 368 + 106 = 474 首去重
-    assert modes["union"] == {"entries": 484, "distinctTracks": 474}
+    # 并集与分离前逐字节同义：378 + 191 = 569 条 / 368 + 191 = 559 首去重
+    assert modes["union"] == {"entries": 569, "distinctTracks": 559}
     assert stats["entries"] == 378
     assert stats["distinct_tracks"] == 368
     assert stats["packs"]["packs"] == 1
-    assert stats["packs"]["tracks"] == 106
+    assert stats["packs"]["tracks"] == 191
     assert stats["pending"] == 0
     assert stats["overrides"] == 5
     assert len(stats["shared"]) == 10
