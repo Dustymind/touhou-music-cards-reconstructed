@@ -138,8 +138,11 @@ interface DataBundle {
 **后续（D153）**：音MAD 侧多了一层**源封面** —— 数据仓库的每条 `[[track]]` 里的 `cover = "https://…"`
 （B 站图床直链；**写在曲目里**，见 D153 的修订）→ 快照 `characters[].covers`（**数组，顺序 = 曲目顺序**）
 → 运行时 `CharacterRecord.covers`。三处后果：
-**① 卡池从"角色 × 立绘"变成"角色 × 曲目"**（`cardCount = covers.length || card.length`，一首一张卡；
-`buildSongConflicts` 的自链接因此改按 `cardCount` 判 —— 不变式不变：**一个角色在整张桌子上仍然只有一张卡**）；
+**① 卡池从"角色 × 立绘"变成"角色 × 曲目"** —— 但**只在选中的是自定义卡面**（`sourceOnly`，
+源按曲目给素材的那套）时：`cardCount(character, cardSet) = sourceOnly ? covers.length : card.length`。
+选原版/本地图集时回到"一个角色 `card.length` 张卡"（否则会看到同一个角色的 N 张一样的立绘各占一张卡）。
+`buildSongConflicts` 的自链接改按 **`maxCardCount`（两种口径取最大，与当前图集无关）** 判 ——
+不变式不变：**一个角色在整张桌子上仍然只有一张卡**（按当前图集算的话，两端选了不同图集就会算出两张不同的表）；
 **② 新增一套图集** `otomads-cover`（`source_only = true` + `mode = "otomads"`，`dir`/`origins` 都为空：
 每张卡面本身就是绝对 URL），只在**音MAD 模式**、且生效数据集里**真的有 covers** 时列出（源不提供则整套不显示，
 选中但不可用时只回落渲染、不动用户偏好）；

@@ -1,16 +1,20 @@
-/** 卡面选择（D153）：卡数从哪来、每张卡用哪张图、图集什么时候**不该**出现。
+/** 卡面选择（D153 + 2026-09-26 的行为优化）：卡数从哪来、每张卡用哪张图、图集什么时候**不该**出现。
  *
- * 三条最要紧的性质钉在这里：
+ * 四条最要紧的性质钉在这里：
  *
- * 1. **卡数与图集无关**（`covers.length || card.length`）—— 换图集只换图不换牌；
- * 2. **源封面是整条绝对 URL**：不拼目录、不做 URL 编码（`cardUrl` 那一步同理）；
- * 3. **源不提供就不显示**：`sourceOnly` 图集在没有 covers 的数据集里既不可选、也不生效
+ * 1. **多重卡牌只在"自定义卡面"（`sourceOnly`）下生效**：封面集 ⇒ 一首一张；原版/本地图集 ⇒
+ *    一个角色 `card.length` 张（否则打原版图集会看到同角色 N 张一样的立绘各占一张卡）；
+ * 2. **渲染表按数据最大口径铺满**（`cardFaces` 比卡池长是故意的）—— 联机对面发来更大的
+ *    `cardIndex` 也画得出图，不会变成空卡面；
+ * 3. **源封面是整条绝对 URL**：不拼目录、不做 URL 编码（`cardUrl` 那一步同理）；
+ * 4. **源不提供就不显示**：`sourceOnly` 图集在没有 covers 的数据集里既不可选、也不生效
  *    （回落只影响渲染，不动用户存的偏好）。
  */
 import { describe, expect, it } from "vitest";
 
 import {
-  availableCardSets, cardCount, cardFace, cardFaces, hasSourceCovers, isCardUrl, resolveCardSet,
+  availableCardSets, cardCount, cardFace, cardFaces, hasSourceCovers, isCardUrl, maxCardCount,
+  resolveCardSet, usesPerTrackFaces,
 } from "./cardFaces";
 import type { CardSetRecord, CharacterRecord, ModeDataset } from "./types";
 import type { MusicMode } from "../music/mode";
@@ -57,21 +61,52 @@ function dataset(mode: MusicMode, characters: CharacterRecord[]): ModeDataset {
   };
 }
 
-describe("卡数", () => {
-  it("源封面优先：一首一张", () => {
-    expect(cardCount(character({ covers: COVERS }))).toBe(3);
+describe("卡数（多重卡牌只在自定义卡面下生效）", () => {
+  const cirno = character({ covers: COVERS });
+
+  it("自定义卡面（源按曲目给的那套）⇒ 一首一张", () => {
+    expect(usesPerTrackFaces(COVER_SET)).toBe(true);
+    expect(cardCount(cirno, COVER_SET)).toBe(3);
   });
 
-  it("没有源封面时按原版卡面数（原曲那份就是这条）", () => {
-    expect(cardCount(character())).toBe(1);
-    expect(cardCount(character({ card: ["慧音.png", "慧音2.png"] }))).toBe(2);
+  it("原版图集 ⇒ 回到一个角色 `card.length` 张（本尊就是那条行为优化）", () => {
+    expect(cardCount(cirno, UPSTREAM_SET)).toBe(1);          // cirno.card 只有一张立绘
+    expect(cardCount(character({ covers: COVERS, card: ["慧音.png", "慧音2.png"] }), UPSTREAM_SET))
+      .toBe(2);                                              // 合成角色照旧按立绘数
   });
 
-  it("**与图集无关**——换图集不能改卡数（否则牌库里的 cardIndex 会错位）", () => {
-    const cirno = character({ covers: COVERS });
-    expect(cardCount(cirno)).toBe(cardFaces(cirno, COVER_SET).length);
-    expect(cardCount(cirno)).toBe(cardFaces(cirno, UPSTREAM_SET).length);
-    expect(cardCount(cirno)).toBe(cardFaces(cirno, undefined).length);
+  it("本地自放图集（`local_only`）**不算**自定义卡面：一张立绘就是一张卡", () => {
+    // 它的卡面来自 `card`（没有按曲目给的素材）⇒ 撑成 N 张只会是同一张图重复 N 次
+    expect(usesPerTrackFaces(LOCAL_SET)).toBe(false);
+    expect(cardCount(cirno, LOCAL_SET)).toBe(1);
+  });
+
+  it("没有源封面时（原曲那份）两种口径一致", () => {
+    expect(cardCount(character(), COVER_SET)).toBe(1);
+    expect(cardCount(character(), UPSTREAM_SET)).toBe(1);
+    expect(cardCount(character({ card: ["慧音.png", "慧音2.png"] }), UPSTREAM_SET)).toBe(2);
+  });
+
+  it("`maxCardCount` = 两种口径取最大，**与图集无关**（互斥表就靠它）", () => {
+    expect(maxCardCount(cirno)).toBe(3);                     // covers 3 > card 1
+    expect(maxCardCount(character({ covers: COVERS, card: ["a.png", "b.png", "c.png", "d.png"] })))
+      .toBe(4);                                              // card 4 > covers 3
+    expect(maxCardCount(character())).toBe(1);
+  });
+});
+
+describe("渲染表（比卡池长是故意的）", () => {
+  const cirno = character({ covers: COVERS });
+
+  it("长度按数据最大口径铺满 ⇒ 对面用封面集发来 cardIndex=2 时仍画得出图", () => {
+    // 本端打原版图集：卡池只有 1 张，但渲染表有 3 格（对面可能是"一首一张"）
+    expect(cardFaces(cirno, UPSTREAM_SET)).toHaveLength(3);
+    expect(cardFaces(cirno, UPSTREAM_SET)[2]).toBe("チルノ.png");
+    expect(cardCount(cirno, UPSTREAM_SET)).toBe(1);          // 卡池仍然只有 1 张
+  });
+
+  it("封面集下逐格就是各首曲目的封面", () => {
+    expect(cardFaces(cirno, COVER_SET)).toEqual(COVERS);
   });
 });
 

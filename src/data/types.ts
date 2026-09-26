@@ -22,9 +22,9 @@ export interface CharacterRecord {
   card: string[];
   /** 源给的**每首曲目一张**的封面直链（音MAD 侧才有；绝对 https URL，见 D153）。
    *
-   *  有它 = 这个角色在卡池里是 **`covers.length` 张卡**（一首一封面）；第 i 张用哪张图见
-   *  `src/data/cardFaces.ts` 的 `cardFace`：**源封面**图集下用 `covers[i]`，别的图集（原版卡面）
-   *  仍按 `card` 轮转 —— 于是**换图集只换图、不换牌**（牌库里的 `cardIndex` 不会错位）。
+   *  它决定**自定义卡面**那套图集（`sourceOnly`）下这个角色有几张卡（`covers.length`，一首一张）；
+   *  别的图集回到 `card.length` 张。两者的算法收在 `src/data/cardFaces.ts`：
+   *  `cardCount`（卡池）/ `cardFace`（取图）/ `maxCardCount`（互斥表用的最大口径）。
    *  身份字段跨模式一致（契约 §5 S1），这个字段是**卡面那一类**的例外。 */
   covers?: string[];
   searchNames: string[];

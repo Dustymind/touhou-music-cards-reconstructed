@@ -17,11 +17,11 @@
  * 互斥是**按歌**而不是"连通分量"：`tatara-kogasa` 分别与 `houjuu-nue`、`miyako-yoshika`
  * 各共用一首，但后两者之间没有共同曲目 → 它们可以同时在场上，只有 kogasa 进不来。
  *
- * D153 之后"同一角色多张卡面"多了一种来源：音MAD 侧**一首曲目一张卡**（`covers`），
- * 卡池从"角色 × 立绘"变成"角色 × 曲目"。判定按 `cardCount`（真实卡数）走，见下面的注释。
+ * D153 之后"同一角色多张卡面"多了一种来源：音MAD 侧**一首曲目一张卡**（`covers`）。
+ * 判定按 `maxCardCount`（两种口径取最大，**与当前图集无关**）走，见下面的注释。
  */
 import type { CharacterRecord } from "../data/types";
-import { cardCount } from "../data/cardFaces";
+import { maxCardCount } from "../data/cardFaces";
 import { trackId } from "../data/types";
 import type { SongConflicts } from "../game/types";
 
@@ -57,12 +57,15 @@ export function buildSongConflicts(characters: readonly CharacterRecord[]): Song
   // 同一角色的多张卡面：它们共用该角色的全部曲目 → 一局里只允许一张
   // （只给当前模式下真的会进卡池的角色建自链接）
   //
-  // **"几张卡"要按 `cardCount` 算，不能看 `card.length`**（D153）：音MAD 侧的卡数是**曲目数**
-  // （一首一张封面），而 `card` 还是原来那一两张原版立绘 —— 看 `card.length` 会漏掉自链接，
-  // 于是两个玩家各拿一张同一角色的不同变体，两张卡都对同一首歌"答对"。
-  // 用了 `cardCount` 之后不变式与改动前**逐字相同**：一个角色在整张桌子上最多一张卡。
+  // **"几张卡"按 `maxCardCount` 算：两种口径取最大，与"当前选了哪套图集"无关**。
+  // 两处都不能想当然：
+  //   * 只看 `card.length`（D153 之前）会漏掉音MAD 的"一首一张"⇒ 两张同角色变体同时在场，
+  //     都对同一首歌"答对"；
+  //   * 只看当前图集（行为优化之后）会变成"随偏好而定的互斥表"⇒ 联机两端选了不同图集时，
+  //     一边能放第二张、另一边不能 —— 同一份数据算出两张不同的表。
+  // 取最大之后不变式与改动前**逐字相同**：一个角色在整张桌子上最多一张卡。
   for (const character of characters) {
-    if (cardCount(character) > 1 && playable.has(character.key)) link(character.key, character.key);
+    if (maxCardCount(character) > 1 && playable.has(character.key)) link(character.key, character.key);
   }
 
   const table: Record<string, string[]> = {};

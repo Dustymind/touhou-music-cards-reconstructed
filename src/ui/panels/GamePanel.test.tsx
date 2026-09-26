@@ -58,6 +58,9 @@ describe("GamePanel", () => {
     localStorage.clear();
     setLocale("en");   // 断言用的都是英文文案；中文另见下一个用例
     bundle = await loadRealBundle();
+    // 会话偏好也要归零：卡面图集**会改卡池大小**（多重卡牌只在自定义卡面下生效），
+    // 音乐模式更是换一整套数据集 —— 不重置就会串到后面的用例里（本文件现在真的有用例会改它们）
+    useSession.setState({ musicMode: "originals", cardCollection: "dairi-sd" });
     // 每个用例都从干净的对局状态开始，避免上一个用例的计时器/状态串味
     useGame.setState({
       cpu: { meanSeconds: 0.5, stdDevSeconds: 0, mistakeRate: 0 },
@@ -115,6 +118,35 @@ describe("GamePanel", () => {
     await clickTestId(container, "random-fill");
     const zunDeck = container.querySelector('[data-testid^="deck-you-card-"] img')?.getAttribute("src") ?? "";
     expect(zunDeck).toContain("/cards-zun/");
+  });
+
+  it("多重卡牌只在自定义卡面下生效：牌堆大小跟着图集走（行为优化）", async () => {
+    const bundle = await loadRealBundle();
+    const otomads = bundle.datasets.otomads;
+    // 期望值跟着数据走：一首一张 = 封面总数（87）；一个角色一张 = 立绘总数（39 = 36 角色 + 慧音 2 + 三姐妹 3）
+    const perTrack = otomads.characters.reduce((sum, c) => sum + (c.covers?.length ?? c.card.length), 0);
+    const perArt = otomads.characters.reduce((sum, c) => sum + c.card.length, 0);
+    expect(perTrack).toBeGreaterThan(perArt);            // 前置：这组数据确实"多轨"
+
+    const container = await render();
+
+    // 音MAD + 自定义卡面（源按曲目给的 B 站封面）⇒ 一首一张
+    await act(async () => {
+      useSession.setState({ musicMode: "otomads", cardCollection: "otomads-cover" });
+    });
+    expect(useGame.getState().pool).toHaveLength(perTrack);
+
+    // 换成上游原版图集 ⇒ 回到"一个角色一张卡"（否则会看到 N 张一样的立绘各占一张卡）
+    await act(async () => { useSession.setState({ cardCollection: "dairi-sd" }); });
+    expect(useGame.getState().pool).toHaveLength(perArt);
+
+    // 牌库里已有的牌**不因换图集被丢弃**（只换卡池，不动牌库）——渲染表也铺得满，不会白卡
+    await clickTestId(container, "random-fill");
+    const deckCards = container.querySelectorAll('[data-testid^="deck-you-card-"] img');
+    expect(deckCards.length).toBeGreaterThan(0);
+    for (const image of deckCards) {
+      expect(image.getAttribute("src") ?? "").not.toBe("");
+    }
   });
 
   it("三种模式各显示什么：单人无对方棋盘 / 电脑有棋盘可调卡组 / 多人有棋盘与联机栏", async () => {

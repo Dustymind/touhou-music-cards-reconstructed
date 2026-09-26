@@ -237,23 +237,25 @@ function GamePanelInner({ bundle }: { bundle: DataBundle }) {
     return map;
   }, [dataset.characters, cardSet]);
 
-  // 卡池 = 当前数据集的角色 × **卡数**（C：数据集只含本模式有曲目的角色，"没有对应音乐的角色"已不存在）。
-  // 音MAD 侧每首曲目一张卡面 ⇒ 卡池从"角色"变成"角色 × 曲目"（D153）；**卡数不随图集变**
-  // （`cardCount` 只看数据），所以换图集不会让牌库里的 `cardIndex` 错位。
+  // 卡池 = 当前数据集的角色 × **当前图集下的卡数**（C：数据集只含本模式有曲目的角色，
+  // "没有对应音乐的角色"已不存在）。**多重卡牌只在一套图集下生效**（用户要求的行为优化）：
+  // 自定义卡面（源按曲目给的 B 站封面）⇒ 一首一张；原版/本地图集 ⇒ 一个角色 `card.length` 张。
+  // 所以换图集会换卡池，`init` 要跟着重跑（它只换 `pool`/`conflicts`，**不动牌库里的牌**）。
   // 顺带把轮播顺序灌进对局状态。
   useEffect(() => {
     const usable = dataset.characters;
     const cards: CardInfo[] = [];
     for (const character of usable) {
-      const count = cardCount(character);
+      const count = cardCount(character, cardSet);
       for (let cardIndex = 0; cardIndex < count; cardIndex += 1) {
         cards.push({ characterKey: character.key, cardIndex });
       }
     }
-    // 卡池 + 曲目互斥表一起灌进去（D108）：同一首歌只允许一个角色、同角色只允许一张卡面
+    // 卡池 + 曲目互斥表一起灌进去（D108）：同一首歌只允许一个角色、同角色只允许一张卡。
+    // 互斥表**按数据最大口径**建（与当前图集无关）—— 否则两端选了不同图集时互斥会不一致。
     init(cards, buildSongConflicts(usable));
     setOrder(usable.map((character) => character.key));
-  }, [dataset, init, setOrder]);
+  }, [dataset, cardSet, init, setOrder]);
 
   // 载入上次的卡片大小与牌库尺寸（上游 localStorage 的 `gameSetting`）。
   // 牌库尺寸只在**用户自己改过**（存的不是默认值）时才套用：否则会盖掉调用方/联机同步过来的尺寸。

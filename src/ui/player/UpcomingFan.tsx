@@ -9,7 +9,7 @@ import { useRef } from "react";
 import { useElementWidth } from "../useElementWidth";
 
 import type { CardSetRecord, DataBundle, ModeDataset } from "../../data/types";
-import { cardFaces } from "../../data/cardFaces";
+import { cardCount, cardFace } from "../../data/cardFaces";
 import { useCurrentDataset } from "../../data/useDataset";
 import { CardAspectRatio } from "../../theme/theme";
 import { CardStrip, type StripCard } from "../components/CardStrip";
@@ -30,11 +30,10 @@ export function fanCardWidth(windowWidth: number): number {
   return Math.min(windowWidth * 0.2, 150);
 }
 
-/** 牌堆内容：按轮播顺序把每个角色的每张卡面排开（等距、不重叠）。
+/** 牌堆内容：按轮播顺序把每个角色的**卡池里那些**卡排开（等距、不重叠）。
  *
- *  `cardSet` 传进来是**必须的**（D153）：音MAD 侧"一首一张卡面"，条上的张数与牌库里的
- *  `cardIndex` 必须同一口径（`cardFaces` 既决定图、也决定张数），否则播放页的选择器
- * 与对战页的牌库会对不上号。省略时按"没有图集"算（只影响图，张数照旧按数据来）。 */
+ *  张数用 `cardCount(character, cardSet)` —— 与对战页的卡池**同一个口径**（多重卡牌只在
+ *  自定义卡面那套图集下生效），否则播放页的选择器会比对战页多/少几张。图用 `cardFace`。 */
 export function fanLayout(
   dataset: ModeDataset,
   order: readonly string[],
@@ -45,10 +44,17 @@ export function fanLayout(
   const cards: StripCard[] = [];
   for (const key of order) {
     const character = dataset.characterByKey.get(key);
-    const files = character ? cardFaces(character, cardSet) : [""];
-    files.forEach((file, cardIndex) => {
-      cards.push({ id: `${key}-${cardIndex}`, characterKey: key, cardIndex, file, state: "normal" });
-    });
+    if (!character) {
+      cards.push({ id: `${key}-0`, characterKey: key, cardIndex: 0, file: "", state: "normal" });
+      continue;
+    }
+    const count = cardCount(character, cardSet);
+    for (let cardIndex = 0; cardIndex < count; cardIndex += 1) {
+      cards.push({
+        id: `${key}-${cardIndex}`, characterKey: key, cardIndex,
+        file: cardFace(character, cardSet, cardIndex), state: "normal",
+      });
+    }
   }
   return { cards, cardWidth, cardHeight: cardWidth / CardAspectRatio };
 }

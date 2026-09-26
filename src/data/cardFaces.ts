@@ -1,19 +1,20 @@
-/** 卡面：**图集 × 数据集 → 每张卡用哪张图**（D153）。
+/** 卡面：**图集 × 数据集 → 每张卡用哪张图、以及有几张卡**（D153；含 2026-09-26 的行为优化）。
  *
- * 三条规则（改动前请连着读一遍，它们互相咬着）：
+ * 四条规则（改动前请连着读一遍，它们互相咬着）：
  *
- * 1. **卡数是数据决定的，不随图集变**：`covers.length || card.length`。牌库/牌桌上的身份是
- *    `(characterKey, cardIndex)`，所以卡数一变，存档里的序号、联机快照、染色就全对不上 ——
- *    换图集**只能换图**。
- * 2. **源封面图集（`sourceOnly`）**：第 i 张直接用源给的 `covers[i]`（绝对 https URL，
+ * 1. **多重卡牌只在"自定义卡面"下生效**（用户要求）：选中的图集是**源按曲目给卡面**的那套
+ *    （`sourceOnly`，即音MAD 的 B 站封面集）时，一个角色才有 `covers.length` 张卡（一首一张）；
+ *    其余图集（上游原版立绘、本地自放图集）回到**一个角色 `card.length` 张卡** —— 否则"打原版图集"
+ *    会看到同一个角色的 N 张一样的立绘各占一张卡，既没意义也把牌堆撑大。
+ * 2. **渲染与卡池分开算**（`cardFaces` vs `cardCount`）：渲染表按**数据最大**口径铺满，
+ *    于是联机对面用着别的图集、发来一个更大的 `cardIndex` 时也画得出图，不会变成空卡面。
+ * 3. **源封面图集（`sourceOnly`）**：第 i 张直接用源给的 `covers[i]`（绝对 https URL，
  *    `CharacterCard` 原样用，不拼目录、不做 URL 编码）。
- * 3. **其余图集**（含音MAD 模式下的**原版卡面**）：用 `card` 按张数**轮转**。音MAD 角色现在有
- *    多张卡（一首一张），原版图只有一两张时这就是"同一个角色的不同卡"；合成角色（普莉兹姆利巴
- *    三姐妹那种）正好按序轮到他自己的那张。
+ * 4. **其余图集**：用 `card` 按张数**轮转**（合成角色 —— 普莉兹姆利巴三姐妹那种 —— 正好按序轮到自己那张）。
  *
- * 卡池变大了会不会破坏"同一角色只能有一张卡"？不会 —— `buildSongConflicts` 的自链接按
- * `card.length > 1` 建，音MAD 侧现在**每张卡都是独立的一张**，互斥表按 `characterKey` 判定，
- * 于是补满牌库时同一角色仍然只会被抽到一张（`rules.randomFill` 的逐张判定）。
+ * **互斥表不看当前图集**（`maxCardCount`）：一个角色"最多可能贡献几张卡"按**两种口径取最大**算。
+ * 若按当前图集算，两端选了不同图集时会出现一边能放第二张、另一边不能 —— 那就破了
+ * "一个角色在整张桌子上最多一张卡"这条不变式（D108）。
  */
 import type { CardSetRecord, CharacterRecord, ModeDataset } from "./types";
 
@@ -27,12 +28,32 @@ export function isCardUrl(file: string): boolean {
   return /^https?:\/\//i.test(file);
 }
 
-/** 这个角色在卡池里有几张卡：**源封面优先**（一首一封面），没有就按原版卡面数。 */
-export function cardCount(character: CharacterRecord): number {
+/** 这套图集的卡面是不是**按曲目给的**（= 源提供，`sourceOnly`）—— **多重卡牌的唯一开关**。 */
+export function usesPerTrackFaces(cardSet: CardSetRecord | undefined): boolean {
+  return cardSet?.sourceOnly === true;
+}
+
+/** 这个角色**最多可能**贡献几张卡：两种口径取最大（`covers.length` 与 `card.length`）。
+ *
+ *  只给互斥表用 —— **与当前选了哪套图集无关**（见文件头最后一条）。 */
+export function maxCardCount(character: CharacterRecord): number {
+  return Math.max(character.covers?.length ?? 0, character.card.length);
+}
+
+/** 这个角色在**当前图集**下进卡池几张卡（决定牌堆大小与 `cardIndex` 的取值范围）。
+ *
+ *  * 自定义卡面（`sourceOnly`，源按曲目给）⇒ 一首一张（`covers.length`；没有就退回原版卡面数）；
+ *  * 其余图集 ⇒ 一个角色 `card.length` 张（原版立绘 1 张；合成角色 2–3 张）。
+ *
+ *  ⚠️ 卡池大小**跟着图集走**是有意的（用户要求）。换图集时牌堆会跟着变：变小时已有的牌
+ *  **不会被丢弃**（`init` 只换 `pool`/`conflicts`，不动牌库），渲染走 :func:`cardFaces` 的铺满口径
+ *  所以不会白卡，互斥表也仍按最大口径挡着。 */
+export function cardCount(character: CharacterRecord, cardSet?: CardSetRecord): number {
+  if (!usesPerTrackFaces(cardSet)) return character.card.length;
   return character.covers?.length ?? character.card.length;
 }
 
-/** 第 `index` 张卡的图（越界/负数一律按第一张算，绝不返回 undefined）。 */
+/** 第 `index` 张卡的图（越界/负数一律回到第 0 张，**绝不返回 undefined**）。 */
 export function cardFace(
   character: CharacterRecord,
   cardSet: CardSetRecord | undefined,
@@ -45,9 +66,13 @@ export function cardFace(
   return card[safe % card.length] ?? covers[safe] ?? "";
 }
 
-/** 一个角色在当前图集下的**全部**卡面（长度 = :func:`cardCount`，下标与牌库一致）。 */
+/** 渲染用的卡面表：下标 → 图，长度按**数据最大**口径铺满（:func:`maxCardCount`）。
+ *
+ *  **比当前卡池长是故意的**：联机对面可能用着"自定义卡面"那套（一首一张），它发来的 `cardIndex`
+ *  会超出本端卡池 —— 这样仍画得出图（原版立绘按序轮转），而不是一张空卡面。
+ *  卡池本身**不看**这个长度，看 :func:`cardCount`。 */
 export function cardFaces(character: CharacterRecord, cardSet: CardSetRecord | undefined): string[] {
-  const count = cardCount(character);
+  const count = maxCardCount(character);
   const out: string[] = [];
   for (let index = 0; index < count; index += 1) out.push(cardFace(character, cardSet, index));
   return out;

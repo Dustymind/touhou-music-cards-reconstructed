@@ -9,7 +9,11 @@ const character = (
   key: string,
   music: MusicEntry[],
   card: string[] = [`${key}.png`],
-): CharacterRecord => ({ key, name: key, order: 0, card, searchNames: [key], music });
+  covers: string[] = [],
+): CharacterRecord => ({
+  key, name: key, order: 0, card, searchNames: [key], music,
+  ...(covers.length ? { covers } : {}),
+});
 
 
 describe("buildSongConflicts", () => {
@@ -28,6 +32,20 @@ describe("buildSongConflicts", () => {
     expect(table["d"]).toBeUndefined();
     // a 与 c 没有共同曲目 → 可以同时在场上
     expect(table["a"]).not.toContain("c");
+  });
+
+  it("自链接按**两种口径取最大**算，与「当前选了哪套图集」无关", () => {
+    // ① 音MAD 典型形态：一首一张封面（covers 3），原版立绘只有 1 张 —— 只看 card 会漏掉自链接；
+    //    只看"当前图集"更糟：两端选了不同图集就会算出两张不同的表。
+    const covers = ["https://i0.hdslb.com/a.jpg", "https://i0.hdslb.com/b.jpg", "https://i0.hdslb.com/c.jpg"];
+    const table = buildSongConflicts([
+      character("per-track", [["原曲盘", "x", "角色曲"]], ["only.png"], covers),
+      // ② 反向：封面只有 1 条，但原版立绘 3 张（合成角色）—— 打原版图集时它们仍是"三个角色共用一个 key"
+      character("composite", [["原曲盘", "y", "角色曲"]], ["l.png", "m.png", "r.png"], ["https://i0.hdslb.com/d.jpg"]),
+      character("single", [["原曲盘", "z", "角色曲"]]),
+    ]);
+
+    expect(table).toEqual({ "per-track": ["per-track"], composite: ["composite"] });
   });
 
   it("同一角色的多张卡面互相排斥（自链接）", () => {
