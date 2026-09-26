@@ -155,6 +155,16 @@ test("逐卡禁用：不进轮播、也不进卡池（游戏页牌堆同口径�
   await expect(page.getByText(`pool ${cards.length - 1}`)).toBeVisible();
   await page.getByRole("tab", { name: "Player", exact: true }).click();
   await expect.poll(() => rotationCount(page)).toBe(rest.length);
+
+  // 切到别的模式再切回来：模式 3 的三元、禁用、源链接**原样保留**（三把 store 都是这个模式自己的）
+  await page.getByRole("tab", { name: "Config", exact: true }).click();
+  await expandSection(page, "source");
+  await page.getByTestId("music-mode-otomads").click();
+  await page.getByTestId("music-mode-custom").click();
+  await page.getByRole("tab", { name: "Player", exact: true }).click();
+  await expect.poll(() => rotationCount(page)).toBe(rest.length);
+  await page.getByRole("tab", { name: "Match", exact: true }).click();
+  await expect(page.getByText(`pool ${cards.length - 1}`)).toBeVisible();
 });
 
 test("重置 = 清空：回到 0 张卡，刷新后仍是空（默认值本来就是空）", async ({ page }) => {

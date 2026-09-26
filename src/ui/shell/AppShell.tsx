@@ -224,8 +224,10 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
   useEffect(() => {
     const characterKeys = dataset.characters.map((character) => character.key);
     singleStoreFor(musicMode).getState().prune(characterKeys);
-    // 模式 3 的逐卡禁用表也按同一份 key 清理（换源 ⇒ 卡表整份换掉）
-    useCustomSingle.getState().prune(characterKeys);
+    // 模式 3 的逐卡禁用表：只在**当前就在模式 3**时按它的卡表清理。
+    // 这把 store 是**全局单例**（不像另两个模式各有一把），拿别的模式的 key 去 prune 会把
+    // 这个模式的禁用记录整批删掉 —— e2e 实测："切到音MAD 再切回来，禁用的卡又回到轮播里了"。
+    if (musicMode === "custom") useCustomSingle.getState().prune(characterKeys);
 
     // 点播请求存的是**角色 key**：那个角色已经不在数据集里了，请求就该让位（B2 的同一条原则）。
     // 按角色判，不要按音源 id 判 —— 音源注册表里永远没有角色 key，那样写会误清掉还在的角色。
