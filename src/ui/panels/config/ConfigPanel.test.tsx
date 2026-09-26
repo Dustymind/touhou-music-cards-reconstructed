@@ -389,6 +389,14 @@ describe("ConfigPanel", () => {
     expect(container.querySelector('[data-testid="custom-source-loaded"]')).toBeNull();
   });
 
+  it("模式 3：卡面图集分区只留一行只读说明，图集单选一行都不列（契约 C3）", async () => {
+    const { container } = await openCustomSource();
+    await expand(container, "cardset");
+
+    expect(container.querySelector('[data-testid="cardset-fixed"]')).not.toBeNull();
+    expect(container.querySelectorAll('[data-testid^="cardset-row-"]').length).toBe(0);
+  });
+
   it("自定义源：填地址 → 应用 ⇒ 落盘；取回清单后状态显示**卡数**（不是 entries.size）", async () => {
     const { container } = await openCustomSource(customTable(3));
     await type(input(container, "custom-source-url"), "https://cards.example.com");

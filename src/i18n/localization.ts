@@ -25,6 +25,9 @@ export const Localization = {
   PlayerTabPlaybackDurationLabel: u("Playback Duration (s; 0 = inf)", "播放时长（秒；0 = 无限）"),
 
   ConfigTabCardCollection: u("Card Collection", "卡面图集"),
+  ConfigTabCardSetFixed: u(
+    "This mode draws the one face each card's own source gives it; the art sets cannot be chosen here.",
+    "这个模式的卡面由源提供，每卡一张，不能在这里更换图集。"),
   ConfigTabMusicSource: u("Music Source", "音乐源"),
   ConfigTabMusicSelectionPresets: u("Music Selection Presets", "音乐选择预设"),
   ConfigTabMusicSelectionSingle: u("Single Track Mode", "仅单曲模式"),

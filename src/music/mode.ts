@@ -22,10 +22,11 @@ export const DEFAULT_MUSIC_MODE: MusicMode = "originals";
 
 /** **自带卡面**的模式：这个模式的卡面由它自己的源给，`cardsets.json` 里的图集一概不列出（D155）。
  *
- *  今天两个模式都不是 —— 它们共用上游那几套内置图集（`CardSetRecord.mode` 缺省 = 每个模式都能选）。
  *  判据放在这里而不是 `cardFaces.ts`：`set.mode === undefined` 对**所有**内置图集都成立，
- *  新增一个模式时"能不能用这些图集"必须是一次**明写的决定**，不能靠"没人写 mode"默认放行。 */
-export const OWN_FACE_MODES: readonly MusicMode[] = [];
+ *  新增一个模式时"能不能用这些图集"必须是一次**明写的决定**，不能靠"没人写 mode"默认放行。
+ *  今天只有模式 3：它的卡面就是清单里那张（每卡一张、不可更换），所以上游那几套与用户的本地图集
+ *  在这个模式下**一套都不该出现**（契约 `docs/custom-mode-v1.md` C3）。 */
+export const OWN_FACE_MODES: readonly MusicMode[] = ["custom"];
 
 /** 这个模式的卡面是不是**自己的源**给的（见 `OWN_FACE_MODES`）。 */
 export function usesOwnCardFaces(mode: MusicMode): boolean {

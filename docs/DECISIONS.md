@@ -6111,3 +6111,34 @@ originals `3d83c3eb519ba812`，改动前后同值）。
 合法清单、22 条坏形状矩阵、`withCustomManifest`、`customHash` 覆盖/不覆盖；`sources.test.ts` +2 条
 自定义清单与响度表；`useSources.test.ts` +1 条"空地址不发请求、改地址会重载"；`usePlayer.test.tsx` +3 条
 逐卡音频；`ConfigPanel.test.tsx` +4 条那一行；`session.test.ts` +4 条优先级与落盘边界）。
+
+---
+
+### D158 模式 3 的卡面：代码里的**合成图集**，图集菜单在该模式下不出现
+
+**用户要求**：模式 3 的卡面**只有源给的那一张**（每卡一张、不可更换），`cardsets.json` 里的任何图集
+在这个模式下都不可用；播放页 / 游戏页画的必须是源给的卡面，**不回落**内置立绘。
+
+**落地**（D155 已经把地基清好了，这一轮只是"把模式 3 登记进去"）：
+
+- `src/music/mode.ts`：`OWN_FACE_MODES = ["custom"]` —— 判据仍然只有那一处；
+- `src/data/cardFaces.ts`：新增代码里的**合成图集** `CUSTOM_CARD_SET`
+  （`{ id: "custom-source", mode: "custom", sourceOnly: true, dir: "", origins: [], localPrefix: "./" }`）；
+  `availableCardSets` 对自带卡面的模式**直接返回它**（内置图集与用户的本地图集一套都不列），
+  `resolveCardSet` 于是必然落在它上面 ⇒ **用户存下的 `cardCollection` 被忽略但不改写**
+  （切回别的模式，偏好原样恢复 —— 与 D153 的"回落只影响渲染"同一条原则）。
+- `sourceOnly` 让 `CharacterCard` 把卡面值**当整条 URL 用**（不拼目录、不编码）并按卡面比例 `cover`，
+  与音MAD 的 B 站封面同一套；每卡恰好一张 ⇒ `cardCount` / `maxCardCount` 恒为 1，
+  `cardFace` 的取模轮转在 1 张下天然安全（**不改卡面层的任何算法**，靠数据形状保证）。
+- `src/ui/panels/ConfigPanel.tsx`：模式 3 下**不渲染** `CardSetSection`，改渲染同一个分区里一行只读说明
+  （"这个模式的卡面由源提供，每卡一张，不能在这里更换图集"）—— 分区标题照旧在，设置页五个分区的节奏不变。
+  `CardSetSection.tsx` 本身**一个字没动**（它只是"不该在这里出现"）。
+
+**为什么合成图集不进 `cardsets.json`**：那张表是**数据**（构建期生成、随仓库提交），而模式 3 的卡面来源
+是"运行时由使用者的清单决定"—— 没有 `dir`、没有 `origin` 可写，写进数据表反而要给它编一套假字段。
+放在代码里，它就是"这个模式怎么拿卡面"这条规则的一部分，与 `OWN_FACE_MODES` 挨着。
+
+**验证**：`pnpm typecheck` ✓；vitest **46 文件 / 537 passed**（`cardFaces.test.ts` +3：合成集是唯一可选项、
+用户偏好被忽略但不改写、1:1 ⇒ 卡数恒为 1；`ConfigPanel.test.tsx` +1：图集分区只剩一行说明）。
+**反证**：把 `OWN_FACE_MODES` 改回空表 ⇒ 那两条新用例立刻红（`expected false to be true`、
+`expected 'dairi-sd' to be 'custom-source'`），其余 22 条照旧通过 —— 正是 D155 想要的那种"只动该动的"。

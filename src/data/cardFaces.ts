@@ -28,6 +28,16 @@ const NO_CARD_SET: CardSetRecord = {
   id: "", dir: "", label: { en: "", zh: "" }, localPrefix: "./", origins: [],
 };
 
+/** 模式 3（自带卡面）的**合成图集**：素材是清单给的**绝对 URL**，所以没有目录、没有 origin，
+ *  也不进 `cardsets.json`（它是代码里的常量，不是一条数据 —— 契约 C3）。
+ *
+ *  `sourceOnly` 让 `CharacterCard` 原样用那条 URL、并按卡面比例 `cover`（与音MAD 的 B 站封面同一套）；
+ *  每卡恰好一张（`card` 与 `covers` 都是它）⇒ 卡数恒为 1，取模轮转天然安全。 */
+export const CUSTOM_CARD_SET: CardSetRecord = {
+  id: "custom-source", dir: "", label: { en: "Custom source", zh: "自定义源" },
+  localPrefix: "./", origins: [], sourceOnly: true, mode: "custom",
+};
+
 /** 这一条卡面是不是**完整 URL**（源封面就是）。`CharacterCard` 据此跳过"拼目录"那一步。 */
 export function isCardUrl(file: string): boolean {
   return /^https?:\/\//i.test(file);
@@ -88,17 +98,20 @@ export function hasSourceCovers(dataset: ModeDataset): boolean {
   return dataset.characters.some((character) => (character.covers?.length ?? 0) > 0);
 }
 
-/** 当前模式下能选的图集：`mode` 不匹配的、以及**源没给素材**的 `sourceOnly` 图集都不出现。 */
+/** 当前模式下能选的图集：`mode` 不匹配的、以及**源没给素材**的 `sourceOnly` 图集都不出现。
+ *
+ *  **自带卡面的模式只有一套**（`CUSTOM_CARD_SET`）：这个模式的卡面来源就是清单本身，
+ *  所以连"源还没给素材"这条回落也不适用 —— 没有数据时本来也没有卡要画（契约 C3）。 */
 export function availableCardSets(
   sets: readonly CardSetRecord[],
   dataset: ModeDataset,
 ): CardSetRecord[] {
+  if (usesOwnCardFaces(dataset.mode)) return [CUSTOM_CARD_SET];
   const covers = hasSourceCovers(dataset);
-  // `mode` 缺省 = 共享图集（上游那几套、用户本地自放那套）：**自带卡面的模式不列它们**（D155）
-  const ownFaces = usesOwnCardFaces(dataset.mode);
+  // 走到这里就一定是"共用内置图集"的模式（上面那条挡掉了自带卡面的模式）：
+  // `mode` 缺省 = 共享图集（上游那几套、用户本地自放那套），限定了模式的图集只在它自己那个模式里出现
   return sets.filter((set) =>
-    (set.mode === undefined ? !ownFaces : set.mode === dataset.mode)
-    && (!set.sourceOnly || covers));
+    (set.mode === undefined || set.mode === dataset.mode) && (!set.sourceOnly || covers));
 }
 
 /** 生效的图集：选中的那套在当前模式/当前源下可选就用它，否则回落到第一套可选的。

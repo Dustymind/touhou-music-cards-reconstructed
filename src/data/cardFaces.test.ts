@@ -14,11 +14,11 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  availableCardSets, cardCount, cardFace, cardFaces, cardFileAt, hasSourceCovers, isCardUrl,
-  maxCardCount, resolveCardSet, usesPerTrackFaces,
+  availableCardSets, cardCount, cardFace, cardFaces, cardFileAt, CUSTOM_CARD_SET, hasSourceCovers,
+  isCardUrl, maxCardCount, resolveCardSet, usesPerTrackFaces,
 } from "./cardFaces";
 import type { CardSetRecord, CharacterRecord, ModeDataset } from "./types";
-import { MUSIC_MODES, usesOwnCardFaces, type MusicMode } from "../music/mode";
+import { usesOwnCardFaces, type MusicMode } from "../music/mode";
 
 /** 源封面图集（`data/card-sets.toml` 里那套 `otomads-cover` 的形状）。 */
 const COVER_SET: CardSetRecord = {
@@ -175,13 +175,36 @@ describe("图集可选性", () => {
     expect(availableCardSets([], originals)).toEqual([]);
   });
 
-  it("两套内置模式都**共用**内置图集（`mode` 缺省的那几套照旧列出）", () => {
-    // 判据只有一处（`usesOwnCardFaces`）：它今天对两个模式都为假 ⇒ 上面几条用例的行为逐字不变
-    for (const mode of MUSIC_MODES) {
+  it("原曲 / 音MAD **共用**内置图集（`mode` 缺省的那几套照旧列出）", () => {
+    // 判据只有一处（`usesOwnCardFaces`）：它只对模式 3 为真 ⇒ 上面几条用例的行为逐字不变
+    for (const mode of ["originals", "otomads"] as const) {
       expect(usesOwnCardFaces(mode)).toBe(false);
       expect(availableCardSets([UPSTREAM_SET, LOCAL_SET], dataset(mode, [character()])))
         .toEqual([UPSTREAM_SET, LOCAL_SET]);
     }
+  });
+
+  it("模式 3（自带卡面）⇒ 只有代码里那套**合成图集**，内置的一律不列", () => {
+    const custom = dataset("custom", [character({ card: ["https://x/a.jpg"], covers: ["https://x/a.jpg"] })]);
+    expect(usesOwnCardFaces("custom")).toBe(true);
+    expect(availableCardSets([UPSTREAM_SET, COVER_SET, LOCAL_SET], custom)).toEqual([CUSTOM_CARD_SET]);
+    // 没数据时也还是那一套（这个模式的卡面来源就是清单本身，与"源有没有给素材"无关）
+    expect(availableCardSets([UPSTREAM_SET], dataset("custom", []))).toEqual([CUSTOM_CARD_SET]);
+  });
+
+  it("模式 3：用户存的 `cardCollection` **被忽略但不改写**（偏好照旧留在存档里）", () => {
+    const custom = dataset("custom", [character({ card: ["https://x/a.jpg"], covers: ["https://x/a.jpg"] })]);
+    expect(resolveCardSet([UPSTREAM_SET, COVER_SET], "dairi-sd", custom).id).toBe(CUSTOM_CARD_SET.id);
+    expect(resolveCardSet([], "dairi-sd", custom).id).toBe(CUSTOM_CARD_SET.id);
+  });
+
+  it("模式 3 是严格 1:1 ⇒ 卡数恒为 1（不写卡面数那些代码，靠数据形状保证）", () => {
+    const face = "https://x/a.jpg";
+    const card = character({ card: [face], covers: [face] });
+    expect(cardCount(card, CUSTOM_CARD_SET)).toBe(1);
+    expect(maxCardCount(card)).toBe(1);
+    expect(cardFaces(card, CUSTOM_CARD_SET)).toEqual([face]);
+    expect(cardFace(card, CUSTOM_CARD_SET, 7)).toBe(face);       // 取模轮转在 1 张下天然安全
   });
 
   it("一套可选的都没有 ⇒ **空图集**，不再回头用原始 `sets[0]` 那套内置立绘", () => {

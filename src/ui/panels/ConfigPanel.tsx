@@ -23,7 +23,7 @@ function ConfigPanelInner({ bundle, tables }: {
   bundle: DataBundle;
   tables: TableMap;
 }) {
-  const { locale, setLocale } = useSession();
+  const { locale, setLocale, musicMode } = useSession();
   const preset = usePreset();
   const dataset = useCurrentDataset(bundle);
   const stats = presetStats(preset, dataset.characters);
@@ -58,7 +58,17 @@ function ConfigPanelInner({ bundle, tables }: {
 
       {/* 外观（亮/暗 + 主题色）紧挨着「数据」—— 都是全局偏好，与曲目/音源那些分开 */}
       <AppearanceSection />
-      <CardSetSection bundle={bundle} />
+      {musicMode === "custom" ? (
+        // 模式 3：卡面就是清单里那张（每卡一张、不可更换）⇒ 图集菜单在这个模式下不可用（契约 C3）。
+        // 分区照旧保留一行标题：设置页的节奏（五个可折叠分区）不变，用户也不会以为"这里坏了"。
+        <SectionPanel id="cardset" title={t(Localization.ConfigTabCardCollection)}>
+          <Typography variant="body2" color="text.secondary" data-testid="cardset-fixed">
+            {t(Localization.ConfigTabCardSetFixed)}
+          </Typography>
+        </SectionPanel>
+      ) : (
+        <CardSetSection bundle={bundle} />
+      )}
       <SourceSection bundle={bundle} tables={tables} />
       <PresetSection bundle={bundle} />
       <SingleTrackSection bundle={bundle} />
