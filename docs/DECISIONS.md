@@ -6265,16 +6265,20 @@ testid 一字不变）与 `useProgressiveRows`（那套"rAF → 宏任务 → �
 **「关于」弹窗**加一行（Q8）：说明模式 3 的素材来自使用者自己的源、工具在它自己的仓库里，
 **不放外链**（那个仓库还没有公开，与"源代码仓库（暂未开放）"那一行同一个处理）。
 
-**数据仓库怎么挂**（与 Q2 的一处偏差，写清楚理由）：Q2 选的是"作为 submodule `data/custom`"。
-本轮**没有**提交 gitlink，只把地址与命令写进 `data/README.md` 与契约文档：
-`touhou-music-cards-custom-data` 现在只存在于本机（没有推送、远端还没有），
-提交一个指向不存在远端的 gitlink 会让 `git clone --recursive` 直接失败 —— 那是**坏的仓库状态**。
-Q2 的实质部分（独立仓库 + **主仓库构建不依赖它** + 工具不 import 主仓库）都已落地并有守卫；
-推送那个仓库之后，挂上去只要一条命令：
+**数据仓库怎么挂**（Q2）：先**推送那个仓库**，再挂 submodule —— 顺序不能反：
+提交一个指向不存在远端的 gitlink 会让 `git clone --recursive` 直接失败，那是**坏的仓库状态**。
+仓库公开（`Dustymind/touhou-music-cards-custom-data`，private）之后已按 Q2 挂上：
 
 ```bash
 git submodule add https://github.com/Dustymind/touhou-music-cards-custom-data.git data/custom
+# → gitlink 4514fd5（那个仓库的初始提交），.gitmodules 里多一条
 ```
+
+两条守卫都实测过：**在场**与**挪走**（`mv data/custom …`，即"没初始化"那一种状态）跑
+`pnpm data:check` 都**无漂移**、`data:validate` 的数字一字不改 —— 主仓库构建确实不读它。
+
+那个仓库里**不放文档**（用户要求）：`README.md` / `README.ai.MD` / `tools/README.md` 已经移出、
+合并成工作区根的 `local-docs/custom-data-repo.md`，初始提交因此**从第一个字节起**就没有 `.md`。
 
 **验证**：`pnpm typecheck` ✓；vitest **48 文件 / 586 passed**（chromium 与 firefox 各 586）；
 e2e `custom-mode.spec.ts` **6 passed**（chromium / firefox 各 6）；

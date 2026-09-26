@@ -24,7 +24,8 @@
 - `sources/custom.toml` **自定义模式**的源注册表：只有一条 `kind = "custom"` 的源，**`table_url` 是空串**
   （合法形态，见 `tmc.build.source_table_url_problem`）—— 地址由使用者在应用里填。
   这个模式的卡数据**不在本仓库**：契约见 `docs/custom-mode-v1.md`，工具在独立仓库
-  `touhou-music-cards-custom-data`（本仓库的构建**不依赖**它，`data/custom` 没初始化也逐字相同）
+  `touhou-music-cards-custom-data`（submodule `custom/`；本仓库的构建**不依赖**它 ——
+  `data/custom` 初始化与否，`data:build` / `data:check` 都逐字相同，两条守卫都实测过）
 
 规则见 `docs/rules-classification-v1.md`。曲目归属的标签来源是 THBWiki 抓取快照
 `.ref/thbwiki/rows.json`（`tmc.fetch_roles` 产出，`tmc.roles` 读取），人工例外只写在 `extra-overrides.tsv`。
