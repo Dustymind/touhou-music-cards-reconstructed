@@ -171,7 +171,14 @@ test("重置 = 清空：回到 0 张卡，刷新后仍是空（默认值本来�
   await page.getByTestId("custom-source-apply").click();
   await expect(page.getByTestId("custom-source-loaded")).toBeVisible();
 
+  // 填过的链接**刷新后还在**（`pickSession` 逐字列出了要落盘的字段）：这次不带 `?customsource=`，
+  // 生效的就是存档里那一份
+  await page.goto("/");
+  await page.getByRole("tab", { name: "Player", exact: true }).click();
+  await expect.poll(() => rotationCount(page)).toBe(3);
+
   // 重置只把值清成空串 ⇒ 回到 0 张卡（不是"回某个默认值"）
+  await openCustomSection(page, "source");
   await page.getByTestId("custom-source-reset").click();
   await expect(page.getByLabel("custom-source-url")).toHaveValue("");
   await page.getByRole("tab", { name: "Player", exact: true }).click();
