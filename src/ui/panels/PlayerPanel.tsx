@@ -6,12 +6,13 @@
  * - 当前角色的多张卡面**叠放**（上游 `CharacterCardStacked`）；
  * - 切歌时整块卡面滑入（上游是整条 `translateX` 轮播，这里用同长的 0.3s 滑入动画，见 DECISIONS D21）。
  */
-import { memo, useEffect, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { Alert, Box, Button, Card, CardContent, Divider, Stack, Switch, TextField, Typography } from "@mui/material";
 import { keyframes } from "@emotion/react";
 import { UpcomingFan, fanCardWidth } from "../player/UpcomingFan";
 
 import type { AlbumRecord, DataBundle, MusicEntry } from "../../data/types";
+import { cardFace, resolveCardSet } from "../../data/cardFaces";
 import { useCurrentDataset } from "../../data/useDataset";
 import { displayTitle } from "../../data/types";
 import { Localization, t } from "../../i18n/localization";
@@ -67,8 +68,18 @@ export function creditLine(entry: MusicEntry | null, albums: readonly AlbumRecor
 function PlayerPanelInner(props: PlayerPanelProps) {
   const { bundle, player, order, temporaryDisabled, currentKey } = props;
   const dataset = useCurrentDataset(bundle);
-  const cardSet = bundle.shared.cardSets.find((set) => set.id === props.cardCollection) ?? bundle.shared.cardSets[0]!;
+  const cardSet = resolveCardSet(bundle.shared.cardSets, props.cardCollection, dataset);
   const character = dataset.characters.find((item) => item.key === currentKey) ?? null;
+
+  // 播放页这张卡用**第几张**卡面：音MAD 侧是"一首一张"（D153）⇒ 跟着**正在放的那首**走
+  // （没在放 / 播的是别的模式的曲目 ⇒ 第 0 张）。原曲那份没有 covers，下标取模后仍是第 0 张，
+  // 与改动前逐字一致。
+  const faceIndex = useMemo(() => {
+    if (!character || !player.entry) return 0;
+    const index = character.music.findIndex(
+      (entry) => entry[0] === player.entry![0] && entry[1] === player.entry![1]);
+    return index >= 0 ? index : 0;
+  }, [character, player.entry]);
 
   // 卡面尺寸 = **卡牌选择器（"接下来"卡条）的卡宽 × 120%** —— 直接用选择器自己的尺寸函数，
   // 保证两边永远同一个口径（选择器 = `min(窗口宽×20%, 150)`，见 UpcomingFan.fanCardWidth）；
@@ -101,7 +112,7 @@ function PlayerPanelInner(props: PlayerPanelProps) {
               >
                 <CharacterCard
                   cardSet={cardSet}
-                  file={character.card[0]!}
+                  file={cardFace(character, cardSet, faceIndex)}
                   glitch={glitchEnabled()}
                   preferLocal={preferLocalCards()}
                   data-testid="current-card-image"

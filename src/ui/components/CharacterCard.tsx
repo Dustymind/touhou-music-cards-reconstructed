@@ -3,6 +3,7 @@ import { Box, Paper, type SxProps } from "@mui/material";
 import { memo, useEffect, useState } from "react";
 
 import type { CardSetRecord } from "../../data/types";
+import { isCardUrl } from "../../data/cardFaces";
 import { CardAspectRatio, CardColors, MD2, MD2_SLOT, NoFontFamily } from "../../theme/theme";
 import { glitchTilt, isCheat, randomColor } from "../../cheat";
 
@@ -39,8 +40,12 @@ const IMAGE_FILTER: Partial<Record<CardState, string>> = {
   blockedHover: "grayscale(35%) opacity(0.6)",
 };
 
-/** 图集目录 + 文件名 → 绝对 URL（按 origin 列表拼）。 */
+/** 图集目录 + 文件名 → 绝对 URL（按 origin 列表拼）。
+ *
+ *  **源封面（D153）是一整条 URL**（音MAD 的 B 站图床直链）：原样返回 —— 既不能拼目录，
+ *  也不能 `encodeURIComponent`（那会把 `://`、`/`、`@` 全编码掉，得到一条必然 404 的地址）。 */
 function cardUrl(cardSet: CardSetRecord, file: string, origin: string): string {
+  if (isCardUrl(file)) return file;
   const prefix = origin.endsWith("/") ? origin : `${origin}/`;
   const dir = cardSet.dir.endsWith("/") ? cardSet.dir : `${cardSet.dir}/`;
   return prefix + dir + encodeURIComponent(file);
@@ -108,13 +113,18 @@ function CharacterCardInner({
             src={cardUrl(cardSet, file, origin)}
             alt={file}
             draggable={false}
+            /* B 站图床**按 Referer 拦**：带外部 Referer 一律 403（实测），不带就是 200。
+               别的图集（r2bucket / github.io / jsdelivr）不依赖 Referer，所以统一不带最省事。 */
+            referrerPolicy="no-referrer"
             onError={() => setOriginIndex((index) => index + 1)}
             sx={{
               width: "100%",
               height: "100%",
               position: "absolute",
               inset: 0,
-              objectFit: "contain",
+              // 源封面是 703×1000 的裁切图（正好卡面比例）⇒ contain 也是满的；
+              // 万一被人工覆写成别的比例，`cover` 至少不会留两条白边。
+              objectFit: cardSet.sourceOnly ? "cover" : "contain",
               userSelect: "none",
               filter: imageFilter,
             }}

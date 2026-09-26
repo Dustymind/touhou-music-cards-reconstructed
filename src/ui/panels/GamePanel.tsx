@@ -23,6 +23,7 @@ import SkipNextRounded from "@mui/icons-material/SkipNextRounded";
 import StopRounded from "@mui/icons-material/StopRounded";
 
 import type { DataBundle } from "../../data/types";
+import { cardCount, cardFaces, resolveCardSet } from "../../data/cardFaces";
 import { Localization, t } from "../../i18n/localization";
 import type { CardInfo, JudgeState } from "../../game/types";
 import { filledSlots } from "../../game/types";
@@ -226,22 +227,28 @@ function GamePanelInner({ bundle }: { bundle: DataBundle }) {
 
   const dataset = useCurrentDataset(bundle);
 
+  // 卡面图集跟随设置页的选择（原来写死第一套 → 设置里换图集对游戏页无效）；
+  // 源封面图集只在音MAD + 源真的给了封面时可选，选不上就回落到第一套可选的（只影响渲染，不改偏好）
+  const cardSet = resolveCardSet(bundle.shared.cardSets, cardCollection, dataset);
+
   const cardFiles = useMemo(() => {
     const map: Record<string, string[]> = {};
-    for (const character of dataset.characters) map[character.key] = character.card;
+    for (const character of dataset.characters) map[character.key] = cardFaces(character, cardSet);
     return map;
-  }, [dataset.characters]);
+  }, [dataset.characters, cardSet]);
 
-  // 卡面图集跟随设置页的选择（原来写死第一套 → 设置里换图集对游戏页无效）
-  const cardSet = bundle.shared.cardSets.find((set) => set.id === cardCollection) ?? bundle.shared.cardSets[0]!;
-
-  // 卡池 = 当前数据集的角色 × 卡面（C：数据集只含本模式有曲目的角色，"没有对应音乐的角色"已不存在）；
+  // 卡池 = 当前数据集的角色 × **卡数**（C：数据集只含本模式有曲目的角色，"没有对应音乐的角色"已不存在）。
+  // 音MAD 侧每首曲目一张卡面 ⇒ 卡池从"角色"变成"角色 × 曲目"（D153）；**卡数不随图集变**
+  // （`cardCount` 只看数据），所以换图集不会让牌库里的 `cardIndex` 错位。
   // 顺带把轮播顺序灌进对局状态。
   useEffect(() => {
     const usable = dataset.characters;
     const cards: CardInfo[] = [];
     for (const character of usable) {
-      character.card.forEach((_file, cardIndex) => cards.push({ characterKey: character.key, cardIndex }));
+      const count = cardCount(character);
+      for (let cardIndex = 0; cardIndex < count; cardIndex += 1) {
+        cards.push({ characterKey: character.key, cardIndex });
+      }
     }
     // 卡池 + 曲目互斥表一起灌进去（D108）：同一首歌只允许一个角色、同角色只允许一张卡面
     init(cards, buildSongConflicts(usable));

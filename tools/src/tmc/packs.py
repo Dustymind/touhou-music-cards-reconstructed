@@ -73,8 +73,10 @@ PACK_KINDS = ("local",)
 #: 拼错的 `starttime` 会被静默丢掉，表现为"数据里写了却不生效"（见 docs/packs-audio-v1.md §1）。
 PACK_KEYS = {"id", "label_en", "label_zh", "kind", "order"}
 ALBUM_KEYS = {"key", "name", "kind", "pack", "order", "show_album_name"}
-#: 角色文件里 `[[track]]` 的键 —— **没有** `character`：角色由文件的 `key` 决定
-TRACK_KEYS = {"album", "author", "authors", "title", "extra", "source", "start_time", "stop_time"}
+#: 角色文件里 `[[track]]` 的键 —— **没有** `character`：角色由文件的 `key` 决定。
+#: `cover` 是**可选**的该曲目封面直链（D153 修订：写在 `[[track]]` 里，不再是顶层数组）
+TRACK_KEYS = {"album", "author", "authors", "title", "extra", "source", "start_time", "stop_time",
+              "cover"}
 #: 角色文件的顶层键（`track` 之外）：`card` 是**可选**的卡面覆盖（写法同 `data/characters/*.toml`）
 CHARACTER_KEYS = {"key", "card"}
 
@@ -127,29 +129,33 @@ def available() -> bool:
     return any(root.is_dir() and any(root.glob("*.toml")) for root in repo.pack_roots())
 
 
-def load_packs() -> tuple[list[dict], list[dict], list[dict], dict[str, list[str]]]:
-    """读全部曲包根目录 → ``(packs, albums, tracks, cards)``。
+def load_packs() -> tuple[list[dict], list[dict], list[dict], dict[str, list[str]], dict[str, list[str]]]:
+    """读全部曲包根目录 → ``(packs, albums, tracks, cards, covers)``。
 
     ``cards`` 是"音MAD 侧自己的卡面覆盖"：``{角色 key: [卡面文件名, …]}``（只有写了 `card` 的角色才在里面）。
+    ``covers`` 是"每首曲目一张的封面直链"：``{角色 key: [绝对 https URL, …]}``（只有写了 `cover`
+    的角色才在里面，顺序与曲目一一对应，D153）。
     根目录见 :func:`tmc.repo.pack_roots`；不存在的根（submodule 没初始化）**跳过并提示**。
     """
     packs: list[dict] = []
     albums: list[dict] = []
     tracks: list[dict] = []
     cards: dict[str, list[str]] = {}
+    covers: dict[str, list[str]] = {}
     for directory in repo.pack_roots():
         if not directory.is_dir():
             print(f"[packs] 跳过不存在的曲包根目录 {repo.shown(directory)}"
                   f"（音MAD 数据 submodule 没初始化？跑 `git submodule update --init data/otomads`）",
                   file=sys.stderr)
             continue
-        _load_root(directory, packs, albums, tracks, cards)
+        _load_root(directory, packs, albums, tracks, cards, covers)
     packs.sort(key=lambda item: item["order"])
-    return packs, albums, tracks, cards
+    return packs, albums, tracks, cards, covers
 
 
 def _load_root(directory: pathlib.Path, packs: list[dict], albums: list[dict],
-               tracks: list[dict], cards: dict[str, list[str]]) -> None:
+               tracks: list[dict], cards: dict[str, list[str]],
+               covers: dict[str, list[str]]) -> None:
     """读一个曲包根目录：``<id>.toml`` 清单 + ``<id>/`` 角色文件。"""
     for path in sorted(directory.glob("*.toml")):
         with open(path, "rb") as fh:
@@ -182,18 +188,19 @@ def _load_root(directory: pathlib.Path, packs: list[dict], albums: list[dict],
             rel = repo.shown(directory)
             raise SystemExit(f"{path.name}: 曲目要写进 {rel}/{pack_id}/<角色 key>.toml（一角色一份），"
                              f"清单只放 [pack] 与 [[album]]")
-        tracks.extend(_character_tracks(directory / pack_id, path.name, cards))
+        tracks.extend(_character_tracks(directory / pack_id, path.name, cards, covers))
 
 
 def _character_tracks(pack_dir: pathlib.Path, manifest: str,
-                      cards: dict[str, list[str]]) -> list[dict]:
+                      cards: dict[str, list[str]], covers: dict[str, list[str]]) -> list[dict]:
     """读 ``<根>/<曲包 id>/*.toml`` → 曲目列表（文件按名排序，文件内保持原顺序）。
 
     角色由文件的 ``key`` 决定，**文件名必须与它一致**：曲包里的 key 写错曾一次性丢掉 3 条曲目
     （2026-09 那次 `reisen-udongein` 少写 `-inaba`），所以这里错了直接报；报错文案带包内相对路径，
     否则 35 个 `cirno.toml` 分不清是哪个包。
 
-    ``cards`` 是出参：文件里写了 ``card`` 就记一笔（音MAD 侧自己的卡面，写法见曲包根目录的 ``README.md``）。
+    ``cards`` / ``covers`` 是出参：文件里写了 ``card`` 就记一笔卡面覆盖；每条 ``[[track]]`` 里写了
+    ``cover`` 就按曲目顺序攒成该角色的封面列表（D153 修订：**写在 `[[track]]` 内**，不再是顶层数组）。
     """
     if not pack_dir.is_dir():
         return []
@@ -204,6 +211,11 @@ def _character_tracks(pack_dir: pathlib.Path, manifest: str,
             data = tomllib.load(fh)
         if "pack" in data or "album" in data:
             raise SystemExit(f"{where}: [pack] / [[album]] 只能写在清单 {manifest} 里")
+        if "cover" in data:
+            raise SystemExit(
+                f"{where}: 顶层的 cover 数组已废弃（D153 修订）—— 现在写在每条 [[track]] 里。"
+                f"跑数据仓库的 `uv run --project tools python -m otomads.fetch_covers` 会按顺序自动迁移"
+                f"（不联网、不动已有内容）")
         _reject_unknown(where, {k: v for k, v in data.items() if k != "track"}, CHARACTER_KEYS)
         key = data.get("key")
         if not isinstance(key, str) or not key:
@@ -215,6 +227,7 @@ def _character_tracks(pack_dir: pathlib.Path, manifest: str,
             if not isinstance(face, list) or not face or not all(isinstance(f, str) and f for f in face):
                 raise SystemExit(f"{where}: card 必须是至少一项的字符串数组（写成 data/characters/*.toml 那样）")
             cards[key] = list(face)
+        per_track: list[str | None] = []
         for entry in data.get("track", []):
             _reject_unknown(f"{where} 的 [[track]]", entry, TRACK_KEYS)
             track = {
@@ -227,7 +240,45 @@ def _character_tracks(pack_dir: pathlib.Path, manifest: str,
             _read_authors(entry, track, f"{where} / {entry.get('title')}")
             _read_audio_keys(entry, track, f"{where} / {track['title']}")
             out.append(track)
+            per_track.append(_read_track_cover(entry, f"{where} / {track['title']}"))
+        merged = _merge_track_covers(key, per_track, where)
+        if merged is not None:
+            covers[key] = merged
     return out
+
+
+def _read_track_cover(entry: dict, where: str) -> str | None:
+    """``[[track]]`` 里的 ``cover``（可选）：这一首曲目的封面直链 —— **绝对 https**（D153 修订）。"""
+    value = entry.get("cover")
+    if value is None:
+        return None
+    if not isinstance(value, str) or not value:
+        raise SystemExit(f"{where}: cover 必须是非空字符串（一条绝对 https URL）")
+    if not value.startswith("https://"):
+        raise SystemExit(
+            f"{where}: cover 必须是 https:// 开头的绝对 URL，收到 {value!r}"
+            f"（B 站给的 http:// 要换成 https://，否则页面是混合内容、图会被浏览器拦掉）")
+    return value
+
+
+def _merge_track_covers(key: str, covers: list[str | None], where: str) -> list[str] | None:
+    """逐条曲目的 ``cover`` → **整个角色**的封面列表（运行时的 ``covers`` 仍是按下标对齐的数组）。
+
+    三条口径（与数据仓库的 ``packformat`` 保持一致）：
+
+    * **全有** ⇒ 交给源，顺序 = 曲目顺序；
+    * **全无** ⇒ 不发（这个角色在封面图集下回落到原版卡面，不是错误）；
+    * **半有半无** ⇒ **报错**并点名：运行时的数组是按下标对齐的，空洞会让某几首静默错位到别人的封面上。
+    """
+    if not covers or all(item is None for item in covers):
+        return None
+    missing = [str(index + 1) for index, item in enumerate(covers) if item is None]
+    if missing:
+        raise SystemExit(
+            f"{where}: 角色 {key} 的第 {'、'.join(missing)} 首曲目没有 cover —— "
+            f"一个角色要么**每首都有**、要么**一首都没有**（运行时的 covers 是按曲目下标对齐的数组）。"
+            f"跑数据仓库的 `uv run --project tools python -m otomads.fetch_covers` 会把缺的补上")
+    return [item for item in covers if item is not None]
 
 
 #: 多作者在**文件名 / 响度表键**里的连接符。磁盘上的成品是 `作者 - 标题.mp3`，

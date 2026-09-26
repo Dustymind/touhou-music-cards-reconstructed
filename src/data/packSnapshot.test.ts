@@ -74,6 +74,9 @@ const BAD_PAYLOADS: [string, unknown][] = [
     characters: [{ key: "cirno", music: [["otomads", "曲", "角色曲", null, ["a"]]] }] })],
   ["卡面为空数组", payload({ characters: [{ ...CHARACTER, card: [] }] })],
   ["卡面里是空串", payload({ characters: [{ ...CHARACTER, card: [""] }] })],
+  ["封面为空数组", payload({ characters: [{ ...CHARACTER, covers: [] }] })],
+  ["封面里是空串", payload({ characters: [{ ...CHARACTER, covers: [""] }] })],
+  ["封面不是数组", payload({ characters: [{ ...CHARACTER, covers: "https://x/" }] })],
   ["自带 name 是空串", payload({ characters: [{ ...CHARACTER, name: "" }] })],
   ["自带 order 不是数", payload({ characters: [{ ...CHARACTER, order: "1" }] })],
   ["自带 searchNames 为空", payload({ characters: [{ ...CHARACTER, searchNames: [] }] })],
@@ -113,6 +116,14 @@ describe("parsePackSnapshot", () => {
     expect(parsed?.characters[0]!.music).toHaveLength(3);
     expect(parsed?.characters[0]!.music[2]).toEqual(["otomads", "三", "秘封曲", "甲 & 乙", ["甲", "乙"]]);
   });
+
+  it("源封面（D153）：与曲目一一对应的绝对 URL 数组照收，没有这个键就没有这个字段", () => {
+    const withCovers = parsePackSnapshot(payload({
+      characters: [{ ...CHARACTER, covers: ["https://i0.hdslb.com/a.jpg@703w_1000h_1c.webp"] }],
+    }));
+    expect(withCovers?.characters[0]!.covers).toEqual(["https://i0.hdslb.com/a.jpg@703w_1000h_1c.webp"]);
+    expect(parsePackSnapshot(payload())?.characters[0]).not.toHaveProperty("covers");
+  });
 });
 
 describe("withPackSnapshot", () => {
@@ -123,6 +134,8 @@ describe("withPackSnapshot", () => {
       characters: dataset.characters.map((character) => ({
         key: character.key, music: character.music.map((entry) => [...entry] as MusicEntry),
         card: [...character.card],
+        // 源封面（D153）：有才带 —— 与真源 per-track `cover = "…"` 攒出来的数组同形
+        ...(character.covers ? { covers: [...character.covers] } : {}),
       })),
     };
   }
@@ -208,6 +221,58 @@ describe("withPackSnapshot", () => {
     expect(live).toBe(baked);
   });
 
+  it("源封面进生效数据集；源没给就沿用自带那份（有才覆盖，与 card 同口径）", () => {
+    const source = datasetFor(bundle, "otomads");
+    const target = source.characters[0]!;
+    const covers = ["https://i0.hdslb.com/a.jpg@703w_1000h_1c.webp",
+      "https://i1.hdslb.com/b.png@703w_1000h_1c.webp"];
+    const snapshot = snapshotOf();
+    const patched: PackSnapshot = {
+      albums: snapshot.albums,
+      characters: snapshot.characters.map((entry) =>
+        entry.key === target.key ? { ...entry, covers } : entry),
+    };
+    const live = withPackSnapshot(bundle, patched).datasets.otomads;
+
+    expect(live.characterByKey.get(target.key)!.covers).toEqual(covers);
+    // 快照没带 covers 的角色：沿用**自带**那份（构建期从 submodule 烘进去的）
+    const other = live.characters.find((character) => character.key !== target.key)!;
+    expect(other.covers).toEqual(source.characterByKey.get(other.key)!.covers);
+    // 快照**显式带空**不会出现：解析期就整段丢掉（见 BAD_PAYLOADS），所以只有"有/没有"两种
+  });
+
+  it("清单还没带 covers（老清单 / 数据仓库还没铺新归档）⇒ 自带的封面继续生效", () => {
+    // 这是**真实踩过的坑**（2026-09-26 浏览器实测）：清单先到、封面后到的那段时间里，
+    // `hasSourceCovers` 一度翻成 false ⇒ "B 站封面"图集整套消失、回落成上游立绘。
+    // 身份字段的兜底仍是原曲那份（S1 的边界），只有封面从自带的音MAD 数据集兜底。
+    const baked = datasetFor(bundle, "otomads");
+    const withCovers = baked.characters.filter((character) => (character.covers?.length ?? 0) > 0);
+    expect(withCovers.length).toBeGreaterThan(0);          // 前置：自带数据集确实烘进了封面
+    const snapshot = snapshotOf();
+    const stripped: PackSnapshot = {
+      albums: snapshot.albums,
+      characters: snapshot.characters.map(({ covers: _covers, ...rest }) => rest),
+    };
+    const live = withPackSnapshot(bundle, stripped).datasets.otomads;
+    const target = withCovers[0]!;
+    expect(live.characterByKey.get(target.key)!.covers).toEqual(target.covers);
+    expect(live.index.contentHash).toBe(
+      withPackSnapshot(bundle, snapshotOf()).datasets.otomads.index.contentHash);
+  });
+
+  it("covers 变了 ⇒ 哈希跟着变（卡数 = 桌上会有哪些牌，两端必须一致）", () => {
+    const before = withPackSnapshot(bundle, undefined).datasets.otomads.index.contentHash;
+    const snapshot = snapshotOf();
+    const first = snapshot.characters[0]!;
+    const withCovers: PackSnapshot = {
+      albums: snapshot.albums,
+      characters: [{ ...first, covers: ["https://i0.hdslb.com/a.jpg@703w_1000h_1c.webp"] },
+        ...snapshot.characters.slice(1)],
+    };
+    const after = withPackSnapshot(bundle, withCovers).datasets.otomads.index.contentHash;
+    expect(after).not.toBe(before);
+  });
+
   it("源多给一首 ⇒ 哈希跟着变（两端曲目表不同必须在握手期被拒）", () => {
     const baked = withPackSnapshot(bundle, undefined).datasets.otomads.index.contentHash;
     const snapshot = snapshotOf();
@@ -260,5 +325,14 @@ describe("packHash", () => {
     const base = packHash(albums, [cirno, marisa]);
     expect(packHash(albums, [{ ...cirno, name: "别的名字", order: 9, searchNames: [] }, marisa]))
       .toBe(base);
+  });
+
+  it("源封面算进去（卡数变了就是「桌上会有哪些牌」变了），原曲那份恒为 null ⇒ 口径不变", () => {
+    const base = packHash(albums, [cirno, marisa]);
+    const covered = [{ ...cirno, covers: ["https://i0.hdslb.com/a.jpg@703w_1000h_1c.webp"] }, marisa];
+    expect(packHash(albums, covered)).not.toBe(base);
+    // 同一个角色、同一个 card，只换封面 URL 也要变（两端看到的图可以不同，能抽到的牌数不能不同）
+    const other = [{ ...cirno, covers: ["https://i1.hdslb.com/b.jpg@703w_1000h_1c.webp"] }, marisa];
+    expect(packHash(albums, other)).not.toBe(packHash(albums, covered));
   });
 });

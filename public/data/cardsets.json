@@ -102,6 +102,18 @@
    "localPrefix": "./",
    "origins": [],
    "localOnly": true
+  },
+  {
+   "id": "otomads-cover",
+   "dir": "",
+   "label": {
+    "en": "Otomads (Bilibili covers)",
+    "zh": "音MAD（B 站封面）"
+   },
+   "localPrefix": "./",
+   "origins": [],
+   "sourceOnly": true,
+   "mode": "otomads"
   }
  ]
 }

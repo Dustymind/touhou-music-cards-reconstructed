@@ -20,6 +20,13 @@ export interface CharacterRecord {
   name: string;
   order: number;
   card: string[];
+  /** 源给的**每首曲目一张**的封面直链（音MAD 侧才有；绝对 https URL，见 D153）。
+   *
+   *  有它 = 这个角色在卡池里是 **`covers.length` 张卡**（一首一封面）；第 i 张用哪张图见
+   *  `src/data/cardFaces.ts` 的 `cardFace`：**源封面**图集下用 `covers[i]`，别的图集（原版卡面）
+   *  仍按 `card` 轮转 —— 于是**换图集只换图、不换牌**（牌库里的 `cardIndex` 不会错位）。
+   *  身份字段跨模式一致（契约 §5 S1），这个字段是**卡面那一类**的例外。 */
+  covers?: string[];
   searchNames: string[];
   music: MusicEntry[];
 }
@@ -54,6 +61,11 @@ export interface SourceRecord {
 export interface CardSetRecord {
   /** 本地图集：素材由用户自己放进 `public/<dir>/`，**没有远程 origin**（origins 为空） */
   localOnly?: boolean;
+  /** 素材由**源**提供（manifest 快照里的 `covers`，绝对 URL）⇒ 没有目录、没有 origin。
+   *  **源没给就不该出现在界面上**（`cardFaces.ts` 的 `availableCardSets` 守这条）。 */
+  sourceOnly?: boolean;
+  /** 只在某个音乐模式可选（缺省 = 两个模式都能选）。音MAD 封面图集 = `"otomads"`。 */
+  mode?: MusicMode;
   id: string;
   dir: string;
   label: { en: string; zh: string };

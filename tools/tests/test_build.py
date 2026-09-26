@@ -47,7 +47,7 @@ def test_pack_tracks_land_only_in_the_otomads_set():
     "并入曲包曲目的地方只有一处"这件事由这条守。)
     """
     chars = build.load_characters()
-    _packs, _albums, pack_tracks, _cards = pack_mod.load_packs()
+    _packs, _albums, pack_tracks, _cards, _covers = pack_mod.load_packs()
 
     originals = build.build_characters("originals", chars, pack_tracks)["characters"]
     assert [(char["key"], char["music"]) for char in originals] == \
@@ -239,7 +239,9 @@ PACK_TRIM_VECTOR = [
 PACK_KEYS_VECTOR = {
     "pack": {"id", "label_en", "label_zh", "kind", "order"},
     "album": {"key", "name", "kind", "pack", "order", "show_album_name"},
-    "track": {"album", "author", "authors", "title", "extra", "source", "start_time", "stop_time"},
+    # `cover` = 这一首曲目的封面直链（D153 修订：写在 `[[track]]` 里，不再是角色文件顶层的数组）
+    "track": {"album", "author", "authors", "title", "extra", "source", "start_time", "stop_time",
+              "cover"},
     "character": {"key", "card"},
 }
 

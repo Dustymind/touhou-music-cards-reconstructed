@@ -123,7 +123,14 @@ def check_characters(chars: list[dict], albums: dict[str, dict], p: Problems):
 
 
 def check_card_sets(p: Problems) -> int:
-    """`data/card-sets.toml`：id 唯一、目录非空、origins 都是 https。"""
+    """`data/card-sets.toml`：id 唯一、目录非空、origins 都是 https、`mode` 合法。
+
+    三类图集的"素材从哪来"互不相同，检查也要分开（D153）：
+    * 普通远程图集：必须有 origins；
+    * `local_only`：素材由用户自己放进 `public/<dir>/`，**不能**有 origins；
+    * `source_only`：素材 = **源**给的绝对 URL（音MAD 封面）⇒ **没有目录、没有 origin**，
+      并且必须显式写 `mode`（不写就会在原曲模式里也列出来，而那边根本没有封面）。
+    """
     import tomllib as _tomllib
 
     with open(repo.DATA / "card-sets.toml", "rb") as fh:
@@ -133,18 +140,30 @@ def check_card_sets(p: Problems) -> int:
         if entry["id"] in ids:
             p.error(f"图集 id 重复：{entry['id']}")
         ids.add(entry["id"])
-        if not entry.get("dir"):
-            p.error(f"图集 {entry['id']} 缺 dir")
         origins = entry.get("origins", [])
         for origin in origins:
             if not origin.startswith("https://"):
                 p.error(f"图集 {entry['id']} 的 origin 不是 https：{origin}")
+        if entry.get("source_only"):
+            # 源封面：文件本身就是绝对 URL ⇒ 没有目录、没有 origin；必须限定模式
+            if entry.get("dir"):
+                p.error(f"图集 {entry['id']} 标了 source_only 却又写了 dir（{entry['dir']!r}）")
+            if origins:
+                p.error(f"图集 {entry['id']} 标了 source_only 却还写了 origins")
+            if entry.get("local_only"):
+                p.error(f"图集 {entry['id']} 同时标了 source_only 与 local_only")
+            if entry.get("mode") not in ("originals", "otomads"):
+                p.error(f"图集 {entry['id']} 是 source_only，必须写 mode（originals / otomads）")
+        elif not entry.get("dir"):
+            p.error(f"图集 {entry['id']} 缺 dir")
         if entry.get("local_only"):
             # 本地图集：素材由用户自己放进 public/<dir>/（不随仓库分发），所以没有远程 origin
             if origins:
                 p.error(f"图集 {entry['id']} 标了 local_only 却还写了 origins")
-        elif not origins:
+        elif not entry.get("source_only") and not origins:
             p.error(f"图集 {entry['id']} 没有 origin（本地图集请显式写 local_only = true）")
+        if entry.get("mode") is not None and entry["mode"] not in ("originals", "otomads"):
+            p.error(f"图集 {entry['id']} 的 mode 非法：{entry['mode']!r}")
     default = data.get("default")
     if default not in ids:
         p.error(f"图集默认值非法：{default}")
@@ -486,7 +505,8 @@ def check_pending(chars: list[dict], p: Problems):
 
 
 def check_datasets(chars: list[dict], pack_tracks: list[dict], pack_albums: list[dict],
-                   pack_cards: dict[str, list[str]], albums: dict[str, dict], p: "Problems") -> dict:
+                   pack_cards: dict[str, list[str]], pack_covers: dict[str, list[str]],
+                   albums: dict[str, dict], p: "Problems") -> dict:
     """每模式数据集（契约 `docs/otomads-separation-v1.md` §2/§3）。
 
     查三件事：① 每份数据集**只含本模式的曲目**；② 各自的 `(角色, 专辑, 曲目)` 不重复、专辑已注册、
@@ -495,9 +515,12 @@ def check_datasets(chars: list[dict], pack_tracks: list[dict], pack_albums: list
 
     **卡面是这条规则的例外**：音MAD 侧可以在曲包角色文件里用 `card = [...]` 覆盖自己的卡面
     （写法同 `data/characters/*.toml`）；只有**没覆盖**的角色才要求与共享身份一致。
+    **源封面（`cover`，D153）同样只在音MAD 那份里有**，所以它不参与"身份一致"，
+    但要检查"真源的 cover 真的进了生成物"（同 `card` 的那条）。
     """
     pack_names = {entry["name"] for entry in pack_albums}
-    datasets = {mode: build_mod.build_characters(mode, chars, pack_tracks, pack_cards)["characters"]
+    datasets = {mode: build_mod.build_characters(mode, chars, pack_tracks, pack_cards,
+                                                 pack_covers)["characters"]
                 for mode in build_mod.MODES}
     stats: dict = {}
     for mode, entries in datasets.items():
@@ -533,6 +556,24 @@ def check_datasets(chars: list[dict], pack_tracks: list[dict], pack_albums: list
                 p.error(f"音MAD 卡面覆盖没生效：{key}（{right['card']!r} vs {pack_cards[key]!r}）")
         elif left["card"] != right["card"]:
             p.error(f"跨模式卡面不一致（未在曲包里覆盖）：{key}")
+        # 源封面（D153）：只在 otomads 那份里有，检查"真源的 cover 真的进了生成物"
+        if key in pack_covers:
+            if right.get("covers") != list(pack_covers[key]):
+                p.error(f"音MAD 封面没生效：{key}（{right.get('covers')!r} vs {pack_covers[key]!r}）")
+        elif "covers" in right:
+            p.error(f"音MAD 生成物里多出了源码里没有的 covers：{key}")
+    for key in sorted(pack_covers):
+        if key not in by_mode["originals"]:
+            p.error(f"曲包里的封面指向未知角色：{key}")
+        if key not in by_mode["otomads"]:
+            p.error(f"曲包里的封面指向没有音MAD 曲目的角色：{key}")
+        cover = pack_covers[key]
+        if not cover or not all(isinstance(item, str) and item.startswith("https://") for item in cover):
+            p.error(f"曲包里的封面非法（{key}，必须是非空的 https URL 列表）：{cover!r}")
+        entry = by_mode["otomads"].get(key)
+        if entry is not None and len(cover) != len(entry["music"]):
+            p.error(f"曲包里的封面数与曲目数不等（{key}：{len(cover)} vs {len(entry['music'])}）"
+                    f"—— 一首一封面，顺序一一对应")
     for key in sorted(pack_cards):
         if key not in by_mode["originals"]:
             p.error(f"曲包里的卡面覆盖指向未知角色：{key}")
@@ -617,7 +658,7 @@ def check_roster(p: "Problems") -> int:
 def run() -> tuple["Problems", dict]:
     """跑全部不变量校验，返回 (问题集合, 统计)。供 CLI 与测试复用。"""
     p = Problems()
-    pack_list, pack_albums, pack_tracks, pack_cards = packs_mod.load_packs()
+    pack_list, pack_albums, pack_tracks, pack_cards, pack_covers = packs_mod.load_packs()
     if not packs_mod.available():
         p.note("曲包真源 submodule 未初始化（data/otomads）：跳过曲包相关校验，音MAD 数据集按空处理")
     roster_count = check_roster(p)
@@ -631,7 +672,7 @@ def run() -> tuple["Problems", dict]:
     pack_stats = check_packs(pack_list, pack_albums, pack_tracks, chars, p)
     # 每模式数据集（含跨模式身份一致）；下面整套检查都跑在**原曲数据集**上 ——
     # 它们是关于 THBWiki 派生数据（角色/别名/裁定表/面次）的，曲包曲目不参与
-    mode_stats = check_datasets(chars, pack_tracks, pack_albums, pack_cards, albums, p)
+    mode_stats = check_datasets(chars, pack_tracks, pack_albums, pack_cards, pack_covers, albums, p)
     char_stats = check_characters(chars, albums, p)
     # 曲包曲目不在镜像表里（只存在于本机），覆盖检查只看非曲包曲目
     mirror_referenced = {(a, t) for a, t in char_stats["referenced"]
@@ -657,7 +698,7 @@ def run() -> tuple["Problems", dict]:
         "overrides": overrides, "source_registry": source_registry,
         "card_sets": card_sets, "track_additions": additions, "packs": pack_stats,
         "roster": roster_count,
-        "modes": mode_stats, "pack_cards": len(pack_cards),
+        "modes": mode_stats, "pack_cards": len(pack_cards), "pack_covers": len(pack_covers),
         "titles": title_stats, **alias_stats,
         **{k: v for k, v in char_stats.items() if k != "referenced"},
     }

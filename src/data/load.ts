@@ -61,6 +61,12 @@ export function validateCharacters(raw: unknown, expected: number): CharacterRec
     keys.add(character.key);
     assert(Array.isArray(character.card) && character.card.length > 0, `${character.key} 缺卡面`);
     assert(Array.isArray(character.music) && character.music.length > 0, `${character.key} 缺曲目`);
+    // 源给的封面（音MAD 才有，D153）：要写就得是非空字符串数组。**不要求长度等于曲目数** ——
+    // 客户端按 `covers.length` 决定卡数、缺失的位置各有回落（cardFaces.ts），源只写了一半也能用。
+    assert(character.covers === undefined
+      || (Array.isArray(character.covers) && character.covers.length > 0
+          && character.covers.every((url) => typeof url === "string" && url.trim() !== "")),
+      `${character.key} 的 covers 必须是非空字符串数组`);
     for (const entry of character.music) {
       // `[专辑, 曲名, extra]`，第 4 位是**可选**的作者（音MAD 这类曲目才有）
       assert(Array.isArray(entry) && entry.length >= 3 && entry.length <= 5,
@@ -108,9 +114,18 @@ function validateCardSets(raw: unknown): CardSetRecord[] {
     ids.add(set.id);
     // 本地图集（localOnly）没有远程 origin：素材由用户放进 public/<dir>/，只用 localPrefix
     assert(Array.isArray(set.origins), `图集 ${set.id} 的 origins 不是数组`);
-    assert(set.localOnly ? true : set.origins.length > 0,
+    assert(set.localOnly || set.sourceOnly ? true : set.origins.length > 0,
       `图集 ${set.id} 没有 origin（本地图集请标 localOnly）`);
-    assert(typeof set.dir === "string" && set.dir.length > 0, `图集 ${set.id} 缺目录`);
+    // 源封面图集（sourceOnly，D153）：素材是源给的绝对 URL ⇒ 既不要目录也不要 origin
+    if (set.sourceOnly) {
+      assert(set.origins.length === 0, `图集 ${set.id} 标了 sourceOnly 却又写了 origins`);
+      assert(set.dir === undefined || typeof set.dir === "string",
+        `图集 ${set.id} 的 dir 必须是字符串`);
+    } else {
+      assert(typeof set.dir === "string" && set.dir.length > 0, `图集 ${set.id} 缺目录`);
+    }
+    assert(set.mode === undefined || set.mode === "originals" || set.mode === "otomads",
+      `图集 ${set.id} 的 mode 非法：${String(set.mode)}`);
   }
   assert(typeof payload.default === "string" && ids.has(payload.default),
     `图集默认值非法：${String(payload.default)}`);

@@ -28,6 +28,10 @@ export interface PackSnapshotCharacter {
   music: MusicEntry[];
   /** 音MAD 侧自己的卡面覆盖（曲包角色文件顶层的 `card = [...]`，D137）；**有才覆盖**共享身份的卡面 */
   card?: string[];
+  /** 源给的**每首曲目一张**的封面直链（曲包每条 `[[track]]` 里的 `cover = "https://…"`，D153）：
+   *  形状与 `music` **一一对应**（数组是运行时形状，真源里是 per-track）；有它就是"一首一张卡"
+   *  （卡池与卡面见 `cardFaces.ts`）。 */
+  covers?: string[];
   /** S2 预留：原曲数据集里没有这个角色时，快照可以自带身份（今天数据仓库不发这三个字段） */
   name?: string;
   order?: number;
@@ -114,6 +118,11 @@ function parseCharacter(raw: unknown): PackSnapshotCharacter | undefined {
     if (card === undefined) return undefined;
     character.card = card;
   }
+  if (raw.covers !== undefined) {
+    const covers = stringList(raw.covers);
+    if (covers === undefined) return undefined;
+    character.covers = covers;
+  }
   if (raw.name !== undefined) {
     const name = text(raw.name);
     if (name === undefined) return undefined;
@@ -195,7 +204,7 @@ export function withPackSnapshot(
   const originals = baked.datasets.originals;
   const albums = snapshot ? snapshot.albums : base.albums;
   const characters = snapshot
-    ? snapshotCharacters(snapshot, originals, onProblem)
+    ? snapshotCharacters(snapshot, originals, base, onProblem)
     : base.characters;
   const index = withContentHash(base.index, albums, characters);
   const otomads: ModeDataset = {
@@ -210,10 +219,18 @@ export function withPackSnapshot(
   return { shared: baked.shared, datasets: { originals, otomads } };
 }
 
-/** 快照的角色条目 → 完整的角色记录（身份来自原曲数据集，缺了才用快照自带的）。 */
+/** 快照的角色条目 → 完整的角色记录（身份来自原曲数据集，缺了才用快照自带的）。
+ *
+ *  `bakedOtomads` 只在**源封面**（D153）那一处兜底：源清单还没带上 `covers`（老清单、或数据仓库还没铺新归档）
+ *  时，自带数据集里构建期烘进去的封面继续生效 —— 否则"清单先到、封面后到"这段时间里，
+ *  `hasSourceCovers` 会翻成 false，界面上的"B 站封面"图集整套消失、回落成上游立绘。
+ *  身份字段（`name`/`order`/`card`/`searchNames`）**不从** `bakedOtomads` 取：那是 S1 的边界（契约 §5），
+ *  它们的兜底仍是原曲数据集那份。
+ */
 function snapshotCharacters(
   snapshot: PackSnapshot,
   originals: ModeDataset,
+  bakedOtomads: ModeDataset,
   onProblem: (message: string) => void,
 ): CharacterRecord[] {
   const out: CharacterRecord[] = [];
@@ -227,11 +244,14 @@ function snapshotCharacters(
         + " ⇒ 这一条整条跳过（曲目不会出现）");
       continue;
     }
+    const covers = entry.covers ?? bakedOtomads.characterByKey.get(entry.key)?.covers;
     out.push({
       key: entry.key,
       name,
       order: identity?.order ?? entry.order ?? 0,
       card,
+      // 封面（D153）：源给了就用源的；源没给就沿用自带的（"有才覆盖"，与 card 同口径）
+      ...(covers ? { covers } : {}),
       searchNames: identity?.searchNames ?? entry.searchNames ?? [],
       music: entry.music,
     });
@@ -268,7 +288,12 @@ function withContentHash(
  * 生效数据集的**数据指纹**（联机握手比它，主仓库 D145）—— 覆盖：
  *
  * - **专辑表**：`key/name/kind/pack/order/showAlbumName`（按 key 排序，与数组顺序无关）；
- * - **每个角色的曲目条目**：`key`、`card`（快照的卡面覆盖）、`music`（按 key 排序）。
+ * - **每个角色的曲目条目**：`key`、`card`（快照的卡面覆盖）、`covers`（源封面，D153）、
+ *   `music`（按 key 排序）。
+ *
+ * `covers` **必须算进来**：它是卡数的来源（`covers.length` = 这个角色有几张卡，见 `cardFaces.ts`），
+ * 也就是"桌上会有哪些牌"的一部分 —— 两端不一致会出现"一边抽得到、另一边没有"。
+ * 它只在**音MAD** 那份里出现，原曲那份恒为 `null` ⇒ 两份的口径仍然一致。
  *
  * **不覆盖**：媒体地址（源可以挂在别的域名上、地址每台机器不同）、**音频版本号**（D144 的
  * `revision` 是"这台机器上那份文件"的 mtime 指纹）、身份字段（`name`/`order`/`searchNames` 属于
@@ -289,7 +314,7 @@ export function packHash(
         album.showAlbumName !== false]),
     [...characters]
       .sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0))
-      .map((character) => [character.key, character.card, character.music]),
+      .map((character) => [character.key, character.card, character.covers ?? null, character.music]),
   ]);
   return bits(stableHash(`pack-a\n${canonical}`)) + bits(stableHash(`pack-b\n${canonical}`));
 }

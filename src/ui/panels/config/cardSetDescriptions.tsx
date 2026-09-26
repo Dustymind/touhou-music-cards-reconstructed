@@ -50,6 +50,17 @@ const CARD_SET_DESCRIPTIONS: Record<string, ReactNode> = {
       <code>card = […]</code> lists in <code>data/otomads/packs/otomads/*.toml</code> say.
     </>
   ),
+  // 源封面（D153）：素材由**源**给（manifest 快照的 `characters[].covers`），所以这套图集没有目录、
+  // 也没有 origin —— 每张卡面就是一条 B 站图床直链（703×1000 的裁切 webp，一首一张）。
+  // 只在音MAD 模式、且源真的给了封面时才会出现在这个列表里；源不给，整套不显示。
+  "otomads-cover": (
+    <>
+      One Bilibili video thumbnail per song, straight from the otomad source
+      (<code>cover = "…"</code> on each <code>[[track]]</code> in <code>data/otomads/packs/otomads/*.toml</code>,
+      served by the Bilibili image CDN, cropped to the card ratio). Only offered in Otomad mode, and only
+      when the source actually provides covers. Art belongs to the respective video uploaders.
+    </>
+  ),
 };
 
 export function cardSetDescription(id: string, fallback: string): ReactNode {

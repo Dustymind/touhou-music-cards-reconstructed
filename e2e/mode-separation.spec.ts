@@ -96,6 +96,41 @@ test("切模式不带走另一个模式的预设（状态按模式分键）", as
   expect(keys).toContain("tmc.v1.preset.otomads");
 });
 
+/** 源封面图集（D153）：**只在音MAD 模式、且源真的给了封面时**出现；选中后卡面就是 B 站图床直链。
+ *
+ * 期望值跟着**同源生成物**走（不写死"8 套"）：`covers` 还没有就整条跳过 ——
+ * 那说明数据仓库还没跑 `fetch_covers`，此时**不该**多出这套图集（这条也被下面第一段断言守着）。
+ */
+test("卡面图集：源给了封面才多出「B 站封面」，且只在音MAD 模式", async ({ page }) => {
+  const payload = await (await page.request.get("/data/otomads/characters.json")).json();
+  const covered = ((payload.characters ?? []) as { key: string; covers?: string[] }[])
+    .filter((character) => (character.covers?.length ?? 0) > 0);
+  test.skip(covered.length === 0, "音MAD 生成物里还没有 covers（数据仓库未跑 fetch_covers / 未重新生成）");
+  expect(covered[0]!.covers![0]).toMatch(/^https:\/\//);
+
+  await page.goto("/?localmusic=127.0.0.1:8011");
+  await page.getByRole("tab", { name: "Config", exact: true }).click();
+  await expandSection(page, "cardset");
+  // 原曲模式：这套图集 mode 不匹配 ⇒ 一行都不该有（smoke 里那条"行数 = 现有图集数"同理）
+  await expect(page.getByTestId("cardset-row-otomads-cover")).toHaveCount(0);
+
+  // 切到音MAD：出现，且它的三张示例卡直接就是绝对 URL（不拼目录、不做 URL 编码）
+  await expandSection(page, "source");
+  await page.getByTestId("music-mode-otomads").click();
+  await expandSection(page, "cardset");
+  const row = page.getByTestId("cardset-row-otomads-cover");
+  await expect(row).toBeVisible();
+  const images = row.locator("img");
+  await expect(images).toHaveCount(3);
+  const srcs = await images.evaluateAll((elements) =>
+    elements.map((element) => (element as HTMLImageElement).getAttribute("src") ?? ""));
+  expect(srcs.filter((src) => src.startsWith("https://")).length).toBe(3);
+  // B 站图床按 Referer 拦（带外部 Referer 一律 403）⇒ 卡面图统一不带 Referer
+  const policies = await images.evaluateAll((elements) =>
+    elements.map((element) => element.getAttribute("referrerpolicy")));
+  expect(policies).toEqual(["no-referrer", "no-referrer", "no-referrer"]);
+});
+
 test("音MAD 模式下不再下载原曲的镜像表（音源层按模式拆的直接收益）", async ({ page }) => {
   // 原曲：三份镜像表会被取（控制组）
   const originals: string[] = [];

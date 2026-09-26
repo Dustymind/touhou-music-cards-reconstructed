@@ -64,7 +64,8 @@ def load_albums() -> list[dict]:
 
 
 def build_characters(mode: str, chars: list[dict], pack_tracks: list[dict],
-                     pack_cards: dict[str, list[str]] | None = None) -> dict:
+                     pack_cards: dict[str, list[str]] | None = None,
+                     pack_covers: dict[str, list[str]] | None = None) -> dict:
     """某模式的角色表：**只带本模式的曲目**。
 
     * ``originals``：全部 121 个角色，各自原本的曲目（曲包曲目**不再**并进来）；
@@ -73,6 +74,9 @@ def build_characters(mode: str, chars: list[dict], pack_tracks: list[dict],
     身份字段（``name``/``order``/``searchNames``）来自**同一份真源**（契约 §5 S1），两份生成物里各存一份，
     跨模式一致性由 ``tmc.validate`` 守；**卡面是例外**：音MAD 侧可以在曲包的角色文件里用
     ``card = [...]`` 覆盖（写法同 ``data/characters/*.toml``），缺省才沿用共享身份。
+
+    ``pack_covers`` 是**源封面**（D153）：``{角色 key: [绝对 URL, …]}``，每首曲目一条。
+    它只在 ``otomads`` 那份里写进 ``covers``，原曲那份**一个字段都不多**（两份的指纹口径因此不变）。
     """
     by_key = {char["key"]: char for char in chars}
     if mode == "originals":
@@ -80,11 +84,14 @@ def build_characters(mode: str, chars: list[dict], pack_tracks: list[dict],
     else:
         chosen = []
         cards = pack_cards or {}
+        covers = pack_covers or {}
         for key, entries in _pack_music(pack_tracks).items():
             char = by_key[key]
             face = cards.get(key)
+            cover = covers.get(key)
             chosen.append(dict(char, music=[list(entry) for entry in entries],
-                               **({"card": list(face)} if face else {})))
+                               **({"card": list(face)} if face else {}),
+                               **({"covers": list(cover)} if cover else {})))
         order = {char["key"]: char["order"] for char in chars}
         chosen.sort(key=lambda c: order[c["key"]])
     return {"schema": SCHEMA_VERSION, "characters": chosen}
@@ -209,6 +216,12 @@ def build_card_sets() -> dict:
         # 本地图集（素材由用户自己放进 public/<dir>/）：没有远程 origin，前端只用 localPrefix
         if entry.get("local_only"):
             record["localOnly"] = True
+        # 源封面图集（D153）：素材 = 源快照里的 `covers` 绝对 URL ⇒ 没目录、没 origin；
+        # `mode` 限定它只在某个音乐模式出现（前端 `availableCardSets` 据此过滤）
+        if entry.get("source_only"):
+            record["sourceOnly"] = True
+        if entry.get("mode"):
+            record["mode"] = entry["mode"]
         sets.append(record)
     if not sets:
         raise SystemExit("data/card-sets.toml 里没有任何 [[card_set]]")
@@ -268,7 +281,7 @@ def build_outputs() -> tuple[dict, dict[str, dict[str, str]]]:
     音MAD 数据集依赖曲包真源（submodule）：**没初始化就跳过它**，不拿空数据覆盖已提交的生成物
     （submodule 在开发时可选，见 ``data/README.md``）。
     """
-    _packs, pack_albums, pack_tracks, pack_cards = pack_mod.load_packs()
+    _packs, pack_albums, pack_tracks, pack_cards, pack_covers = pack_mod.load_packs()
     chars = load_characters()
     pack_audio = pack_mod.audio_descriptors(pack_tracks)
 
@@ -276,7 +289,7 @@ def build_outputs() -> tuple[dict, dict[str, dict[str, str]]]:
     outputs: dict[str, str] = {}
     indices: dict[str, dict] = {}
     for mode in modes:
-        characters = build_characters(mode, chars, pack_tracks, pack_cards)
+        characters = build_characters(mode, chars, pack_tracks, pack_cards, pack_covers)
         albums = build_albums(mode, pack_albums)
         digest = content_hash(characters, albums, pack_audio if mode == "otomads" else [])
         index = build_index(mode, characters, albums, digest)

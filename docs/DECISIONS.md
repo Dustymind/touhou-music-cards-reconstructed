@@ -5769,3 +5769,97 @@ e2e 按 testid 的断言照旧。
 
 **刻意没动**：`CardColors` / `CustomColors`（D83 保留项）、`Palette`（深色字面量，`AboutDialog.test.tsx` 钉着它）、
 计时器的黑底白字小方块（刻意的"秒表"观感，两种模式下都成立）、对话框 scrim（MD2 规范与模式无关）。
+
+---
+
+## D153 音MAD 卡面接 B 站封面：一首一封面、源内可覆写（2026-09-26）
+
+**需求**（用户，三句话定稿）：① 给音MAD 数据库的卡牌"调用 B 站封面当卡面"；② **一首一封面**，默认存**直链**，
+写进 `packs/otomads/<角色 key>.toml`，**允许源内覆写**；③ 这套图集**只在音MAD 模式可选、源不提供就不显示**，
+同时**音MAD 模式仍要能用原版卡面**。要求"做完先不推送"。
+
+**数据侧**（数据仓库，未提交）：每条 `[[track]]` 新增可选的 `cover = "https://…"` —— **一首一封面、跟着曲目本身走**
+（形状见下面「修订」）。新工具 `otomads.fetch_covers` 抓 `source` 里的 BV → `api.bilibili.com/x/web-interface/view`
+的 `data.pic` → 换 https + 补裁切后缀 `@703w_1000h_1c.webp`（B 站图床现裁成 **703×1000**，正好是 `CardAspectRatio`，
+一张约 60 KB）；**默认逐条只补没有的**（已有的一个字不动 = 人工覆写入口），`--force` 才整包刷新；
+缓存 `.covers-cache.jsonl` 可续跑。`packformat` 把它攒成 manifest 的 `characters[].covers`
+（D145 那条运行时路径），`pnpm data:build` 也把它烘进 `public/data/otomads/characters.json`。
+
+**客户端**（一处真源 `src/data/cardFaces.ts`）：
+
+- **卡数 = `covers.length || card.length`**（一首一张卡）⇒ 音MAD 卡池从"角色 × 立绘"变成"角色 × 曲目"
+  （36 角色 / 87 张）。**卡数与图集无关**，所以换图集只换图、牌库里的 `cardIndex` 不会错位。
+- **规则零改动**：`buildSongConflicts` 的自链接改按 `cardCount` 判（原来按 `card.length`）——
+  不变式与改前逐字相同：**一个角色在整张桌子上最多一张卡**（牌库+收集区，两个玩家一起算）。
+  合成角色（三姐妹那种）因此仍然互斥，而同一角色的多张变体只是"挑哪首歌的封面"。
+- **新图集 `otomads-cover`**：`source_only = true` + `mode = "otomads"`，`dir`/`origins` 都为空（每张卡面**本身就是
+  绝对 URL**）。`availableCardSets()` 守"源不提供就不显示"；选中的图集在当前模式下不可选时**只回落渲染**
+  （`resolveCardSet`），不动用户偏好 —— 于是"音MAD 选封面集、切回原曲再切回来"不会丢选择。
+- **音MAD 模式仍可用原版卡面**：选上游图集时按 `card` 轮转（多立绘角色各轮到自己那张），`card` 语义一个字没改。
+- `CharacterCard`：绝对 URL **原样用**（不拼目录、不 `encodeURIComponent` —— 那会把 `://` 一起编码掉），
+  源封面集 `objectFit: cover`（16:10 的封面居中裁掉两侧，不留白边），`<img>` 统一
+  `referrerPolicy="no-referrer"`。**B 站图床按 Referer 拦**：带外部 Referer 一律 403、不带才是 200（实测）。
+- 播放页"当前卡面"跟着**正在放的那首**走（`player.entry` 在 `music` 里的下标），播的是别的模式的曲目就回到第 0 张。
+- `packHash`（联机握手）把 `covers` 算进去：它决定**能抽到哪些牌**，两端不一致会出现"一边抽得到、另一边没有"。
+  原曲那份恒为 `null` ⇒ 两份口径不变。
+
+**踩到的坑（浏览器实测抓到的）**：`withPackSnapshot` 的身份兜底取的是**原曲**数据集，它没有 `covers` ——
+于是"清单先到、封面后到"的那几百毫秒里 `hasSourceCovers` 翻成 false，图集整套消失、牌桌回落成上游立绘。
+修法：`covers` 单独从**自带的音MAD 数据集**兜底（身份字段的边界不变，仍是 S1）。现在清单不带 `covers` 时
+自带的封面继续生效 —— 老清单 / 归档还没铺也不影响。
+
+**实测数据质量**（87 张）：全部可加载（0 失败）；**68 张正好 703×1000**，19 张的原图比裁切框小（如 1015×634、
+240×150）⇒ 图床不放大、原样返回，浏览器按 `cover` 居中裁；其中 7 张原图宽度 < 720，放大到卡面会糊 ——
+这些就靠 `cover` 的**手改覆写**换掉（工具默认不碰已写的值）。
+
+**验证**：`pnpm typecheck` exit 0；`pnpm data:build` + `data:check` 无漂移；`pnpm data:validate` ✅（图集 8 套）；
+应用侧 pytest **72 passed**（含跨仓键集合守卫）、数据仓库 pytest **176 passed**；vitest **90 文件 / 928 passed**
+（chromium + firefox）；真浏览器验证：原曲模式下列表里**没有**这套图集、音MAD 模式下 3 张示例卡 + 牌桌 24 张卡
+**全部**从 `i0/i1/i2.hdslb.com` 解码成功（703×1000）、页面零报错。
+
+**刻意没动**：`card` 的语义与跨模式身份一致（契约 §5 S1）、`otomads`（本地图集）那条路、卡片状态底色与 D108 的
+逐张判定、`gameSetting` / 存档口径（牌库本来就不落盘）。数据仓库 85 份骨架文件头里那句"顶层只允许 `key` 与
+`card`"**依然是对的**（`cover` 在 `[[track]]` 里，不占顶层键）。
+
+### D153 修订：`cover` 挪进 `[[track]]`（同日，用户要求）
+
+**用户要求**：`cover` 不要放在角色文件顶层，改成写在**每条 `[[track]]` 里**。
+
+**为什么这条值得改**：顶层数组是**位置绑定**（第 i 条 ↔ 第 i 首），两个后果都不好——
+中间插/删一首会让后面的封面整体错位（长度不变时**不报错**，最难查）；而工具要补缺只能"整包重建"，
+`--force` 会**把手改一起盖掉**。写进曲目里之后这两条同时消失。
+
+| | 旧（顶层数组） | 新（`[[track]].cover`） |
+|---|---|---|
+| 绑定 | 位置：第 i 条 ↔ 第 i 首 | **跟着曲目本身**，增删/重排天然不错位 |
+| 手改一条 | 得数第几条 | 改那一行（**手改即覆写**） |
+| 工具补缺 | 全跳过或 `--force` 全重建（盖手改） | **逐条只补没有的**，已有的一个字不动 |
+| 校验 | 数组长度 = 曲目数 | **每个角色全有或全无**；半有半无 ⇒ 报错并点名第几首 |
+
+**线上形状一个字没改**：`load_packs()` 仍给 `covers: dict[key, list[str]]`，快照仍发 `characters[].covers`
+（数组、顺序 = 曲目顺序）⇒ `cardFaces.ts` / `packSnapshot.ts` / `packHash` / 客户端渲染**零改动**，
+联机口径不变。改的只有 TOML 源那一侧（`TRACK_KEYS` 加 `cover`、`CHARACTER_KEYS` 去掉 `cover`）。
+
+**旧形状不静默**：两边的读法都会报一句指路的话（"跑 `fetch_covers` 会自动迁移"），而数据仓库的
+`fetch_covers` **默认就会迁移**它 —— 按顺序逐条搬进 `[[track]]`、删掉顶层那段（含标记注释），**不联网**、
+幂等、长度对不上就不动那个文件。于是"手改过的值"也是被搬下去而不是被覆盖。
+
+**真数据迁移与验证（2026-09-26）**：`fetch_covers` 一次跑完 **36 个角色 / 87 条**（0 次联网：迁移不需要网络，
+值从顶层数组搬下去）。**线上形状逐字未变**——三个指纹迁移前后完全相同：
+
+| 指纹 | 迁移前 = 迁移后 |
+|---|---|
+| 助手 `/manifest.json`（sha256） | `ed77c58500ee06c21cf253b38d05717ba4266adad3fb305af10fe0c1cc9c0632` |
+| 自带 `public/data/otomads/characters.json`（sha256） | `8031b0e0f673c512c1e7cedc5c14b874e5e822ab5e09119a10ab0d108b3e9380` |
+| 构建期 `contentHash`（`pnpm data:build` 打印） | `b627c12347b9` |
+
+⇒ **应用仓库的运行时零改动**（`cardFaces.ts` / `packSnapshot.ts` / `packHash` / 组件全没动），只改了注释与文档。
+测试：数据仓库 pytest **198 passed** + `node --test` 0 fail；应用侧 pytest **77 passed**（+5 条 per-track 规则用例：
+全有 / 全无 / 半有半无点名第几首 / 非 https / 旧形状指路）；vitest **90 文件 / 930 passed**；
+e2e（`smoke` + `mode-separation`）**36 passed**；部署实测：牌堆 87、随机补满后 24 张**全解码**、全部来自
+`i0/i1/i2.hdslb.com`、零页面报错。
+
+**顺带的边界调整**（数据仓库，超出本次形状改动但必要）：`stage_media.review_archive` 的"归档 ↔ 本仓库 `packs/` 对照"
+原本会在 `load_packs()` 硬失败时把**整条 CDN 构建**带崩（`build_cdn_site.py` 走同一个函数），
+而那条对照本来就是**只警告**（D147）—— 现在读不动时降级为警告并把原文抄进日志（+回归用例）。
+迁移后行为与改前一致（严格读法能读通）。

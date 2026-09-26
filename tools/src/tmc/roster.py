@@ -45,7 +45,7 @@ def build_roster(characters: dict[str, dict] | None = None,
     """算新清单：引用到的角色（按真源的 name/order）+ 手工追加的角色（原样保留）。"""
     characters = load_characters() if characters is None else characters
     if referenced is None:
-        _packs, _albums, tracks, _cards = packs.load_packs()
+        _packs, _albums, tracks, _cards, _covers = packs.load_packs()
         referenced = {track["character"] for track in tracks}
     missing = sorted(key for key in referenced if key not in characters)
     if missing:

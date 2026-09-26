@@ -94,3 +94,21 @@ label_zh = "音MAD（本地图集）"
 local_prefix = "./"
 local_only = true
 origins = []
+
+# 源封面图集（D153）：音MAD 每首曲目的 **B 站封面直链**，由源（manifest 快照的 `characters[].covers`）
+# 提供 —— 所以这套图集**没有目录、没有 origin**：每一张卡面本身就是一条绝对 URL。
+#   * `source_only = true`：素材归源管。源没给封面（老清单 / 原曲那份）⇒ 界面里**不列出这套**
+#     （`src/data/cardFaces.ts` 的 `availableCardSets`），选了也回落，不会变成一屏白卡。
+#   * `mode = "otomads"`：只在音MAD 模式下可选；原曲那边照旧用上游那几套。
+#   * 直链是 `<B 站图床>/bfs/archive/<hash>.<ext>@703w_1000h_1c.webp`（703×1000 = 卡面比例，
+#     由 B 站图床现裁现转，一张约 60 KB）。图床**按 Referer 拦**：带外部 Referer 返回 403，
+#     所以 `CharacterCard` 的 `<img>` 统一带 `referrerPolicy="no-referrer"`。
+[[card_set]]
+id = "otomads-cover"
+dir = ""
+label_en = "Otomads (Bilibili covers)"
+label_zh = "音MAD（B 站封面）"
+local_prefix = "./"
+source_only = true
+mode = "otomads"
+origins = []

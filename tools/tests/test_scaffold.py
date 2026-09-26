@@ -75,9 +75,10 @@ def test_header_carries_the_true_source_metadata(tree):
 def test_skeleton_is_inert_for_the_pipeline(tree):
     """骨架必须能被 `tmc.packs` 读回，且**不产生任何曲目 / 卡面覆盖**（⇒ 哈希与生成物不变）。"""
     assert len(scaffold.write()) == 2
-    _packs, _albums, tracks, cards = pack_mod.load_packs()
+    _packs, _albums, tracks, cards, covers = pack_mod.load_packs()
     assert tracks == []
     assert cards == {}
+    assert covers == {}
 
 
 def test_missing_follows_the_true_source_order(tmp_path, monkeypatch):
