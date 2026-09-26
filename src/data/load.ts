@@ -14,7 +14,6 @@ import {
   type SourceRecord,
 } from "./types";
 import { MUSIC_MODES, type MusicMode } from "../music/mode";
-import { isRecord } from "../persist";
 import { isCardRatio } from "../theme/cardRatio";
 
 export class DataLoadError extends Error {
@@ -76,17 +75,6 @@ export function validateCharacters(raw: unknown, expected: number): CharacterRec
       || (Array.isArray(character.audio) && character.audio.length > 0
           && character.audio.every((url) => typeof url === "string" && url.trim() !== "")),
       `${character.key} 的 audio 必须是非空字符串数组`);
-    // **逐档卡面**（D165）：键必须是认得的档位、值必须是非空字符串数组（与 `covers` 平行）。
-    // 与 `audio` 同一套分工（真正的守门人是 customManifest.ts，这条是形状对称 + 兜底）。
-    if (character.coversByRatio !== undefined) {
-      assert(isRecord(character.coversByRatio), `${character.key} 的 coversByRatio 必须是对象`);
-      for (const [ratio, urls] of Object.entries(character.coversByRatio)) {
-        assert(isCardRatio(ratio), `${character.key} 的 coversByRatio 有不认得的档位：${ratio}`);
-        assert(Array.isArray(urls) && urls.length > 0
-          && urls.every((url) => typeof url === "string" && url.trim() !== ""),
-        `${character.key} 的 coversByRatio.${ratio} 必须是非空字符串数组`);
-      }
-    }
     for (const entry of character.music) {
       // `[专辑, 曲名, extra]`，第 4 位是**可选**的作者（音MAD 这类曲目才有）
       assert(Array.isArray(entry) && entry.length >= 3 && entry.length <= 5,

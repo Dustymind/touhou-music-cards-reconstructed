@@ -251,40 +251,23 @@ def _character_tracks(pack_dir: pathlib.Path, manifest: str,
     return out
 
 
-#: 封面表允许的档位（D164）：与应用的 `CARD_RATIOS` 同序 —— 这份顺序就是快照里 `coversByRatio` 的键序。
-COVER_FRAMES = ("original", "16x9", "4x3")
+def _read_track_cover(entry: dict, where: str) -> str | None:
+    """``[[track]]`` 里的 ``cover``（可选）：这一首曲目的封面 —— **一条绝对 https 直链**（D167）。
 
-
-def _read_track_cover(entry: dict, where: str) -> str | dict[str, str] | None:
-    """``[[track]]`` 里的 ``cover``（可选）：这一首曲目的封面 —— **单链接**或**逐档表**。
-
-    两种形状都合法（D153 → D164）：
-
-    * **单链接字符串**（``cover = "https://…/x.jpg"``）：三个档位共用这一张，前端自己裁；
-    * **逐档表**：档位 → **源分辨率**的现裁直链，键只能是 :data:`COVER_FRAMES`，至少一个，值都是非空 https。
-
-    口径与数据仓库的 ``packformat``、应用侧的 ``parseCoverField``（D165）一致。
+    一个链接画所有画幅：源给**原版无修改**的那张图（不加任何分辨率/裁切参数），
+    形状与裁切由前端按用户选的档位运行时做（``object-fit: cover``）。
     """
     value = entry.get("cover")
     if value is None:
         return None
-    if isinstance(value, str):
-        return _cover_url(value, where)
-    if isinstance(value, dict):
-        if not value:
-            raise SystemExit(f"{where}: cover 表不能为空 —— 至少写一个档位（{'、'.join(COVER_FRAMES)}）")
-        unknown = sorted(set(value) - set(COVER_FRAMES))
-        if unknown:
-            raise SystemExit(f"{where}: cover 表里有认不得的档位 {unknown!r}"
-                             f"（只能是 {'、'.join(COVER_FRAMES)}）")
-        return {frame: _cover_url(value[frame], f"{where} / cover.{frame}")
-                for frame in COVER_FRAMES if frame in value}
-    raise SystemExit(f"{where}: cover 必须是单链接字符串（一条绝对 https URL）"
-                     f"或逐档表（{'、'.join(COVER_FRAMES)}）")
+    if not isinstance(value, str):
+        raise SystemExit(f"{where}: cover 只能是**一条链接**（字符串）；收到 {type(value).__name__} "
+                         f"—— 逐档表那种写法已经取消了（D167：画幅由前端裁同一张图）")
+    return _cover_url(value, where)
 
 
 def _cover_url(value: object, where: str) -> str:
-    """封面里的**一条链接**：非空、且 ``https://`` 开头。"""
+    """封面里的**那条链接**：非空、且 ``https://`` 开头。"""
     if not isinstance(value, str) or not value:
         raise SystemExit(f"{where}: cover 必须是非空字符串（一条绝对 https URL）")
     if not value.startswith("https://"):
@@ -294,48 +277,15 @@ def _cover_url(value: object, where: str) -> str:
     return value
 
 
-def _cover_frames(cover: str | dict[str, str]) -> tuple[str, ...]:
-    """封面值的**档位集合**：表 → 它有的那几档（:data:`COVER_FRAMES` 序）；字符串 → ``()``（没有档）。"""
-    if isinstance(cover, str):
-        return ()
-    return tuple(frame for frame in COVER_FRAMES if frame in cover)
-
-
-def split_covers(values: list[str | dict[str, str]]) -> tuple[list[str], dict[str, list[str]]]:
-    """逐曲封面值 → ``(主链接数组, 逐档数组)``。
-
-    这是**烘焙**那一侧的口径：生成物里的 ``covers`` 是**字符串数组**（每首曲目一条主链接），
-    逐档表拆到**同级**的 ``coversByRatio``（档位 → 与 ``covers`` 按下标对齐的数组）——
-    与数据仓库 ``packformat.pack_snapshot`` 发出去的快照、应用侧 `parseCoverField` 完全同形
-    （D164）。主链接 = ``original`` → ``16x9`` → ``4x3`` 第一个有的那档。
-
-    调用方（``build_characters``）只在**同一角色的档位集合已经校验一致**之后调它
-    （:func:`_merge_track_covers` 守这条），所以这里直接取第一条的档位集合。
-    """
-    if not values:
-        return [], {}
-    frames = _cover_frames(values[0])
-    primaries = [
-        value if isinstance(value, str)
-        else next(value[frame] for frame in COVER_FRAMES if frame in value)
-        for value in values
-    ]
-    by_ratio = {frame: [value[frame] for value in values if isinstance(value, dict)]
-                 for frame in frames}
-    return primaries, by_ratio
-
-
-def _merge_track_covers(key: str, covers: list[str | dict[str, str] | None],
-                        where: str) -> list[str | dict[str, str]] | None:
+def _merge_track_covers(key: str, covers: list[str | None],
+                        where: str) -> list[str] | None:
     """逐条曲目的 ``cover`` → **整个角色**的封面列表（运行时的 ``covers`` 仍是按下标对齐的数组）。
 
-    四条口径（与数据仓库的 ``packformat`` 保持一致）：
+    两条口径（与数据仓库的 ``packformat`` 保持一致）：
 
     * **全有** ⇒ 交给源，顺序 = 曲目顺序；
     * **全无** ⇒ 不发（这个角色在封面图集下回落到原版卡面，不是错误）；
-    * **半有半无** ⇒ **报错**并点名：运行时的数组是按下标对齐的，空洞会让某几首静默错位到别人的封面上；
-    * **档位集合不一致**（表与字符串混用、或两张表的档位不同）⇒ **报错**：快照里的 ``coversByRatio``
-      同样是按下标对齐的，档位不一致会在那里造出同样的空洞（D164）。
+    * **半有半无** ⇒ **报错**并点名：运行时的数组是按下标对齐的，空洞会让某几首静默错位到别人的封面上。
     """
     if not covers or all(item is None for item in covers):
         return None
@@ -345,12 +295,6 @@ def _merge_track_covers(key: str, covers: list[str | dict[str, str] | None],
             f"{where}: 角色 {key} 的第 {'、'.join(missing)} 首曲目没有 cover —— "
             f"一个角色要么**每首都有**、要么**一首都没有**（运行时的 covers 是按曲目下标对齐的数组）。"
             f"跑数据仓库的 `uv run --project tools python -m otomads.fetch_covers` 会把缺的补上")
-    shapes = {_cover_frames(item) for item in covers if item is not None}
-    if len(shapes) > 1:
-        shown = sorted("、".join(shape) or "单链接" for shape in shapes)
-        raise SystemExit(
-            f"{where}: 角色 {key} 的 cover **档位集合不一致**（{' vs '.join(shown)}）—— "
-            f"同一个角色里要么全是单链接、要么每条的档位完全相同（快照里的 coversByRatio 按下标对齐）。")
     return [item for item in covers if item is not None]
 
 

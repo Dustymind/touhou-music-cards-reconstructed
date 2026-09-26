@@ -514,19 +514,15 @@ def check_pending(chars: list[dict], p: Problems):
             p.error(f"extra-pending 缺少原因：{key} / {title}")
     return len(rows)
 
+def check_track_covers(covers: dict, problems: "Problems") -> None:
+    """源封面（`covers`，D153/D167）：每条曲目的 `cover` 必须是一条 https 直链。
 
-def _cover_value_ok(item: object) -> bool:
-    """封面值合法（D164）：非空 ``https`` 字符串，或"至少一个档位、每档都是非空 ``https``"的表。
-
-    口径与曲包解析（`tmc.packs`）、数据仓库的 `packformat`、应用侧的 `parseCoverField`（D165）一致。
+    逐档表那种写法（D164）已经取消：一个链接画所有画幅，裁切由前端做。
     """
-    if isinstance(item, str):
-        return item.startswith("https://")
-    if not isinstance(item, dict) or not item:
-        return False
-    if set(item) - set(packs_mod.COVER_FRAMES):
-        return False
-    return all(isinstance(url, str) and url.startswith("https://") for url in item.values())
+    for key, values in sorted(covers.items()):
+        for index, cover in enumerate(values, start=1):
+            if not isinstance(cover, str) or not cover.startswith("https://"):
+                problems.error(f"音MAD 封面不是一条 https 直链：{key} 第 {index} 首（{cover!r}）")
 
 
 def check_datasets(chars: list[dict], pack_tracks: list[dict], pack_albums: list[dict],
@@ -584,21 +580,11 @@ def check_datasets(chars: list[dict], pack_tracks: list[dict], pack_albums: list
                 p.error(f"音MAD 卡面覆盖没生效：{key}（{right['card']!r} vs {pack_cards[key]!r}）")
         elif left["card"] != right["card"]:
             p.error(f"跨模式卡面不一致（未在曲包里覆盖）：{key}")
-        # 源封面（D153/D164）：只在 otomads 那份里有，检查"真源的 cover 真的进了生成物"。
-        # 真源每条是**单链接或逐档表**，生成物里一律是 `covers`（主链接的字符串数组）
-        # + 可选的 `coversByRatio`（档位 → 下标对齐的数组）⇒ 比较也必须按这个拆分比
-        # （直接比原始值的话，凡是写了表的角色都会被误报"封面没生效"）。
+        # 源封面（D153/D167）：只在 otomads 那份里有，检查"真源的 cover 真的进了生成物"
+        # （两边都是一条链接的字符串数组，直接比即可）
         if key in pack_covers:
-            primaries, by_ratio = packs_mod.split_covers(list(pack_covers[key]))
-            if right.get("covers") != primaries:
-                p.error(f"音MAD 封面没生效：{key}（{right.get('covers')!r} vs {primaries!r}）")
-            if by_ratio:
-                expected = {frame: urls for frame, urls in by_ratio.items() if urls}
-                if right.get("coversByRatio") != expected:
-                    p.error(f"音MAD 逐档封面没生效：{key}"
-                            f"（{right.get('coversByRatio')!r} vs {expected!r}）")
-            elif "coversByRatio" in right:
-                p.error(f"音MAD 逐档封面不该出现：{key}（真源只有单链接）")
+            if right.get("covers") != list(pack_covers[key]):
+                p.error(f"音MAD 封面没生效：{key}（{right.get('covers')!r} vs {pack_covers[key]!r}）")
         elif "covers" in right:
             p.error(f"音MAD 生成物里多出了源码里没有的 covers：{key}")
     for key in sorted(pack_covers):
@@ -607,9 +593,8 @@ def check_datasets(chars: list[dict], pack_tracks: list[dict], pack_albums: list
         if key not in by_mode["otomads"]:
             p.error(f"曲包里的封面指向没有音MAD 曲目的角色：{key}")
         cover = pack_covers[key]
-        if not cover or not all(_cover_value_ok(item) for item in cover):
-            p.error(f"曲包里的封面非法（{key}，必须是 https 链接或逐档表"
-                    f"（{'、'.join(packs_mod.COVER_FRAMES)}）的列表）：{cover!r}")
+        if not cover or not all(isinstance(item, str) and item.startswith("https://") for item in cover):
+            p.error(f"曲包里的封面非法（{key}，必须是 https 直链的列表，一条一个封面）：{cover!r}")
         entry = by_mode["otomads"].get(key)
         if entry is not None and len(cover) != len(entry["music"]):
             p.error(f"曲包里的封面数与曲目数不等（{key}：{len(cover)} vs {len(entry['music'])}）"

@@ -51,30 +51,6 @@ describe("data validators", () => {
     expect(() => validateCharacters(wrap([character({ audio: "x" as never })]), 1)).toThrow(/audio/);
   });
 
-  it("`coversByRatio`（逐档卡面链接，D165）要写就得是「认得的档 → 非空字符串数组」", () => {
-    const wrap = (list: unknown) => ({ schema: 1, characters: list });
-    // 不写 = 单链接形态（旧数据 / 手放的图）：三份数据集都可以不带这个字段
-    expect(validateCharacters(wrap([character()]), 1)).toHaveLength(1);
-    expect(validateCharacters(wrap([
-      character({ coversByRatio: { original: ["https://x/a.jpg"], "16x9": ["https://x/w.jpg"] } }),
-    ]), 1)).toHaveLength(1);
-    expect(validateCharacters(wrap([character({ coversByRatio: { "4x3": ["https://x/t.jpg"] } })]), 1))
-      .toHaveLength(1);
-    // 认不得的档 / 空数组 / 数组里是空串 / 不是数组 / 不是对象 —— 一律报错
-    // （这是个"按档位查表"的结构，键错等于查不到；数组与 `covers` 平行，空数组等于错位）
-    expect(() => validateCharacters(wrap([
-      character({ coversByRatio: { "16:9": ["https://x/w.jpg"] } as never }),
-    ]), 1)).toThrow(/coversByRatio/);
-    expect(() => validateCharacters(wrap([character({ coversByRatio: { "16x9": [] } })]), 1))
-      .toThrow(/coversByRatio/);
-    expect(() => validateCharacters(wrap([character({ coversByRatio: { "16x9": ["  "] } })]), 1))
-      .toThrow(/coversByRatio/);
-    expect(() => validateCharacters(wrap([character({ coversByRatio: { "16x9": "https://x/w.jpg" } as never })]), 1))
-      .toThrow(/coversByRatio/);
-    expect(() => validateCharacters(wrap([character({ coversByRatio: [] as never })]), 1))
-      .toThrow(/coversByRatio/);
-  });
-
   it("合法角色通过", () => {
     expect(validateCharacters({ schema: 1, characters: [character()] }, 1)).toHaveLength(1);
   });

@@ -77,12 +77,8 @@ const BAD_PAYLOADS: [string, unknown][] = [
   ["封面为空数组", payload({ characters: [{ ...CHARACTER, covers: [] }] })],
   ["封面里是空串", payload({ characters: [{ ...CHARACTER, covers: [""] }] })],
   ["封面不是数组", payload({ characters: [{ ...CHARACTER, covers: "https://x/" }] })],
-  // 逐档封面（D165）：`coversByRatio` 的键、值、**长度对齐**同样严
-  ["逐档封面不是对象", payload({ characters: [{ ...CHARACTER, covers: ["https://x/a.jpg"], coversByRatio: [] }] })],
-  ["逐档封面里有认不得的档位", payload({ characters: [{ ...CHARACTER, covers: ["https://x/a.jpg"], coversByRatio: { "16:9": ["https://x/a.jpg"] } }] })],
-  ["逐档封面里有一档是空值", payload({ characters: [{ ...CHARACTER, covers: ["https://x/a.jpg"], coversByRatio: { "16x9": ["  "] } }] })],
-  ["逐档封面里有一档不是字符串数组", payload({ characters: [{ ...CHARACTER, covers: ["https://x/a.jpg"], coversByRatio: { "4x3": 7 } }] })],
-  ["逐档数组与 covers 长度对不上", payload({ characters: [{ ...CHARACTER, covers: ["https://x/a.jpg"], coversByRatio: { "16x9": [] } }] })],
+  // 卡面只认一条链接（D167）：对象/表形态的封面值是坏数据
+  ["封面值是对象", payload({ characters: [{ ...CHARACTER, covers: [{ original: "https://x/a.jpg" }] }] })],
   ["自带 name 是空串", payload({ characters: [{ ...CHARACTER, name: "" }] })],
   ["自带 order 不是数", payload({ characters: [{ ...CHARACTER, order: "1" }] })],
   ["自带 searchNames 为空", payload({ characters: [{ ...CHARACTER, searchNames: [] }] })],
@@ -131,48 +127,21 @@ describe("parsePackSnapshot", () => {
     expect(parsePackSnapshot(payload())?.characters[0]).not.toHaveProperty("covers");
   });
 
-  it("逐档封面（D165）：`covers` 是每首曲目的主链接、`coversByRatio` 逐档与之平行；没带就不出现那个键", () => {
-    const original = "https://i0.hdslb.com/a.jpg";
-    const wide = "https://i0.hdslb.com/a.jpg@1920w_1080h_1c.webp";
-    const tall = "https://i0.hdslb.com/a.jpg@1600w_1200h_1c.webp";
-    const withFrames = parsePackSnapshot(payload({
-      characters: [{
-        ...CHARACTER,
-        covers: [original],
-        coversByRatio: { original: [original], "16x9": [wide], "4x3": [tall] },
-      }],
-    }))!;
-    const character = withFrames.characters[0]!;
-    expect(character.covers).toEqual([original]);
-    expect(character.coversByRatio).toEqual({
-      original: [original], "16x9": [wide], "4x3": [tall],
-    });
-
-    // 单链接的老形态：不带 `coversByRatio`（三个档位共用那一份，前端运行时裁）
-    const single = parsePackSnapshot(payload({
+  it("源封面（D153/D167）：每首曲目**一条链接**，与 `music` 按下标对齐", () => {
+    const wide = "https://i0.hdslb.com/a.jpg";
+    const parsed = parsePackSnapshot(payload({
       characters: [{ ...CHARACTER, covers: [wide] }],
     }))!;
-    expect(single.characters[0]!.covers).toEqual([wide]);
-    expect(single.characters[0]).not.toHaveProperty("coversByRatio");
-    // 空对象等于"没写"（不算坏形状，只是没有逐档链接）
-    const empty = parsePackSnapshot(payload({
-      characters: [{ ...CHARACTER, covers: [wide], coversByRatio: {} }],
-    }))!;
-    expect(empty.characters[0]).not.toHaveProperty("coversByRatio");
-
-    // 两首曲目：逐档数组与 `covers` / `music` 一样**按曲目对齐**
-    const twoTracks = parsePackSnapshot(payload({
+    expect(parsed.characters[0]!.covers).toEqual([wide]);
+    // 两首曲目 ⇒ 两条链接，顺序即曲目顺序
+    const two = parsePackSnapshot(payload({
       characters: [{
         ...CHARACTER,
         music: [...CHARACTER.music, [...CHARACTER.music[0]!] as typeof CHARACTER.music[0]],
-        covers: [original, wide],
-        coversByRatio: { original: [original, wide], "16x9": [wide, wide] },
+        covers: [wide, "https://i0.hdslb.com/b.jpg"],
       }],
     }))!;
-    expect(twoTracks.characters[0]!.covers).toEqual([original, wide]);
-    expect(twoTracks.characters[0]!.coversByRatio).toEqual({
-      original: [original, wide], "16x9": [wide, wide],
-    });
+    expect(two.characters[0]!.covers).toEqual([wide, "https://i0.hdslb.com/b.jpg"]);
   });
 });
 
@@ -186,8 +155,6 @@ describe("withPackSnapshot", () => {
         card: [...character.card],
         // 源封面（D153）：有才带 —— 与真源 per-track `cover = "…"` 攒出来的数组同形
         ...(character.covers ? { covers: [...character.covers] } : {}),
-        // 逐档链接（D165）同理：有才带（自带那份今天还没有）
-        ...(character.coversByRatio ? { coversByRatio: structuredClone(character.coversByRatio) } : {}),
       })),
     };
   }

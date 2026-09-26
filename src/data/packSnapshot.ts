@@ -20,7 +20,6 @@
 import { EXTRAS, trackId, type AlbumKind, type AlbumRecord, type CharacterRecord, type DataBundle, type DataIndex, type Extra, type ModeDataset, type MusicEntry } from "./types";
 import { stableHash } from "../rng";
 import { isRecord } from "../persist";
-import { isCardRatio, type CardRatio } from "../theme/cardRatio";
 
 /** 快照里的一个角色：**只给"角色 → 曲目"**（+ 可选卡面覆盖）。 */
 export interface PackSnapshotCharacter {
@@ -33,9 +32,6 @@ export interface PackSnapshotCharacter {
    *  形状与 `music` **一一对应**（数组是运行时形状，真源里是 per-track）；有它就是"一首一张卡"
    *  （卡池与卡面见 `cardFaces.ts`）。 */
   covers?: string[];
-  /** **逐档**封面链接（D165）：`coversByRatio[档][i]` 与 `covers[i]` / `music[i]` 一一对应。
-   *  只含源真的给了的档位；没给全的档**整档丢掉**（半有半无 = 与 music 错位）。 */
-  coversByRatio?: Partial<Record<CardRatio, string[]>>;
   /** S2 预留：原曲数据集里没有这个角色时，快照可以自带身份（今天数据仓库不发这三个字段） */
   name?: string;
   order?: number;
@@ -105,25 +101,6 @@ function parseMusicEntry(raw: unknown): MusicEntry | undefined {
   return entry;
 }
 
-/** `coversByRatio`（逐档链接，D165）→ 校验过的对象；坏形状返回 `undefined`（整份快照不用）。
- *
- * 规则：必须是对象；键只能是认得的档位；每档是**非空字符串数组**且长度**正好等于** `covers.length`
- * （逐档数组与 `covers` / `music` 平行，少一条就是错位）；没有认得的档位等于"没写"。 */
-function parseRatioArrays(
-  raw: unknown,
-  expected: number,
-): Partial<Record<CardRatio, string[]>> | undefined {
-  if (!isRecord(raw)) return undefined;
-  const byRatio: Partial<Record<CardRatio, string[]>> = {};
-  for (const [key, value] of Object.entries(raw)) {
-    if (!isCardRatio(key)) return undefined;
-    const urls = stringList(value);
-    if (urls === undefined || urls.length !== expected) return undefined;
-    byRatio[key] = urls;
-  }
-  return byRatio;
-}
-
 function parseCharacter(raw: unknown): PackSnapshotCharacter | undefined {
   if (!isRecord(raw)) return undefined;
   const key = text(raw.key);
@@ -142,19 +119,10 @@ function parseCharacter(raw: unknown): PackSnapshotCharacter | undefined {
     character.card = card;
   }
   if (raw.covers !== undefined) {
-    // 逐条 `cover`：运行时形状里就是**每首曲目一条主链接**（字符串数组）——
-    // 源那边的真源是"每条 `[[track]]` 一个字符串或一张表"，`pack_snapshot` 组装时已经把
-    // 表拆成了 `covers`（主链接）+ `coversByRatio`（逐档数组，D165）。
+    // 每首曲目**一条**封面链接（D167：源只给一条，画幅由前端运行时裁）
     const covers = stringList(raw.covers);
     if (covers === undefined) return undefined;
     character.covers = covers;
-    if (raw.coversByRatio !== undefined) {
-      // 逐档数组与 `covers` / `music` **必须一一对齐**：少一条就是与 music 静默错位，
-      // 所以宁可整份不用（调用方走自带那份兜底）也不半信半疑地用
-      const byRatio = parseRatioArrays(raw.coversByRatio, covers.length);
-      if (byRatio === undefined) return undefined;
-      if (Object.keys(byRatio).length > 0) character.coversByRatio = byRatio;
-    }
   }
   if (raw.name !== undefined) {
     const name = text(raw.name);
@@ -279,10 +247,7 @@ function snapshotCharacters(
         + " ⇒ 这一条整条跳过（曲目不会出现）");
       continue;
     }
-    const baked = bakedOtomads.characterByKey.get(entry.key);
-    const covers = entry.covers ?? baked?.covers;
-    // 逐档链接（D165）同理"有才覆盖"：源给了逐档链接才带上，否则沿用自带那份（多半也没有）
-    const byRatio = entry.coversByRatio ?? (entry.covers === undefined ? baked?.coversByRatio : undefined);
+    const covers = entry.covers ?? bakedOtomads.characterByKey.get(entry.key)?.covers;
     out.push({
       key: entry.key,
       name,
@@ -290,7 +255,6 @@ function snapshotCharacters(
       card,
       // 封面（D153）：源给了就用源的；源没给就沿用自带的（"有才覆盖"，与 card 同口径）
       ...(covers ? { covers } : {}),
-      ...(byRatio ? { coversByRatio: byRatio } : {}),
       searchNames: identity?.searchNames ?? entry.searchNames ?? [],
       music: entry.music,
     });
@@ -328,7 +292,7 @@ function withContentHash(
  *
  * - **专辑表**：`key/name/kind/pack/order/showAlbumName`（按 key 排序，与数组顺序无关）；
  * - **每个角色的曲目条目**：`key`、`card`（快照的卡面覆盖）、`covers`（源封面，D153）、
- *   `coversByRatio`（逐档封面链接，D165）、`music`（按 key 排序）。
+ *   `music`（按 key 排序）。
  *
  * `covers` **必须算进来**：它决定"自定义卡面"那套图集下这个角色有几张卡（一首一张），
  * 也是互斥表的**最大口径**（`maxCardCount`，见 `cardFaces.ts`）—— 也就是"桌上可能有哪些牌"的一部分，
@@ -348,8 +312,7 @@ export function packHash(
   albums: readonly AlbumRecord[], characters: readonly CharacterRecord[],
 ): string {
   return fingerprint("pack", albums, characters, (character) => [
-    character.key, character.card, character.covers ?? null,
-    character.coversByRatio ?? null, character.music,
+    character.key, character.card, character.covers ?? null, character.music,
   ]);
 }
 

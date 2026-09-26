@@ -312,15 +312,13 @@ def test_audio_filename_shape_matches_the_data_repo_helper():
     assert "f\"{track['title']}.mp3\"" in text, "数据仓库的无作者成品名形状变了？"
 
 
-# ------------------------------------------------- 源封面：真源两种形状 → 生成物两种键（D164）
+# ------------------------------------------------- 源封面：一条链接（D167）
 
-def test_source_covers_are_split_into_primaries_and_per_frame_arrays():
-    """真源里每条曲目的 `cover` 可以是**单链接**或**逐档表**，生成物里必须是
-    `covers`（字符串数组，主链接）+ 同级的 `coversByRatio`（档位 → 下标对齐的数组）。
+def test_source_covers_are_one_link_per_track():
+    """真源里每条曲目的 `cover` 是**一条链接**，生成物里就是 `covers` 字符串数组（每首一条）。
 
-    **反证**：把 `build_characters` 里的 `pack_mod.split_covers(...)` 换回
-    `list(cover)` ⇒ 表会原样烘进 `covers`，应用那边 `validateCharacters` 直接报
-    "covers 必须是非空字符串数组"（整份数据加载失败）—— 2026-09-27 真踩到过一次。
+    D167：源给**原版无修改**的那张图（不加分辨率/裁切参数），画幅与裁切由前端按当前档位运行时做。
+    **反证**：把 `_read_track_cover` 的"只认字符串"去掉（放行旧表）⇒ 下面那个 SystemExit 用例红。
     """
     chars = [
         {"key": "a", "name": "甲", "order": 1, "card": ["a.png"], "searchNames": ["甲"],
@@ -333,31 +331,28 @@ def test_source_covers_are_split_into_primaries_and_per_frame_arrays():
         {"pack": "otomads", "character": "a", "album": "otomads", "title": "二", "extra": "角色曲"},
         {"pack": "otomads", "character": "b", "album": "otomads", "title": "三", "extra": "角色曲"},
     ]
-    wide = "https://x/a.jpg@1920w_1080h_1c.webp"
-    tall = "https://x/a.jpg@1600w_1200h_1c.webp"
     covers = {
-        # 甲：两条都是逐档表 ⇒ 拆成主链接（original）+ 三档数组
-        "a": [
-            {"original": "https://x/a1.jpg", "16x9": wide, "4x3": tall},
-            {"original": "https://x/a2.jpg", "16x9": wide, "4x3": tall},
-        ],
-        # 乙：单链接 ⇒ 只有 `covers`，一个 `coversByRatio` 都不多
-        "b": ["https://x/b.jpg@703w_1000h_1c.webp"],
+        "a": ["https://x/a1.jpg", "https://x/a2.jpg"],
+        "b": ["https://x/b.jpg"],
     }
     out = build.build_characters("otomads", chars, tracks, {}, covers)["characters"]
     a, b = out[0], out[1]
-    assert a["covers"] == ["https://x/a1.jpg", "https://x/a2.jpg"]        # 主链接 = original
-    assert a["coversByRatio"] == {
-        "original": ["https://x/a1.jpg", "https://x/a2.jpg"], "16x9": [wide, wide], "4x3": [tall, tall],
-    }
-    # 逐档数组与 `covers` / `music` 一样按下标对齐（少一条就是静默错位）
-    for frame, urls in a["coversByRatio"].items():
-        assert len(urls) == len(a["covers"]) == len(a["music"]), frame
-    assert "coversByRatio" not in b
-    assert all(isinstance(url, str) for url in b["covers"])
+    assert a["covers"] == ["https://x/a1.jpg", "https://x/a2.jpg"]      # 顺序 = 曲目顺序
+    assert b["covers"] == ["https://x/b.jpg"]
+    # 一条链接画所有画幅 ⇒ 生成物里**没有**逐档那套键（D164 的 coversByRatio 已取消）
+    assert "coversByRatio" not in a and "coversByRatio" not in b
     # 原曲那份一个字段都不多（两份的指纹口径不因此变）
     originals = build.build_characters("originals", chars, tracks, {}, covers)["characters"]
-    assert all("covers" not in entry and "coversByRatio" not in entry for entry in originals)
+    assert all("covers" not in entry for entry in originals)
+
+
+def test_a_cover_table_is_now_a_hard_error():
+    """旧的逐档表写法（D164）现在**当场报错**，并把人指回"一条链接"这条口径。"""
+    entry = {"album": "otomads", "title": "一", "extra": "角色曲",
+             "cover": {"original": "https://x/a.jpg", "16x9": "https://x/a.16x9.jpg"}}
+    with pytest.raises(SystemExit) as failure:
+        pack_mod._read_track_cover(entry, "测试")
+    assert "一条链接" in str(failure.value)
 
 
 # ------------------------------------------------- 模式 3「自定义」：空数据集（D156 起，契约 custom-mode-v1）

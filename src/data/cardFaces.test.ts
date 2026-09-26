@@ -265,33 +265,18 @@ describe("图集可选性", () => {
     expect(resolveCardSet([], "x", originals2)).toBe(resolveCardSet([], "x", originals2));
   });
 
-  it("逐档卡面链接（D165）：按当前档取那一份，只有一份时三档都用它（前端运行时裁）", () => {
-    const original = "https://x/a.jpg";
-    const wide = "https://x/a.16x9.jpg";
-    const tall = "https://x/a.4x3.jpg";
-    const all = character({
-      card: [original], covers: [original],
-      coversByRatio: { original: [original], "16x9": [wide], "4x3": [tall] },
-    });
-    const custom = dataset("custom", [all]);
-    const at = (pref: "original" | "16x9" | "4x3") => resolveCardSet([], "dairi-sd", custom, pref);
-    expect(cardFace(all, at("original"), 0)).toBe(original);
-    expect(cardFace(all, at("16x9"), 0)).toBe(wide);
-    expect(cardFace(all, at("4x3"), 0)).toBe(tall);
-    expect(cardFaces(all, at("4x3"))).toEqual([tall]);
-
-    // 只有一份（旧数据 / 手放的图 / 单直链）：三个档位都画它，形状不对时交给 `object-fit: cover` 裁
-    const single = character({ card: [wide], covers: [wide] });
+  it("**一条链接画所有画幅**（D167）：档位只决定前端的形状，取图与档位无关", () => {
+    const face = "https://x/a.jpg";
+    const single = character({ card: [face], covers: [face] });
+    const custom = dataset("custom", [single]);
+    // 三档都取同一条链接（裁切是 `CharacterCard` 的 `object-fit: cover` 干的）
     for (const pref of ["original", "16x9", "4x3"] as const) {
-      expect(cardFace(single, resolveCardSet([], "dairi-sd", dataset("custom", [single]), pref), 0))
-        .toBe(wide);
+      const set = resolveCardSet([], "dairi-sd", custom, pref);
+      expect(cardFace(single, set, 0), pref).toBe(face);
+      expect(cardAspectRatio(set), pref).toBeCloseTo(CARD_RATIO_VALUES[pref], 12);
     }
-    // 只写了 4:3 一份：别的档回落到主链接（解析时 `covers` / `card` 放的就是它）
-    const onlyTall = character({ card: [tall], covers: [tall], coversByRatio: { "4x3": [tall] } });
-    const backToWide = resolveCardSet([], "dairi-sd", dataset("custom", [onlyTall]), "16x9");
-    expect(cardFace(onlyTall, backToWide, 0)).toBe(tall);
-    // 音MAD 的封面集没有 coversByRatio ⇒ 不受影响
-    expect(cardFace(character({ covers: [wide] }), COVER_SET, 0)).toBe(wide);
+    // 音MAD 的封面集同理（一条链接，档位只改形状）
+    expect(cardFace(character({ covers: [face] }), COVER_SET, 0)).toBe(face);
   });
 
   it("一套可选的都没有 ⇒ **空图集**，不再回头用原始 `sets[0]` 那套内置立绘", () => {

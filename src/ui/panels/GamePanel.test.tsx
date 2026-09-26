@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { DataBundle } from "../../data/types";
 import { setLocale } from "../../i18n/localization";
+import { CARD_RATIO_VALUES } from "../../theme/cardRatio";
 import { clickTestId, loadRealBundle, renderGamePanel } from "../../test-utils";
 import { MD2_SLOT, buildTheme } from "../../theme/theme";
 import { DeckGrid } from "../game/DeckGrid";
@@ -189,16 +190,12 @@ describe("GamePanel", () => {
     expect(image?.getAttribute("src")).toBe("/cards/cover/a.png");
   });
 
-  it("模式 3：画幅跟着「卡面设置」的档位走，**每一档取自己那份链接**（D165）", async () => {
-    // 一张卡给了三份同比例的图：常规该拿 `a.png`、16:9 该拿 `.16x9`、4:3 该拿 `.4x3`
-    // （真浏览器里量的是 img 的 src —— 也就是"切档只换图、不重建数据集"这条）
+  it("模式 3：画幅跟着「卡面设置」的档位走，但**图还是同一条链接**（D167：只在显示层裁）", async () => {
     const manifest = parseCustomManifest({
       schema: 1, mode: "custom",
       cards: [{
         id: "a", name: "卡", album: "旧作", title: "曲", audio: "media/a.mp3",
-        cover: {
-          original: "cover/a.png", "16x9": "cover/a.16x9.png", "4x3": "cover/a.4x3.png",
-        },
+        cover: "cover/a.png",
       }],
     }, "/cards/manifest.json")!;
     const source = withCustomManifest(bundle, manifest);
@@ -206,34 +203,23 @@ describe("GamePanel", () => {
       useSession.setState({ musicMode: "custom", cardRatio: "" });
     });
 
-    const src = (container: HTMLElement) =>
-      container.querySelector('[data-testid^="unused-card-"] img')?.getAttribute("src");
+    const card = (container: HTMLElement) => container.querySelector<HTMLElement>(
+      '[data-testid^="unused-card-"]');
 
-    // 没选过 ⇒ 合成图集的默认档（16:9）
-    const byDefault = await renderWithTheme(<GamePanel bundle={source} />);
-    expect(src(byDefault)).toBe("/cards/cover/a.16x9.png");
-
+    // 三档都画同一份图（数据集没有重建、链接也没变），变的只是前端那个框的形状
     for (const [ratio, expected] of [
-      ["4x3", "/cards/cover/a.4x3.png"],
-      ["original", "/cards/cover/a.png"],
-      ["16x9", "/cards/cover/a.16x9.png"],
+      ["", CARD_RATIO_VALUES["16x9"]],          // 没选过 ⇒ 合成图集的默认档
+      ["4x3", CARD_RATIO_VALUES["4x3"]],
+      ["original", CARD_RATIO_VALUES.original],
+      ["16x9", CARD_RATIO_VALUES["16x9"]],
     ] as const) {
       await act(async () => { root?.unmount(); });
       await act(async () => { useSession.setState({ cardRatio: ratio }); });
       const container = await renderWithTheme(<GamePanel bundle={source} />);
-      expect(src(container), ratio).toBe(expected);
-    }
-
-    // 单链接的卡：三档都是同一份（形状由前端裁），不至于切档就没图
-    const single = withCustomManifest(bundle, parseCustomManifest({
-      schema: 1, mode: "custom",
-      cards: [{ id: "b", name: "单图", album: "旧作", title: "曲", audio: "media/b.mp3", cover: "cover/b.png" }],
-    }, "/cards/manifest.json")!);
-    for (const ratio of ["original", "16x9", "4x3"] as const) {
-      await act(async () => { root?.unmount(); });
-      await act(async () => { useSession.setState({ cardRatio: ratio }); });
-      const container = await renderWithTheme(<GamePanel bundle={single} />);
-      expect(src(container), ratio).toBe("/cards/cover/b.png");
+      expect(container.querySelector('[data-testid^="unused-card-"] img')?.getAttribute("src"))
+        .toBe("/cards/cover/a.png");
+      const box = card(container)!.getBoundingClientRect();
+      expect(box.width / box.height, String(ratio || "默认")).toBeCloseTo(expected, 2);
     }
   });
 

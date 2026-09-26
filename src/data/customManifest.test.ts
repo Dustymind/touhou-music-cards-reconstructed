@@ -134,13 +134,11 @@ const BAD_PAYLOADS: [string, unknown][] = [
   ["id 重复", payload({ cards: [card({ id: "x" }), card({ id: "x", name: "另一张" })] })],
   ["同一张卡写了两遍（派生 key 撞车）", payload({ cards: [card(), card()] })],
   ["卡片不是对象而是数组", payload({ cards: [[1, 2, 3]] })],
-  // 逐档卡面（D165）：形状只认"档位 → 非空字符串"，认不得的键 / 空值 / 空对象一律整份拒掉
-  ["卡面对象是空对象", payload({ cards: [card({ cover: {} })] })],
-  ["卡面对象里有认不得的档位", payload({ cards: [card({ cover: { "16:9": "cover/a.jpg" } })] })],
-  ["卡面对象里有旧口径的 703x1000 键", payload({ cards: [card({ cover: { "703x1000": "cover/a.jpg" } })] })],
-  ["卡面对象里有一档是空串", payload({ cards: [card({ cover: { "16x9": "  " } })] })],
-  ["卡面对象里有一档不是字符串", payload({ cards: [card({ cover: { "4x3": 7 } })] })],
+  // 卡面**只认一条链接**（D167）：对象形态（旧的逐档表）、数字、空串一律整份拒掉
+  ["卡面是逐档表（旧形状）", payload({ cards: [card({ cover: { original: "cover/a.jpg" } })] })],
+  ["卡面是空对象", payload({ cards: [card({ cover: {} })] })],
   ["卡面是数字", payload({ cards: [card({ cover: 7 })] })],
+  ["卡面是空串", payload({ cards: [card({ cover: "  " })] })],
 ];
 
 describe("parseCustomManifest：形状不对 ⇒ 整份 undefined（fail-closed）", () => {
@@ -182,56 +180,27 @@ describe("withCustomManifest：空兜底 ↔ 清单", () => {
   });
 });
 
-describe("逐档卡面链接（D165）：`cover` 给对象 ⇒ 每个档位都解析成绝对地址", () => {
-  it("三档都进数据集（`coversByRatio`，每档一张、与 `covers` 平行），`card` / `covers` 放主链接（original）", () => {
-    const manifest = parseCustomManifest(payload({
-      cards: [card({ cover: {
-        original: "cover/a.png", "16x9": "cover/a.16x9.png", "4x3": "cover/a.4x3.png",
-      } })],
-    }), MANIFEST_URL)!;
-    const character = manifest.characters[0]!;
-    expect(character.coversByRatio).toEqual({
-      original: ["https://cards.example.com/music/cover/a.png"],
-      "16x9": ["https://cards.example.com/music/cover/a.16x9.png"],
-      "4x3": ["https://cards.example.com/music/cover/a.4x3.png"],
-    });
-    expect(character.card).toEqual(["https://cards.example.com/music/cover/a.png"]);
-    expect(character.covers).toEqual(character.card);
-  });
-
-  it("只写一档 / 两档也合法：数据集里只有写了的那些键（其余档位回落到主链接）", () => {
-    const only43 = parseCustomManifest(payload({
-      cards: [card({ cover: { "4x3": "cover/a.4x3.png" } })],
-    }), MANIFEST_URL)!;
-    expect(only43.characters[0]!.coversByRatio).toEqual({
-      "4x3": ["https://cards.example.com/music/cover/a.4x3.png"],
-    });
-    expect(only43.characters[0]!.card).toEqual(["https://cards.example.com/music/cover/a.4x3.png"]);
-
-    // 没有 `original` 时主链接 = 16:9（固定顺序 original → 16x9 → 4x3，跨端同值）
-    const two = parseCustomManifest(payload({
-      cards: [card({ cover: { "4x3": "cover/t.png", "16x9": "cover/w.png" } })],
-    }), MANIFEST_URL)!;
-    expect(two.characters[0]!.card).toEqual(["https://cards.example.com/music/cover/w.png"]);
-    expect(Object.keys(two.characters[0]!.coversByRatio!)).toEqual(["16x9", "4x3"]);
-  });
-
-  it("单链接形态（旧清单 / 手放的图 / 直链）⇒ **没有** `coversByRatio`，三档共用它（前端运行时裁）", () => {
+describe("卡面：**一条链接**（D167）", () => {
+  it("`cover` 是一个非空字符串 ⇒ 解析成绝对地址，`card` / `covers` 都是它", () => {
     const manifest = parseCustomManifest(payload(), MANIFEST_URL)!;
-    expect(manifest.characters[0]!.coversByRatio).toBeUndefined();
-    expect(manifest.characters[0]!.card).toEqual(["https://cards.example.com/music/cover/01.jpg"]);
+    const character = manifest.characters[0]!;
+    expect(character.card).toEqual(["https://cards.example.com/music/cover/01.jpg"]);
+    expect(character.covers).toEqual(character.card);
+    // 绝对直链原样用
+    const absolute = parseCustomManifest(payload({
+      cards: [card({ cover: "https://img.example.com/a.jpg" })],
+    }), MANIFEST_URL)!;
+    expect(absolute.characters[0]!.covers).toEqual(["https://img.example.com/a.jpg"]);
   });
 
-  it("派生 key 只看**主链接**：同一张卡写成单链接或对象、键的顺序不同，key 都不变（存档不会错位）", () => {
-    const single = parseCustomManifest(payload({ cards: [card({ cover: "cover/01.jpg" })] }), MANIFEST_URL)!;
-    const object = parseCustomManifest(payload({
-      cards: [card({ cover: { original: "cover/01.jpg", "4x3": "cover/01.4x3.jpg" } })],
+  it("派生 key 只看那条链接：同一张卡写成同样的 `cover`，key 就一样（存档不会错位）", () => {
+    const first = parseCustomManifest(payload(), MANIFEST_URL)!;
+    const second = parseCustomManifest(payload(), MANIFEST_URL)!;
+    expect(second.characters[0]!.key).toBe(first.characters[0]!.key);
+    const other = parseCustomManifest(payload({
+      cards: [card({ cover: "cover/02.jpg" })],
     }), MANIFEST_URL)!;
-    const reordered = parseCustomManifest(payload({
-      cards: [card({ cover: { "4x3": "cover/01.4x3.jpg", original: "cover/01.jpg" } })],
-    }), MANIFEST_URL)!;
-    expect(object.characters[0]!.key).toBe(single.characters[0]!.key);
-    expect(reordered.characters[0]!.key).toBe(single.characters[0]!.key);
+    expect(other.characters[0]!.key).not.toBe(first.characters[0]!.key);
   });
 });
 
@@ -270,20 +239,14 @@ describe("customHash：覆盖什么、不覆盖什么（契约 C6）", () => {
       .not.toBe(base);
   });
 
-  it("逐档链接都算进哈希（换一张图就是换数据），但**「用户现在看哪一档」不是数据**（D165）", () => {
+  it("卡面链接算进哈希（换一张图就是换数据），但**「用户现在看哪一档」不是数据**（D167）", () => {
     const base = customHash(albums, [character()]);
-    // 逐档链接进哈希：换了某一档那张图 ⇒ 数据确实不同（两端该拒）
     expect(customHash(albums, [character({
-      coversByRatio: { "16x9": ["https://x/a.jpg"], "4x3": ["https://x/a.4x3.jpg"] },
+      card: ["https://x/b.jpg"], covers: ["https://x/b.jpg"],
     })])).not.toBe(base);
-    // 而"现在选中哪一档"根本不进哈希的输入 —— 数据集里所有档位都在，
-    // 选哪一档是**显示偏好**（`resolveCardSet` 的事，不碰数据集）⇒ 两端各选各的也能握手 ✓
-    const all = character({
-      coversByRatio: {
-        original: ["https://x/a.jpg"], "16x9": ["https://x/w.jpg"], "4x3": ["https://x/a.4x3.jpg"],
-      },
-    });
-    expect(customHash(albums, [all])).toBe(customHash(albums, [{ ...all }]));
+    // 画幅是**显示偏好**（`resolveCardSet` 的事，不碰数据集）⇒ 同一份数据、两端各选各的也能握手 ✓
+    const same = character();
+    expect(customHash(albums, [same])).toBe(customHash(albums, [{ ...same }]));
   });
 
   it("与 `packHash` **不是同一套投影**：卡名/顺序在音MAD 那边不算数，在这边必须算", () => {

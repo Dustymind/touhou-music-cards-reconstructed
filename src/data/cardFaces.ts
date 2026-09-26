@@ -105,9 +105,8 @@ export function cardCount(character: CharacterRecord, cardSet?: CardSetRecord): 
 
 /** 第 `index` 张卡的图（越界/负数一律回到第 0 张，**绝不返回 undefined**）。
  *
- *  **逐档链接**（D165）：源按档位各给了一份时（`coversByRatio`），取当前生效档位那一份；
- *  只给了一份（旧数据 / 手放的图 / 单直链）就退回主链接 —— 那一份三个档位都会画，
- *  画幅不对时由 `CharacterCard` 的 `object-fit: cover` 居中裁掉多余的部分。 */
+ *  **一条链接画所有画幅**（D167）：源只给这一条，画幅是前端的自由 ——
+ *  由 `CharacterCard` 的 `object-fit: cover` 按当前档位**运行时裁**（比例不对也不会拉伸）。 */
 export function cardFace(
   character: CharacterRecord,
   cardSet: CardSetRecord | undefined,
@@ -116,11 +115,7 @@ export function cardFace(
   const covers = character.covers ?? [];
   const card = character.card;
   const safe = Number.isFinite(index) && index > 0 ? Math.floor(index) : 0;
-  if (cardSet?.sourceOnly) {
-    // 逐档链接（D165）：这一档有自己的那份就用它，否则回落到主链接（前端按 object-fit 裁）
-    const byRatio = cardSet.ratio === undefined ? undefined : character.coversByRatio?.[cardSet.ratio];
-    return byRatio?.[safe] ?? covers[safe] ?? card[safe % card.length] ?? "";
-  }
+  if (cardSet?.sourceOnly) return covers[safe] ?? card[safe % card.length] ?? "";
   return card[safe % card.length] ?? covers[safe] ?? "";
 }
 

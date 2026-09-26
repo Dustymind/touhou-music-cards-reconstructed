@@ -92,7 +92,7 @@ test("配了源：卡与曲目立刻出现，画的是源给的卡面", async ({
   // 播放页：当前这张卡画的是**源给的那张图**（相对地址按清单目录解析成绝对地址）
   await page.getByRole("tab", { name: "Player", exact: true }).click();
   await expect(page.getByTestId("current-card-image").locator("img"))
-    .toHaveAttribute("src", /\/e2e\/fixtures\/custom\/cover\/[abc](\.(16x9|4x3))?\.png/);
+    .toHaveAttribute("src", /\/e2e\/fixtures\/custom\/cover\/[abc]\.png/);
   await expect.poll(() => rotationCount(page)).toBe(cards.length);
 });
 
@@ -221,7 +221,7 @@ test("窄屏（320 / 412dp）：模式 3 的设置页不横向溢出", async ({ 
   }
 });
 
-test("卡面形状（D163/D165）：模式 3 默认 16:9、可切常规 / 4:3，原曲仍是 703:1000 竖版", async ({ page }) => {
+test("卡面形状（D163/D167）：模式 3 默认 16:9、可切常规 / 4:3，原曲仍是 703:1000 竖版", async ({ page }) => {
   /** 量一个元素的宽高比（真浏览器、真布局）。 */
   const ratioOf = async (testId: string): Promise<number> => {
     const box = await page.getByTestId(testId).boundingBox();
@@ -250,7 +250,7 @@ test("卡面形状（D163/D165）：模式 3 默认 16:9、可切常规 / 4:3，
   expect(firstCard!.width / firstCard!.height).toBeCloseTo(16 / 9, 2);
 });
 
-test("画幅开关（D165）：三档各自换形状**与图**，刷新后还在；另两个模式的内置图集没有这个开关", async ({ page }) => {
+test("画幅开关（D167）：三档只换**形状**（图是同一条链接，前端裁）；另两个模式的内置图集没有这个开关", async ({ page }) => {
   const ratioOf = async (testId: string): Promise<number> => {
     const box = await page.getByTestId(testId).boundingBox();
     if (!box) throw new Error(`量不到 ${testId}`);
@@ -262,18 +262,18 @@ test("画幅开关（D165）：三档各自换形状**与图**，刷新后还在
   await selectCustomMode(page);
   await page.getByRole("tab", { name: "Player", exact: true }).click();
 
-  // 默认 16:9：用的是清单里 `cover.16x9` 那一份（fixture 里爱丽丝那张卡给了三份）
-  await expect(currentSrc()).toHaveAttribute("src", /cover\/a\.16x9\.png$/);
+  // 默认 16:9（合成图集的默认档）：**一条链接**，形状是横版
+  await expect(currentSrc()).toHaveAttribute("src", /cover\/a\.png$/);
   await expect.poll(() => ratioOf("current-card-image")).toBeCloseTo(16 / 9, 2);
 
-  // 切 4:3：形状变、图也换成 `cover.4x3` 那一份（数据集没有重建）
+  // 切 4:3：**链接不变**，只是前端的框变窄
   await openCustomSection(page, "cardset");
   await page.getByTestId("card-ratio-4x3").click();
   await page.getByRole("tab", { name: "Player", exact: true }).click();
-  await expect(currentSrc()).toHaveAttribute("src", /cover\/a\.4x3\.png$/);
+  await expect(currentSrc()).toHaveAttribute("src", /cover\/a\.png$/);
   await expect.poll(() => ratioOf("current-card-image")).toBeCloseTo(4 / 3, 2);
 
-  // 切「常规」：回到竖版，图换成 `cover.original`（三档都有自己那一份链接）
+  // 切「常规」：回到竖版，链接还是同一条
   await openCustomSection(page, "cardset");
   await page.getByTestId("card-ratio-original").click();
   await page.getByRole("tab", { name: "Player", exact: true }).click();
@@ -286,13 +286,6 @@ test("画幅开关（D165）：三档各自换形状**与图**，刷新后还在
   await expect.poll(() => ratioOf("current-card-image")).toBeCloseTo(703 / 1000, 2);
   await openCustomSection(page, "cardset");
   await expect(page.getByTestId("card-ratio-original")).toHaveAttribute("aria-pressed", "true");
-
-  // 另一张卡（清单只给了**单链接**）：三档共用那一份，形状由前端裁（object-fit: cover）
-  await page.getByRole("tab", { name: "List", exact: true }).click();
-  await page.getByTestId("list-row-e2e-marisa").click();
-  await page.getByRole("tab", { name: "Player", exact: true }).click();
-  await expect(currentSrc()).toHaveAttribute("src", /cover\/b\.png$/);
-  await expect.poll(() => ratioOf("current-card-image")).toBeCloseTo(703 / 1000, 2);
 
   // 另两个模式：内置图集**没有**画幅开关（三档一个都不出现），图集单选照旧在
   await page.getByRole("tab", { name: "Config", exact: true }).click();

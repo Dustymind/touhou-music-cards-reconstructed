@@ -28,14 +28,6 @@ export interface CharacterRecord {
    *  `cardCount`（卡池）/ `cardFace`（取图）/ `maxCardCount`（互斥表用的最大口径）。
    *  身份字段跨模式一致（契约 §5 S1），这个字段是**卡面那一类**的例外。 */
   covers?: string[];
-  /** **逐档卡面地址**（清单 / 曲包的 `cover` 给了对象形态时才有，D165）：`coversByRatio[档][i]`
-   *  与 `covers[i]` / `music[i]` **一一对应**（每档一张，形状与 `covers` 平行）。
-   *
-   *  值是**解析后的绝对 URL**；`card` / `covers` 里放的是**主链接**（`original` → `16x9` → `4x3`
-   *  取第一个有的）。`cardFace()` 按当前生效图集的 `ratio` 取它 ⇒ 切档只换图、不重建数据集，
-   *  数据指纹也因此与"用户选了哪一档"无关（两端档位不同也能握手）。
-   *  只给单链接的卡**不带这个字段**（那份图三个档位共用，前端按 `object-fit: cover` 运行时裁）。 */
-  coversByRatio?: Partial<Record<CardRatio, string[]>>;
   /** 每张卡**自己的**音频地址（模式 3 才有，F1）：与 `music` **一一对应**（`audio[i]` ↔ `music[i]`），
    *  与 `covers` 同一套设计。**校验阶段就解析成绝对 URL**（含 D144 的 `?v=`），播放时直接用，
    *  不再走 `(专辑, 曲名)` 查表 ⇒ 这个模式允许同名曲目、也允许两张卡共用一首。
