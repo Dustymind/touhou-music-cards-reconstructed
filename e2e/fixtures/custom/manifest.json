@@ -1,0 +1,36 @@
+{
+ "schema": 1,
+ "mode": "custom",
+ "cards": [
+  {
+   "id": "e2e-alice",
+   "name": "E2E 爱丽丝",
+   "face": "faces/a.png",
+   "audio": "media/a.mp3",
+   "album": "E2E 旧作",
+   "author": "E2E 甲",
+   "title": "E2E 第一首",
+   "source": "https://example.com/e2e/1"
+  },
+  {
+   "id": "e2e-marisa",
+   "name": "E2E 魔理沙",
+   "face": "faces/b.png",
+   "audio": "media/b.mp3",
+   "album": "E2E 旧作",
+   "author": "E2E 乙",
+   "title": "E2E 第二首"
+  },
+  {
+   "id": "e2e-reimu",
+   "name": "E2E 灵梦",
+   "face": "faces/c.png",
+   "audio": "media/c.mp3",
+   "album": "E2E 新作",
+   "title": "E2E 第三首",
+   "revision": "e2e-rev-1"
+  }
+ ],
+ "revision": "e2e-table-1",
+ "loudness": "loudness/custom.json"
+}
