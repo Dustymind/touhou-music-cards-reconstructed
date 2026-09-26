@@ -2,7 +2,7 @@
 import {
   Chip, FormControl, FormControlLabel, MenuItem, Select, Stack, Switch, TextField, Typography,
 } from "@mui/material";
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 
 import type { DataBundle, MusicEntry } from "../../../data/types";
 import { displayTitle, trackId } from "../../../data/types";
@@ -13,14 +13,13 @@ import { useCurrentDataset } from "../../../data/useDataset";
 import { usePreset } from "../../../store/preset";
 import { useSingleTrack } from "../../../store/single";
 import { singleModeRows } from "../../../music/presetView";
+import { useProgressiveRows } from "../../useProgressiveRows";
 
 function entryLabel(entry: MusicEntry): string {
   return `${displayTitle(entry[1])} (${entry[0]})`;
 }
 
-/** 首屏先渲染多少行；其余分片补齐。
- *  121 行 × 下拉框一次性渲染是 ~900ms 的长任务（实测）；单行约 7ms，所以每片给 6 行
- *  （≈40ms，压在主线程 50ms 阈值以下）。 */
+/** 首屏先渲染多少行；其余分片补齐（每片 12 行 ≈ 100ms 里的一小段 —— 单行 Select ≈ 7ms） */
 const FIRST_CHUNK = 12;
 const CHUNK = 12;
 
@@ -35,34 +34,8 @@ function SingleTrackSectionInner({ bundle }: { bundle: DataBundle }) {
     [preset, dataset.characters, single.pins, single.disabledCharacters, query],
   );
 
-  // 渐进渲染：先出前 16 行，剩下的在空闲回调里分批补齐（`startTransition` 让 React 可被打断）
-  const [rendered, setRendered] = useState(FIRST_CHUNK);
-  const rowSignature = `${rows.length}|${query}`;
-  useEffect(() => {
-    setRendered(FIRST_CHUNK);
-    let cancelled = false;
-    const pump = () => {
-      if (cancelled) return;
-      // 不要包 startTransition：transition 更新会被 React 合并成**一次**大渲染，
-      // 分片就白分了（实测长任务仍是 ~1000ms）。这里要的就是"每个宏任务渲染一片"。
-      setRendered((current) => (current >= rows.length ? current : Math.min(rows.length, current + CHUNK)));
-      schedule();
-    };
-    // 必须等到**下一次绘制机会**再排下一片：单纯 setTimeout(0) 会连着跑，
-    // 浏览器根本没机会渲染，节点数在一个任务里从 625 跳到 2858（实测），长任务照样 ~900ms
-    const schedule = () => {
-      if (cancelled) return;
-      requestAnimationFrame(() => {
-        if (cancelled) return;
-        setTimeout(pump, 0);
-      });
-    };
-    if (rows.length > FIRST_CHUNK) schedule();
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rowSignature]);
+  // 渐进渲染：121 行下拉框一次性渲染是 ~900ms 的长任务（实测），所以分片补齐（`useProgressiveRows`）
+  const rendered = useProgressiveRows(rows.length, `${rows.length}|${query}`, FIRST_CHUNK, CHUNK);
 
   return (
     <SectionPanel id="single" title={t(Localization.ConfigTabMusicSelectionSingle)}>

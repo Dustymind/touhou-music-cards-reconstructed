@@ -1,20 +1,18 @@
 /** 音乐选择预设：秘封曲多层勾选 + 三个三态开关 + 「先 CD 再官作」的专辑复选。 */
 import { memo } from "react";
 import {
-  Button, Checkbox, Chip, Divider, FormControlLabel, Stack, ToggleButton, ToggleButtonGroup, Typography,
+  Button, Checkbox, Chip, Divider, FormControlLabel, Stack, Typography,
 } from "@mui/material";
 
 import type { AlbumRecord, DataBundle } from "../../../data/types";
 import { Localization, t } from "../../../i18n/localization";
 import { SectionPanel } from "./SectionCard";
 import { LazyRow } from "../../components/LazyRow";
-import { CATEGORY_KEYS, type Tri } from "../../../music/selection";
+import { CATEGORY_KEYS } from "../../../music/selection";
 import { groupAlbums, presetStats } from "../../../music/presetView";
 import { useCurrentDataset } from "../../../data/useDataset";
 import { hifuuParentState, usePreset } from "../../../store/preset";
-import { NoFontFamily } from "../../../theme/theme";
-
-const TRI_ORDER: Tri[] = ["unset", "on", "off"];
+import { TriToggle } from "./TriToggle";
 
 /** MD2 复选框行：**统一行高 40dp**、控件与文字垂直居中。
  *  之前为了"多行标签时与首行对齐"用了 `mt: -0.75/1.25` 微调，导致复选框盒子（38dp）比单行行高（32dp）还高、
@@ -27,12 +25,6 @@ const PRESET_ROW_SX = {
   "& .MuiCheckbox-root": { p: 1 },
   "& .MuiFormControlLabel-label": { py: 0 },
 } as const;
-
-function triLabel(value: Tri): string {
-  if (value === "on") return t(Localization.ConfigTabTriOn);
-  if (value === "off") return t(Localization.ConfigTabTriOff);
-  return t(Localization.ConfigTabTriUnset);
-}
 
 /** 「全选 / 全不选」按钮对：秘封曲 / CD / 官作三处逐字重复，只有"对谁生效"与有没有分组标题不同。
  *
@@ -159,19 +151,11 @@ function PresetSectionInner({ bundle }: { bundle: DataBundle }) {
         {CATEGORY_KEYS.map((key) => (
           <Stack key={key} direction="row" spacing={1} alignItems="center">
             <Typography variant="body2" sx={{ width: "7em" }}>{key}</Typography>
-            <ToggleButtonGroup
-              size="small"
-              exclusive
+            <TriToggle
+              testId={`tri-${key}`}
               value={preset.category[key]}
-              onChange={(_event, value: Tri | null) => value && preset.setCategory(key, value)}
-            >
-              {TRI_ORDER.map((value) => (
-                <ToggleButton key={value} value={value} sx={{ px: 2, fontFamily: NoFontFamily }}
-                  data-testid={`tri-${key}-${value}`}>
-                  {triLabel(value)}
-                </ToggleButton>
-              ))}
-            </ToggleButtonGroup>
+              onChange={(value) => preset.setCategory(key, value)}
+            />
           </Stack>
         ))}
       </Stack>
