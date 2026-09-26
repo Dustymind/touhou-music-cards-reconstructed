@@ -15,4 +15,11 @@ describe("音乐模式持久化", () => {
     const raw = Object.keys(localStorage).map((key) => localStorage.getItem(key) ?? "").join("|");
     expect(raw).toContain("otomads");
   });
+
+  it("第三个模式（custom）也能选中并落盘：`pickString(..., MUSIC_MODES)` 自动接受新值", () => {
+    useSession.getState().setMusicMode("custom");
+    expect(useSession.getState().musicMode).toBe("custom");
+    const raw = Object.keys(localStorage).map((key) => localStorage.getItem(key) ?? "").join("|");
+    expect(raw).toContain("custom");
+  });
 });

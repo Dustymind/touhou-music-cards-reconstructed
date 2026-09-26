@@ -9,13 +9,20 @@ import { memo, useMemo, useState } from "react";
 
 import { SectionPanel } from "./SectionCard";
 import type { DataBundle } from "../../../data/types";
-import { Localization, localized, t } from "../../../i18n/localization";
+import { Localization, localized, t, type Localized } from "../../../i18n/localization";
 import { useNet } from "../../../net/useNet";
 import { useSession } from "../../../store/session";
 import { effectiveOrder, useSourceOverrides } from "../../../store/sources";
 import { useCurrentDataset } from "../../../data/useDataset";
-import { MUSIC_MODES } from "../../../music/mode";
+import { MUSIC_MODES, type MusicMode } from "../../../music/mode";
 import type { TableMap } from "../../../music/sources";
+
+/** 模式的显示名（`Record` 而不是三元：漏一个模式当场不成立，D156）。 */
+const MODE_LABELS: Record<MusicMode, Localized> = {
+  originals: Localization.MusicModeOriginals,
+  otomads: Localization.MusicModeOtomads,
+  custom: Localization.MusicModeCustom,
+};
 
 function SourceSectionInner({ bundle, tables }: { bundle: DataBundle; tables: TableMap }) {
   const {
@@ -74,7 +81,7 @@ function SourceSectionInner({ bundle, tables }: { bundle: DataBundle; tables: Ta
               key={mode}
               value={mode}
               control={<Radio size="small" disabled={ownedByHost} data-testid={`music-mode-${mode}`} />}
-              label={t(mode === "originals" ? Localization.MusicModeOriginals : Localization.MusicModeOtomads)}
+              label={t(MODE_LABELS[mode])}
             />
           ))}
         </RadioGroup>

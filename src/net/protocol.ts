@@ -73,9 +73,9 @@ export type HostMessage =
   | { kind: "reject"; reason: "protocol" | "data" | "full"; detail: string }
   | { kind: "goodbye"; reason: string };
 
-/** 音乐模式（原曲 / 音MAD）的协议表示：与 `src/music/mode.ts` 的 `MusicMode` 同形，
+/** 音乐模式（原曲 / 音MAD / 自定义）的协议表示：与 `src/music/mode.ts` 的 `MusicMode` 同形，
  *  但协议层不 import UI 模块，避免耦合。 */
-type MusicModeWire = "originals" | "otomads";
+type MusicModeWire = "originals" | "otomads" | "custom";
 
 export type Message = ClientIntent | HostMessage;
 

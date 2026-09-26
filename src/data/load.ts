@@ -13,7 +13,7 @@ import {
   type ModeDataset,
   type SourceRecord,
 } from "./types";
-import { type MusicMode } from "../music/mode";
+import { MUSIC_MODES, type MusicMode } from "../music/mode";
 
 export class DataLoadError extends Error {
   constructor(message: string, readonly cause?: unknown) {
@@ -124,7 +124,7 @@ function validateCardSets(raw: unknown): CardSetRecord[] {
     } else {
       assert(typeof set.dir === "string" && set.dir.length > 0, `图集 ${set.id} 缺目录`);
     }
-    assert(set.mode === undefined || set.mode === "originals" || set.mode === "otomads",
+    assert(set.mode === undefined || MUSIC_MODES.includes(set.mode),
       `图集 ${set.id} 的 mode 非法：${String(set.mode)}`);
   }
   assert(typeof payload.default === "string" && ids.has(payload.default),
@@ -156,20 +156,22 @@ async function loadDataset(base: string, expected: MusicMode): Promise<ModeDatas
   return { mode: expected, index, characters, albums, sources, characterByKey, albumByName };
 }
 
-/** 载入全部运行时数据：**两个模式的数据集一起取**（契约 §4 策略 A：没有"切模式取数据失败"这条路）。
+/** 载入全部运行时数据：**三个模式的数据集一起取**（契约 §4 策略 A：没有"切模式取数据失败"这条路）。
  *
- * `base` 默认相对当前页面（部署到子目录也可用）；音MAD 数据集在 `<base>/otomads/`。
+ * `base` 默认相对当前页面（部署到子目录也可用）；音MAD 在 `<base>/otomads/`，自定义在 `<base>/custom/`
+ * （那份**恒为空**：数据要等使用者填了源链接、由 `customManifest.ts` 在运行时重建）。
  */
 export async function loadDataBundle(base = "./data"): Promise<DataBundle> {
   const url = (name: string) => `${base.replace(/\/$/, "")}/${name}`;
-  // 两个模式都要有：各份都由 `loadDataset` 自己取 `index.json`，缺一份就在那里抛
+  // 每个模式都要有：各份都由 `loadDataset` 自己取 `index.json`，缺一份就在那里抛
   // `DataLoadError`（`xxx/index.json → HTTP 404`）—— 所以这里不必再补一遍"存在性"断言
-  const [originals, otomads, rawCardSets] = await Promise.all([
+  const [originals, otomads, custom, rawCardSets] = await Promise.all([
     loadDataset(url(""), "originals"),
     loadDataset(url("otomads"), "otomads"),
+    loadDataset(url("custom"), "custom"),
     fetchJson(url("cardsets.json")),
   ]);
   const cardSets = validateCardSets(rawCardSets);
-  return { shared: { cardSets }, datasets: { originals, otomads } };
+  return { shared: { cardSets }, datasets: { originals, otomads, custom } };
 }
 

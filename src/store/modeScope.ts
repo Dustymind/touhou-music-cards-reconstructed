@@ -1,6 +1,6 @@
 /** 按音乐模式分键的 store 共用的一点点装配（B）。
  *
- * 原曲 / 音MAD 各自一把持久化键（`tmc.v1.<name>.originals` / `tmc.v1.<name>.otomads`），
+ * 三个模式各自一把持久化键（`tmc.v1.<name>.originals` / `.otomads` / `.custom`），
  * 组件用 `useXxx()` 拿"当前模式那把"，非组件代码用 `xxxStoreFor(mode)`；
  * 模式本身只有一份（`useSession.musicMode`，就是那个切换开关）。
  *
@@ -56,6 +56,7 @@ export function makeModeStores<S>(makeSlice: (mode: MusicMode) => ModeStore<S>):
   const slices: Record<MusicMode, ModeStore<S>> = {
     originals: makeSlice("originals"),
     otomads: makeSlice("otomads"),
+    custom: makeSlice("custom"),
   };
 
   const useStore = ((selector?: (state: S) => unknown) => {

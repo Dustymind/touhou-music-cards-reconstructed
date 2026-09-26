@@ -202,6 +202,8 @@ export function withPackSnapshot(
 ): DataBundle {
   const base = baked.datasets.otomads;
   const originals = baked.datasets.originals;
+  // 自定义那份**原样带过去**：它不归曲目表快照管（它的数据来自自己的清单，R2 另有一层重建）
+  const custom = baked.datasets.custom;
   const albums = snapshot ? snapshot.albums : base.albums;
   const characters = snapshot
     ? snapshotCharacters(snapshot, originals, base, onProblem)
@@ -216,7 +218,7 @@ export function withPackSnapshot(
     characterByKey: new Map(characters.map((character) => [character.key, character])),
     albumByName: new Map(albums.map((album) => [album.name, album])),
   };
-  return { shared: baked.shared, datasets: { originals, otomads } };
+  return { shared: baked.shared, datasets: { originals, otomads, custom } };
 }
 
 /** 快照的角色条目 → 完整的角色记录（身份来自原曲数据集，缺了才用快照自带的）。

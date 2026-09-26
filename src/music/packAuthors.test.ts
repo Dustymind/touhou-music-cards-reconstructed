@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { AlbumRecord, CharacterRecord, DataBundle, ModeDataset, MusicEntry, SourceRecord } from "../data/types";
+import type { MusicMode } from "./mode";
 import { collectPackAuthors, packAuthorsFor } from "./packAuthors";
 import { sortKeyOf } from "./authorOrder";
 import { loadRealBundle } from "../test-utils";
@@ -20,7 +21,7 @@ function character(key: string, authors: (string | undefined)[]): CharacterRecor
   };
 }
 
-function dataset(mode: "originals" | "otomads", characters: CharacterRecord[], sources: SourceRecord[]): ModeDataset {
+function dataset(mode: MusicMode, characters: CharacterRecord[], sources: SourceRecord[]): ModeDataset {
   return {
     mode,
     index: {
@@ -39,13 +40,14 @@ const LOCAL_SOURCE: SourceRecord = {
   description: { en: "local", zh: "本地" },
 };
 
-/** 只造要用到的两份数据集：原曲那份没有 author 字段，音MAD 那份才有。 */
+/** 只造要用到的三份数据集：原曲那份没有 author 字段，音MAD 那份才有；自定义那份恒为空。 */
 function bundle(otomadsCharacters: CharacterRecord[], originalsCharacters: CharacterRecord[] = []): DataBundle {
   return {
     shared: { cardSets: [] },
     datasets: {
       originals: dataset("originals", originalsCharacters, []),
       otomads: dataset("otomads", otomadsCharacters, [LOCAL_SOURCE]),
+      custom: dataset("custom", [], []),
     },
   };
 }

@@ -1,7 +1,7 @@
-/** 音乐模式（原曲 / 音MAD）：C 之后"模式"= **用哪份数据集**，不再按 `album.pack` 逐条过滤。
+/** 音乐模式（原曲 / 音MAD / 自定义）：C 之后"模式"= **用哪份数据集**，不再按 `album.pack` 逐条过滤。
  *
- * 数据来自真实生成物（`public/data/index.json` 与 `public/data/otomads/index.json`），
- * 所以这里同时验证"两份数据集真的分开了、且并集与分离前一致"。
+ * 数据来自真实生成物（`public/data/{,otomads/,custom/}index.json`），
+ * 所以这里同时验证"三份数据集真的分开了、且前两份的并集与分离前一致"。
  */
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -18,17 +18,30 @@ beforeAll(async () => {
   bundle = await loadRealBundle();
 });
 
-describe("音乐模式（原曲 / 音MAD）", () => {
-  it("默认模式是原曲，两个模式都有数据集", () => {
+describe("音乐模式（原曲 / 音MAD / 自定义）", () => {
+  it("默认模式是原曲，三个模式都有数据集", () => {
     expect(DEFAULT_MUSIC_MODE).toBe("originals");
-    expect(MUSIC_MODES).toEqual(["originals", "otomads"]);
+    expect(MUSIC_MODES).toEqual(["originals", "otomads", "custom"]);
     for (const mode of MUSIC_MODES) {
       expect(datasetFor(bundle, mode).index.mode).toBe(mode);
       expect(datasetFor(bundle, mode).index.contentHash.length).toBeGreaterThan(8);
     }
-    // 两个哈希必须不同（否则"一模式一哈希"没有意义）
-    expect(datasetFor(bundle, "originals").index.contentHash)
-      .not.toBe(datasetFor(bundle, "otomads").index.contentHash);
+    // 哈希两两不同（否则"一模式一哈希"没有意义）
+    const hashes = MUSIC_MODES.map((mode) => datasetFor(bundle, mode).index.contentHash);
+    expect(new Set(hashes).size).toBe(MUSIC_MODES.length);
+  });
+
+  it("自定义那份是**空兜底**：0 角色 0 专辑，只有一条地址为空的源（契约 custom-mode-v1 C1/C7）", () => {
+    const custom = datasetFor(bundle, "custom");
+    expect(custom.characters).toEqual([]);
+    expect(custom.albums).toEqual([]);
+    expect(custom.index.counts).toMatchObject({ characters: 0, albums: 0, trackEntries: 0 });
+    // 一条 `kind = "custom"` 的源，默认启用、**地址为空**（"还没填"是这个模式的正常状态）
+    expect(custom.sources.map((source) => source.kind)).toEqual(["custom"]);
+    expect(custom.sources[0]!.tableUrl).toBe("");
+    expect(custom.sources[0]!.enabled).toBe(true);
+    // 空源 ⇒ 界面要提示"必须填写自定义源链接"（文案键在 i18n，这里只钉数据侧）
+    expect(datasetFor(bundle, "originals").characters.length).toBeGreaterThan(0);
   });
 
   it("原曲数据集：只含原曲曲目，且与 index 的自述一致", () => {

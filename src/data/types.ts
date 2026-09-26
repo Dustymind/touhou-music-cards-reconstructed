@@ -49,7 +49,8 @@ export interface SourceRecord {
   id: string;
   label: { en: string; zh: string };
   tableUrl: string;
-  kind: "remote" | "local";
+  /** `remote` 远程镜像 / `local` 可被「本地曲库地址」覆盖的源 / `custom` 使用者自己填的源（模式 3） */
+  kind: "remote" | "local" | "custom";
   order: number;
   enabled: boolean;
   proxyable: boolean;
@@ -120,6 +121,7 @@ export function displayTitle(title: string): string {
 
 export interface DataBundle {
   shared: SharedData;
-  /** 按模式索引的数据集：`originals` 与 `otomads` 各一份（启动时都取，契约 §4 策略 A） */
+  /** 按模式索引的数据集：**三个模式各一份**（启动时都取，契约 §4 策略 A）。
+   *  `custom` 那份恒为空兜底，运行时由源清单整体重建（`customManifest.ts`）。 */
   datasets: Record<MusicMode, ModeDataset>;
 }
