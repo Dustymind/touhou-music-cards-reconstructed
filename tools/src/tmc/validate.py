@@ -152,8 +152,9 @@ def check_card_sets(p: Problems) -> int:
                 p.error(f"图集 {entry['id']} 标了 source_only 却还写了 origins")
             if entry.get("local_only"):
                 p.error(f"图集 {entry['id']} 同时标了 source_only 与 local_only")
-            if entry.get("mode") not in ("originals", "otomads"):
-                p.error(f"图集 {entry['id']} 是 source_only，必须写 mode（originals / otomads）")
+            if entry.get("mode") not in build_mod.MODES:
+                p.error(f"图集 {entry['id']} 是 source_only，必须写 mode"
+                        f"（{' / '.join(build_mod.MODES)}）")
         elif not entry.get("dir"):
             p.error(f"图集 {entry['id']} 缺 dir")
         if entry.get("local_only"):
@@ -162,7 +163,7 @@ def check_card_sets(p: Problems) -> int:
                 p.error(f"图集 {entry['id']} 标了 local_only 却还写了 origins")
         elif not entry.get("source_only") and not origins:
             p.error(f"图集 {entry['id']} 没有 origin（本地图集请显式写 local_only = true）")
-        if entry.get("mode") is not None and entry["mode"] not in ("originals", "otomads"):
+        if entry.get("mode") is not None and entry["mode"] not in build_mod.MODES:
             p.error(f"图集 {entry['id']} 的 mode 非法：{entry['mode']!r}")
     default = data.get("default")
     if default not in ids:
@@ -188,7 +189,7 @@ def check_source_table_urls(p: Problems) -> int:
         payload = json.loads(path.read_text(encoding="utf-8"))
         for source in payload.get("sources", []):
             checked += 1
-            problem = build_mod.table_url_problem(source.get("tableUrl"))
+            problem = build_mod.source_table_url_problem(source.get("kind"), source.get("tableUrl"))
             if problem is not None:
                 p.error(f"[{mode}] 音源 {source.get('id')} 的 tableUrl 不合法"
                         f"（{source.get('tableUrl')}）：{problem}")
@@ -202,9 +203,11 @@ def check_source_registry(p: Problems) -> dict:
     1. 每个模式**至少有一个** `enabled = true` 的源（否则那个模式一个地址都解析不出来）；
     2. `otomads` 必须含**恰好一个** `kind = "local"` 的源，且默认启用（音MAD 的地址只能来自本地 manifest）；
     3. `originals` **不得**含 `kind = "local"`（本地曲库只服务音MAD）；
-    4. 两份注册表的 `id` 不得冲突；
-    5. `table_url` 只能是相对路径或 http(s) 绝对 URL（D131）——
-       根绝对路径（前导 `/`）在子目录部署下必 404，那个模式就一首歌都放不出来。
+    4. `custom`（模式 3）必须含**恰好一个** `kind = "custom"` 的源，且默认启用；别的模式不许有它；
+    5. 三份注册表的 `id` 不得冲突；
+    6. `table_url` 只能是相对路径或 http(s) 绝对 URL（D131）——
+       根绝对路径（前导 `/`）在子目录部署下必 404，那个模式就一首歌都放不出来；
+       `kind = "custom"` 的空串是**合法**的（地址由使用者填，见 `build.source_table_url_problem`）。
     """
     by_mode: dict[str, list[dict]] = {}
     for mode in build_mod.MODES:
@@ -228,8 +231,8 @@ def check_source_registry(p: Problems) -> dict:
             if entry["order"] in orders:
                 p.error(f"[{mode}] 音源 order 重复：{entry['order']}")
             orders.add(entry["order"])
-            # 地址形态（D131）：根绝对路径在子目录部署下必 404
-            problem = build_mod.table_url_problem(entry["table_url"])
+            # 地址形态（D131）：根绝对路径在子目录部署下必 404。模式 3 的空串是合法形态
+            problem = build_mod.source_table_url_problem(entry["kind"], entry["table_url"])
             if problem is not None:
                 p.error(f"[{mode}] 音源 {entry['id']} 的 table_url 不合法"
                         f"（{entry['table_url']}）：{problem}")
@@ -237,7 +240,7 @@ def check_source_registry(p: Problems) -> dict:
                 rel = entry["table_url"].lstrip("/").replace("data/sources/", "")
                 if not (repo.DATA / "sources" / rel).exists():
                     p.error(f"[{mode}] 音源 {entry['id']} 的表文件不存在：{entry['table_url']}")
-            elif entry["kind"] != "local":
+            elif entry["kind"] not in ("local", "custom"):
                 p.error(f"[{mode}] 音源 {entry['id']} 的 kind 非法：{entry['kind']}")
         if not any(entry["enabled"] for entry in entries):
             p.error(f"[{mode}] 一个默认启用的音源都没有（该模式解析不出任何地址）")
@@ -248,7 +251,15 @@ def check_source_registry(p: Problems) -> dict:
             elif not locals_[0]["enabled"]:
                 p.error(f"[otomads] 本地曲库源必须默认启用（{locals_[0]['id']}）")
         elif locals_:
-            p.error(f"[originals] 不该有 kind=local 的源：{[e['id'] for e in locals_]}")
+            p.error(f"[{mode}] 不该有 kind=local 的源：{[e['id'] for e in locals_]}")
+        custom_ = [entry for entry in entries if entry["kind"] == "custom"]
+        if mode == "custom":
+            if len(custom_) != 1:
+                p.error(f"[custom] 必须恰好一个 kind=custom 的源，实际 {len(custom_)} 个")
+            elif not custom_[0]["enabled"]:
+                p.error(f"[custom] 自定义源必须默认启用（{custom_[0]['id']}）")
+        elif custom_:
+            p.error(f"[{mode}] 不该有 kind=custom 的源：{[e['id'] for e in custom_]}")
 
     overlap = {entry["id"] for entry in by_mode.get("originals", [])} & \
         {entry["id"] for entry in by_mode.get("otomads", [])}
@@ -544,6 +555,8 @@ def check_datasets(chars: list[dict], pack_tracks: list[dict], pack_albums: list
             "characters": len(entries), "entries": count,
             "distinctTracks": len({(a, t) for c in entries for a, t, *_r in c["music"]}),
         }
+    # 跨模式身份/卡面的比较**只在原曲与音MAD 之间**做：模式 3 的自带数据集恒为空（0 角色，
+    # 卡名/卡面都是使用者自己的），它没有"共享身份"这回事 —— 不是漏了它。
     by_mode = {mode: {c["key"]: c for c in entries} for mode, entries in datasets.items()}
     for key in sorted(set(by_mode["originals"]) & set(by_mode["otomads"])):
         left, right = by_mode["originals"][key], by_mode["otomads"][key]
@@ -580,7 +593,7 @@ def check_datasets(chars: list[dict], pack_tracks: list[dict], pack_albums: list
         face = pack_cards[key]
         if not face or not all(isinstance(item, str) and item for item in face):
             p.error(f"曲包里的卡面覆盖非法（{key}）：{face!r}")
-    # 并集（两份数据集按构造互斥：曲包专辑只进 otomads）
+    # 并集（两份数据集按构造互斥：曲包专辑只进 otomads）；模式 3 恒为空 ⇒ 并集与它无关
     stats["union"] = {
         "entries": stats["originals"]["entries"] + stats["otomads"]["entries"],
         "distinctTracks": stats["originals"]["distinctTracks"] + stats["otomads"]["distinctTracks"],
@@ -739,7 +752,8 @@ def main(argv: list[str] | None = None) -> int:
              f"- 去重曲目：{stats['modes']['union']['distinctTracks']}"
              f"（原曲 {stats['modes']['originals']['distinctTracks']} + 音MAD {stats['modes']['otomads']['distinctTracks']}）",
              f"- 每模式数据集：原曲 {stats['modes']['originals']['characters']} 角色 / "
-             f"音MAD {stats['modes']['otomads']['characters']} 角色（互斥，音MAD 只含有曲目的角色）",
+             f"音MAD {stats['modes']['otomads']['characters']} 角色（互斥，音MAD 只含有曲目的角色）/ "
+             f"自定义 {stats['modes']['custom']['characters']} 角色（**恒为空**，数据由使用者自己的源提供）",
              f"- 秘封曲条目：{char_stats['hifuu_entries']}",
              f"- 跨角色共用曲目：{len(char_stats['shared'])}",
              f"- 待判定（占位）：{pending}", f"- 人工裁定条目：{stats['overrides']}",
@@ -751,7 +765,8 @@ def main(argv: list[str] | None = None) -> int:
              f"{stats['titles']['same_title_across_albums']} 个",
              f"- 卡面图集：{stats['card_sets']}，注册音源：{stats['source_registry']['total']}"
              f"（原曲 {stats['source_registry']['by_mode'].get('originals', 0)} / "
-             f"音MAD {stats['source_registry']['by_mode'].get('otomads', 0)}）",
+             f"音MAD {stats['source_registry']['by_mode'].get('otomads', 0)} / "
+             f"自定义 {stats['source_registry']['by_mode'].get('custom', 0)}）",
              f"- 曲包：{stats['packs']['packs']} 个 / {stats['packs']['tracks']} 条，"
              f"带 source（可自动抓取）{stats['packs']['with_source']} 条，"
              f"带裁剪区间 {stats['packs']['trimmed']} 条", "",

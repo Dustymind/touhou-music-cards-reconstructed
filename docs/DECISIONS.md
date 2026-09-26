@@ -6010,3 +6010,48 @@ export function cardFileAt(files, characterKey, cardIndex): string {
 
 **验证**：`pnpm typecheck` ✓；`cardFaces.test.ts` **16 → 21 条**（新增：两套内置模式都共用内置图集、
 用完可选集不再回落 `sets[0]`、越界/负数/非数字回到第 0 张、表里没这个角色才是空串）。
+
+---
+
+### D156 第三个音乐模式「自定义」的数据骨架：模式枚举 + **恒为空**的兜底数据集
+
+**用户要求**：新增第三个音乐模式「自定义」（内部 id `custom`）。**应用不带这个模式的任何卡面/曲目数据**，
+数据全部来自使用者自己填的自定义源链接；每张卡 = 一个卡名 + 一张卡面 + 一首曲目（严格 1:1）。
+本节只记**数据骨架**（计划里的 R1）：模式枚举、空兜底数据集、工具侧的分支与守卫。
+源链接、清单校验、卡面、三元预设、联机下发分别在后面几轮（D157 起）。
+
+**落地**（四个模式枚举处 + 生成管线）：
+
+| 处 | 改动 |
+|---|---|
+| `src/music/mode.ts` | `MusicMode` 加 `"custom"`；`MUSIC_MODES` 三项 |
+| `src/store/modeScope.ts` | `slices` 加 `custom`（这条"逐一点名"的约定正好挡住漏项） |
+| `src/data/load.ts` | `loadDataset(<base>/custom, "custom")`；`cardsets.json` 的 mode 白名单改用 `MUSIC_MODES`（**一处真源**） |
+| `src/data/types.ts` | `SourceRecord.kind` 加 `"custom"`；`DataBundle.datasets` 三份 |
+| `tools/src/tmc/build.py` | `MODES` 加 `"custom"`；`build_characters`/`build_albums` 加**显式空分支**；`modes = MODES if submodule else ("originals", "custom")` |
+| `tools/src/tmc/validate.py` | 图集 mode 白名单改用 `build_mod.MODES`；注册表 kind 白名单加 `custom`；报告文案 |
+
+**空兜底数据集**（`public/data/custom/`，随仓库提交）：`characters: []`、`albums: []`、
+一条 `kind = "custom"` / `table_url = ""` / `enabled = true` 的源（`data/sources/custom.toml`）。
+`contentHash` 仍按同一套算法算（空数据也有稳定值，`660f63413604…`）⇒ 联机两端"都没配源"时哈希天然一致。
+
+**最危险的一处**：`build_characters` 原本是"`originals` 一套、**其余全走曲包那套**" ⇒
+只把 `MODES` 加一项，`custom` 会安静地拿到音MAD 的 43 个角色 / 106 首曲目（没有任何报错）。
+所以两个 `build_*` 都加**显式分支**，并有反证用例：把 `elif mode == "custom"` 摘掉 ⇒
+`tools/tests` 里 6 条用例立刻红（含"三份生成物互不串味"）。
+
+**空串 `table_url` 是合法的 —— 但只限 `kind = "custom"`**：新增 kind 感知的包装
+`build.source_table_url_problem(kind, value)`；`kind == "custom"` 时空串放行（"还没填"是这个模式的正常状态），
+**非空时仍按原规则判**，其余 kind 一字不改 ⇒ D131 那条"根绝对路径在子目录部署下必 404"的守卫没有松动。
+三个调用点（`build_sources` 的守卫、`validate.check_source_table_urls`、`tools/tests` 里那条
+"已提交生成物地址形态"）都换成它。
+
+**构建不依赖 `data/custom` / `data/otomads`**（Q2）：自定义那份**不依赖任何真源**（它恒为空）⇒
+曲包 submodule 初始化与否，`public/data/custom/*` 与原曲那几份**逐字相同**。
+两条守卫：① 单测把"submodule 在不在"这个开关翻过来跑两遍比文本；
+② 手工把 `data/otomads` 挪走跑 `pnpm data:check` —— **无漂移**（实测）。
+
+**验证**：`pnpm data:build` 17 个文件（13 → +4）、`data:check` 无漂移、`data:validate` ✅
+（注册音源 4 → 5，每模式数据集多一行"自定义 0 角色"）；`tools` pytest **81 passed**（77 → +4）；
+`pnpm typecheck` ✓；vitest **45 文件 / 478 passed**（+2：三份数据集两两哈希不同 + 自定义那份为空兜底；
+另加一条 session 选中 `custom` 后落盘）。

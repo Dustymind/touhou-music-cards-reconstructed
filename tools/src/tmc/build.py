@@ -28,8 +28,10 @@ from . import repo
 
 SCHEMA_VERSION = 1
 
-#: 两个音乐模式（与前端 `src/music/mode.ts` 的 `MusicMode` 一致）
-MODES = ("originals", "otomads")
+#: 三个音乐模式（与前端 `src/music/mode.ts` 的 `MusicMode` 一致）。
+#: 第三个 `custom`（自定义）**自带数据集恒为空**：卡名/卡面/曲目全部来自使用者自己填的源清单，
+#: 运行时由应用重建（契约 `docs/custom-mode-v1.md`）；这里只生成那份空兜底 + 它的空源注册表。
+MODES = ("originals", "otomads", "custom")
 
 
 def _dumps(payload) -> str:
@@ -69,7 +71,11 @@ def build_characters(mode: str, chars: list[dict], pack_tracks: list[dict],
     """某模式的角色表：**只带本模式的曲目**。
 
     * ``originals``：全部 121 个角色，各自原本的曲目（曲包曲目**不再**并进来）；
-    * ``otomads``：只有"有音MAD 曲目"的角色，曲目就是那些曲包曲目（顺序沿用曲包文件顺序）。
+    * ``otomads``：只有"有音MAD 曲目"的角色，曲目就是那些曲包曲目（顺序沿用曲包文件顺序）；
+    * ``custom``：**恒为空表**（一条都不生成）—— 这个模式一条自带数据都没有，
+      卡名/卡面/曲目全部来自使用者自己的源清单，运行时由应用重建（契约 `docs/custom-mode-v1.md`）。
+      ⚠️ 这条分支不能省：`mode != "originals"` 原来会把**其它任何模式**都当成曲包那份处理 ⇒
+      漏了它，`custom` 会安静地拿到音MAD 的 43 个角色 106 首曲目（最危险的一处）。
 
     身份字段（``name``/``order``/``searchNames``）来自**同一份真源**（契约 §5 S1），两份生成物里各存一份，
     跨模式一致性由 ``tmc.validate`` 守；**卡面是例外**：音MAD 侧可以在曲包的角色文件里用
@@ -81,6 +87,8 @@ def build_characters(mode: str, chars: list[dict], pack_tracks: list[dict],
     by_key = {char["key"]: char for char in chars}
     if mode == "originals":
         chosen = [dict(char, music=[list(entry) for entry in char["music"]]) for char in chars]
+    elif mode == "custom":
+        chosen = []
     else:
         chosen = []
         cards = pack_cards or {}
@@ -111,9 +119,10 @@ def _pack_music(pack_tracks: list[dict]) -> dict[str, list[list]]:
 
 
 def build_albums(mode: str, pack_albums: list[dict]) -> dict:
-    """某模式的专辑注册表：``originals`` = ``albums.toml``；``otomads`` = 曲包自带的专辑。"""
+    """某模式的专辑注册表：``originals`` = ``albums.toml``；``otomads`` = 曲包自带的专辑；
+    ``custom`` = 空表（专辑跟着使用者的源清单走，运行时才有）。"""
     albums: list[dict] = []
-    for entry in pack_albums if mode != "originals" else []:
+    for entry in pack_albums if mode == "otomads" else []:
         albums.append({k: entry[k] for k in ("key", "name", "kind", "pack", "order") if k in entry}
                       | ({"showAlbumName": entry["showAlbumName"]} if "showAlbumName" in entry else {}))
     if mode == "originals":
@@ -168,16 +177,30 @@ def table_url_problem(value: object) -> str | None:
     return None
 
 
+def source_table_url_problem(kind: object, value: object) -> str | None:
+    """按**源的类型**判地址形态：可用返回 ``None``，否则返回一句人话。
+
+    ``kind = "custom"``（模式 3）多认一种合法形态：**空串** —— 那个源的表地址由使用者自己在应用里填
+    （默认空、重置 = 清空），"还没填"是它的**正常状态**，不是坏数据（属性见 `docs/custom-mode-v1.md` C7）。
+    非空时**仍按** :func:`table_url_problem` 一字不改地判，其余 kind 也一字不改 ——
+    于是"根绝对路径在子目录部署下必 404"那条守卫（D131）在这条路上同样成立。
+    """
+    if kind == "custom" and isinstance(value, str) and value.strip() == "":
+        return None
+    return table_url_problem(value)
+
+
 def build_sources(mode: str) -> dict:
     """**某个模式**的音乐源注册表 → 运行时 JSON（契约 `docs/sources-separation-v1.md` §2）。
 
-    一个模式一份：原曲 = 远程镜像；音MAD = 本地曲库助手。前端只读这一份，不在代码里硬编码音源。
-    地址形态在这里就把关（:func:`table_url_problem`）：坏形态在 `data:build` 当场炸，
+    一个模式一份：原曲 = 远程镜像；音MAD = 本地曲库助手；自定义 = 一条**地址为空的**用户源
+    （地址由使用者填在应用里，见 `source_table_url_problem`）。前端只读这一份，不在代码里硬编码音源。
+    地址形态在这里就把关（:func:`source_table_url_problem`）：坏形态在 `data:build` 当场炸，
     而不是等用户在某个子目录部署上发现"一首歌都放不出来"（D131）。
     """
     sources = []
     for entry in load_registry(mode):
-        problem = table_url_problem(entry["table_url"])
+        problem = source_table_url_problem(entry["kind"], entry["table_url"])
         if problem is not None:
             raise SystemExit(
                 f"❌ [{mode}] 音源 {entry['id']} 的 table_url 不合法：{entry['table_url']}\n   {problem}")
@@ -280,12 +303,14 @@ def build_outputs() -> tuple[dict, dict[str, dict[str, str]]]:
 
     音MAD 数据集依赖曲包真源（submodule）：**没初始化就跳过它**，不拿空数据覆盖已提交的生成物
     （submodule 在开发时可选，见 ``data/README.md``）。
+    **自定义那个模式不依赖任何真源**（它恒为空）⇒ 跳过的只有 otomads：submodule 初始化与否，
+    `public/data/custom/*` 与 `public/data/<原曲那几份>` 都**逐字相同**（Q2 的"构建不依赖 submodule"）。
     """
     _packs, pack_albums, pack_tracks, pack_cards, pack_covers = pack_mod.load_packs()
     chars = load_characters()
     pack_audio = pack_mod.audio_descriptors(pack_tracks)
 
-    modes = MODES if pack_mod.available() else ("originals",)
+    modes = MODES if pack_mod.available() else ("originals", "custom")
     outputs: dict[str, str] = {}
     indices: dict[str, dict] = {}
     for mode in modes:

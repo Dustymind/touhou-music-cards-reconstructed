@@ -1,0 +1,21 @@
+{
+ "schema": 1,
+ "sources": [
+  {
+   "id": "custom",
+   "label": {
+    "en": "Custom source",
+    "zh": "自定义源"
+   },
+   "tableUrl": "",
+   "kind": "custom",
+   "order": 1,
+   "enabled": true,
+   "proxyable": false,
+   "description": {
+    "en": "Your own card list: one card name, one card face and one track per card, served from a manifest you host yourself.",
+    "zh": "你自己的卡表：一张卡 = 一个卡名 + 一张卡面 + 一首曲目，由你自己托管的清单提供。"
+   }
+  }
+ ]
+}

@@ -34,6 +34,8 @@ def test_generated_outputs_are_exactly_the_contract():
         "otomads/index.json", "otomads/characters.json",
         "otomads/albums.json", "otomads/sources.json",     # 音MAD
         "otomads/loudness/otomads.json",                   # 音MAD 的响度表（源自己生成，D130）
+        "custom/index.json", "custom/characters.json",
+        "custom/albums.json", "custom/sources.json",       # 自定义：恒为空的兜底数据集
         *(f"sources/{source_id}.json" for source_id in build.mirror_source_ids()),  # 镜像表
     }
     assert paths == expected
@@ -123,7 +125,8 @@ def test_shipped_table_urls_are_deployment_shaped():
         payload = json.loads(path.read_text(encoding="utf-8"))
         assert payload["sources"], mode
         for source in payload["sources"]:
-            assert build.table_url_problem(source["tableUrl"]) is None, \
+            # 按 kind 判：模式 3 的空串合法（地址由使用者自己填），其余源一字不改（D131）
+            assert build.source_table_url_problem(source["kind"], source["tableUrl"]) is None, \
                 f"[{mode}] {source['id']} → {source['tableUrl']}"
 
 
@@ -306,3 +309,71 @@ def test_audio_filename_shape_matches_the_data_repo_helper():
     text = _data_repo_file().read_text(encoding="utf-8")
     assert "f\"{author} - {track['title']}.mp3\"" in text, "数据仓库的成品名形状变了？"
     assert "f\"{track['title']}.mp3\"" in text, "数据仓库的无作者成品名形状变了？"
+
+
+# ------------------------------------------------- 模式 3「自定义」：空数据集（D156 起，契约 custom-mode-v1）
+
+def test_custom_dataset_is_empty_in_all_three_pieces():
+    """模式 3 的自带数据集**恒为空**：0 角色 / 0 专辑 / 一条地址为空的源。
+
+    这条是"应用不带这个模式的任何数据"的守卫（契约 C1）。**反证**：把
+    `build_characters` 里那条 `elif mode == "custom"` 摘掉 ⇒ 它会落到曲包那套 ⇒ 下面两条立刻红。
+    """
+    chars = build.load_characters()
+    _packs, pack_albums, pack_tracks, pack_cards, pack_covers = pack_mod.load_packs()
+
+    characters = build.build_characters("custom", chars, pack_tracks, pack_cards, pack_covers)
+    albums = build.build_albums("custom", pack_albums)
+    sources = build.build_sources("custom")
+    assert characters == {"schema": build.SCHEMA_VERSION, "characters": []}
+    assert albums == {"schema": build.SCHEMA_VERSION, "albums": []}
+
+    assert [entry["kind"] for entry in sources["sources"]] == ["custom"]
+    assert sources["sources"][0]["tableUrl"] == ""       # 空 = 还没填，是这个模式的正常状态
+    assert sources["sources"][0]["enabled"] is True      # 本模式只有它一个源
+
+    index = build.build_index("custom", characters, albums, "deadbeefdeadbeef")
+    assert index["counts"] == {"characters": 0, "albums": 0, "trackEntries": 0, "distinctTracks": 0}
+
+
+@needs_otomads
+def test_custom_does_not_borrow_the_pack_dataset():
+    """三份生成物互不串味：音MAD 那份非空、自定义那份空 —— 两者**不能**相等。"""
+    chars = build.load_characters()
+    _packs, _albums, pack_tracks, pack_cards, pack_covers = pack_mod.load_packs()
+    otomads = build.build_characters("otomads", chars, pack_tracks, pack_cards, pack_covers)
+    custom = build.build_characters("custom", chars, pack_tracks, pack_cards, pack_covers)
+    assert otomads["characters"], "音MAD 那份应该是非空的（submodule 已初始化）"
+    assert custom["characters"] == []
+
+
+def test_custom_outputs_do_not_depend_on_the_pack_submodule(monkeypatch):
+    """Q2：曲包 submodule 初始化与否，**除 otomads 之外**的生成物必须逐字相同。
+
+    做法是把"曲包真源在不在"这一个开关翻过来跑两遍再比文本 —— 这比"临时挪走目录"轻，
+    守的却是同一条：构建**不依赖** `data/otomads`（那个 submodule 只是开发时的可选真源）。
+    """
+    _indices, with_packs = build.build_outputs()
+
+    monkeypatch.setattr(pack_mod, "available", lambda: False)
+    _indices2, without_packs = build.build_outputs()
+
+    def without_otomads(outputs):
+        return {str(path.relative_to(repo.PUBLIC_DATA)): text for path, text in outputs.items()
+                if not str(path.relative_to(repo.PUBLIC_DATA)).startswith("otomads/")}
+
+    assert without_otomads(with_packs) == without_otomads(without_packs)
+    assert "custom/index.json" in without_otomads(with_packs)
+
+
+def test_source_table_url_problem_is_kind_aware():
+    """按 kind 判地址：只有 `kind = "custom"` 多认一种"空串"，其余一字不改（D131 不松动）。"""
+    assert build.source_table_url_problem("custom", "") is None
+    assert build.source_table_url_problem("custom", "   ") is None
+    assert build.source_table_url_problem("custom", "manifest.json") is None
+    assert build.source_table_url_problem("custom", "/manifest.json") is not None
+    assert build.source_table_url_problem("custom", "file:///tmp/x.json") is not None
+    assert build.source_table_url_problem("custom", None) is not None
+    for kind in ("remote", "local", None):
+        assert build.source_table_url_problem(kind, "") is not None
+        assert build.source_table_url_problem(kind, "data/sources/x.json") is None

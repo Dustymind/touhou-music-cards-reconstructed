@@ -79,6 +79,8 @@ def test_data_invariants_hold():
     modes = stats["modes"]
     assert modes["originals"] == {"characters": 121, "entries": 378, "distinctTracks": 368}
     assert modes["otomads"] == {"characters": 43, "entries": 106, "distinctTracks": 106}
+    # 模式 3「自定义」的自带数据集**恒为空**（数据全部来自使用者自己的源，契约 custom-mode-v1）
+    assert modes["custom"] == {"characters": 0, "entries": 0, "distinctTracks": 0}
     # 并集与分离前逐字节同义：378 + 106 = 484 条 / 368 + 106 = 474 首去重
     assert modes["union"] == {"entries": 484, "distinctTracks": 474}
     assert stats["entries"] == 378
