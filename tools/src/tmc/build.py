@@ -81,9 +81,12 @@ def build_characters(mode: str, chars: list[dict], pack_tracks: list[dict],
     跨模式一致性由 ``tmc.validate`` 守；**卡面是例外**：音MAD 侧可以在曲包的角色文件里用
     ``card = [...]`` 覆盖（写法同 ``data/characters/*.toml``），缺省才沿用共享身份。
 
-    ``pack_covers`` 是**源封面**：``{角色 key: [封面值, …]}``，每首曲目一条 —— 值是**单链接**
-    （D153）或**逐档表**（D164：``original`` / ``16x9`` / ``4x3``，与 `tmc.packs`、应用侧同口径）。
-    它只在 ``otomads`` 那份里写进 ``covers``，原曲那份**一个字段都不多**（两份的指纹口径因此不变）。
+    ``pack_covers`` 是**源封面**：``{角色 key: [封面值, …]}``，每首曲目一条 —— 真源里值是**单链接**
+    （D153）或**逐档表**（D164：``original`` / ``16x9`` / ``4x3``）。**生成物里一律拆开**：
+    ``covers`` = 每首一条主链接（字符串数组），写了表的角色再多一个同级 ``coversByRatio``
+    （档位 → 与 ``covers`` / ``music`` 按下标对齐的数组，``pack_mod.split_covers``）；
+    这与源在运行时发的快照同形，应用侧的 ``parseCoverField`` 就是这么认的。
+    它只在 ``otomads`` 那份里出现，原曲那份**一个字段都不多**（两份的指纹口径因此不变）。
     """
     by_key = {char["key"]: char for char in chars}
     if mode == "originals":
@@ -98,9 +101,19 @@ def build_characters(mode: str, chars: list[dict], pack_tracks: list[dict],
             char = by_key[key]
             face = cards.get(key)
             cover = covers.get(key)
+            # 源封面（D153/D164）：真源里每条曲目是**单链接或逐档表**，生成物里必须是
+            # `covers`（字符串数组，主链接）+ 同级的 `coversByRatio`（档位 → 对齐的数组）——
+            # 与源在运行时发的快照同形，应用才认（它只接受字符串数组；表直接烘进去会让整份数据报错）。
+            source_covers: dict = {}
+            if cover:
+                primaries, by_ratio = pack_mod.split_covers(cover)
+                source_covers["covers"] = primaries
+                if by_ratio:
+                    source_covers["coversByRatio"] = {
+                        frame: urls for frame, urls in by_ratio.items() if urls}
             chosen.append(dict(char, music=[list(entry) for entry in entries],
                                **({"card": list(face)} if face else {}),
-                               **({"covers": list(cover)} if cover else {})))
+                               **source_covers))
         order = {char["key"]: char["order"] for char in chars}
         chosen.sort(key=lambda c: order[c["key"]])
     return {"schema": SCHEMA_VERSION, "characters": chosen}

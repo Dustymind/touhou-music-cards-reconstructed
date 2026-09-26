@@ -584,10 +584,21 @@ def check_datasets(chars: list[dict], pack_tracks: list[dict], pack_albums: list
                 p.error(f"音MAD 卡面覆盖没生效：{key}（{right['card']!r} vs {pack_cards[key]!r}）")
         elif left["card"] != right["card"]:
             p.error(f"跨模式卡面不一致（未在曲包里覆盖）：{key}")
-        # 源封面（D153）：只在 otomads 那份里有，检查"真源的 cover 真的进了生成物"
+        # 源封面（D153/D164）：只在 otomads 那份里有，检查"真源的 cover 真的进了生成物"。
+        # 真源每条是**单链接或逐档表**，生成物里一律是 `covers`（主链接的字符串数组）
+        # + 可选的 `coversByRatio`（档位 → 下标对齐的数组）⇒ 比较也必须按这个拆分比
+        # （直接比原始值的话，凡是写了表的角色都会被误报"封面没生效"）。
         if key in pack_covers:
-            if right.get("covers") != list(pack_covers[key]):
-                p.error(f"音MAD 封面没生效：{key}（{right.get('covers')!r} vs {pack_covers[key]!r}）")
+            primaries, by_ratio = packs_mod.split_covers(list(pack_covers[key]))
+            if right.get("covers") != primaries:
+                p.error(f"音MAD 封面没生效：{key}（{right.get('covers')!r} vs {primaries!r}）")
+            if by_ratio:
+                expected = {frame: urls for frame, urls in by_ratio.items() if urls}
+                if right.get("coversByRatio") != expected:
+                    p.error(f"音MAD 逐档封面没生效：{key}"
+                            f"（{right.get('coversByRatio')!r} vs {expected!r}）")
+            elif "coversByRatio" in right:
+                p.error(f"音MAD 逐档封面不该出现：{key}（真源只有单链接）")
         elif "covers" in right:
             p.error(f"音MAD 生成物里多出了源码里没有的 covers：{key}")
     for key in sorted(pack_covers):

@@ -312,6 +312,54 @@ def test_audio_filename_shape_matches_the_data_repo_helper():
     assert "f\"{track['title']}.mp3\"" in text, "数据仓库的无作者成品名形状变了？"
 
 
+# ------------------------------------------------- 源封面：真源两种形状 → 生成物两种键（D164）
+
+def test_source_covers_are_split_into_primaries_and_per_frame_arrays():
+    """真源里每条曲目的 `cover` 可以是**单链接**或**逐档表**，生成物里必须是
+    `covers`（字符串数组，主链接）+ 同级的 `coversByRatio`（档位 → 下标对齐的数组）。
+
+    **反证**：把 `build_characters` 里的 `pack_mod.split_covers(...)` 换回
+    `list(cover)` ⇒ 表会原样烘进 `covers`，应用那边 `validateCharacters` 直接报
+    "covers 必须是非空字符串数组"（整份数据加载失败）—— 2026-09-27 真踩到过一次。
+    """
+    chars = [
+        {"key": "a", "name": "甲", "order": 1, "card": ["a.png"], "searchNames": ["甲"],
+         "music": [["旧作", "甲曲", "角色曲"]]},
+        {"key": "b", "name": "乙", "order": 2, "card": ["b.png"], "searchNames": ["乙"],
+         "music": [["旧作", "乙曲", "角色曲"]]},
+    ]
+    tracks = [
+        {"pack": "otomads", "character": "a", "album": "otomads", "title": "一", "extra": "角色曲"},
+        {"pack": "otomads", "character": "a", "album": "otomads", "title": "二", "extra": "角色曲"},
+        {"pack": "otomads", "character": "b", "album": "otomads", "title": "三", "extra": "角色曲"},
+    ]
+    wide = "https://x/a.jpg@1920w_1080h_1c.webp"
+    tall = "https://x/a.jpg@1600w_1200h_1c.webp"
+    covers = {
+        # 甲：两条都是逐档表 ⇒ 拆成主链接（original）+ 三档数组
+        "a": [
+            {"original": "https://x/a1.jpg", "16x9": wide, "4x3": tall},
+            {"original": "https://x/a2.jpg", "16x9": wide, "4x3": tall},
+        ],
+        # 乙：单链接 ⇒ 只有 `covers`，一个 `coversByRatio` 都不多
+        "b": ["https://x/b.jpg@703w_1000h_1c.webp"],
+    }
+    out = build.build_characters("otomads", chars, tracks, {}, covers)["characters"]
+    a, b = out[0], out[1]
+    assert a["covers"] == ["https://x/a1.jpg", "https://x/a2.jpg"]        # 主链接 = original
+    assert a["coversByRatio"] == {
+        "original": ["https://x/a1.jpg", "https://x/a2.jpg"], "16x9": [wide, wide], "4x3": [tall, tall],
+    }
+    # 逐档数组与 `covers` / `music` 一样按下标对齐（少一条就是静默错位）
+    for frame, urls in a["coversByRatio"].items():
+        assert len(urls) == len(a["covers"]) == len(a["music"]), frame
+    assert "coversByRatio" not in b
+    assert all(isinstance(url, str) for url in b["covers"])
+    # 原曲那份一个字段都不多（两份的指纹口径不因此变）
+    originals = build.build_characters("originals", chars, tracks, {}, covers)["characters"]
+    assert all("covers" not in entry and "coversByRatio" not in entry for entry in originals)
+
+
 # ------------------------------------------------- 模式 3「自定义」：空数据集（D156 起，契约 custom-mode-v1）
 
 def test_custom_dataset_is_empty_in_all_three_pieces():

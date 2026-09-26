@@ -301,6 +301,30 @@ def _cover_frames(cover: str | dict[str, str]) -> tuple[str, ...]:
     return tuple(frame for frame in COVER_FRAMES if frame in cover)
 
 
+def split_covers(values: list[str | dict[str, str]]) -> tuple[list[str], dict[str, list[str]]]:
+    """逐曲封面值 → ``(主链接数组, 逐档数组)``。
+
+    这是**烘焙**那一侧的口径：生成物里的 ``covers`` 是**字符串数组**（每首曲目一条主链接），
+    逐档表拆到**同级**的 ``coversByRatio``（档位 → 与 ``covers`` 按下标对齐的数组）——
+    与数据仓库 ``packformat.pack_snapshot`` 发出去的快照、应用侧 `parseCoverField` 完全同形
+    （D164）。主链接 = ``original`` → ``16x9`` → ``4x3`` 第一个有的那档。
+
+    调用方（``build_characters``）只在**同一角色的档位集合已经校验一致**之后调它
+    （:func:`_merge_track_covers` 守这条），所以这里直接取第一条的档位集合。
+    """
+    if not values:
+        return [], {}
+    frames = _cover_frames(values[0])
+    primaries = [
+        value if isinstance(value, str)
+        else next(value[frame] for frame in COVER_FRAMES if frame in value)
+        for value in values
+    ]
+    by_ratio = {frame: [value[frame] for value in values if isinstance(value, dict)]
+                 for frame in frames}
+    return primaries, by_ratio
+
+
 def _merge_track_covers(key: str, covers: list[str | dict[str, str] | None],
                         where: str) -> list[str | dict[str, str]] | None:
     """逐条曲目的 ``cover`` → **整个角色**的封面列表（运行时的 ``covers`` 仍是按下标对齐的数组）。
