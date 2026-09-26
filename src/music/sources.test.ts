@@ -199,6 +199,19 @@ describe("源清单地址的运行时覆盖（本地曲库 / 自定义源两种 
     expect(normalizeManifestUrl("https://x/y/table.json")).toBe("https://x/y/table.json");
   });
 
+  it("**相对当前页面**的地址原样保留（只给「裸主机」补 http://）", () => {
+    // 同源部署的三种写法：根路径 / 带目录的相对路径 / 只有文件名
+    expect(normalizeManifestUrl("/cards/manifest.json")).toBe("/cards/manifest.json");
+    expect(normalizeManifestUrl("cards/manifest.json")).toBe("cards/manifest.json");
+    expect(normalizeManifestUrl("manifest.json")).toBe("manifest.json");
+    // 裸主机（本机助手那种写法）仍然补 http:// 并补上 manifest.json
+    expect(normalizeManifestUrl("127.0.0.1:8012")).toBe("http://127.0.0.1:8012/manifest.json");
+    expect(normalizeManifestUrl("127.0.0.1:8012/manifest.json"))
+      .toBe("http://127.0.0.1:8012/manifest.json");
+    expect(normalizeManifestUrl("cards.example.com/music/"))
+      .toBe("http://cards.example.com/music/manifest.json");
+  });
+
   it("默认（空覆盖）保持数据里的原值 —— 自定义源那个空串是**合法**的（还没填）", () => {
     const applied = applyManifestOverrides(sources, {});
     expect(applied.find((source) => source.id === "local")!.tableUrl).toBe("manifest.json");

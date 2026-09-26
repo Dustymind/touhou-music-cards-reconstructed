@@ -42,10 +42,13 @@ const IMAGE_FILTER: Partial<Record<CardState, string>> = {
 
 /** 图集目录 + 文件名 → 绝对 URL（按 origin 列表拼）。
  *
- *  **源封面（D153）是一整条 URL**（音MAD 的 B 站图床直链）：原样返回 —— 既不能拼目录，
- *  也不能 `encodeURIComponent`（那会把 `://`、`/`、`@` 全编码掉，得到一条必然 404 的地址）。 */
+ *  **源给的卡面**（`sourceOnly`：音MAD 的 B 站封面、模式 3 的清单卡面）是一整条**已经解析好的地址**：
+ *  原样返回 —— 既不能拼目录，也不能 `encodeURIComponent`（那会把 `://`、`/`、`@` 全编码掉，
+ *  得到一条必然 404 的地址）。模式 3 的卡面可能是 `https://…`（清单写绝对地址），
+ *  也可能是 `/…` 或 `a/b.png`（清单写相对路径 ⇒ 应用按**清单自己的目录**解析过，D157）——
+ *  后两种都不是"文件名"，只有 `sourceOnly` 这个判据能把它们和内置图集的裸文件名分开。 */
 function cardUrl(cardSet: CardSetRecord, file: string, origin: string): string {
-  if (isCardUrl(file)) return file;
+  if (cardSet.sourceOnly || isCardUrl(file)) return file;
   const prefix = origin.endsWith("/") ? origin : `${origin}/`;
   const dir = cardSet.dir.endsWith("/") ? cardSet.dir : `${cardSet.dir}/`;
   return prefix + dir + encodeURIComponent(file);

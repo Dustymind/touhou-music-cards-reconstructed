@@ -173,6 +173,22 @@ describe("GamePanel", () => {
     expect(useSession.getState().customSourceOverride).toBeNull();
   });
 
+  it("模式 3：源给的卡面是**根路径 / 相对路径**时也原样用（不当成文件名去拼目录 + 编码）", async () => {
+    // e2e 实测踩到的：清单挂在同源 `/cards/manifest.json`、卡面写 `faces/a.png` ⇒ 解析成
+    // `/cards/faces/a.png`；`CharacterCard` 若按"内置图集的裸文件名"处理，会编成
+    // `.//%2Fcards%2Ffaces%2Fa.png`（必然 404 的地址）。
+    const manifest = parseCustomManifest({
+      schema: 1, mode: "custom",
+      cards: [{ id: "a", name: "卡", face: "faces/a.png", audio: "media/a.mp3", album: "旧作", title: "曲" }],
+    }, "/cards/manifest.json")!;
+    await act(async () => { useSession.setState({ musicMode: "custom" }); });
+    const container = await renderWithTheme(
+      <GamePanel bundle={withCustomManifest(bundle, manifest)} />);
+
+    const image = container.querySelector('[data-testid^="unused-card-"] img');
+    expect(image?.getAttribute("src")).toBe("/cards/faces/a.png");
+  });
+
   it("模式 3：卡池只含**可用的**卡（`cardKeys`），禁用的卡不进卡池 —— 不传即今天行为（Q5）", async () => {
     const custom = customBundle();
     useSession.setState({ musicMode: "custom" });

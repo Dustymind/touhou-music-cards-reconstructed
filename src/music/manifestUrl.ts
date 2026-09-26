@@ -24,9 +24,22 @@ export const MANIFEST_FILE = "manifest.json";
 export function normalizeManifestUrl(raw: string | null | undefined): string | null {
   let value = (raw ?? "").trim();
   if (value === "") return null;
-  if (!/^https?:\/\//i.test(value)) value = `http://${value}`;
+  if (!/^https?:\/\//i.test(value) && isBareHost(value)) value = `http://${value}`;
   if (value.endsWith(".json")) return value;
   return value.endsWith("/") ? `${value}${MANIFEST_FILE}` : `${value}/${MANIFEST_FILE}`;
+}
+
+/** 无协议的**裸地址**（`127.0.0.1:8012` / `127.0.0.1:8012/manifest.json` / `cards.example.com/music/`）。
+ *
+ * 只给这种写法补 `http://` —— 它是"指向本机助手"的便利写法。另外三种写法**原样保留**，
+ * 因为它们都是**相对当前页面**的地址（都指着本站点的某个位置，补上协议反而会 404）：
+ * 前导 `/` 的根路径（`/cards/manifest.json`）、带目录的相对路径（`cards/manifest.json`）、
+ * 以及**只有文件名**的 `manifest.json`（同源部署最常见的那一种）。
+ * 判据是"第一段看起来像主机名（有 `:` 或 `.`）"，且最后一条按"没有 `/` 的 `.json` 文件名"豁免。 */
+function isBareHost(value: string): boolean {
+  if (!value.includes("/") && /\.json([?#].*)?$/i.test(value)) return false;
+  const first = value.split("/")[0] ?? "";
+  return first.includes(":") || first.includes(".");
 }
 
 /**
