@@ -93,14 +93,16 @@ interface SessionConfigWire {
 ## 一致性自检
 
 `stateDigest(state)` 把状态压成一行：`state` / `turnSeq` / `currentKey` / `givesLeft` / `winner` /
-`mode` / `gameSeed` / 牌型尺寸 / 双方牌库与已得 / 抢拍记录。联机页把它挂在 `data-testid="net-digest"` 上，
+`mode` / `gameSeed` / 牌型尺寸 / **牌面口径与答案卡**（`perTrackFaces` / `currentCardIndex`，D168）/
+双方牌库与已得 / 抢拍记录。联机页把它挂在 `data-testid="net-digest"` 上，
 e2e 逐回合比对两端摘要 —— 不一致就说明协议或随机派生分叉了。
 
 ## 版本演进
 
 | 版本 | 变更 |
 |---|---|
-| **5** | 第三个模式（自定义）⇒ `dataHash` 变成 `{originals, otomads, custom}`；`hello` / `reject` 多一个可选的 `customSourceUrl`，会话配置也带上它（契约 `custom-mode-v1.md` C6/D160） |
+| **6** | `GameState` 多两个字段：`perTrackFaces`（这一局的牌面按不按曲目给）与 `currentCardIndex`（本回合答案卡的卡序）—— 音MAD 的源封面集下"这一回合放哪一首"由**答案卡**决定，两端必须从同一份状态推出同一首（D168）。**会话配置没变** |
+| 5 | 第三个模式（自定义）⇒ `dataHash` 变成 `{originals, otomads, custom}`；`hello` / `reject` 多一个可选的 `customSourceUrl`，会话配置也带上它（契约 `custom-mode-v1.md` C6/D160） |
 | 4 | 数据按音乐模式分成两份数据集 ⇒ `dataHash` 变成 `{originals, otomads}`，两个都交换、都校验（契约 `otomads-separation-v1.md` §6 C3） |
 | 3 | `musicMode` 字段升级成 `SessionConfigWire`（多一个 `sessionSeed`）；新增 `rerollQueue` 意图（D104） |
 | 2 | `GameState` 加 `gameSeed`（开局洗牌 / 选曲种子） |

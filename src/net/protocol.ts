@@ -10,11 +10,15 @@
 import type { CardInfo, GameState, MatchMode } from "../game/types";
 import type { Seed } from "../rng";
 
-/** 5：多了第三个模式（自定义）⇒ 握手要交换**三个**数据哈希，且主机把**自定义源链接**一起下发
+/** 6：对局状态多了 `perTrackFaces` / `currentCardIndex`（D168）—— 音MAD 的源封面图集下，
+ *     "这一回合放哪一首"由**答案卡**决定，两端必须按同一份状态推出同一首（快照里带着它）。
+ *    加了字段就是换了快照形状：老版本收不到这两个字段 ⇒ 会按"不按曲目给卡面"选曲、两端放不同的歌 ✗
+ *     ⇒ 与 D142/D143 同一条规矩，握手期拒绝不一致的版本。
+ *  5：多了第三个模式（自定义）⇒ 握手要交换**三个**数据哈希，且主机把**自定义源链接**一起下发
  *     （契约 `docs/custom-mode-v1.md` C6：这个模式的数据由使用者自己托管，两端必须同一个源）。
  *  4：数据按音乐模式分成两份数据集 ⇒ 握手交换两个哈希（契约 `docs/otomads-separation-v1.md` §6 C3）。
  *  3：`SessionConfig`（音乐模式 + 会话种子）替代原来的 `musicMode` 字段；新增 `rerollQueue` 意图。 */
-export const PROTOCOL_VERSION = 5;
+export const PROTOCOL_VERSION = 6;
 
 /** 三个模式各自的数据哈希：任一不同都拒绝，且都在**握手期**拒（D107 §6 的初衷）。 */
 export interface DataHashes {
@@ -104,6 +108,9 @@ export function stateDigest(state: GameState): string {
     `mode=${state.mode}`,
     `seed=${state.gameSeed}`,
     `filter=${state.filterByDeck ? 1 : 0}`,
+    // 牌面口径与答案卡（D168）：两端"这一回合放哪一首"必须一样，分叉了要看得出来
+    `faces=${state.perTrackFaces ? 1 : 0}`,
+    `card=${state.currentCardIndex ?? "-"}`,
     `rows=${state.deckRows}x${state.deckColumns}`,
   ];
   state.players.forEach((player, index) => {

@@ -42,6 +42,15 @@ export interface PlayerInputs {
   preset: PresetState;
   /** 单曲模式：角色 key → 固定的曲目 */
   pinned: Record<string, MusicEntry | undefined>;
+  /** 列表页**点播**：使用者明确点的那一首（`{ key: 角色, entry: 曲目 }`）。它压过一切别的口径 ——
+   *  点播是"马上放这一首"的直接指令，连回合的卡面曲也让它（见 `roundTrackIndex`）。 */
+  request?: { key: string; entry: MusicEntry } | null;
+  /** 回合的**卡面曲**（D168）：这一回合答案卡是哪一首，`GameState.currentCardIndex` 就是它的下标。
+   *
+   *  只有"牌面按曲目给"的对局才会给值（音MAD 的源封面集：卡面就是那一首的 B 站封面）。
+   *  给了值、并且这个角色的 `music` 里有这个下标 ⇒ **就用它**：卡面与音频必须对应；
+   *  对局里它是"答案的那一首"，所以压过单曲模式的手选（那是播放页的特性，和预设一样对局里不生效）。 */
+  roundTrackIndex?: number | null;
   /** 对局中：忽略"音乐预设"，候选 = 该角色在当前音乐模式下的**全部**曲目（用户要求：默认启用全曲库） */
   ignorePreset?: boolean;
   /** 模式 3：**这张卡能不能放**（专辑三元 + 作者三元，`customCardEnabled`）。给了它就说明
@@ -183,8 +192,17 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
 
   const entry = useMemo<MusicEntry | null>(() => {
     if (!character) return null;
+    // 点播（使用者明确点的那一首）最优先：它是"马上放这个"的直接指令
+    if (inputs.request && inputs.request.key === character.key) return inputs.request.entry;
+    // 回合的**卡面曲**（D168）：牌面按曲目给时，这一回合放的就是答案卡那一首 —— 卡面与音频必须对应。
+    // 放在手选（单曲模式）之前：对局里"放哪一首"由场上的牌决定，播放页的偏好不进对局
+    // （与 `ignorePreset` 同一条原则）。下标越界（数据换了、存档旧了）就落回下面那条路 ✓
+    const fixed = inputs.roundTrackIndex ?? null;
+    if (fixed !== null) {
+      const own = character.music[fixed];
+      if (own) return own;
+    }
     const pinned = inputs.pinned[character.key] ?? null;
-    // 手选 / 列表点播优先（与下面 `allowedTracks(preset, character, pinned)` 同一条规则）
     if (pinned) return pinned;
     if (inputs.cardEnabled) {
       // 模式 3：一卡一首。对局中忽略预设（= 全曲库 ✓）时连三元也不看，与另两个模式的口径一致。
@@ -202,8 +220,8 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
     const pool = fresh.length > 0 ? fresh : entries;
     // 由 (会话种子, 角色) 派生：不同角色落到不同曲目，而同一角色在两端的取舍完全一致（D104）
     return pickWithSeed(pool, inputs.seed, "track", character.key);
-  }, [character, inputs.pinned, inputs.preset, inputs.dataset, inputs.seed,
-      inputs.ignorePreset, inputs.played, inputs.cardEnabled]);
+  }, [character, inputs.pinned, inputs.request, inputs.roundTrackIndex, inputs.preset, inputs.dataset,
+      inputs.seed, inputs.ignorePreset, inputs.played, inputs.cardEnabled]);
 
   // ---- 创建 <audio> 与铃（都不挂进 DOM 也能播） ----
   useEffect(() => {

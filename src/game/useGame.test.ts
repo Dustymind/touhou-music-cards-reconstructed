@@ -17,7 +17,8 @@ function freshGame(): void {
       deckRows: 1, deckColumns: 2, traditional: true, melee: false, order: ["a", "b"],
     playedTracks: [],
       reshuffledAtTurn: 0, gameSeed: 0, filterByDeck: false,
-      temporaryDisabled: {}, currentKey: null, turnSeq: 0, state: "selecting",
+      temporaryDisabled: {}, currentKey: null, perTrackFaces: false, currentCardIndex: null,
+      turnSeq: 0, state: "selecting",
       turnStartTimestamp: 0, pickEvents: [], turnWinner: null, givesLeft: 0, winner: null,
     },
     pool: [card("a"), card("b"), card("c")],
@@ -41,6 +42,16 @@ describe("useGame store", () => {
     expect(game.players[0]!.deck).toHaveLength(2);
     expect(game.players[0]!.name).toBe("You");
     expect(game.players[1]!.name).toBe("Opponent");
+  });
+
+  it("init 把「牌面按不按曲目给」写进状态；不传时**保留**（联机客人端不覆盖主机的口径）", () => {
+    useGame.getState().init([card("a")], {}, true);
+    expect(useGame.getState().game.perTrackFaces).toBe(true);
+    useGame.getState().init([card("a")], {}, false);
+    expect(useGame.getState().game.perTrackFaces).toBe(false);
+    // 客人端：牌是主机发的 ⇒ 这个字段归主机，本地重灌卡池不许把它翻回去（否则两端来回打摆）
+    useGame.getState().init([card("a")], {}, undefined);
+    expect(useGame.getState().game.perTrackFaces).toBe(false);
   });
 
   it("resize 夹紧到合法范围并同步两侧牌库长度", () => {

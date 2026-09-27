@@ -90,6 +90,7 @@ describe("GamePanel", () => {
         order: [],
     playedTracks: [],
       reshuffledAtTurn: 0, gameSeed: 0, filterByDeck: false, temporaryDisabled: {}, currentKey: null,
+        perTrackFaces: false, currentCardIndex: null,
         turnSeq: 0, state: "selecting",
         turnStartTimestamp: 0, pickEvents: [], turnWinner: null, givesLeft: 0, winner: null,
       },

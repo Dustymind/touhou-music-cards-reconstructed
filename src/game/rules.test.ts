@@ -327,6 +327,63 @@ describe("终局", () => {
   });
 });
 
+describe("回合的答案卡（D168：音频要跟卡面对应）", () => {
+  /** 牌面按曲目给：`a-2` 在场上 ⇒ 这一回合放的就该是它的第 2 首。 */
+  const perTrack = (): GameState => ({
+    ...threeByTwo(),
+    perTrackFaces: true,
+    order: ["a"],
+    players: [
+      { ...makePlayer("a"), deck: [card("a", 2), null, null, null, null, null] },
+      { ...makePlayer("b"), deck: [card("d"), null, null, null, null, null] },
+    ],
+  });
+
+  it("回合开始时记下答案卡的卡序（牌面按曲目给）", () => {
+    const next = rules.nextTurn(perTrack(), 0);
+    expect(next.currentKey).toBe("a");
+    expect(next.currentCardIndex).toBe(2);
+  });
+
+  it("牌面不按曲目给 ⇒ 不记（各端按种子取一首，与加这条规则之前逐字一致）", () => {
+    const state = { ...perTrack(), perTrackFaces: false };
+    expect(rules.nextTurn(state, 0).currentCardIndex).toBeNull();
+  });
+
+  it("这个角色的牌不在场上 ⇒ 不记（没有卡面要对应）", () => {
+    const state = perTrack();
+    state.players[0] = { ...state.players[0]!, deck: [card("zzz", 1), null, null, null, null, null] };
+    expect(rules.nextTurn(state, 0).currentCardIndex).toBeNull();
+  });
+
+  it("对手牌库里的那张也算（牌桌是两边共用的）", () => {
+    const state = perTrack();
+    state.players[0] = { ...state.players[0]!, deck: [null, null, null, null, null, null] };
+    state.players[1] = { ...state.players[1]!, deck: [card("a", 1), null, null, null, null, null] };
+    expect(rules.nextTurn(state, 0).currentCardIndex).toBe(1);
+  });
+
+  it("**抢中之后不重算**：那张牌离开了牌库，曲子也不许中途换一首", () => {
+    // 牌库里留几张别的牌，免得这一抢就把对局打完结（solo 是"自己牌库空了"即终局）
+    const state = perTrack();
+    state.players[0] = {
+      ...state.players[0]!, deck: [card("a", 2), card("x", 0), card("y", 0)],
+    };
+    const started = rules.nextTurn(state, 0);
+    const picked = rules.notifyPickEvent(started, {
+      timestamp: 1, player: 0, card: card("a", 2), side: 0, slot: 0,
+    });
+    expect(picked.state.state).toBe("turnWinner");
+    expect(picked.state.currentCardIndex).toBe(2);      // 牌没了，卡序留着
+    expect(rules.answerCardOf(picked.state, "a")).toBeNull();
+  });
+
+  it("停局回选牌阶段 ⇒ 清掉（下一次 `nextTurn` 会重新记）", () => {
+    const started = rules.nextTurn(perTrack(), 0);
+    expect(rules.stopGame(started).currentCardIndex).toBeNull();
+  });
+});
+
 describe("按牌库筛选音乐", () => {
   it("把不在牌库/收集区里的角色标为临时禁用", () => {
     const state = {

@@ -158,3 +158,97 @@ test("音MAD 模式下不再下载原曲的镜像表（音源层按模式拆的�
   await expandSection(page, "source");
   await expect(page.locator('[data-testid^="source-order-"]')).toHaveCount(1);
 });
+
+/** D168：音MAD 的 B 站封面集下，**音频必须跟卡面对应**。
+ *
+ *  这副牌是"一张卡 = 一首曲目"（D153）：抢拍时看着牌面找歌，所以"这一回合放哪一首"必须就是
+ *  **场上那张卡**的那一首。修之前放的是按种子从该角色的全部曲目里挑的一首 —— 牌面（`covers[i]`）
+ *  与实际在放的（`music[j]`，i≠j）对不上，用户报的就是这个。
+ *
+ *  期望值**跟着数据算**（同源 manifest 的 `characters[].covers` 与 `tracks`）：不写死曲名与下标。
+ *  判定"对不对应"用卡序：牌桌上的 `data-card-key` 是 `角色-卡序`，音频文件名能反查它是第几首。
+ *  牌面按曲目给才记卡序，所以这里必须开**源封面集**（别的图集下按种子选曲是**有意**的）。
+ *
+ *  回合数取 4：像这条用例这样"只看不点"时，抢拍靠 CPU，每回合一张牌。修之前每回合有
+ *  ~1/N（该角色曲目数）的概率**碰巧**对上，4 回合基本兜得住。
+ */
+test("音MAD 封面集：播放的那一首就是牌桌上那张卡的曲目（D168）", async ({ page }) => {
+  // `usePlayer` 造的是 `new Audio()`（不挂 DOM）⇒ 只能在构造函数上截胡
+  await page.addInitScript(() => {
+    const original = window.Audio;
+    const captured: HTMLAudioElement[] = [];
+    (window as unknown as { __audios: HTMLAudioElement[] }).__audios = captured;
+    (window as unknown as { Audio: unknown }).Audio = function (...args: unknown[]) {
+      const element = new original(...(args as []));
+      captured.push(element);
+      return element;
+    };
+    (window as unknown as { Audio: { prototype: object } }).Audio.prototype = original.prototype;
+  });
+
+  const manifest = await (await page.request.get("http://127.0.0.1:8011/manifest.json")).json() as {
+    characters: { key: string; music: (string | string[])[][]; covers?: string[] }[];
+    tracks: string[][];
+  };
+  const byKey = new Map(manifest.characters.map((character) => [character.key, character]));
+  /** 音频文件名的磁盘 stem → 这是哪个角色的第几首（`entry[3]` 是 `作者` 那个整串，D135）。 */
+  const byStem = new Map<string, { key: string; index: number }>();
+  for (const character of manifest.characters) {
+    character.music.forEach((entry, index) => {
+      const stem = entry[3] ? `${entry[3]} - ${entry[1]}` : String(entry[1]);
+      byStem.set(stem, { key: character.key, index });
+    });
+  }
+
+  await page.goto("/?localmusic=127.0.0.1:8011");
+  await page.getByRole("tab", { name: "Config", exact: true }).click();
+  await expandSection(page, "source");
+  await page.getByTestId("music-mode-otomads").click();
+  await expandSection(page, "cardset");
+  await page.getByTestId("cardset-row-otomads-cover").click();
+
+  await page.getByRole("tab", { name: "Match", exact: true }).click();
+  await page.getByTestId("mode-cpu").click();
+  // 按卡组筛选：轮播只留卡槽里还有牌的角色 ⇒ 每一回合那张牌都确实在场上（这条才是被判定的前提）
+  await page.getByLabel("filter-by-deck").check();
+  await page.getByTestId("random-fill").click();
+  await page.getByTestId("fill-cpu-deck").click();
+  await page.getByTestId("start-game").click();
+
+  const checked: string[] = [];
+  for (let turn = 1; turn <= 4; turn += 1) {
+    await expect(page.getByText(new RegExp(`turn #${turn} · turnStart`))).toBeVisible({ timeout: 30_000 });
+    const src = await page.waitForFunction(() => {
+      const list = (window as unknown as { __audios: HTMLAudioElement[] }).__audios ?? [];
+      const audio = list.find((item) => !item.paused && item.currentTime > 0);
+      return audio ? audio.src : null;
+    }, null, { timeout: 20_000 }).then((handle) => handle.jsonValue() as Promise<string>);
+    const stem = decodeURIComponent(new URL(src).pathname.split("/").pop() ?? "").replace(/\.mp3$/, "");
+
+    // 音频是哪一首 → 对应角色的卡序
+    const found = byStem.get(stem);
+    expect(found, `manifest 里没有这一条音频：${stem}`).toBeDefined();
+    const { key: characterKey, index } = found!;
+
+    // 牌桌上这个角色的那张卡（自己或对手的都算 —— 牌桌是两边共用的）
+    // `data-card-key` 只有牌桌上有（`DeckGrid`），"未使用卡牌"区没有这个属性 ⇒ 不会误取
+    const card = await page.evaluate((key) => {
+      const node = document.querySelector(`[data-card-key^="${key}-"]`);
+      return node
+        ? {
+          cardKey: node.getAttribute("data-card-key") ?? "",
+          cover: (node.querySelector("img") as HTMLImageElement | null)?.getAttribute("alt") ?? null,
+        }
+        : null;
+    }, characterKey);
+    expect(card, `场上应该有 ${characterKey} 的牌（按卡组筛选）`).not.toBeNull();
+    expect(card!.cardKey, `回合 ${turn}：放的是第 ${index} 首，场上那张牌就得是第 ${index} 张`)
+      .toBe(`${characterKey}-${index}`);
+    // 顺带把"卡面 = 那一首的封面"也钉住（用户看到的就是这张图）
+    expect(card!.cover).toBe(byKey.get(characterKey)?.covers?.[index] ?? null);
+    checked.push(`${characterKey}-${index}`);
+
+    await page.getByTestId("next-turn").click();
+  }
+  expect(checked).toHaveLength(4);
+});

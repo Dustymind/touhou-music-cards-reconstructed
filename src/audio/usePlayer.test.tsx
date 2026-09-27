@@ -373,6 +373,41 @@ describe("usePlayer", () => {
     expect(hook.result.current.entry?.[1]).toBe("おてんば恋娘");
   });
 
+  it("回合的卡面曲（D168）：`roundTrackIndex` 给哪一首就放哪一首", async () => {
+    // 摩理沙有两首：不给卡序时由种子自己挑；给了卡序就必须是它（卡面与音频要对应）
+    const hook = await renderHook(() => usePlayer(inputs({
+      currentKey: "kirisame-marisa", roundTrackIndex: 1,
+    })));
+    expect(hook.result.current.entry?.[1]).toBe("オリエンタルダークフライト");
+    expect(decodeURIComponent(hook.result.current.url ?? "")).toContain("オリエンタルダークフライト");
+  });
+
+  it("回合的卡面曲压过单曲模式的手选（对局里放哪一首由场上的牌决定）", async () => {
+    const pinnedEntry: CharacterRecord["music"][number] = ["紅魔郷", "恋色マスタースパーク", "角色曲"];
+    const hook = await renderHook(() => usePlayer(inputs({
+      currentKey: "kirisame-marisa",
+      pinned: { "kirisame-marisa": pinnedEntry },
+      roundTrackIndex: 1,
+    })));
+    expect(hook.result.current.entry?.[1]).toBe("オリエンタルダークフライト");
+  });
+
+  it("点播（`request`）仍然压过回合的卡面曲：使用者点的那一首马上放", async () => {
+    const requested: CharacterRecord["music"][number] = ["紅魔郷", "恋色マスタースパーク", "角色曲"];
+    const hook = await renderHook(() => usePlayer(inputs({
+      currentKey: "kirisame-marisa",
+      request: { key: "kirisame-marisa", entry: requested },
+      roundTrackIndex: 1,
+    })));
+    expect(hook.result.current.entry?.[1]).toBe("恋色マスタースパーク");
+  });
+
+  it("卡序越界（数据换了 / 存档旧了）⇒ 落回原来的口径，不空白也不炸", async () => {
+    const hook = await renderHook(() => usePlayer(inputs({ roundTrackIndex: 99 })));
+    expect(hook.result.current.entry?.[1]).toBe("おてんば恋娘");
+    expect(hook.result.current.error).toBeNull();
+  });
+
   it("播放失败时自动换到下一个源（运行时回退）", async () => {
     const rows = [["紅魔郷", "おてんば恋娘", "https://first/1.mp3"]];
     const tables = {

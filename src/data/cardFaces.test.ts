@@ -172,6 +172,19 @@ describe("图集可选性", () => {
     expect(resolveCardSet([UPSTREAM_SET, COVER_SET], "otomads-cover", bare).id).toBe("dairi-sd");
   });
 
+  it("D168：这一局的牌**不是按曲目给**（联机主机用原版立绘）⇒ 源封面图集回落成原版立绘", () => {
+    // 牌是主机发的：`cardIndex` 全是 0 ⇒ 封面集只会显示第一首的图，而音频放的是任意一首 ⇒ 那套素材
+    // 在这副牌上没有意义。回落只影响渲染与卡池，**用户的偏好一个字都不动**
+    expect(resolveCardSet([UPSTREAM_SET, COVER_SET], "otomads-cover", otomads, "", false).id).toBe("dairi-sd");
+    // 是 / 没说（单机、或这一局就是按曲目给）⇒ 与改动前逐字一致
+    expect(resolveCardSet([UPSTREAM_SET, COVER_SET], "otomads-cover", otomads, "", true).id)
+      .toBe("otomads-cover");
+    expect(resolveCardSet([UPSTREAM_SET, COVER_SET], "otomads-cover", otomads, "", undefined).id)
+      .toBe("otomads-cover");
+    // 用的是**本机偏好**的那套是不是封面集，与"回落到哪一套"无关：选了原版立绘就还是原版立绘
+    expect(resolveCardSet([UPSTREAM_SET, COVER_SET], "dairi-sd", otomads, "", false).id).toBe("dairi-sd");
+  });
+
   it("一套都没有时不炸（测试里 `cardSets: []` 的形态）", () => {
     expect(resolveCardSet([], "whatever", originals).id).toBe("");
     expect(availableCardSets([], originals)).toEqual([]);

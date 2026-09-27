@@ -22,7 +22,7 @@ import SkipNextRounded from "@mui/icons-material/SkipNextRounded";
 import StopRounded from "@mui/icons-material/StopRounded";
 
 import type { DataBundle } from "../../data/types";
-import { cardCount, cardFaces, resolveCardSet } from "../../data/cardFaces";
+import { cardCount, cardFaces, resolveCardSet, usesPerTrackFaces } from "../../data/cardFaces";
 import { Localization, t } from "../../i18n/localization";
 import type { CardInfo, JudgeState } from "../../game/types";
 import { filledSlots } from "../../game/types";
@@ -241,8 +241,19 @@ function GamePanelInner({ bundle, cardKeys }: GamePanelProps) {
   const dataset = useCurrentDataset(bundle);
 
   // 卡面图集跟随设置页的选择（原来写死第一套 → 设置里换图集对游戏页无效）；
-  // 源封面图集只在音MAD + 源真的给了封面时可选，选不上就回落到第一套可选的（只影响渲染，不改偏好）
-  const cardSet = resolveCardSet(bundle.shared.cardSets, cardCollection, dataset, cardRatio);
+  // 源封面图集只在音MAD + 源真的给了封面时可选，选不上就回落到第一套可选的（只影响渲染，不改偏好）。
+  //
+  // **本机偏好**下的生效图集：它决定"这副牌按不按曲目给"（`perTrackFaces`）—— 判据只认本机选了什么，
+  // **不看 `game.perTrackFaces`**（否则就成了自己咬自己的环：回落改图集 → 图集改口径 → 口径改回落 ✗）。
+  const localCardSet = resolveCardSet(bundle.shared.cardSets, cardCollection, dataset, cardRatio);
+  const perTrackFaces = usesPerTrackFaces(localCardSet);
+
+  // 渲染/卡池用的图集：**联机时牌是主机发的**（主机若用原版立绘，牌面就不是按曲目给的）⇒
+  // 这一局的 `perTrackFaces` 由状态说了算（D168）。为 `false` 时，源封面图集在这副牌上
+  // **没有意义**（`cardIndex` 全是 0 ⇒ 每张卡都只能显示第一首的封面，而音频放的是这个角色的任意一首）
+  // ⇒ 回落成原版立绘（只影响渲染与卡池，用户的偏好不动）。
+  const cardSet = resolveCardSet(
+    bundle.shared.cardSets, cardCollection, dataset, cardRatio, game.perTrackFaces);
 
   const cardFiles = useMemo(() => {
     const map: Record<string, string[]> = {};
@@ -271,7 +282,10 @@ function GamePanelInner({ bundle, cardKeys }: GamePanelProps) {
     }
     // 卡池 + 曲目互斥表一起灌进去（D108）：同一首歌只允许一个角色、同角色只允许一张卡。
     // 互斥表**按数据最大口径**建（与当前图集无关）—— 否则两端选了不同图集时互斥会不一致。
-    init(cards, buildSongConflicts(usable));
+    // 第三个参数把"这副牌按不按曲目给"写进对局状态（D168）：回合据此记答案卡，客人端据此选卡面。
+    // **客人端不写**（`undefined`）：牌是主机发的，这个口径由主机决定、随快照过来 ——
+    // 否则客人每次快照后又按自己的图集翻回去，两端会来回打摆 ✗。
+    init(cards, buildSongConflicts(usable), isClient ? undefined : perTrackFaces);
     setOrder(usable.map((character) => character.key));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataset, cardSet, init, setOrder, cardKeySignature]);

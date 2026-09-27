@@ -240,12 +240,10 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dataset, entryRequest?.key]);
 
-  // 列表页点播：把"选中的那一首"并进 pinned（播放器本来就有"角色 → 指定曲目"的机制），
-  // 于是 entry 的解析结果就是用户点的那一首；单曲模式的 pin 仍然生效，点播优先。
-  const pinnedWithRequest = useMemo(() => {
-    if (!entryRequest) return pinned;
-    return { ...pinned, [entryRequest.key]: entryRequest.entry };
-  }, [pinned, entryRequest]);
+  // 列表页点播：把"选中的那一首"作为**点播请求**交给播放层（`request`，见下面的 `usePlayer`）。
+  // D168 起它与单曲模式的手选**分开传**：对局里"放哪一首"由场上的牌决定（`roundTrackIndex`），
+  // 而点播是使用者的直接指令 —— 两者优先级不同，混在一个 `pinned` 里就分不出来了。
+  // 播放页的"当前曲目"标题仍用 `pinned`（不含点播），与改动前一致。
 
   // 每个源自己的响度表（D130 + D139）：**源在 manifest 里声明的优先**（表跟着源部署，跨宿主都不用改应用），
   // 没声明才回落到注册表里那份（相对数据集目录）。源没表 ⇒ 播放层按 1 处理。
@@ -272,12 +270,19 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
     tables: sources.tables,
     sourceOrder: sources.order,
     preset: activePreset,
-    pinned: pinnedWithRequest,
     // 对局中：忽略音乐预设（= 全曲库 ✓），并排除本局已播过的曲目 ✓
     ignorePreset: gameActive,
     // 模式 3 交给卡级判据（一卡一首），别的模式不传 ⇒ 一个字都不改
     cardEnabled: musicMode === "custom" ? cardEnabled : undefined,
     played: game.playedTracks,
+    // 单曲模式的手选（播放页特性）：对局里会被回合的卡面曲压过（见 `roundTrackIndex`）
+    pinned,
+    // 列表页点播：使用者的直接指令，压过一切（含回合的卡面曲）
+    request: entryRequest,
+    // 回合的卡面曲（D168）：牌面按曲目给的对局里，这一回合放的就是**答案卡**那一首 ——
+    // 卡面（`covers[i]`）与音频（`music[i]`）因此永远对应。它在回合开始时记进状态、随快照同步，
+    // 所以两端（以及中途抢走那张牌之后）都不会换歌。
+    roundTrackIndex: gameActive ? game.currentCardIndex : null,
     // 对局听回合角色，平时听轮播队列
     currentKey: gameActive ? game.currentKey : queue.currentKey,
     // 对局里用 (回合号, 角色) 派生的种子：两端必然选到同一首；平时用会话种子（联机时来自主机）

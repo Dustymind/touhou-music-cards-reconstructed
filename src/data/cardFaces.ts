@@ -163,6 +163,12 @@ export function availableCardSets(
  *  播放页五处**不用各记一遍偏好**（它们都从 `cardSet` 上读 `cardAspectRatio` / `cardFace`）。
  *  内置六套不能换档 ⇒ `ratio` 是 `undefined` ⇒ 原比例、行为逐字不变。
  *
+ *  `tablePerTrackFaces`（D168，只有对战页传）是**这一局**的牌面口径（`GameState.perTrackFaces`）：
+ *  联机时牌是**主机发的**，主机若用原版立绘（不是按曲目给）⇒ 客人手上的源封面图集在这副牌上
+ *  没有意义（`cardIndex` 全是 0，每张卡只能显示第一首的封面，而音频放的是这个角色的任意一首）
+ *  ⇒ `false` 时把源封面图集从可选集里**去掉**，回落到原版立绘（只影响渲染与卡池，用户的偏好不动）。
+ *  `undefined` = 不管（没对局 / 单机：本机的图集就是这一局的口径）。
+ *
  *  **返回值引用稳定**（同一个输入 ⇒ 同一个对象）：调用方（`GamePanel`）把它放进 effect 依赖，
  *  "每次都新建一个对象"会把重建卡池跑成死循环（见 `cardSetWithRatio` 的说明）。 */
 export function resolveCardSet(
@@ -170,8 +176,10 @@ export function resolveCardSet(
   selectedId: string,
   dataset: ModeDataset,
   preference: CardRatio | "" = "",
+  tablePerTrackFaces: boolean | undefined = undefined,
 ): CardSetRecord {
-  const usable = availableCardSets(sets, dataset);
+  const usable = availableCardSets(sets, dataset)
+    .filter((set) => tablePerTrackFaces !== false || !set.sourceOnly);
   const chosen = usesOwnCardFaces(dataset.mode)
     ? CUSTOM_CARD_SET
     : usable.find((set) => set.id === selectedId) ?? usable[0] ?? NO_CARD_SET;

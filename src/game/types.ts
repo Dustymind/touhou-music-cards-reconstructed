@@ -73,6 +73,24 @@ export interface GameState {
   filterByDeck: boolean;
   temporaryDisabled: Record<string, boolean>;
   currentKey: string | null;
+  /** 这一局的牌面**是不是按曲目给的**（音MAD 的 B 站封面集：一张卡 = 一首曲目，D153）。
+   *
+   *  由建卡池的那一端在 `init` 时写进状态（`usesPerTrackFaces(cardSet)`），随快照同步 ——
+   *  它决定两件事（D168）：
+   *  1. 回合要不要记 `currentCardIndex`（牌面按曲目给时才记）；
+   *  2. 客人端画不画**源封面**：主机那一局的牌不是按曲目发的（比如主机用原版立绘）⇒
+   *     "封面 = 曲目"在这副牌上不成立，源封面图集回落成原版立绘（只影响渲染与卡池）。 */
+  perTrackFaces: boolean;
+  /** 本回合**答案卡**的卡序（`currentKey` 那张牌在牌库里的 `cardIndex`）—— 音频要放它的那一首（D168）。
+   *
+   *  为什么记在状态里、而不是渲染时现算：
+   *  * **回合中途必须不变**：抢中的牌会离开牌库，现算会让曲子在中途换一首 ✗；
+   *  * **两端必须一致**：它是"这一回合放哪一首"的唯一依据，写进状态就自动同步（不用加协议字段）。
+   *
+   *  `null` = 这一局不按曲目给卡面（各端按种子取一首，与加这条规则之前逐字一致），
+   *  或这个角色的牌不在场上（没人持有 ⇒ 没有卡面要对应）。
+   *  一局里同一角色最多一张牌（D108 的自链接）⇒ 这张牌唯一。 */
+  currentCardIndex: number | null;
   /** 回合序号：联机时作为事件幂等键与快照标识 */
   turnSeq: number;
   state: JudgeState;
@@ -99,6 +117,8 @@ export function emptyState(overrides: Partial<GameState> = {}): GameState {
     filterByDeck: false,
     temporaryDisabled: {},
     currentKey: null,
+    perTrackFaces: false,
+    currentCardIndex: null,
     turnSeq: 0,
     state: "selecting",
     turnStartTimestamp: 0,

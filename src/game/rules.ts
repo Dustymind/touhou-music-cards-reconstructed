@@ -282,6 +282,8 @@ export function startGame(state: GameState, rng: Rng): GameState {
     players,
     melee: players.filter((player) => !player.isObserver).length > 2,
     currentKey: order[order.length - 1] ?? null,
+    // 还没有回合（倒计时阶段）⇒ 没有答案卡；第一张由倒计时结束后的 `nextTurn` 记
+    currentCardIndex: null,
     temporaryDisabled: {},
     playedTracks: [],
     reshuffledAtTurn: 0,
@@ -319,6 +321,9 @@ export function nextTurn(state: GameState, now = Date.now()): GameState {
   return {
     ...state,
     currentKey: found,
+    // 回合开始这一刻**记下**答案卡的卡序（D168）：牌面按曲目给时，音频就放这一首。
+    // 记完就不再看牌库 —— 抢中的牌随后会离开牌库，现算会让曲子中途换一首 ✗
+    currentCardIndex: state.perTrackFaces ? answerCardOf(state, found)?.cardIndex ?? null : null,
     turnSeq: state.turnSeq + 1,
     state: found === null ? "finished" : "turnStart",
     turnStartTimestamp: now,
@@ -327,6 +332,21 @@ export function nextTurn(state: GameState, now = Date.now()): GameState {
     givesLeft: 0,
     winner: found === null ? state.winner : null,
   };
+}
+
+/** 场上（所有玩家的**牌库**）里 `key` 的那张牌；没有就是 `null`。
+ *
+ *  "答案卡"就是它：一局里同一角色最多一张牌（D108 的自链接），所以最多一张 ——
+ *  它既是抢拍要点的那张，也是 `currentCardIndex` / 音频要跟的那张（D168）。
+ *  只看牌库、不看已得：收进"已得"的牌不在桌上，没有卡面要对应。 */
+export function answerCardOf(state: GameState, key: string | null): CardInfo | null {
+  if (key === null) return null;
+  for (const player of state.players) {
+    for (const card of player.deck) {
+      if (card !== null && card.characterKey === key) return card;
+    }
+  }
+  return null;
 }
 
 // ---------------------------------------------------------------- 判定
@@ -513,6 +533,8 @@ export function stopGame(state: GameState): GameState {
   return {
     ...state,
     state: "selecting",
+    // 回选牌阶段：没有回合了 ⇒ 也没有答案卡（下一次 `nextTurn` 会重新记）
+    currentCardIndex: null,
     players: state.players.map((player) => ({
       ...player, collected: [], confirmStart: false, confirmNext: false,
     })),

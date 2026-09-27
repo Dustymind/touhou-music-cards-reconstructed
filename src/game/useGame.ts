@@ -46,7 +46,10 @@ interface GameSlice {
   /** 本地玩家在牌桌上的位置（本地/CPU 模式是 0） */
   myIndex: PlayerIndex;
 
-  init: (pool: CardInfo[], conflicts?: SongConflicts) => void;
+  /** 灌入卡池与曲目互斥表。`perTrackFaces` = 这一局的牌面**按曲目给**（音MAD 的源封面集）——
+   *  它写进 `GameState` 并随快照同步，决定回合记不记答案卡、客人端画不画源封面（D168）。
+   *  **`undefined` = 不动这个字段**（联机客人端：牌是主机发的，口径由主机随快照下发）。 */
+  init: (pool: CardInfo[], conflicts?: SongConflicts, perTrackFaces?: boolean) => void;
   setMode: (mode: MatchMode) => void;
   setTraditional: (traditional: boolean) => void;
   setCpu: (patch: Partial<CpuSettings>) => void;
@@ -100,11 +103,18 @@ export const useGame = create<GameSlice>((set, get) => {
     cpu: DEFAULT_CPU_SETTINGS,
     myIndex: 0,
 
-    init(pool, conflicts = {}) {
+    init(pool, conflicts = {}, perTrackFaces) {
       const game = get().game;
       const sized = rules.adjustDeckSize(game, game.deckRows, game.deckColumns);
       const players = sized.players.map((player, index) => ({ ...player, name: index === 0 ? "You" : "Opponent" }));
-      set({ pool, conflicts, game: syncDeck({ ...sized, players }) });
+      // `undefined` = 保留状态里现有的口径（联机客人端不覆盖主机下发的值）
+      set({
+        pool,
+        conflicts,
+        game: syncDeck({
+          ...sized, players, ...(perTrackFaces === undefined ? {} : { perTrackFaces }),
+        }),
+      });
     },
 
     setMode(mode) {
