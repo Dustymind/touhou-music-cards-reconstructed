@@ -16,7 +16,7 @@
  *    图集菜单里"一首一张"的多重卡牌天然退化成 1，不需要任何模式专用补丁。
  */
 import { stableHash } from "../rng";
-import { sourceRelativeUrl, versionedUrl } from "../music/manifestUrl";
+import { canonicalPathEncoding, sourceRelativeUrl, versionedUrl } from "../music/manifestUrl";
 import { isRecord } from "../persist";
 import type { AlbumRecord, CharacterRecord, DataBundle, DataIndex, Extra, ModeDataset, MusicEntry } from "./types";
 import { bits, fingerprint } from "./packSnapshot";
@@ -118,8 +118,9 @@ export function parseCustomManifest(payload: unknown, manifestUrl: string): Cust
     const entry: MusicEntry = [album.name, card.title, CUSTOM_EXTRA];
     if (card.author !== undefined) entry.push(card.author);   // 空作者不入列表（Q7），非空才写第 4 位
 
-    // 卡面与音频都在**校验阶段**解析成绝对地址：相对 ⇒ 按清单目录拼，绝对 ⇒ 原样（C3）
-    const cover = sourceRelativeUrl(manifestUrl, card.cover);
+    // 卡面与音频都在**校验阶段**解析成绝对地址：相对 ⇒ 按清单目录拼，绝对 ⇒ 原样（C3）。
+    // 路径编码同时收敛到规范形式（D169）：音频要带 `Range` 取，非规范编码会被边缘节点 307 掉再 500
+    const cover = canonicalPathEncoding(sourceRelativeUrl(manifestUrl, card.cover));
     characters.push({
       key,
       name: card.name,
@@ -128,7 +129,8 @@ export function parseCustomManifest(payload: unknown, manifestUrl: string): Cust
       covers: [cover],
       searchNames: [card.name],
       music: [entry],
-      audio: [versionedUrl(sourceRelativeUrl(manifestUrl, card.audio), card.revision ?? fallbackRevision)],
+      audio: [versionedUrl(canonicalPathEncoding(sourceRelativeUrl(manifestUrl, card.audio)),
+        card.revision ?? fallbackRevision)],
     });
   }
   return { albums, characters };

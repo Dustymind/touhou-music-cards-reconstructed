@@ -11,6 +11,8 @@
 import { expect, test, type Page } from "@playwright/test";
 import { expandSection } from "./ui";
 import { captureAudio, waitForPlaying } from "./audio";
+// 应用建媒体地址时会做一层路径编码收敛（D169）⇒ 断言也按同一个函数比，而不是比清单里的原字符串
+import { canonicalPathEncoding } from "../src/music/manifestUrl";
 
 const HELPER_MANIFEST = "http://127.0.0.1:8011/manifest.json";
 /** 新增曲目不写作者 ⇒ 磁盘名就是曲名 ⇒ 与清单行按 (专辑, 曲名) 直接对上 */
@@ -98,7 +100,9 @@ test("源里多一首曲目 ⇒ 应用里出现、统计跟着涨、能选中并
   await page.getByRole("tab", { name: "Player", exact: true }).click();
   await expect(page.getByTestId("now-title")).toHaveText(NEW_TITLE);
   const playing = await waitForPlaying(page);
-  expect(playing.src.startsWith(donorUrl)).toBe(true);
+  // 地址就是清单里那一行（D169：路径编码收敛到 RFC 3986 规范形式 `sub-delims` 直接出现，
+  // 所以两边都过一遍同一个函数再比 —— 资源没变，变的只是编码等价类里的代表）
+  expect(playing.src.startsWith(canonicalPathEncoding(donorUrl))).toBe(true);
 });
 
 test("老清单（不带这两个键）⇒ 与今天逐字一致；源给的正是同一份数据时，指纹也一样", async ({ page }) => {

@@ -8,10 +8,11 @@ import type { SourceRecord } from "../data/types";
 import { trackId } from "../data/types";
 import { parsePackSnapshot, type PackSnapshot } from "../data/packSnapshot";
 import { parseCustomManifest, type CustomManifest } from "../data/customManifest";
-import { normalizeManifestUrl, sourceRelativeUrl, tableRevision, versionedUrl } from "./manifestUrl";
+import { canonicalPathEncoding, normalizeManifestUrl, sourceRelativeUrl, tableRevision,
+  versionedUrl } from "./manifestUrl";
 
 // 再导出：调用方（含测试）仍然只认 `music/sources.ts` 这一个入口
-export { normalizeManifestUrl, sourceRelativeUrl, tableRevision, versionedUrl };
+export { canonicalPathEncoding, normalizeManifestUrl, sourceRelativeUrl, tableRevision, versionedUrl };
 
 type SourceStatus = "idle" | "loading" | "ready" | "error";
 
@@ -91,8 +92,14 @@ export function buildEntries(rows: unknown, manifestUrl = "", revision = ""): Ma
     if (typeof url !== "string" || url.length === 0) continue;
     // 只存**本来的键**（一行一条 ✓）。归一化匹配交给 `resolveTrack` 的兜底扫描 ——
     // 早先在这里插过"归一化别名"，结果 `entries.size` 从 24 变 48 ✗，界面上的条目数就错了（D96）
+    // 路径编码收敛到 RFC 3986 的规范形式（D169）：非规范编码（`%28` 这种）会让 Cloudflare 的静态
+    // 资源站先回 307，而**带 `Range`** 的跟随请求会 500 ⇒ `<audio>` 整首放不出来。
+    // 收敛后请求头一次命中；源写成哪种形式都能救回来（本机助手实测两种写法都 206）
     const resolved = manifestUrl ? sourceRelativeUrl(manifestUrl, url) : url;
-    entries.set(trackId(album, title), versionedUrl(resolved, typeof own === "string" ? own : revision));
+    entries.set(
+      trackId(album, title),
+      versionedUrl(canonicalPathEncoding(resolved), typeof own === "string" ? own : revision),
+    );
   }
   return entries;
 }
