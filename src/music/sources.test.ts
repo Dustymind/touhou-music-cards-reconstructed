@@ -211,13 +211,17 @@ describe("sources resolver", () => {
       .toBe("https://cdn.example.com/media/otomads/a.mp3");
   });
 
-  /** D169：路径里"多编了一层"的 `sub-delims` 要还原成 RFC 3986 的规范写法。
+  /** D169：路径里"多编了一层"的那 5 个字符要还原成裸写。
    *
    *  病灶（真 CDN 实测，191 首里 9 首中招）：清单用 `urllib.parse.quote()` 的默认安全集 ⇒
    *  `(` `)` `!` `'` `*` 被编成 `%28…`；Cloudflare 的静态资源站对这种非规范路径先回 **307**，
    *  而**带 `Range`**（`<audio>` 一律带）的跟随请求 **500** ⇒ 整首放不出来。
-   *  规范写法 + `Range` ⇒ **206** ✓（同一个资源，只是编码等价类里换了代表）。 */
-  it("媒体地址的路径编码收敛到规范形式（D169）：`sub-delims` 还原，别的字节一个不动", () => {
+   *  裸写 + `Range` ⇒ **206** ✓（同一个资源，只是编码等价类里换了代表）。
+   *
+   *  ⚠️ 还原的集合是**逐字符量出来的**（`! ' ( ) *`），不是"RFC 允许"就照搬：`&` 与 `:` 在 RFC 里
+   *  同样允许裸写，但这个边缘节点把**编码形式**当规范形式 —— 按 RFC 全还原时 191 首里有 **16 首**
+   *  反而坏掉（15 首带 `&`、1 首带 `:`）。这条用例把两边的字符都钉死。 */
+  it("媒体地址的路径编码收敛（D169）：只还原 ! ' ( ) *，别的字节一个不动", () => {
     const rows169 = [
       // 真中招的形状：`( )`、`!`、`'`、`*`（以及 `|` —— 它不是 pchar，必须留着编码）
       ["otomads", "a", "media/otomads/%E6%A6%86%E6%9C%A8%E5%8D%8E%20-%20%E6%AD%8C%28mix%29.mp3"],
@@ -227,6 +231,11 @@ describe("sources resolver", () => {
       ["otomads", "e", "media/otomads/x%20-%20a%7Cb.mp3"],
       // 这些**不许**被还原：空格、编码过的分隔符、非 ASCII 的每个字节
       ["otomads", "f", "media/otomads/a%20b%2Fc%3Fd%23e%25f.mp3"],
+      // `&`/`:` **反过来**：真 CDN 上裸着写会被 307 掉（15/15 的 `&` 曲目、1/1 的 `:` 曲目当场 500），
+      // 编着写才是那里的规范形式 ⇒ 一个都不许动
+      ["otomads", "g", "media/otomads/x%20%26%20y%20-%20a%3Ab.mp3"],
+      // 没量到的（`$ + , ; = @`）保守处理：也不动
+      ["otomads", "h", "media/otomads/a%24b%2Bc%2Cd%3Be%3Df%40g.mp3"],
     ];
     const tables = { local: { id: "local", status: "ready" as const, entries: buildEntries(rows169) } };
     const of = (title: string) => tables.local.entries.get(trackId("otomads", title))!;
@@ -237,6 +246,8 @@ describe("sources resolver", () => {
     expect(of("d")).toBe("media/otomads/x%20-%20**%E5%B0%91%E5%A5%B3.mp3");
     expect(of("e")).toBe("media/otomads/x%20-%20a%7Cb.mp3");          // `|` 不是 pchar ⇒ 留着
     expect(of("f")).toBe("media/otomads/a%20b%2Fc%3Fd%23e%25f.mp3");  // 全都不动
+    expect(of("g")).toBe("media/otomads/x%20%26%20y%20-%20a%3Ab.mp3");  // `&`/`:` 保持编码
+    expect(of("h")).toBe("media/otomads/a%24b%2Bc%2Cd%3Be%3Df%40g.mp3");  // 没量到的一律不动
     // 幂等：规范形式再过一遍还是它（清单里已经是规范写法时逐字不变）
     for (const row of rows169) {
       expect(canonicalPathEncoding(of(row[1]!))).toBe(of(row[1]!));
