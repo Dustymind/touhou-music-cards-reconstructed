@@ -32,6 +32,36 @@ describe("sources resolver", () => {
     expect(resolveTrack(tables, ["s1"], "紅魔郷", "おてんば恋娘", failed)).toBeNull();
   });
 
+  /** 真实曲包里那几种"作者/曲名自带连字符"的形状 —— 兜底匹配**必须**照样命中（2026-09-27 逐条复核过
+   *  真 manifest：191/191 条都解析得出地址）。这些形状先前被怀疑过（"去 `作者 - ` 前缀"会失手），
+   *  所以在这里钉死：判定用的是"磁盘名以 `作者 - 曲名` **结尾**"（见 `sources.ts` 里那条注释），
+   *  与作者长什么样无关。
+   *
+   *  ⚠️ 报"这几条解析不出来"之前，先照这条用例的口径复核 —— 上一轮就是拿"整串归一化相等"这种
+   *  **简化判据**去比，把 4 条本来好好的曲目误报成了播不出来 ✗。 */
+  it("作者/曲名自带连字符的真实形状照样解析（音MAD 曲包里的边界）", () => {
+    const shapes: [album: string, title: string, author: string][] = [
+      // 作者以 `-` 开头：`^[^-]…` 去前缀在位置 0 就失手
+      ["otomads", "[合作单品] 信仰是为了萨尼铁塔", "-摇摇铃仙- & 腌西瓜瓜瓜 & y的自然对数"],
+      // 作者里带连字符（无空格）：`[^-]` 跨不过去
+      ["otomads", "【铁道音MAD】放在降弓用刑处轴温很快就会升高 ~ 狂气的CR（2021东方乘车录单品）",
+        "Satani_ZC & 天空海Skyocean & ItsZTChun & Rendering-Liu & 专治各种乱入"],
+      // **曲名自己**含 ` - `：去前缀会把曲名切掉一半（`Otto Remote - xHGNz` → `xhgnz`）
+      ["otomads", "Otto Remote - xHGNz", "xHGNz_"],
+      ["otomads", "【铁道音mad合作单曲】TRAINMAD's 6 - Native Faith", "佛山公交_Official_伪"],
+    ];
+    // 磁盘名 = `作者 - 曲名`（音MAD 数据仓库的命名口径），manifest 的键就是它
+    const diskRows = shapes.map(([album, title, author], index) =>
+      [album, `${author} - ${title}`, `https://a/${index}.mp3`]);
+    const tables = { local: { id: "local", status: "ready" as const, entries: buildEntries(diskRows) } };
+
+    for (const [album, title] of shapes) {
+      expect(resolveTrack(tables, ["local"], album, title)?.url, title).toMatch(/^https:\/\/a\//);
+    }
+    // 另一张专辑里的同名行不许被串上（兜底扫描仍然按专辑过滤）
+    expect(resolveTrack(tables, ["local"], "紅魔郷", "Otto Remote - xHGNz")).toBeNull();
+  });
+
   it("加载失败的源不参与解析，状态被记录", async () => {
     const fetcher = vi.fn(async (input: RequestInfo | URL) => {
       if (String(input).includes("bad")) return new Response("no", { status: 500 });
