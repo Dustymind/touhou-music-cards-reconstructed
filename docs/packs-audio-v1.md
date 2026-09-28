@@ -39,9 +39,9 @@
   写 `bitrate = 128` 会把这一首**整首**按 CBR 128 kbps 重编码（≈21 MB）；**能与裁剪同时用**
   （先按区间解码，再按码率编码）。范围 32–320，越界或非整数直接报错。
 - 两个键**都只在抓取/裁剪期存在**：运行时（`characters.json` / 前端 / 播放器）**不读它们**，部署时播放的就是裁好的文件。
-- 校验（`tmc.packs.load_packs` + `tmc.validate.check_packs`）：格式必须严格匹配 `^\d{1,2}:\d{2}:\d{2}\.\d{3}$`；
-  两者都在时必须 `stop > start`；`stop` 超过文件时长给**警告**（ffmpeg 会静默截断）；`source` 必须是 `http(s)://`。
-- 已知坑：`tools/src/tmc/packs.py` 现在**只读它认识的键，未知键静默丢弃** —— 所以必须显式解析这三个键，
+- 校验（`tmc.packs.load_packs` + `tmc.validate.check_packs`）：格式必须严格匹配 `^\d{1,2}:[0-5]\d:[0-5]\d\.\d{3}$`（代码比分\秒还卡了 ≤59）；
+  两者都在时必须 `stop > start`；`stop` 超过文件时长**目前没有检查**（既不报错也不警告 —— 曾经想给警告，没实现）；`source` 必须是 `http(s)://`。
+- 已知坑：`tools/src/tmc/packs.py` 对**未知键直接报错**（`_reject_unknown()`） —— 所以必须显式解析这三个键，
   否则 TOML 里写了也等于没写。
 
 ```toml
@@ -117,7 +117,7 @@ CI 与别人的机器会直接失败。"音频齐不齐"由 `audio:fetch` 自己
 
 | 依赖 | 管理方式 | 说明 |
 |---|---|---|
-| `yt-dlp` | 加进 `tools/pyproject.toml` 的 `dependencies`，用 **Python API**（`yt_dlp.YoutubeDL`）而不是 subprocess | "与 uv 一起管理"；`uv.lock` 是**跟踪文件**，升级后会变脏，需一并提交 |
+| `yt-dlp` | 加进**数据仓库** `data/otomads/tools/pyproject.toml` 的 `dependencies`，用 **Python API**（`yt_dlp.YoutubeDL`）而不是 subprocess | "与 uv 一起管理"；`uv.lock` 是**跟踪文件**，升级后会变脏，需一并提交 |
 | `ffmpeg` | 系统二进制，无法用 uv 管 | 命令启动时探测；缺失/过旧 ⇒ 明确报错 |
 
 - **运行前检查更新（并更新）才能继续**：先 `uv lock --upgrade-package yt-dlp`，再 `uv sync`，成功才继续抓取。
@@ -164,7 +164,7 @@ ffmpeg -y -ss <start-BACK> -i <原件> -ss <BACK> -t <stop-start> -c:a libmp3lam
 - 首帧 RMS 与真值一致（冷启动那一帧回来了）；逐样本残差**比 `-c copy` 还小**；
 - 代价一：**二次有损**（`.raw` 本身已是 mp3 ⇒ 这一遍是第二代；同一首实测逐样本残差 5.7%）。
   用最高档 V0 把这一遍压到最小，且**永远从 `.raw/` 重裁**，所以反复调区间也不会叠损；
-- 代价二：每首 ≈ 0.4–0.6 秒（`-c copy` 是 0.06 秒），只对**带区间的曲目**付 —— 现在 16 首；
+- 代价二：每首 ≈ 0.4–0.6 秒（`-c copy` 是 0.06 秒），只对**带区间的曲目**付 —— 现在 **36** 首；
 - 体积几乎不变：同一首 1581 vs 1586 KiB、另一首 967 vs 980 KiB。
 
 **不重采样**：源是 44.1 / 48 kHz（84 份原件里 38 / 46），都是 mp3 原生支持的采样率 ——
@@ -185,7 +185,7 @@ ffmpeg -y -ss <start-BACK> -i <原件> -ss <BACK> -t <stop-start> -c:a libmp3lam
 ## 6. 与既有机制的接口（四条硬约束）
 
 1. **解析**：`packs.py` 必须显式读这三个键（现在未知键静默丢弃）。
-2. **`contentHash` 纳入裁剪与来源**（用户第 4 条决定）：`build.py` 的 `content_hash(characters, albums)`
+2. **`contentHash` 纳入裁剪与来源**（用户第 4 条决定）：`build.py` 的 `content_hash(characters, albums, pack_audio)`
    扩成把每条的 `(album, title, start_time, stop_time, source)` 也算进去 —— 于是"两端裁剪/抓取不同"
    会在**握手期**被拒绝，而不是等抢答时发现起点不一样。代价：改一条 trim 就要两端同步数据（本来也该如此）。
 3. **响度缓存必须失效**：`otomads.measure_loudness`（数据仓库）的缓存键是**文件名 stem**
@@ -289,6 +289,9 @@ BV 号原先散在三处：`tools/ingest_otomads.py` 的 `ROWS`（61 条）、`t
   并让响度脚本的 glob 跟着变 —— 单独排期。
 
 ## 12. 实现结果（D107）
+> 本节是 **D107 落地当时**的记录：下表里的工具路径（`tools/src/tmc/...`）在当时是对的 ——
+> **D130 已把本地源助手 / 抓取裁剪 / 响度与录入工具整体搬去数据仓库**（`data/otomads/tools/src/otomads/`）。
+> 要按路径找文件请用数据仓库那份。
 
 | 位置 | 做了什么 |
 |---|---|
@@ -299,7 +302,7 @@ BV 号原先散在三处：`tools/ingest_otomads.py` 的 `ROWS`（61 条）、`t
 | `tools/src/tmc/loudness.py` | 从 `measure_loudness.py` 抽出的可调用核心；顺手修掉"`reset` 的键没被删"与"已删文件的旧键不清" |
 | `tools/src/tmc/fetch_audio.py` | 新增：依赖检查、yt-dlp 更新策略、幂等状态、下载、裁剪、硬链接去重、顺带量响度、汇总与退出码 |
 | `tools/pyproject.toml` + `uv.lock` | 加 `yt-dlp` 依赖（uv 管理；升级会改 lock，属预期） |
-| `data/packs/otomads.toml` | 84 条回填 `source`（见 §9；当时还是单文件 —— D109 之后曲目在 `data/packs/otomads/*.toml` 一角色一份，见 `data/packs/README.md`） |
+| `data/packs/otomads.toml` | 84 条回填 `source`（见 §9；当时还是单文件 —— D109 之后曲目在 `data/otomads/packs/otomads/*.toml` 一角色一份，见 `data/packs/README.md`） |
 | `public/data/index.json` | `contentHash` 从 `d5fd15d4…` 变成 `93bdb1a9…` —— 这正是"音频口径进握手"的效果 |
 | 测试 | `tools/tests/test_pack_audio.py`；Python 测试 33 → **71** |
 
@@ -324,7 +327,7 @@ BV 号原先散在三处：`tools/ingest_otomads.py` 的 `ROWS`（61 条）、`t
 
 | 位置 | 做了什么 |
 |---|---|
-| `tools/src/otomads/fetch_audio.py` | `render()` 改成三段式（`-ss <start−0.5>` 粗定位 → 输出侧 `-ss 0.5` 丢预热段 → `-t` → `libmp3lame -q:a 0`）；新增常量 `TRIM_ENCODER` / `TRIM_WARMUP` / `RENDER_VERSION` / `LINK_RENDER`；状态签名加 `render` 字段 |
+| `data/otomads/tools/src/otomads/fetch_audio.py` | `render()` 改成三段式（`-ss <start−0.5>` 粗定位 → 输出侧 `-ss 0.5` 丢预热段 → `-t` → `libmp3lame -q:a 0`）；新增常量 `TRIM_ENCODER` / `TRIM_WARMUP` / `RENDER_VERSION` / `LINK_RENDER`；状态签名加 `render` 字段 |
 | 同上（幂等） | **渲染口径进 `fresh` 判定** —— 否则旧 `outHash` 仍然匹配，16 首会被全部跳过（"改了代码但音频没变"）。未裁剪的曲目签名位留空，不被连累 |
 | `tools/tests/test_pack_audio.py` | **+5**（100 → 105）：命令形状（不许 `-c copy`、两次 `-ss` 的位置与数值、`-t`、编码器）、回退在文件头截断、只给 start 时不给 `-t`、渲染口径作废旧裁剪而不作废硬链接、**真跑 ffmpeg 的白噪精度用例**（时长恰为请求值 + 首帧不许是坏的） |
 | `.music/` 本地曲库 | 16 首带区间的成品**全部重裁**（从各自的 `.raw/` 离线重裁，不重新下载）；状态里全部记成 `render = "encode-v1"` |
@@ -450,7 +453,7 @@ if is_anthology:
 |---|---|
 | 数据仓库 `packformat.py` | 新增 `media_revision([(名字, 路径), …])`：**名字 + 字节数 + mtime** 的 sha1 前 16 位。故意不读文件内容（86 首要哈希 370 MB，不值当） |
 | 数据仓库 `local_source.py` | manifest 新增顶层 `revision`（整表）**与每行第 4 位**（逐曲）；新增 `library_files()`（带路径的扫描，`scan_library` 改成它的投影） |
-| 数据仓库 `stage_media.py` | `build_manifest(..., revisions=, revision=)` 同样写这两处；`pack` 从文件 stat 算 |
+| 数据仓库 `stage_media.py` | `build_manifest(..., revisions=, revision=)` 同样写这两处；`pack` 从**内容哈希**算（`packformat.content_revision`；stat/mtime 口径只剩本机助手那侧） |
 | 主仓库 `sources.ts` | `tableRevision(payload)` 读顶层版本号；`versionedUrl()` 拼 `?v=`（已有查询串用 `&`，值 `encodeURIComponent`）；`buildEntries(rows, manifestUrl, revision)` 里**行里第 4 位优先、顶层兜底** |
 | 主仓库 `public/_headers` | 自托管形态下 `/manifest.json` 与 `/loudness/*` 明确 `max-age=0, must-revalidate`（清单被压住的话，换不换 URL 都白搭） |
 
@@ -472,6 +475,8 @@ if is_anthology:
 反过来说，如果给它们硬算一个"整表内容哈希"，**数据集一重建就会让 368 首原曲全部换 URL** —— 得不偿失。
 
 ### 5. 验证
+
+> 本节数字是**落地当时**的实测值，不是现状 —— 现状条数只在 [`README.md`](README.md) 的现状表维护。
 
 - 数据仓库 pytest **112 passed**（109 → +3：助手两条、stage_media 一条）；主仓库 `pnpm test` **752 passed**（+10 = 5 条 × 双引擎）、`pnpm typecheck` ✓。
 - **真起了一次助手**（`pnpm local`）实测：`/manifest.json` 返回 `Cache-Control: no-store`，
@@ -514,7 +519,7 @@ if is_anthology:
 | 音MAD 音频 / 响度表 | 运行时 | 铺源 |
 | 原曲那 368 首 | 构建期 | 重跑 + 重新部署前端（**C 不管这个**） |
 
-**症状很好认**：设置页「源状态」那一行数的是 **manifest 的条目数**（今天 86）—— 在源里加一首，
+**症状很好认**：设置页「源状态」那一行数的是 **manifest 的条目数**（今天 **191**）—— 在源里加一首，
 它会变成 **87**，但**曲目选不到**：`src/**` 全程遍历 `dataset.characters[].music`，而源只提供地址
 （`resolveTrack` 只做 `(专辑, 曲名) → URL`）。CI（`.github/workflows/deploy-pages.yml`）只跑
 `pnpm install && pnpm build`（不装 Python、不拉 submodule）⇒ "只在数据仓库改"这条路走不通。
@@ -586,7 +591,7 @@ if is_anthology:
    **不会**被握手拦住 —— 今天也拦不住（D143 之前更拦不住）。
 
 **原曲那份哈希没变**（还是构建期那个 sha256）：原曲没有"源给的数据"这回事。
-**协议版本不动**（还是 4）：线上形状没变，变的是 otomads 哈希的**取值**——那本身就是"数据不同"的判据，
+**当时协议版本没动**（D145 落地时是 4；**现为 v6**）：线上形状没变，变的是 otomads 哈希的**取值**——那本身就是"数据不同"的判据，
 不一致照样在握手期被拒。
 
 ### 5. 兜底与中间态
@@ -604,11 +609,11 @@ if is_anthology:
 
 - **本机助手**：改了代码即是 ✓（每次请求现读 `packs/`）；
 - **Release 归档 / 自托管**：归档已重打（`manifest.json` 带这两个键），自托管的人重取一次即可；
-- **项目 CDN**（默认源）：**要铺一次** —— D148 起由 **Cloudflare Pages 的 Git 集成**自己构建
+- **项目 CDN**（默认源）：**要铺一次** —— **D150 起由数据仓库的 `.github/workflows/publish.yml`**（GH Actions：`build_cdn_site.py` → `wrangler deploy`）构建部署
   （连的是数据仓库，构建命令 `python3 tools/build_cdn_site.py`：取它 Release 里的归档 → 自检 →
   解到 `dist/`；详见 `deploy/README.md` §A.3），不再手抄那几十 KB。老清单只会走兜底 ——
   **不会坏，但等于没改**；构建里的 `stage_media review` 不过就**不铺**（构建失败、线上保持原样），
-  所以"铺没铺上"不靠人肉核对。数据仓库那条 `deploy-cdn`（wrangler 直传）留着当回滚手段。
+  所以"铺没铺上"不靠人肉核对。（早先的 CF Git 集成与数据仓库那条 `deploy-cdn` 都已退场，不再是回滚手段。）
 
 ### 7. 要接受的代价（用户已认）
 

@@ -93,7 +93,8 @@ interface SessionConfigWire {
 ## 一致性自检
 
 `stateDigest(state)` 把状态压成一行：`state` / `turnSeq` / `currentKey` / `givesLeft` / `winner` /
-`mode` / `gameSeed` / 牌型尺寸 / **牌面口径与答案卡**（`perTrackFaces` / `currentCardIndex`，D168）/
+`mode` / `gameSeed` / `filter`（`filterByDeck`，`src/net/protocol.ts`）/ 牌型尺寸 /
+**牌面口径与答案卡**（`perTrackFaces` / `currentCardIndex`，D168）/
 双方牌库与已得 / 抢拍记录。联机页把它挂在 `data-testid="net-digest"` 上，
 e2e 逐回合比对两端摘要 —— 不一致就说明协议或随机派生分叉了。
 

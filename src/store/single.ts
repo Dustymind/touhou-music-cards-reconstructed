@@ -24,7 +24,8 @@ const EXTRAS_SET = new Set<string>(EXTRAS);
 
 const FRESH: SingleTrackState = { enabled: false, pins: {}, disabledCharacters: {} };
 
-/** 手选条目：3 元（专辑 / 曲目 / 附加信息）或 4 元（第 4 位是**可选作者**，音MAD 那批基本都有）。 */
+/** 手选条目：3 元（专辑 / 曲目 / 附加信息）/ 4 元（第 4 位是**可选作者**，音MAD 那批基本都有）/
+ *  5 元（第 5 位是 `authors` 字符串数组 —— D135 起跟着存档走）。 */
 function isEntry(raw: unknown): raw is MusicEntry {
   return Array.isArray(raw) && raw.length >= 3 && raw.length <= 5
     && typeof raw[0] === "string" && typeof raw[1] === "string"

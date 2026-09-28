@@ -98,7 +98,9 @@ public/data/sources/*.json         # 三份镜像表原样复制（它们本来�
 | 3 | `originals.toml` **不得**含 `kind = "local"` | 本地曲库只服务音MAD；混进来会让原曲莫名其妙依赖本机助手 |
 | 4 | 两份注册表的 `id` 不得冲突 | 同名不同表会让人看不懂"这个开关到底在关哪个" |
 
-**保留** `applyLocalManifestUrl()`（`?localmusic=` 部署覆盖）与单端口部署的 `/manifest.json` 代理 ——
+**保留** `applyManifestOverrides()`（`?localmusic=` 部署覆盖）与单端口部署的 `/manifest.json` 代理 ——
+（这个函数后来**改过名与签名**：当时叫 `applyLocalManifestUrl()`，现在收 `sources` 与
+`{ local, custom }` 两个覆盖 —— `src/music/sources.ts:59`，调用点 `src/music/useSources.ts:36`。）
 那是部署参数，不是模式补丁。D141 起它的用途更明确：默认源在 CDN 上，本机开发/自建素材靠这个覆盖指回去。
 
 ## 6. 不进哈希（明确的约定）
@@ -149,6 +151,8 @@ public/data/sources/*.json         # 三份镜像表原样复制（它们本来�
 
 - `tmc.validate` 的 `check_source_registry()` 按模式跑，并加了契约 §5 的四条不变量
   （每模式至少一个默认启用的源 / otomads 恰好一个 local 且默认开 / originals 不得含 local / 两表 id 不冲突）。
+  **后续**：加了自定义模式与音MAD 响度表之后，现在是 **17 个**（`tools/src/tmc/build.py:318-344`）——
+  本条按"落地当时"读。
 - 生成物从 12 个文件变 **14 个**（多出原曲与音MAD 各自的 `sources.json`）。
 
 **前端**：
@@ -162,7 +166,8 @@ public/data/sources/*.json         # 三份镜像表原样复制（它们本来�
 | `src/ui/shell/AppShell.tsx` | `useSources(dataset.sources, 当前模式那把覆盖, …)` |
 | `src/ui/panels/config/SourceSection.tsx` | 用 `dataset.sources`；删 `forced`（不再有"强制"标记）；本地地址栏只在**本数据集有本地源**（= 音MAD）时出现；一个启用的源都没有时给一行提示 |
 
-**验证**：`pnpm data:check` 无漂移 ✓、`pnpm data:validate` 通过 ✓、`uv run pytest` **84 passed** ✓、
+**验证**（下面是**落地当时**的实测数字，不是现状 —— 现状条数见 [`README.md`](README.md) 的现状表）：
+`pnpm data:check` 无漂移 ✓、`pnpm data:validate` 通过 ✓、`uv run pytest` **84 passed** ✓、
 `pnpm typecheck` ✓、`pnpm test` **550 passed**（275 条 × chromium + firefox）✓、
 `pnpm e2e` **76 passed + 1 skipped**（chromium 34 / firefox 33+1 / mobile 9）✓ ——
 新增 `e2e/mode-separation.spec.ts` 的"音MAD 模式下不再下载原曲镜像表"（原曲侧有请求、切到音MAD 后**一次都没有**）。

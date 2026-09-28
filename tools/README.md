@@ -3,7 +3,7 @@
 
 ```bash
 UV_CACHE_DIR=.uv/cache uv sync          # 建立 tools/.venv（已不再依赖 yt-dlp）
-UV_CACHE_DIR=.uv/cache uv run pytest    # 数据/规则测试（当前 64 条）
+UV_CACHE_DIR=.uv/cache uv run pytest    # 数据/规则测试（当前 83 条）
 git -C .. submodule update --init data/otomads   # 音MAD 数据（可选；没有它曲包相关用例会 skip）
 ```
 

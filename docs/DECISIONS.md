@@ -1,65 +1,16 @@
-
----
-
-## D170 许可分层：代码 MIT、字体 OFL、第三方署名随产物走；面次参照表单独标 CC-BY-NC-SA-3.0（2026-09-28）
-
-**结论**：给仓库补齐许可体系，按**聚合**处理而不是一句 "MIT" 了事：
-
-- 自己的代码与文档 → **MIT**（`LICENSE` + `package.json` 的 `license` 字段）。
-- `public/fonts/Inconsolata-Medium.ttf` → 保持 **SIL OFL-1.1**（原样分发 ⇒ Reserved Font Name 不触发）。
-- 打进产物的第三方 npm 包（**31 个**：28 MIT + 3 BSD-3-Clause）与 Google Material Icons（Apache-2.0）
-  → `THIRD-PARTY-NOTICES.md`；**同一份内容复制进 `public/THIRD-PARTY-NOTICES.txt`**，随 `dist/` 分发。
-- 逐路径的权威映射写成 `REUSE.toml`，用 `uvx --from reuse reuse lint` 校验。
-- `data/meta/stage-cast.tsv` **保留提交**，但单独标成 **`CC-BY-NC-SA-3.0`**（方案 B）。
-- 上游授权凭据（`docs/permissions/`）用自定义的 `LicenseRef-Permission-Evidence` 标记。
-
-**理由**
-
-1. 本仓库是**聚合**：代码、第三方字体、汇编数据各持各的许可，没有单一 SPDX 表达式能描述整仓，
-   所以逐路径声明（REUSE 规范）而不是一句 "MIT"。
-2. **署名必须跟着分发副本走**：MIT 与 BSD-3-Clause 都要求在分发副本里保留版权与许可声明，
-   而部署出去的是 `dist/`。只把 `THIRD-PARTY-NOTICES.md` 放在仓库根**到不了产物** ——
-   这正是之前"生产 bundle 里许可横幅 **0 条**"那个缺口的补法。
-3. `stage-cast.tsv` 是**唯一**把 THBWiki 中文译文提交进仓库的地方（它的曲名与角色名是 THBWiki 的
-   **翻译**，如 `ほおずきみたいに紅い魂` → `如鬼灯般的红色之魂`；翻译是演绎行为，比"取事实"弱）。
-   它只是 `tmc.validate` 导出的离线复核表：**`tools/` 里没有任何地方读它**（唯一引用是 `validate.py`
-   的写出），`tmc.build --check` 的漂移守卫也只覆盖 `public/data/`。
-   两条路里选了**方案 B（保留提交 + 单独标许可）**而不是"移出版本库"：
-   后者会与 D3「生成物提交进仓库」相悖，而它只是构建期产物；
-   保留提交、把许可边界标到**文件级**，既不违背 D3，也照样把许可说清楚。
-   做法是在 `REUSE.toml` 里给它一条精确到文件路径的 annotation —— REUSE 默认的 `closest`
-   规则让精确路径胜过 `data/**`，所以 `data/**` 其余部分仍是 MIT。
-   而**产物里本来就只有 ZUN 的原始日文曲名**（`恋色マスタースパーク`）与日文角色名
-   （`霧雨魔理沙`），没有译文，分类数据按 MIT 发布站得住。
-
-**影响 / 代价**
-
-- **与"整仓 MIT"的直觉不符**：只看根 `LICENSE` 的人会以为数据全是 MIT。所以根 `LICENSE`
-  与 `data/README.md` 都就地写明了这条例外，`reuse spdx` 也能逐文件查到真实归属。
-- `data/meta/stage-cast.tsv` 是全仓库**唯一带 copyleft 的文件**（CC-BY-NC-SA-3.0，NC + SA）——
-  别再往它里面加内容，加了就同样受这两个条款约束。
-- 上游仓库没有 LICENSE（默认保留所有权利），本项目是按作者同意发布的：凭据与一处残余风险
-  记在 `docs/permissions/upstream-authorization.md`。
-- 「分类独立重推导」已**执行**（比原计划省事：ZUN 的原始日文曲评 `tt-ja` 就在同一份快照里，
-  不需要游戏本体）。实测 510 条里推出 142 角色曲 / 99 道中曲 / 53 系统曲，
-  **与 THBWiki 类别层 0 冲突**；但覆盖率约 58%（180 条没有曲评），
-  所以它是佐证与部分来源，**不能**单独取代类别层。脚本与数字见 `docs/data-provenance.md` §3。
-
-**实测**
-
-- `reuse lint`：**376/376** 文件有许可与版权信息，0 missing / 0 unused，**compliant with REUSE 3.3**。
-- 产物口径：`vite build --mode development` 的 sourcemap 实测 `dist/assets/index-*.js` 里出现
-  **31** 个第三方包（28 MIT + 3 BSD-3-Clause）；构建期依赖（`@babel/*`、`cosmiconfig` 等）不进产物。
-- `pnpm typecheck` ✓；about 相关单测 **44 passed**（chromium + firefox 各 22）；
-  `npx vite build` ✓ 且 `dist/THIRD-PARTY-NOTICES.txt`（8621 B）随产物落地 ✓。
-
----
-
 # 决策记录（DECISIONS）
 
 本文件是**定稿的决策依据**。每条记录：结论 → 理由 → 影响面。文档全景见 [`README.md`](README.md)，随机数契约见 [`rng-v1.md`](rng-v1.md)，数据分类规则见 [`rules-classification-v1.md`](rules-classification-v1.md)。（开工时的 `PLAN.md` 已删，方案正文并入本文件。）
 
 裁定日期：2026-09-16（用户两轮答复）。
+
+> **读旧条目时请注意**：按约定「同一轮工作的最新条目会就地补全，**更早的条目不再改**」，
+> 所以旧条目里会提到**当时存在、现在已删或改名**的文件与路径 —— 例如
+> `.github/workflows/` 下的 `deploy-cdn.yml` / `deploy-otomads-cdn.yml` / `trigger-cdn.yml`
+> （D150 起并入数据仓库的 `publish.yml`）、`repack-media.yml`（同上）、
+> `docs/PLAN.md`、`data/meta/roles.tsv`、`reports/`（2026-09-28 已移到 `docs/reports/`）。
+> **那些路径是历史事实，不是待修的错** —— 它们记录了当时真实的做法。
+> 要查现状请走 [`README.md`](README.md) 的现状表与契约表，不要顺着旧条目里的路径找文件。
 
 ---
 
@@ -108,6 +59,7 @@
 ---
 
 ## D4 仓库：单仓库，`git init`，无上游 remote
+> ⚠️ **已被 D54 取代**：提交约定已反转：D54 起建了 `origin`，常态推送。
 
 **结论**：仓库根即本工作区；`git init` 后不设任何远端；`.ref/`（上游只读副本 + 调研笔记）不进版本库。
 
@@ -252,7 +204,6 @@ type SourceDef = {
 MUI 主题、卡片状态底色与等宽计时器，字体差异只影响"很像"的程度。
 
 **代价 / 还原办法**：把两个 TTF 放进 `public/fonts/` 并给 `src/theme/fonts.css` 的对应 `@font-face`
-> ⚠️ **已被 D38 取代**：**色板部分**已作废：D38 起改用 MD2 基准（`#121212` / `#BB86FC`），`theme.test.ts` 锁的也是新值。字体 fallback 顺序仍有效。
 补上 `url(...)`，即可完全复刻上游排版（`.ref/upstream-v3/app/fonts/` 里有原文件）。
 
 ---
@@ -291,7 +242,7 @@ chromium↔firefox / firefox↔chromium / chromium↔chromium 三种组合都能
 基频 E6 + 3 个非谐泛音、指数衰减、总长 1100 ms）。不支持 Web Audio 的环境（jsdom、无音频设备）
 退化为**等长静音等待**，所以"先响铃、再放正曲"的时序在任何环境都成立，且铃响期间按暂停不会让正曲偷偷起播。
 
-**理由**：与 D12（字体只分发 OFL 的 Inconsolata）、D3（卡面不随仓库分发）同一条原则：
+**理由**：与 D12（字体只分发 OFL 的 Inconsolata）、D10（卡面全部走远程、仓库不放 PNG）同一条原则：
 **仓库里不放授权不明的上游素材**。E2E 抓到了原实现的 `Bell3.mp3` 404（文件从来没进过仓库），
 顺手按这条原则修掉，而不是把上游的 mp3 拷进来。
 
@@ -301,6 +252,7 @@ chromium↔firefox / firefox↔chromium / chromium↔chromium 三种组合都能
 ---
 
 ## D15 主题：照搬上游深色色板 + 指定的字体 fallback 顺序
+> ⚠️ **已被 D38 取代**：**色板部分**已作废：D38 起改用 MD2 基准（`#121212` / `#BB86FC`），`theme.test.ts` 锁的也是新值。字体 fallback 顺序仍有效。
 
 **结论**（用户裁定）：
 
@@ -509,7 +461,7 @@ E2E 两条（真浏览器拖动：指定槽位、拖回、互换、拖进电脑�
 | 提示条（结算/交牌/播放错误） | 出现时淡入 0.3s | 上游对显隐元素用 `opacity 0.3s ease` |
 | 拖放落点 | 虚线描边 0.2s + 卡牌 0.2s 底色过渡 | 新增（拖动需要落点反馈） |
 
-**三处有意差异**（都写进 `reports/M9-acceptance.md`）：
+**三处有意差异**（都写进 `docs/reports/M9-acceptance.md`）：
 
 1. 上游切歌是一整条 `translateX((index - currentIndex) * 100%)` 的轮播，**121 个角色的大卡面全部渲染**；
    这里改成给当前卡面做 0.3s 滑入动画 —— 同样的时长与缓动，省掉 160 张大图的常驻渲染。
@@ -1454,6 +1406,7 @@ E2E 断言行数 / 每行 3 张图 / 6 个 radio / 当前项 checked / id 顺序
 ---
 
 ## D52 音MAD（otomads）模式：把改版仓库的 otomads 模式搬过来
+> ⚠️ **已被 D113 取代**：音MAD 模式下**不再**临时强制打开本地曲库；用户可以自己关掉。
 
 **需求**（用户）：用最早插桩的"自定义模式"接口，把上级目录 v2 工作区改版仓库里的 otomads 模式搬过来；
 设置页添加入口；遵循原版行为；遵循 MD2。
@@ -1529,6 +1482,8 @@ MD2 设计规范表、外部依赖、约定、已知限制、文档索引。READ
 ---
 
 ## D54 建立远端并首次推送
+> ⚠️ **前提已变**（无对应决定条目）：主仓库已于 **`e572332`（2026-09-28）转为 public**。
+> 下面"主仓库是私有仓库 ⇒ 匿名 404 / 要带令牌"的前提因此不再成立。
 
 **需求**（用户）：主分支设为 `main`，远端设为 <https://github.com/Dustymind/touhou-music-cards-reconstructed>，
 用 git CLI 推上去，注意 `.gitignore`。
@@ -2731,7 +2686,6 @@ dev 用 200ms 是为了抓住"上千毫秒/近两百毫秒"这类回归，生产
 **实测**：
 
 | 视口 | 选择器卡宽 | 卡面（= ×1.2） |
-> ⚠️ **已被 D113 取代**：同上：开关不再置灰、也没有"由音乐模式强制启用"。
 |---|---|---|
 | 桌面 1440 | 150（撞 150 上限） | **180×256** ✓ |
 | 移动 412 | 82（= 412×20%） | **99×141** ✓ |
@@ -2777,6 +2731,7 @@ dev 用 200ms 是为了抓住"上千毫秒/近两百毫秒"这类回归，生产
 ---
 
 ## D95 含拉丁字母的音MAD 曲名匹配不上（部分修复，待续）
+> ⚠️ **已被 D113 取代**：同上：开关不再置灰、也没有"由音乐模式强制启用"。
 
 **现象**（用户）：音MAD 里 `Masuo魔法図書館` 报"所有已启用的音源都取不到"。
 
@@ -3167,8 +3122,8 @@ mobile (Pixel 7) 9 passed        ← 合计 68 passed / 1 skipped（= pnpm e2e �
 1. 新增 [`docs/README.md`](README.md)：文档全景 + **现状表**（每一项都带复现命令）；
 2. 各 README 与契约文档的过期点按**实测数字**更新（根 `README.md`、`data/README.md`、
    `data/packs/README.md`、`tools/README.md`、`rules-classification-v1.md`）；
-3. `reports/` 分清"脚本生成 / 校验器输入 / 历史快照"三类，快照各加阶段与日期横幅，并修掉两处自相矛盾；
-4. `reports/validation-report.md` **重跑生成器**而不是手改（4 行数字回到现状 ✓）；
+3. `docs/reports/` 分清"脚本生成 / 校验器输入 / 历史快照"三类，快照各加阶段与日期横幅，并修掉两处自相矛盾；
+4. `docs/reports/validation-report.md` **重跑生成器**而不是手改（4 行数字回到现状 ✓）；
 5. 补上缺的**协议契约** [`protocol-v1.md`](protocol-v1.md)：工作区笔记 A 里的上游协议表从未被本仓库的
    文档吸收（此前只有代码），协议 v3 现在有据可查；
 6. 把 D9 里"每回合广播 `rngSeed` / `startedAtEpoch`"标注为**已被 D104 取代**。
@@ -3193,6 +3148,7 @@ mobile (Pixel 7) 9 passed        ← 合计 68 passed / 1 skipped（= pnpm e2e �
 ---
 
 ## D107 曲包音频：`source` / `start_time` / `stop_time` + 抓取裁剪命令
+> ⚠️ **已被 D142 取代**：第 3 条答复（`-c copy` 保留原件）**已被推翻**：改成解码后精确切 + `libmp3lame` 重编码。
 
 **需求**（用户）：给 `data/packs/otomads.toml` 的曲目加三个键 —— `source`（构建期自动抓取，yt-dlp 与 uv
 一起管理）、`start_time` / `stop_time`（`HH:MM:SS.mmm`，抓取后用本机 ffmpeg 裁剪）；依赖写进主 README。
@@ -3335,6 +3291,7 @@ e2e mobile **9 passed** ✓；"压暗但保留配色"另用 Playwright 截图 + 
 ---
 
 ## D110 运行状态与列表页按音乐模式分开（B：切模式不再互相污染）
+> ⚠️ **已被 D113 取代**：音源注册表**已按模式分键**（`sources.ts` 用 `makeModeStores`），`effectiveSourceOverrides` 那个运行期补丁已删。
 
 **需求**（用户）：D109 把曲包真源拆开之后，接着做"两个模式不再互相干扰" ——
 预设 / 单曲手选 / 禁用角色 / 队列顺序与当前角色**各记各的**，列表页也跟着模式走；
@@ -3424,6 +3381,7 @@ e2e mobile **9 passed** ✓；"压暗但保留配色"另用 Playwright 截图 + 
 ---
 
 ## D112 音MAD 与原曲各一份数据集（C：生成物与运行时分离，协议升到 v4）
+> ⚠️ **已被 D113 / D117 取代**：`effectiveSourceOverrides` 已删；共享生成物只剩 `cardsets.json` + 镜像表（`SharedData` 只有 `cardSets`），`packs.json` 停生成并已从库里删。
 
 **需求**（用户）：把两个模式**彻底分开** —— 生成物、加载、运行时都不再共用"一份合并数据 + 一个 mode 参数"。
 契约草案 `docs/otomads-separation-v1.md` 的 6 条待裁定项用户全部按推荐采纳（D2 / A / S1 / C3 / 拒绝 v3 / 数据集不带空角色）；
@@ -3452,7 +3410,7 @@ e2e mobile **9 passed** ✓；"压暗但保留配色"另用 Playwright 截图 + 
 | 面板 | `ListPanel` / `ConfigPanel` / `PresetSection` / `SingleTrackSection` / `GamePanel` / `PlayerPanel` / `UpcomingFan` 自取当前数据集，`musicMode` 传参全部消失 |
 | `src/net/*` | **协议 v4**：`DataHashes {originals, otomads}`，`hello` / `PeerInfo` 带两个哈希，`dataHashMismatch` 两个都比 |
 
-**为什么协议要动**：D107 §6 的保证是"两端数据不同 → **握手期**就拒"。数据分成两份之后，
+**为什么协议要动**：`docs/packs-audio-v1.md` §6 的保证是"两端数据不同 → **握手期**就拒"。数据分成两份之后，
 只比一个哈希会让"一方缺 otomads 数据"拖到**切模式时**才炸（C2），而保留总哈希（C1）又让"分离"在联机口径上名义化。
 所以两个哈希都交换、都校验（C3）；代价是 v3 客户端直接拒绝加入（无兼容层，收益不值那两条握手路径）。
 
@@ -3547,7 +3505,7 @@ e2e mobile **9 passed** ✓；"压暗但保留配色"另用 Playwright 截图 + 
 **现象**：音MAD 单曲模式下给某个角色手选一首 → **刷新后手选静默消失**，播放页那一行也不再显示作者。
 （仓库外的 `REVIEW-enhanced-otomad-mode.md` B1；那批数据 86 条曲目里 **85** 条带作者 ✓。）
 
-**根因**：`MusicEntry` 的第 4 位（**可选作者**，D109 引入）没被手选存档的校验认下来 ——
+**根因**：`MusicEntry` 的第 4 位（**可选作者**，D94 引入）没被手选存档的校验认下来 ——
 `src/store/single.ts` 的 `isEntry()` 要求 `raw.length === 3` ✗，而设置页存进去的是 4 元组 ✓
 （`chosen` 直接来自数据集的曲目 ✓）→ 读档时 `validateSingleTrack()` **逐项丢弃** ✗，不报错、不留痕 ✗。
 后一条同样致命：重建条目时写的是 `[0, 1, 2]` ✗，即便放行，作者也会被抹掉 ✗ →
@@ -3557,7 +3515,7 @@ e2e mobile **9 passed** ✓；"压暗但保留配色"另用 Playwright 截图 + 
 
 | 位置 | 改动 |
 |---|---|
-| `isEntry()` | 接受 **3 或 4** 元（第 4 位**必须是字符串** ✓）；5 元及以上、第 4 位非字符串仍按损坏项丢弃 ✓ |
+| `isEntry()` | 接受 **3–5** 元（第 4 位是可作者、必须是字符串；第 5 位是 `authors` 字符串数组 —— D135 起跟着存档走） |
 | `copyEntry()`（新） | 重建时**保留第 4 位** ✓（3 元仍只留 3 位 ✓）；原来那句 `value[2] as Extra` 随之删掉（第 3 位收窄后本来就是 `Extra` ✓） |
 
 **测试**（原来这条没人守：`single.test.ts` / `modeScope.test.ts` 只走过 3 元组 ✗）：
@@ -4723,7 +4681,7 @@ export const aboutContent: AboutContent = {
 2. **`backup-commits.tmp/tag-moves.txt` 记的是 commit SHA，不是 tag 对象 SHA** —— `git rev-parse <tag>` 给的是
    tag 对象，要 `git rev-parse <tag>^{}` 才是 commit（本轮第一次也记错了、已改）。
 
-**顺手修掉的一处漂移**：`reports/validation-report.md` 里还写着"带 source（可自动抓取）**84** 条"——
+**顺手修掉的一处漂移**：`docs/reports/validation-report.md` 里还写着"带 source（可自动抓取）**84** 条"——
 `e9b4430` 补了那两条人工曲目的 source 之后没人重生成这份报告；`pnpm data:validate` 一跑就变 **86**。
 数据本身没错，错的是这份被跟踪的产物，已单独提交（`data: refresh the validation report (86 tracks with source)`）。
 
@@ -4777,6 +4735,8 @@ submodule 没初始化时给可执行提示。落点是 submodule（`data/otomad
 教训：跨仓库改名核对**不要按扩展名过滤**。
 
 ## D138 音MAD 素材的静态部署（`stage_media`：打归档 + 铺 dist，构建时拉取）
+> ⚠️ **前提已变**（无对应决定条目）：主仓库已于 **`e572332`（2026-09-28）转为 public**。
+> 下面"主仓库是私有仓库 ⇒ 匿名 404 / 要带令牌"的前提因此不再成立。
 
 **需求**（用户，三轮）：① 问"现行数据库能否单独构建静态页面以供部署" ⇒ 答：数据仓库**不能**（它没有前端与
 构建器，只有数据 + Python 工具），主仓库能、而且本来就是纯静态，唯一缺的是音MAD 素材；
@@ -4867,6 +4827,11 @@ submodule 没初始化时给可执行提示。落点是 submodule（`data/otomad
 ---
 
 ## D140 本地曲库地址可以重置回默认值（「重置」按钮；默认值只有空串这一种写法）
+> ⚠️ **归一化那半句已被 D161 取代**：现在只有"第一段看起来像主机名（含 `:` 或 `.`）"才补 `http://`，
+> **裸文件名与相对路径原样保留** —— 所以 `manifest.json` 填进框里**不会**再变成 `http://manifest.json`，
+> 默认值写空串的理由也就不成立了。函数后来也改名 `normalizeManifestUrl`（`src/music/manifestUrl.ts`）。
+> 另：本节提到的死键 `ConfigTabPresetReset` 也**已经删掉**了（`eb3dcdc`「drop the i18n keys nothing renders」），
+> 不再是"没动"。
 
 **需求**（用户）："现有本地源配置项是否可以增加默认值，如果可以，在配置框右侧，'应用'按键左侧，
 增加'重置'按钮，用于将该配置恢复成默认值。注意间距，注意遵循 Material Design 2。"
@@ -5153,6 +5118,7 @@ if is_anthology:
 ---
 
 ## D144 媒体地址带**数据版本**（源清单声明 `revision`，前端拼 `?v=`）
+> ⚠️ **已被 D149 取代**：逐曲版本号在**归档/清单侧**已改成内容哈希 `sha1(内容)[:16]`，本条的名字+大小+mtime 口径只在**本机助手**那一侧还留着。
 
 **需求**（用户）："修正：在数据发生变动时（原曲源和同链接的自定义源）重载入最新音乐，而不是复用缓存"。
 
@@ -5337,6 +5303,8 @@ if is_anthology:
    （fail-closed）；曲目表一样就照旧能一起玩（哈希不含 URL 与版本）。
 
 ## D146 素材站（CDN）交给 CI 铺；GitHub Pages 暂时停用（应用由 Vercel 部署）
+> ⚠️ **前提已变**（无对应决定条目）：主仓库已于 **`e572332`（2026-09-28）转为 public**。
+> 下面"主仓库是私有仓库 ⇒ 匿名 404 / 要带令牌"的前提因此不再成立。
 
 **需求**（用户 2026-09-25）：
 
@@ -5795,7 +5763,7 @@ Git Repository → Manage，外加 GitHub 侧检查 App 安装）后**仍未恢�
 
 **没动的**：`sources.prune` 与 `single.prune` 口径一致但没抽公共 helper；`single.ts` 的布尔过滤
 （**只留 `true`**）与 `preset`/`queue` 的 `pickBooleanMap`（true + false）**语义不同，不合并**；
-D110 里"故意不分键"的 seed / sources / session.musicMode 三项没有被卷进来。
+D110 里"故意不分键"的 seed / session.musicMode 两项没有被卷进来（`sources` 不在此列 —— D113 起它已按模式分键）。
 
 **验证**：`pnpm typecheck` exit 0；`pnpm test:chromium` **428 passed**（426 + 新增的 2 条工厂用例）；
 改动面的 e2e（`smoke` / `mobile` / `multiplayer`）全绿。新增 `modeScope.test.ts` 钉两条：
@@ -5824,7 +5792,7 @@ e2e 按 testid 的断言照旧。
   否则 500 号落在 `#121212` 上对比度不足），浅色下把过亮的颜色压暗 20%；`onColorFor` 按 WCAG 相对亮度
   决定 onPrimary 用黑还是白。`isHexColor` / `normalizeHex` 是设置页与 store **共用的一处**校验口径。
 - 持久化：新 store `src/store/appearance.ts`（**全局一份**，不按音乐模式分键 —— 主题与"在听哪一支曲子"无关，
-  与 D110 里"故意不分键"的 seed / sources / musicMode 同类），沿用 `persist.ts` 的版本化存储 + 逐键校验：
+  与 D110 里"故意不分键"的 seed / musicMode 同类），沿用 `persist.ts` 的版本化存储 + 逐键校验：
   非法颜色退回"用 MD2 基准色"，坏存档不会把界面搞黑。
 - 设置页：新分区 `id="appearance"`，复用 `SectionPanel`（默认折叠 + 惰性挂载 + 同一套 `section-*` testid 约定），
   间距取 `MD2.grid` 的倍数；模式用 `ToggleButtonGroup`（MD2 segmented control）、色板用 32dp 色块 + 选中环、
@@ -5839,6 +5807,7 @@ e2e 按 testid 的断言照旧。
 ---
 
 ## D153 音MAD 卡面接 B 站封面：一首一封面、源内可覆写（2026-09-26）
+> ⚠️ **已被 D164 / D167 取代**：封面链接**不再**补 `@<w>w_<h>h_1c` 预裁后缀，只产原版链接。
 
 **需求**（用户，三句话定稿）：① 给音MAD 数据库的卡牌"调用 B 站封面当卡面"；② **一首一封面**，默认存**直链**，
 写进 `packs/otomads/<角色 key>.toml`，**允许源内覆写**；③ 这套图集**只在音MAD 模式可选、源不提供就不显示**，
@@ -5969,7 +5938,7 @@ e2e（`smoke` + `mode-separation`）**36 passed**；部署实测：牌堆 87、�
 文件级 `beforeEach` 补了 session 归零（图集现在真的会影响卡池，不再是可以忽略的偏好）。
 vitest **90 文件 / 942 passed**。
 
-### D154 音MAD 曲包扩到 **106 首 / 43 角色**（19 首新曲目，2026-09-26）
+## D154 音MAD 曲包扩到 **106 首 / 43 角色**（19 首新曲目，2026-09-26）
 
 **用户要求**：跑一次数据仓库的更新推送（含封面链接拉取）。落在数据侧是**九份角色文件里手填的 19 条曲目**
 （其中 7 个角色原本只有空骨架：秋静葉 / 秋穣子 / 鍵山雛 / 河城にとり / 犬走椛 / 東風谷早苗 / 洩矢諏訪子），
@@ -6009,7 +5978,7 @@ e2e（`smoke` + `mode-separation` + `pack-snapshot`）chromium **38 passed** / f
 
 ---
 
-### D155 共享卡面层的结构性清理 + 越界卡面的夹取（模式 3 的地基，2026-09-26）
+## D155 共享卡面层的结构性清理 + 越界卡面的夹取（模式 3 的地基，2026-09-26）
 
 **背景**：第三个音乐模式（自定义）要求"卡面**只有**源给的那一张、内置图集在该模式下不可用"。落地前先把
 `src/data/cardFaces.ts` 里两处**今天看不出来、加新模式就会出事**的写法改成结构性的（① ②），
@@ -6072,7 +6041,7 @@ export function cardFileAt(files, characterKey, cardIndex): string {
 
 ---
 
-### D156 第三个音乐模式「自定义」的数据骨架：模式枚举 + **恒为空**的兜底数据集
+## D156 第三个音乐模式「自定义」的数据骨架：模式枚举 + **恒为空**的兜底数据集
 
 **用户要求**：新增第三个音乐模式「自定义」（内部 id `custom`）。**应用不带这个模式的任何数据**，
 数据全部来自使用者自己填的自定义源链接；每张卡 = 一个卡名 + 一张卡面 + 一首曲目（严格 1:1）。
@@ -6117,7 +6086,8 @@ export function cardFileAt(files, characterKey, cardIndex): string {
 
 ---
 
-### D157 自定义模式的**源链接**与清单：默认空 / 重置 = 清空 / 严格校验 / 运行时整体重建
+## D157 自定义模式的**源链接**与清单：默认空 / 重置 = 清空 / 严格校验 / 运行时整体重建
+> ⚠️ **已被 D161 取代**：清单里那个键已从 `face` **改名为 `cover`**。
 
 **用户要求**：模式 3 的数据全部来自"使用者自己填的自定义源链接"（浏览器本地保存，**默认空、重置 = 清空**）。
 链接为空 ⇒ **不发请求、不报错**，界面提示"必须填写自定义源链接"。清单合法 ⇒ 卡与曲目立刻出现。
@@ -6173,7 +6143,8 @@ originals `3d83c3eb519ba812`，改动前后同值）。
 
 ---
 
-### D158 模式 3 的卡面：代码里的**合成图集**，图集菜单在该模式下不出现
+## D158 模式 3 的卡面：代码里的**合成图集**，图集菜单在该模式下不出现
+> ⚠️ **已被 D164 取代**：模式 3 下**要**渲染 `CardSetSection`（用来选 16:9 / 4:3），`CardSetSection.tsx` 也改了。
 
 **用户要求**：模式 3 的卡面**只有源给的那一张**（每卡一张、不可更换），`cardsets.json` 里的任何图集
 在这个模式下都不可用；播放页 / 游戏页画的必须是源给的卡面，**不回落**内置立绘。
@@ -6204,7 +6175,7 @@ originals `3d83c3eb519ba812`，改动前后同值）。
 
 ---
 
-### D159 模式 3 的选曲：**专辑三元 + 作者三元**，以及**逐卡禁用**（卡池同口径）
+## D159 模式 3 的选曲：**专辑三元 + 作者三元**，以及**逐卡禁用**（卡池同口径）
 
 **用户要求**：这个模式的音乐选择只剩**专辑三元 + 作者三元**；"仅单曲模式"只剩**逐曲（= 逐卡）禁用**
 （没有总开关、没有手选），禁用的卡**不进轮播、也不进卡池**。
@@ -6252,7 +6223,7 @@ testid 一字不变）与 `useProgressiveRows`（那套"rAF → 宏任务 → �
 
 ---
 
-### D160 协议 v5：**第三个数据哈希** + 主机把自定义源随会话下发给客户端
+## D160 协议 v5：**第三个数据哈希** + 主机把自定义源随会话下发给客户端
 
 **用户要求**：模式 3 支持联机（Q6）——协议升 v5 加第三个数据哈希，**主机把源链接随会话配置下发给客户端**，
 客户端"本地空就自动采用、本地有别的值就弹确认"，采用**只在本会话生效**（F3）。
@@ -6277,7 +6248,7 @@ testid 一字不变）与 `useProgressiveRows`（那套"rAF → 宏任务 → �
 `liveBundle` 换新时调 `retryHello()` 驱动 —— 与 `window.__TMC_DATA_HASH__` 同一次重渲染，D145 那条口径）。
 若不设上限，"采用 → 还是不同 → 再采用"就是死循环。
 
-**采用只写会话级覆盖**（`customSourceUrlOverride`，D157 那三个层次里的中间层）：存档一个字不改，
+**采用只写会话级覆盖**（`customSourceOverride`，D157 那三个层次里的中间层）：存档一个字不改，
 `useNet.leave()` 只在 `from === "host"` 时清它 ⇒ 离开房间即恢复自己的源（F3 落在代码上）。
 
 **会话配置里的 `customSourceUrl` 只作展示**：`adoptHostConfig` **不**顺手改本地那份 ——
@@ -6296,7 +6267,7 @@ testid 一字不变）与 `useProgressiveRows`（那套"rAF → 宏任务 → �
 
 ---
 
-### D161 模式 3 收尾：真浏览器 e2e、契约文档、以及两个"同源地址被当成别的"的修复
+## D161 模式 3 收尾：真浏览器 e2e、契约文档、以及两个"同源地址被当成别的"的修复
 
 **e2e（新增 `e2e/custom-mode.spec.ts`，6 条 × 两个桌面引擎）**：素材是 `e2e/fixtures/custom/`
 下**真的一份源**（`manifest.json` + 自己生成的三张卡面 / 三段 1 秒静音 mp3 + 响度表，
@@ -6354,7 +6325,7 @@ e2e `custom-mode.spec.ts` **6 passed**（chromium / firefox 各 6）；
 
 ---
 
-### D162 切语言时挂载着的面板会卡住（`memo` × 模块级 `t()`）
+## D162 切语言时挂载着的面板会卡住（`memo` × 模块级 `t()`）
 
 **用户报告**：中英文反复切换时，**部分字段卡住不切换**。
 
@@ -6390,7 +6361,7 @@ export function memoOnLocale<P extends object>(Component: ComponentType<P>) {
 
 ---
 
-### D163 卡面比例收成一个入口：「多套比例并存」的适配（模式 3 从 703:1000 竖版改成横版）
+## D163 卡面比例收成一个入口：「多套比例并存」的适配（模式 3 从 703:1000 竖版改成横版）
 
 **用户要求**：给自定义模式启用横版卡面；**所有涉及卡面的代码都要"原比例 + 16:9"双适配**。
 
@@ -6425,7 +6396,7 @@ export function memoOnLocale<P extends object>(Component: ComponentType<P>) {
 
 ---
 
-### D164 「卡面设置」分区 + **三档画幅**（常规 / 16:9 / 4:3）；`cover` 收两种形态，工具改产源分辨率链接
+## D164 「卡面设置」分区 + **三档画幅**（常规 / 16:9 / 4:3）；`cover` 收两种形态，工具改产源分辨率链接
 
 **用户要求**（两条消息合起来）：①「这个模式加个开关，在 4:3 和 16:9 之间切」，并且**全局**把「卡面图集」
 改名成「卡面设置」；②「封面拉取自动把 16:9 和 4:3 都拉下来（原分辨率）」；③ 随后把范围钉成
@@ -6497,13 +6468,16 @@ e2e `custom-mode.spec.ts` **8 passed**（真浏览器里三档各换形状**与 
 那个以 `cardSet` 为依赖的 effect 会每渲染都跑 ⇒ `init()` 改状态 ⇒ 死循环
 （`Maximum update depth exceeded`）。现在按 (图集, 档位) 缓存一个对象，并有单测钉"引用稳定"。
 
-### D166 并入 fork 的音MAD 数据（106 → 191 首 / 43 → 80 角色）；补上 D164 的"数据刷新"未做项；`cover` 收三档表、新增逐曲 `bitrate`
+## D166 并入 fork 的音MAD 数据（106 → 191 首 / 43 → 80 角色）；补上 D164 的"数据刷新"未做项；`cover` 收三档表、新增逐曲 `bitrate`
+> ⚠️ **已被 D167 取代**：`cover` 只认**一条非空 https 链接**，逐档表那种写法已当场报错（`tools/src/tmc/packs.py:263-266`）。本条下面关于"单链接或逐档表"的描述已作废。
 
 **用户要求**：先在数据仓库 commit 本地在写的那 49 首（**不推送**）→ 把 fork（`ydzrds/touhou-music-cards-otomads-data`）
 的提交**原封不动**并进来 → 之后走完整发布路径（补封面 / 抓音频 / 量响度 → 打包自检 → **先换归档资产** → 推源码 →
 `pnpm data:roster` + submodule pin → 验收线上）。
 
-> 编号说明：日志里最后一条记录是 D164，而 `custom-mode-v1.md` 已经引用了 D165（尚无对应记录）—— 所以这一条编 D166。
+> 编号说明：**D165 这个号没有使用**。当时 `custom-mode-v1.md` 先占了「D165」当引用，
+> 但它指的其实是 D164（「卡面设置」+ 三档画幅）—— 2026-09-28 已把那 3 处引用改回 D164。
+> 编号空洞**保留不改**（重新编号会打乱既有的交叉引用），所以这一条仍是 D166。
 
 **① 合并形态**：fork `main` 与主线**已分叉**（ahead 7 / behind 8，merge base `69a13bb`）⇒ 不是快进。
 那 7 个提交（th14–th17、凭依华等）改了 28 个曲包、**新增 36 首**，但**一个 cover、一行响度、一个音频都没带**。
@@ -6555,7 +6529,7 @@ Cloudflare Workers 静态资产**单文件上限 25 MiB**，而 `ふゆこけ - 
 
 ---
 
-### D167 统一 `cover`：**一条链接**（原版无修改的图），缩放与裁切完全由前端做
+## D167 统一 `cover`：**一条链接**（原版无修改的图），缩放与裁切完全由前端做
 
 **用户要求**（原话）："统一行为，cover 变量仅接收一条链接，卡面大小缩放完全由前端实现"；
 随后补一句："封面获取脚本，默认获取原版无修改封面，不加任何分辨率限制参数"。
@@ -6745,3 +6719,143 @@ Cloudflare 的静态资源站对**非规范**路径先回 **307** 跳到规范�
 仍会先吃一次 307；带 `Range` 的消费者会遇到同一个 500。要根治就在数据仓库生成清单处把安全集
 写成 RFC 3986 的 `pchar`（`quote(path, safe="/!$&'()*+,;=:@")`），重新跑一次 publish 即可 ——
 应用侧这一层留着当兜底（源怎么写都收）。
+
+---
+
+## D170 许可分层：代码 MIT、字体 OFL、第三方署名随产物走；面次参照表单独标 CC-BY-NC-SA-3.0（2026-09-28）
+
+**结论**：给仓库补齐许可体系，按**聚合**处理而不是一句 "MIT" 了事：
+
+- 自己的代码与文档 → **MIT**（`LICENSE` + `package.json` 的 `license` 字段）。
+- `public/fonts/Inconsolata-Medium.ttf` → 保持 **SIL OFL-1.1**（原样分发 ⇒ Reserved Font Name 不触发）。
+- 打进产物的第三方 npm 包（**31 个**：28 MIT + 3 BSD-3-Clause）与 Google Material Icons（Apache-2.0）
+  → `THIRD-PARTY-NOTICES.md`；**同一份内容复制进 `public/THIRD-PARTY-NOTICES.txt`**，随 `dist/` 分发。
+- 逐路径的权威映射写成 `REUSE.toml`，用 `uvx --from reuse reuse lint` 校验。
+- `data/meta/stage-cast.tsv` **保留提交**，但单独标成 **`CC-BY-NC-SA-3.0`**（方案 B）。
+- 上游授权凭据（`docs/permissions/`）用自定义的 `LicenseRef-Permission-Evidence` 标记。
+
+**理由**
+
+1. 本仓库是**聚合**：代码、第三方字体、汇编数据各持各的许可，没有单一 SPDX 表达式能描述整仓，
+   所以逐路径声明（REUSE 规范）而不是一句 "MIT"。
+2. **署名必须跟着分发副本走**：MIT 与 BSD-3-Clause 都要求在分发副本里保留版权与许可声明，
+   而部署出去的是 `dist/`。只把 `THIRD-PARTY-NOTICES.md` 放在仓库根**到不了产物** ——
+   这正是之前"生产 bundle 里许可横幅 **0 条**"那个缺口的补法。
+3. `stage-cast.tsv` 是**唯一**把 THBWiki 中文译文提交进仓库的地方（它的曲名与角色名是 THBWiki 的
+   **翻译**，如 `ほおずきみたいに紅い魂` → `如鬼灯般的红色之魂`；翻译是演绎行为，比"取事实"弱）。
+   它只是 `tmc.validate` 导出的离线复核表：**`tools/` 里没有任何地方读它**（唯一引用是 `validate.py`
+   的写出），`tmc.build --check` 的漂移守卫也只覆盖 `public/data/`。
+   两条路里选了**方案 B（保留提交 + 单独标许可）**而不是"移出版本库"：
+   后者会与 D3「生成物提交进仓库」相悖，而它只是构建期产物；
+   保留提交、把许可边界标到**文件级**，既不违背 D3，也照样把许可说清楚。
+   做法是在 `REUSE.toml` 里给它一条精确到文件路径的 annotation —— REUSE 默认的 `closest`
+   规则让精确路径胜过 `data/**`，所以 `data/**` 其余部分仍是 MIT。
+   而**产物里本来就只有 ZUN 的原始日文曲名**（`恋色マスタースパーク`）与日文角色名
+   （`霧雨魔理沙`），没有译文，分类数据按 MIT 发布站得住。
+
+**影响 / 代价**
+
+- **与"整仓 MIT"的直觉不符**：只看根 `LICENSE` 的人会以为数据全是 MIT。所以根 `LICENSE`
+  与 `data/README.md` 都就地写明了这条例外，`reuse spdx` 也能逐文件查到真实归属。
+- `data/meta/stage-cast.tsv` 是全仓库**唯一带 copyleft 的文件**（CC-BY-NC-SA-3.0，NC + SA）——
+  别再往它里面加内容，加了就同样受这两个条款约束。
+- 上游仓库没有 LICENSE（默认保留所有权利），本项目是按作者同意发布的：凭据与一处残余风险
+  记在 `docs/permissions/upstream-authorization.md`。
+- 「分类独立重推导」已**执行**（比原计划省事：ZUN 的原始日文曲评 `tt-ja` 就在同一份快照里，
+  不需要游戏本体）。实测 510 条里推出 142 角色曲 / 99 道中曲 / 53 系统曲，
+  **与 THBWiki 类别层 0 冲突**；但覆盖率约 58%（180 条没有曲评），
+  所以它是佐证与部分来源，**不能**单独取代类别层。脚本与数字见 `docs/data-provenance.md` §3。
+
+**实测**
+
+- `reuse lint`：**376/376** 文件有许可与版权信息，0 missing / 0 unused，**compliant with REUSE 3.3**。
+- 产物口径：`vite build --mode development` 的 sourcemap 实测 `dist/assets/index-*.js` 里出现
+  **31** 个第三方包（28 MIT + 3 BSD-3-Clause）；构建期依赖（`@babel/*`、`cosmiconfig` 等）不进产物。
+- `pnpm typecheck` ✓；about 相关单测 **44 passed**（chromium + firefox 各 22）；
+  `npx vite build` ✓ 且 `dist/THIRD-PARTY-NOTICES.txt`（8621 B）随产物落地 ✓。
+
+---
+
+## D171 文档失效断言清理：5 个只读子代理横向审计 + 三条处置规则（2026-09-28）
+
+**触发**：同日的文档重组（D170 那一批）之后，用户要求清理"**已经失效 / 重复 / 过于琐碎**"的断言，
+范围是**工作区所有文档**，不限于 D 类引用。
+
+**做法**：5 个**只读**子代理分片审计（契约 3 份 / separation 2 份 / 数据管线 2 份 / 入口文档 7 份 /
+本决策日志）。给每个子代理的硬约束是：**必须回代码或数据里给出 `file:line` 证据**、
+**没把握不许报**（这类审计最容易误报）、并明确圈出**不报**的东西（历史路径、带日期的快照）。
+共报 **64 条，逐条复现后全部采纳** —— 复现过程中还纠正了子代理 3 处口径（例如把"带 `start_time` 的行数"
+当成曲目数，实际 TOML 解析后是 36 条）。
+
+**三条处置规则**（本条最该被记住的部分）：
+
+| 情形 | 做法 | 原因 |
+|---|---|---|
+| **当下事实性错误**（字段名 / 路径 / 版本号 / 计数 / 编号引用） | **直接改** | 它描述的是"现在"，错了就是错了 |
+| **被静默推翻的旧结论** | **只加 `> ⚠️ 已被 Dxxx 取代` 标记，原文一字不动** | 守「更早的条目不再改」；原文记的是历史事实 |
+| **落地当时的记录 / 带日期的快照** | **加"落地当时"横幅**，数字保留 | 那些数字当时是对的 |
+
+**"错误归属"也算失效**：引用的 D 编号**存在**、但那一条里**没有该内容**，同样把人带错 ——
+本次修了 3 处（D14 引 D3 → 应为 **D10**；D115 引 D109 → **D94**；D115 引 D106 → **D105**）。
+**编号存在不够，内容对得上才算有效引用。**
+
+**改了什么（要点）**
+
+- **协议口径**：三份契约都还写 v4 / v5 + 两个哈希，实况是 **v6 + 三个哈希**（含 custom）。
+- **权威现状表自己错了 3 处**：专辑 40→**39**、音MAD 数据仓库 271→**222**、自定义 400→**368**
+  （实测 `83 / 222 / 368`）。那张表是「唯一维护点」，它错等于全错。
+- **数字全面停在旧数据**：曲包 86 首 / 35 角色 → **191 / 80**（散落 6 份文档）、裁剪 16→**36**、
+  曲库 324 MB → **722 MiB**、上游快照 21 部 / 492 → **22 部 / 504**。
+- **工具路径**：`tools/src/tmc/{local_source,fetch_audio,loudness}.py` 都不存在（D130 搬去数据仓库），
+  `deploy/README.md` 里起助手那条命令**照抄会失败**。
+- **静默推翻**：加 **13 条取代标记**。最典型的是 D110「音源不分键 + `effectiveSourceOverrides` 强制打开」
+  整段被 D113 反转却无人回指，还带错了 D52 / D95 / D112 以及 D151 / D152 两处**晚条目的复述**。
+- **标题层级**：D154–D164 / D166 / D167 误置于 `###`，规范到 `##`（3 条真正的修订子节保留 `###`）；
+  并说明 **D165 是未使用的编号空洞**。
+
+**同一批顺带改的代码**（两处，都是"文档说的与代码不符、代码那边是对的"）：
+`src/rng/index.test.ts` 补上 `rng-v1.md` 声称已钉住、实际漏掉的那条冻结向量；
+`src/store/single.ts` 的注释从"3 或 4 元"改成"3–5 元"（D135 起第 5 位也存档）。
+
+**一条额外发现**：主仓库已转 **public**（`e572332`），而 D54 / D138 / D146 仍按"私有仓库 ⇒
+匿名 404 / 要带令牌"写。这条**没有对应的决定条目**（是个 chore 提交），所以用 `⚠️ 前提已变` 标注，
+并同步改了工作区根 `UPDATING.md` 的可见性表。
+
+**没做的**：工作区根那 6 份**计划与交接文档**（`HANDOVER.md` / `B-C-PLAN.md` / `THIRD-MODE-PLAN.md` /
+`REVIEW-enhanced-otomad-mode.md` / `HANDOVER-ROUTE-C.md` / `local-docs/`，都不在版本库内）
+只修了指向旧 `reports/` 的失效命令，**没有逐条审计** —— 它们是过程文档，按"历史事实"对待。
+
+---
+
+## D172 移除「Cloudflare R2」音源：原曲镜像 3 → 2（2026-09-28）
+
+**结论**：把 `cloudflare_r2`（上游作者的 R2 桶，`https://r2bucket-touhou.hgjertkljw.org/mp3/…`）
+从原曲模式的音源注册表里**整个移除** —— `data/sources/originals.toml` 删掉那个 `[[source]]` 块、
+`data/sources/cloudflare_r2.json`（152 KB 曲目表）与生成物 `public/data/sources/cloudflare_r2.json`
+一并删除；`thbwiki` 的 `order` 从 3 收到 2（消掉空档；纯排序键，语义不变）。
+
+**结果**：原曲镜像 **3 → 2**（`netease163` ① → `thbwiki` ②）、注册音源总数 **5 → 4**
+（原曲 2 + 音MAD 1 + 自定义 1）、`pnpm data:build` 写出的生成物 **17 → 16** 个。
+§5 的四条不变量仍成立（每个模式至少一个默认启用的源）。
+
+**为什么不影响联机**（实测，不是推断）：`content_hash(characters, albums, pack_audio)`
+**不含源表** —— 删源后三个模式的 `contentHash` **逐字未变**
+（`e95684b8…` / `34afd0aa…` / `660f6341…`），握手不会因此拒掉任何对端。
+源表只决定"某首曲最终解析到哪个地址"，而那是**本机偏好**，本来就不进哈希。
+
+**除数据之外改了什么**：
+
+- `src/store/sources.test.ts`：它把 `cloudflare_r2` 当**夹具**用（3 元素数组测排序与清理）。
+  改成合成 id `mirror_b` 并就地注释 —— 让这组用例**不再随真实注册表变化而红**。
+- `e2e/smoke.spec.ts` 的「音乐源回退顺序」：3 行 → 2 行、"末位不能再下移"的目标从
+  `cloudflare_r2` 换成 `netease163`、上移次数 2 → 1。
+- `e2e/mode-separation.spec.ts`：那条用例本来就**数量无关**（`toBeGreaterThan(0)` +
+  切模式后不再增），只改了两处注释。
+- 活文档：根 `README.md`、`data/README.md`、`THIRD-PARTY-NOTICES.md` 第 4 节、
+  `docs/sources-separation-v1.md`（§2 布局 / §5 对照表 / §Q3）、`deploy/README.md`（两处），
+  以及 `docs/README.md` 现状表的「注册音源 8 / 5 → **8 / 4**」。
+
+**没动的**（按「更早的条目不再改」）：`tools/src/tmc/migrate.py` 的 `SOURCES` / `LEGACY_SOURCES`
+—— 它自己的注释写着「**历史**清单，故意不跟注册表走」，指的是**上游**那三张表
+（`.ref/upstream-v3/`）；改了就没法复现当初的迁移。本日志与 `docs/reports/` 里的历史提及同样保留。
+

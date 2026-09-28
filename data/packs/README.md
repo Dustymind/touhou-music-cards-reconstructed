@@ -36,7 +36,7 @@ card = ["チルノ-mad.png"]        # 可选：这套图集目录里的文件名
 - 之后若要让音MAD 有**原曲没有的角色**，得先决定角色 key 从哪来（主仓库加同名 key，或另立一份
   "音MAD 自己的身份"契约）—— 见 `docs/otomads-separation-v1.md` §5。
 
-当前唯一的曲包是 `otomads`（音MAD，`kind = "local"`）：**86 首 / 35 个角色**，真源在数据 submodule
+当前唯一的曲包是 `otomads`（音MAD，`kind = "local"`）：**191 首 / 80 个角色**，真源在数据 submodule
 `data/otomads/packs/`（独立仓库，见 D128），音频地址来自本地曲库助手（数据仓库的 `otomads.local_source`
 提供 `/manifest.json`，主仓库用 `pnpm local` 起）。音MAD 的**录入/抓取/量响度全在数据仓库的工具里**
 （`data/otomads/tools/`，见它的 `README.md`；主仓库只留 `pnpm` 路径包装，D130）。
@@ -64,7 +64,7 @@ cd ../.. && pnpm data:build && pnpm data:validate                     # ④ 拷�
 
 | 键 | 作用 | 语义 |
 |---|---|---|
-| `source` | 抓取来源（任意的 yt-dlp 支持的站点；当前 84/86 条是 B 站）。**一条 `source` = 一首曲目** | 缺省 ⇒ 音频由人工放进曲库，抓取命令跳过 |
+| `source` | 抓取来源（任意的 yt-dlp 支持的站点；当前 **191/191 条**都是 B 站）。**一条 `source` = 一首曲目** | 缺省 ⇒ 音频由人工放进曲库，抓取命令跳过 |
 | `start_time` | 裁剪开始，`HH:MM:SS.mmm` | 缺省 = 文件开头（只给 `stop_time` 时按开头算） |
 | `stop_time` | 裁剪结束，格式同上 | 缺省 = 文件结尾（只给 `start_time` 时按结尾算，等于不裁） |
 

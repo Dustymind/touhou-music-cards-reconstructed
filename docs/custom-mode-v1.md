@@ -17,7 +17,7 @@
 |---|---|---|
 | **应用**（本仓库） | 读取、校验、渲染、联机；**一套空兜底数据集**（`public/data/custom/`，0 角色 0 专辑） | 任何卡名 / 卡面 / 曲目 / 音频地址 |
 | **使用者的源**（`manifest.json` + 素材） | 卡表（一张卡 = 一个卡名 + 一张卡面 + 一首曲目）、素材地址、可选的响度表 | 任何应用逻辑 |
-| **数据仓库**（独立仓库，`touhou-music-cards-custom-data`，挂在 `data/custom`） | **只提供工具**：把手写的卡表抓成素材并生成清单；**仓库里不含任何卡数据、也不放文档**；**不是应用的构建输入** | 卡数据本身；应用不 import 它、`data:build` 不读它 |
+| **数据仓库**（独立仓库，`touhou-music-cards-custom-data`，挂在 `data/custom`） | **提供工具 + 作者自己的源**：把手写的卡表抓成素材并生成清单；**仓库里不放文档**（无 `.md` 被跟踪）。它**含作者自己那张卡的源数据**（`cards.toml` / `manifest.json` / `covers.json` / `loudness/custom.json`），但**不是应用的构建输入** | 卡数据本身；应用不 import 它、`data:build` 不读它 |
 
 **不依赖主仓库构建**（Q2）：`data/custom` submodule 初始化与否，`pnpm data:build` / `data:check`
 的输出**逐字相同**（有守卫用例：把"曲包真源在不在"这个开关翻过来跑两遍比文本；另有手工验证：
@@ -68,12 +68,12 @@
 
 生效图集 = 代码里的**合成图集**（`CUSTOM_CARD_SET`：`{ id: "custom-source", mode: "custom",
 sourceOnly: true, dir: "", origins: [], localPrefix: "./", ratios: ["16x9","4x3","original"] }`）
-**+ 用户选的档位**（`cardSet.ratio`，由 `resolveCardSet(..., preference)` 落上去，D165）：
+**+ 用户选的档位**（`cardSet.ratio`，由 `resolveCardSet(..., preference)` 落上去，D164）：
 
 - `cardsets.json` 里的任何图集在这个模式下**都不列出**，用户存下的 `cardCollection` 偏好**被忽略但不改写**；
 - 每卡恰好一张卡面（`covers.length === 1`），`cardCount` / `maxCardCount` 恒为 1；
 - **卡面形状 = 三档**（`"16x9"` **默认** / `"4x3"` / `"original"` 常规，设置页「卡面设置」里切，
-  D165），**这个模式统一、没有逐卡的选择**。渲染侧一律用 `theme/cardRatio.ts` 的
+  D164），**这个模式统一、没有逐卡的选择**。渲染侧一律用 `theme/cardRatio.ts` 的
   `cardAspectRatio(cardSet)` 取 —— `CharacterCard`（`aspect-ratio`）、`CardStrip`（可视窗口高）、
   `DeckGrid`（卡槽高 + 彩蛋框）、`UnusedCards` / `UnusedCardsTray`（占位与档位）、
   `UpcomingFan`（牌堆高）全部跟着它走。内置六套原版图集**不能换档** ⇒ 永远是原比例 703:1000
@@ -112,10 +112,11 @@ sourceOnly: true, dir: "", origins: [], localPrefix: "./", ratios: ["16x9","4x3"
 专辑（key/name/order/kind/pack）/ 作者 / 曲名。
 **不覆盖**：**音频地址与版本号**（同 D145：换 CDN/换宿主不该把两端拆开）、清单来源 URL、页面来源，
 以及 **"用户此刻选了哪一档"**（16:9 / 4:3 / 常规都是显示偏好，不是数据 ——
-两端各选各的照样能握手，D165）。
+两端各选各的照样能握手，D164）。
 
-协议 **v5**（`docs/protocol-v1.md`）：`DataHashes` 三项、`MusicModeWire` 三项、
+协议 **v6**（`docs/protocol-v1.md`；下面这些字段是 **v5** 引入的）：`DataHashes` 三项、`MusicModeWire` 三项、
 `SessionConfigWire.customSourceUrl`、`hello.customSourceUrl`、`reject.customSourceUrl`。
+v6 另加了 `perTrackFaces` / `currentCardIndex`，**对模式 3 同样生效**（`src/data/cardFaces.ts` 的 `sourceOnly`）。
 
 ## 7. C7 空源与联机采用（F3）
 
@@ -148,7 +149,7 @@ sourceOnly: true, dir: "", origins: [], localPrefix: "./", ratios: ["16x9","4x3"
 | # | 不变量 | 由谁守 |
 |---|---|---|
 | 1 | 应用**不带**这个模式的任何数据 | `public/data/custom/` 恒为空 + `mode.test.ts` |
-| 2 | 坏清单**整份**不生效（不半信半疑地用） | `customManifest.test.ts` 的 22 条坏形状矩阵 |
+| 2 | 坏清单**整份**不生效（不半信半疑地用） | `customManifest.test.ts` 的 **28** 条坏形状矩阵 |
 | 3 | 卡名/顺序/卡面不同 ⇒ **握手期**就拒 | `customHash` + `protocol.ts` 的三项比较 |
 | 4 | 禁用的卡不进轮播**也不进卡池** | `AppShell.isUsable` → 队列与 `GamePanel.cardKeys` |
 | 5 | 主仓库构建**不依赖** `data/custom` | `tools/tests/test_build.py` + 手工 `data:check` |

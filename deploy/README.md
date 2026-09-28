@@ -20,10 +20,12 @@
 
 > 注意"Cloudflare Pages"在这个项目里有**两个不同的站点**：上面这行是**应用本体**（可选形态），
 > 而默认音源用的**素材站** `otomads-cdn.tsukinomiyako-mangesui.top` 是另一个 Pages 项目
-> （`otomads-cdn`），它由 `.github/workflows/deploy-otomads-cdn.yml` 部署 —— 见 §A.3。
+> （`otomads-cdn`），它由**数据仓库**的 `data/otomads/.github/workflows/publish.yml` 部署
+> （`wrangler deploy`）。主仓库里早先那个 `.github/workflows/deploy-otomads-cdn.yml`
+> 已在 D150 并入数据仓库的 publish 流程，**本仓库现存的工作流只有 `deploy-pages.yml`**。
 
 三家的构建命令都是 `pnpm build`（= `tsc --noEmit && vite build`，类型检查也是这一关的一部分），
-**不需要 Python / uv / submodule**：`public/data/**` 的 13 个生成物随仓库提交。
+**不需要 Python / uv / submodule**：`public/data/**` 的 17 个生成物随仓库提交。
 
 ### 部署形态对数据的要求（D131）
 
@@ -62,7 +64,7 @@ Vercel 用 `vercel.json` 的 `headers`；GitHub Pages **不认** `_headers`（�
    铺完站点上就有同源的 `manifest.json` + `media/otomads/*.mp3`（+ `cards-otomads/*`）。
    **素材不进仓库**：归档由 `pnpm media:pack` 生成（可复现）并发布成 Release 资产。
    这条路上"铺"是**你自己**的事（`media:stage` 铺进你自己的 `dist/`）；**项目 CDN 那一份**由数据仓库的
-   **Cloudflare 那边的 Worker** 自己构建（连数据仓库，见 §A.3）—— 本仓库的 Pages 工作流仍然**不**拉素材。
+   **Cloudflare 那边的 Worker** 自己构建（连数据仓库，见下面「素材站（默认 CDN）的部署」）—— 本仓库的 Pages 工作流仍然**不**拉素材。
    归档发在**数据仓库**的 Release（tag `media`，公开仓库 ⇒ 匿名可下）：
    `gh release download media --pattern otomads-media.tar.gz -R Dustymind/touhou-music-cards-otomads-data`，
    或本机 `pnpm media:pack` 现打一份。
@@ -77,12 +79,17 @@ Vercel 用 `vercel.json` 的 `headers`；GitHub Pages **不认** `_headers`（�
    回环地址被浏览器当可信来源，不算混合内容。填 `http://<私有 IP>:8011` 就**会被拦**（只有 loopback 豁免），
    那种情况要给助手套一层 TLS 反代并转发 `X-Forwarded-Proto`。
 
-### 素材站（默认 CDN）的部署（D148：**Cloudflare 的 Git 集成自己构建**）
+### 素材站（默认 CDN）的部署（D150：**数据仓库的 `publish.yml` 构建并部署**）
 
 默认音源指的 `otomads-cdn.tsukinomiyako-mangesui.top` 是 Cloudflare 上**独立于应用**的一个站点，
-内容就是素材归档解出来的那一份。**D148 起部署交给 CF 自己的 CI**（Git 集成连的是**数据仓库**）：
-两个仓库的 GitHub Actions 都不再经手部署（数据仓库那条 `deploy-cdn`（wrangler 直传老 Pages 项目）
-已随老项目在 2026-09-25 退场，见 D148 §11）。
+内容就是素材归档解出来的那一份。**当前由数据仓库的 `.github/workflows/publish.yml` 一条链跑完**
+（D150，2026-09-25）：测试 → 重打归档并换 Release 资产 → `python3 tools/build_cdn_site.py` 构建站点
+→ `npx wrangler deploy`（需要 secret `CLOUDFLARE_API_TOKEN`，没配就跳过部署那一步）。
+
+> 中间退场过的东西，**别再找**：数据仓库那条 `deploy-cdn`（wrangler 直传老 Pages 项目，2026-09-25
+> 随老项目退场）、主仓库的 `deploy-otomads-cdn.yml` / `trigger-cdn.yml` / `repack-media.yml`
+> （均已并入上述 publish 流程），以及 CF 面板的 Git 集成（D148 短暂用过）。
+> 面板那套的留档见下面「面板那套已经退役」——留它只是为了解释 `wrangler.jsonc` 的形状。
 
 **先看清是哪一种宿主**（2026-09-25 实测踩过）：CF 面板的 "Create → Connect to Git" 现在默认给的是
 **Workers Builds 项目**（一个只放静态资源的 **Worker**），不是老的 Pages 项目 —— 构建日志里会出现
@@ -207,7 +214,7 @@ gh workflow run publish.yml -R Dustymind/touhou-music-cards-otomads-data   # 或
 - 脚本生成的响应**不吃 `_headers`**（CF 文档明说）⇒ CORS、`accept-ranges`、媒体缓存头都在脚本里设；
 - **只匹配 `/media/*`**：清单、响度表、404 仍走静态资源那条路（免费、走边缘、`_headers` 照旧生效）；
 - 代价：命中 `/media/*` 的请求从"静态资源（免费无限）"变成"Worker 请求"（免费额度 10 万/天，
-  超了会回 429 —— 86 首的站够用）；
+  超了会回 429 —— 191 首的站够用）；
 - **本地可验**（CF 上跑不了的东西在本地钉死）：
   `node --test tools/tests/media_worker.test.mjs` 测 `Range` 解析；
   `wrangler dev --config <数据仓库>/wrangler.jsonc` + `curl -H 'Range: bytes=0-99'` 测整条路
@@ -249,7 +256,7 @@ gh workflow run publish.yml -R Dustymind/touhou-music-cards-otomads-data   # 或
 
 ```bash
 pnpm build                                            # 1) 应用产物
-cd tools && uv run python -m tmc.local_source          # 2) 曲库助手（8011）
+pnpm local                                            # 2) 曲库助手（8011；助手在数据仓库的 otomads.local_source）
 pnpm e2e:peer                                          # 3) 信令（9100，可选）
 caddy run --config deploy/Caddyfile                    # 4) 一个端口对外（默认 :8080）
 

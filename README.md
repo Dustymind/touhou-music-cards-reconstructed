@@ -29,7 +29,7 @@ pnpm dev                     # http://127.0.0.1:5173/?locale=zh
 | **Python ≥ 3.11 + uv** | `curl -LsSf https://astral.sh/uv/install.sh \| sh` | `tools/`：数据管线、曲库助手、抓取 |
 | **ffmpeg** | 系统二进制：`apt install ffmpeg` / `brew install ffmpeg` | 只用于曲包音频的**抓取与裁剪**（缺失时抓取命令启动即报错） |
 | **Playwright 浏览器** | 装进仓库内 `.playwright-browsers/`（已 gitignore） | 只用于 `pnpm test` / `pnpm e2e` |
-| **yt-dlp** | 不用手装：写在 `tools/pyproject.toml` 里，由 uv 管 | 只用于抓取 |
+| **yt-dlp** | 不用手装：写在**数据仓库**的 `data/otomads/tools/pyproject.toml` 里，由 uv 管（主仓库 `tools/` 自 D130 起已不再依赖它） | 只用于抓取 |
 
 仓库内已有两处约定：`.npmrc` 把 pnpm store 放进仓库（`.pnpm-store/`，HOME 只读的沙箱里也能装）；
 `pnpm-workspace.yaml` 关掉严格 peer 检查（MUI 7 + React 19 有可选 peer）。
@@ -128,8 +128,8 @@ pnpm audio:fetch --track 岁月 --dry-run              # 只看计划：标题�
 
 **并发（D132）**：默认 **4 路并发**。抓取的瓶颈**全在网络**（bilibili 的 playurl 往返 + 音频本体），
 本地那点活可以忽略：实测 `import yt_dlp` + `YoutubeDL()` ≈ 0.13 秒/首、4 分钟 m4a 全量重编码 ≈ 1.0 秒/首、
-**裁剪**（D142：解码后精确切 + V0 重编码）≈ 0.4–0.6 秒/首且只有带区间的 16 首付 ——
-86 首的**本地**开销合计约 30 秒。所以并发重叠的是**网络等待**，
+**裁剪**（D142：解码后精确切 + V0 重编码）≈ 0.4–0.6 秒/首且只有带区间的 **36** 首付 ——
+**191** 首的**本地**开销合计约 30 秒。所以并发重叠的是**网络等待**，
 收益由带宽与站点风控决定：`--jobs` 给太大可能撞 bilibili 的 412 风控，**先用 4**，要更快再往上试。
 
 > yt-dlp 自己的 `--concurrent-fragments` 对这个场景**无效** —— 它只并行 HLS/DASH 的**分片**流，
@@ -194,7 +194,7 @@ pnpm preview    # 本地预览 dist/
 
 #### 音MAD 素材（可选，D138）
 
-音MAD 的音频（86 首 / 约 324 MB）与音MAD 卡面**不进仓库**。想让它们跟着站点走：
+音MAD 的音频（191 首 / 约 722 MiB）与音MAD 卡面**不进仓库**。想让它们跟着站点走：
 
 ```bash
 pnpm build                                    # 先构建（vite 会清空 dist）
@@ -259,14 +259,17 @@ manifest 所在那一层解析 ⇒ 换域名/端口/协议、换宿主与子路�
 | 命令 | 作用 |
 |---|---|
 | `pnpm typecheck` | 类型检查 |
-| `pnpm test` | 单测（真实浏览器）：**856 passed** = 428 条 × chromium + firefox（42 个文件）；只跑一个引擎用 `pnpm test:chromium` / `pnpm test:firefox` |
-| `pnpm e2e` | 端到端：chromium + firefox + 移动端（Pixel 7），预期 **95 passed + 1 skipped**；会自己起 dev（5190）与信令（9100） |
+| `pnpm test` | 单测（真实浏览器）：chromium + firefox 两个引擎各跑一遍；只跑一个引擎用 `pnpm test:chromium` / `pnpm test:firefox` |
+| `pnpm e2e` | 端到端：chromium + firefox + 移动端（Pixel 7）；会自己起 dev（5190）与信令（9100） |
 | `pnpm e2e:perf` | 「点击长任务」性能守卫（对机器负载敏感，单独跑） |
-| `cd tools && UV_CACHE_DIR=.uv/cache uv run pytest` | 数据管线测试（**66 passed**；音频/本地源那 141 条在数据仓库：`uv run --project tools pytest`） |
+| `cd tools && UV_CACHE_DIR=.uv/cache uv run pytest` | 数据管线测试；音频/本地源那些在数据仓库里：`uv run --project tools pytest` |
 | `pnpm data:check` | `public/data` 与 `data/` 是否漂移（提交前必跑） |
 | `pnpm data:validate` | 数据不变量校验（分类、面次、覆盖表、曲包） |
 | `pnpm data:build` | 改了 `data/` 之后重新生成 `public/data/*.json` |
 | `pnpm data:scaffold` | 给「真源里有、音MAD 曲包里还没有」的角色预置骨架文件（幂等、**不覆盖**手写内容、不影响生成物；D137） |
+
+> **各套测试当前的实测条数以 [`docs/README.md`](docs/README.md) 的现状表为准** —— 那里是唯一维护点。
+> 本表原先抄过一份（写着 856 passed / 95 passed），抄完就过期了，所以现在只写"跑什么、怎么跑"。
 
 **e2e 的两个前置条件**：① 音MAD 相关用例会取同源的 `/manifest.json`（代理到本地曲库助手），
 **先起助手**（§3）再跑，否则那几条会红 —— 这是环境问题，不是代码问题；② 浏览器装在仓库内（§1）。

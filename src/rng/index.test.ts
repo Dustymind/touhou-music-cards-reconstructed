@@ -35,6 +35,11 @@ describe("createRng（mulberry32，冻结向量）", () => {
     expect(createRng(7).intBelow(-3)).toBe(0);
   });
 
+  it("冻结向量：intBelow 的前 5 个值（docs/rng-v1.md 钉的就是这几个数）", () => {
+    const rng = createRng(7);
+    expect(Array.from({ length: 5 }, () => rng.intBelow(10))).toEqual([0, 0, 9, 6, 5]);
+  });
+
   it("float 落在 [0,1)", () => {
     const rng = createRng(99);
     for (let index = 0; index < 500; index += 1) {

@@ -70,7 +70,7 @@ public/data/
 |---|---|
 | `build.py` | 去掉 `apply_tracks()`；`build_characters(mode)` / `build_albums(mode)` 各出一份；每模式一份 `index`（各自的 `contentHash`）；共享项只出一次 |
 | `validate.py` | 按模式跑现有检查（角色存在、专辑注册、重复、`附加信息` 合法）；新增**跨模式**一致性检查：同一个角色 key 在两份里的身份字段必须一致（`name`/`order`/`card`/`searchNames`），否则界面会出现"同一个角色两个名字" |
-| `packages/packs.py` | **不改**（D109 的读法照旧：清单 + 一角色一份曲目文件） |
+| `tools/src/tmc/packs.py` | **不改**（D109 的读法照旧：清单 + 一角色一份曲目文件） |
 | `pnpm data:check` | 按模式逐份比对（含 `index.json` 的哈希） |
 | `docs/reports/validation-report.md` | 统计分两段（每模式一段 + 共享项） |
 
@@ -90,13 +90,13 @@ interface ModeDataset {
 }
 
 interface DataBundle {
-  shared: { sources: SourceRecord[]; cardSets: CardSetRecord[] };
+  shared: { cardSets: CardSetRecord[] };   // 源表按模式走，见 ModeDataset.sources
   datasets: Record<MusicMode, ModeDataset>;
 }
 ```
 
 组件取"当前数据集"用 `src/store/modeScope.ts` 已有的一对钩子（B 引入）：
-`useMusicMode()`（组件）/ `currentMusicMode()`（非组件）→ `useDataset()` / `datasetFor(mode)`。
+`useMusicMode()`（组件）/ `currentMusicMode()`（非组件）→ `useCurrentDataset(bundle)` / `datasetFor(bundle, mode)`。
 
 **加载策略（待裁定，§10 Q2）**：
 
@@ -193,7 +193,9 @@ C3 的形状没变（还是两个哈希、还是握手期任一不符即拒）�
 在运行时拼出 otomads 数据集 ⇒ 那个哈希由应用按**生效的数据集**算（`src/data/packSnapshot.ts` 的
 `packHash`），**没有快照时也用它**。原曲那份不变（仍是构建期 `tmc.build.content_hash` 的 sha256）。
 
-- **协议版本不动**（还是 4）：线上形状没变，变的是 otomads 哈希的**取值** —— 而那正是"数据不同"的判据；
+- **当时协议版本没动**（D145 落地时是 **4**）：线上形状没变，变的是 otomads 哈希的**取值** —— 而那正是"数据不同"的判据。
+  **后来协议升到了 v6**：v5 加第三个模式（custom）、v6 加 `perTrackFaces` / `currentCardIndex`，
+  `DataHashes` 现在是**三个**键（`src/net/protocol.ts:21-28`），`HASH_MODES` 三个逐个比（同文件 `:130-149`）；
 - **口径**（覆盖专辑表 + 曲目条目，**不含** URL / 媒体版本 / 身份字段）与两条取舍写在
   `docs/packs-audio-v1.md` §16 —— 改动它等于改握手，两端必须一起更新；
 - **代价**：一端用新数据、另一端还停在兜底那份时会被拒（fail-closed）；两端曲目表一样（哪怕一个用本机
@@ -212,7 +214,7 @@ C3 的形状没变（还是两个哈希、还是握手期任一不符即拒）�
 （当时留着的 `effectiveSourceOverrides()` —— 音MAD 下临时打开本地源 —— 已在 **D113** 删掉：
 音源层也按模式拆之后，音MAD 的注册表里本来就只有本地源且默认开，不需要运行期补丁。）
 
-**列表页 / 配置页 / 对局**：不再接收 `musicMode` 参数，直接用当前数据集（`useDataset()`）。
+**列表页 / 配置页 / 对局**：不再接收 `musicMode` 参数，直接用当前数据集（`useCurrentDataset(bundle)`）。
 
 **放弃**：多曲包扩展性（第三个曲包要再加一套数据集）。**缓解**：契约里把"数据集"写成**按模式 id 的表**
 （`Record<MusicMode, ModeDataset>` 而不是两个字段），将来加包 = 加一个 key + 一份生成物 + 一次协议字段扩展，
@@ -268,6 +270,12 @@ C 同时动了**生成物**与**协议版本**，回滚要两件一起退：`git
 
 ## 11. 实现记录（D112）
 
+> **本节是 D112 落地当时的记录**：里面的文件清单（当时 12 个，现 **17** 个）、音MAD 计数
+> （当时 35 / 86，现 **80 / 191**）、并集（当时 464 / 454，现 **569 / 559**）与协议版本
+> （当时 v4 + 两个哈希，现 **v6 + 三个哈希**）**都已被后续决定改变**。
+> 现状见 [`README.md`](README.md) 的现状表与 [`protocol-v1.md`](protocol-v1.md)。
+> 保留原文是为了看清"当时是怎么拆的"，**别照抄这里的数字与形状**。
+
 **生成物**（`pnpm data:build` 写出 12 个文件）：
 
 | 文件 | 内容 |
@@ -293,11 +301,14 @@ C 同时动了**生成物**与**协议版本**，回滚要两件一起退：`git
 | 面板 | `ListPanel` / `ConfigPanel` / `PresetSection` / `SingleTrackSection` / `GamePanel` / `PlayerPanel` / `UpcomingFan` 收 `bundle` 后自取当前数据集；`musicMode` 传参全部消失 |
 | `src/net/*` | **协议 v4**：`DataHashes {originals, otomads}`，`hello` 与 `PeerInfo` 都带两个哈希，`dataHashMismatch` 两个都比 |
 
-**验证**：`pnpm data:check` 无漂移 ✓、`uv run pytest` **84 passed** ✓、`pnpm typecheck` ✓、
+**验证**（下面是**落地当时**的实测数字，不是现状 —— 现状条数见 [`README.md`](README.md) 的现状表）：
+`pnpm data:check` 无漂移 ✓、`uv run pytest` **84 passed** ✓、`pnpm typecheck` ✓、
 `pnpm test` **548 passed**（274 条 × chromium + firefox）✓、
 `pnpm e2e` **74 passed + 1 skipped**（chromium 33 / firefox 32+1 / mobile 9）✓ ——
 其中新增 `e2e/multiplayer.spec.ts` 的**握手期拒绝**用例（访客页被注入"另一份"哈希 → 主机拒、
 大厅显示原因、主机不把它算进参与者），两个桌面引擎都跑 ✓。
 
 **与草案的偏差**：无。`apply_tracks()` 与 6 个判定确实删掉了；`packs.json` 因为"只描述有哪些包"
-留在共享项（草案 §2 就是这么写的）。
+留在共享项（草案 §2 就是这么写的）。**后续**：`packs.json` 后来**停生成并从库里删掉了**
+（`tmc.build` 现在只写 `cardsets.json` + 镜像表，见 `tools/src/tmc/build.py:341-344`），
+所以上面那张表里的它已不存在 —— 这也是本节被打上"落地当时"横幅的原因之一。
