@@ -36,6 +36,15 @@
 ## 决策日志
 
 [`DECISIONS.md`](DECISIONS.md)：一个决定一条（D1–D169），写**为什么**、实测数字与踩过的坑。
+| [`data-provenance.md`](data-provenance.md) | 数据从哪来、THBWiki 依赖落在哪两处、许可分层与重推导现状 | 把 THBWiki 的译文/正文再引进仓库，或把许可标错 |
+
+另有 [`otomads-separation-v1.md`](otomads-separation-v1.md)（音MAD 与原曲的数据/运行时分离）与
+[`sources-separation-v1.md`](sources-separation-v1.md)（音源层按模式拆），两者都已实现，改动同源时一并读。
+
+## 开发
+
+[`DEVELOPMENT.md`](DEVELOPMENT.md)：日常命令、迭代时怎么快跑、改「关于」弹窗、技术栈。
+环境搭建与部署在主 [`README.md`](../README.md)。
 同一轮工作的最新条目会就地补全，更早的条目不再改 —— 要查"这个功能怎么来的、这个数字怎么量的"，grep 它。
 
 ## 阶段产物与历史快照
@@ -59,4 +68,6 @@
 [`../data/README.md`](../data/README.md)（真相源目录）、
 [`../data/packs/README.md`](../data/packs/README.md)（曲包形状）、
 [`../data/otomads/README.ai.MD`](../data/otomads/README.ai.MD)（音MAD 数据 submodule；AI 维护的说明）、
-[`../deploy/README.md`](../deploy/README.md)（单端口部署）。
+[`../deploy/README.md`](../deploy/README.md)（单端口部署）、
+[`../THIRD-PARTY-NOTICES.md`](../THIRD-PARTY-NOTICES.md)（随产物分发的第三方署名）、
+[`../REUSE.toml`](../REUSE.toml)（逐路径许可映射，`uvx --from reuse reuse lint` 校验）。

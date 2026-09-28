@@ -11,7 +11,10 @@
 - `meta/composite-characters.tsv` 合并（composite）角色条目表
 - `meta/extra-overrides.tsv` 人工裁定表：`(专辑, 曲目) → (附加信息, 依据, 来源)`
 - `meta/unowned-tracks.tsv` 显式"不归属任何角色"清单 + 理由
-- `meta/stage-cast.tsv` 作品 × 面次 × 登场角色参照表（`tmc.validate` 导出，供离线复核）
+- `meta/stage-cast.tsv` 作品 × 面次 × 登场角色参照表（`tmc.validate` 导出，供离线复核）。
+  **许可例外**：它的曲名与角色名是 THBWiki 的中文译文（翻译是演绎行为），按
+  **`CC-BY-NC-SA-3.0`** 分发，**不**随 `data/**` 的 MIT —— 见 `docs/data-provenance.md` §5
+  与 `docs/DECISIONS.md` 的 D170。这是全仓库唯一带 copyleft 的文件，别往它里面加内容。
 - `packs/` 附加曲包的**通用根目录**（当前只剩 `README.md`：未来的第二个包放这里，契约见它）；音MAD 的真源在
   **submodule** `otomads/` —— 清单 `otomads/packs/otomads.toml` + 一角色一份 `otomads/packs/otomads/*.toml`（43 份有曲目；
   本地专辑，**106 首 / 43 个角色**，见 `otomads/README.md`）。submodule **pin 在 commit 上**（tag 只是那个

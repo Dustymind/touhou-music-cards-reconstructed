@@ -84,6 +84,13 @@ export const aboutContent: AboutContent = {
       url: "https://github.com/Dustymind/touhou-music-cards-reconstructed",
       // Make it public anyway.
     },
+    // 许可：本仓库是聚合（代码 / 字体 / 数据各有各的），所以这里只列**标识符**，
+    // 细节全部指向 THIRD-PARTY-NOTICES.md —— 这一行按纯文本渲染，放不下那张表。
+    {
+      label: { en: "License", zh: "开源许可" },
+      name: "MIT · OFL-1.1 · BSD-3-Clause · Apache-2.0",
+      url: "https://github.com/Dustymind/touhou-music-cards-reconstructed/blob/main/THIRD-PARTY-NOTICES.md",
+    },
     {
       label: { en: "Otomads data set", zh: "音 MAD 数据集" },
       name: "Dustymind/touhou-music-cards-otomads-data",

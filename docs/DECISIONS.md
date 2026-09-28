@@ -1,3 +1,60 @@
+
+---
+
+## D170 许可分层：代码 MIT、字体 OFL、第三方署名随产物走；面次参照表单独标 CC-BY-NC-SA-3.0（2026-09-28）
+
+**结论**：给仓库补齐许可体系，按**聚合**处理而不是一句 "MIT" 了事：
+
+- 自己的代码与文档 → **MIT**（`LICENSE` + `package.json` 的 `license` 字段）。
+- `public/fonts/Inconsolata-Medium.ttf` → 保持 **SIL OFL-1.1**（原样分发 ⇒ Reserved Font Name 不触发）。
+- 打进产物的第三方 npm 包（**31 个**：28 MIT + 3 BSD-3-Clause）与 Google Material Icons（Apache-2.0）
+  → `THIRD-PARTY-NOTICES.md`；**同一份内容复制进 `public/THIRD-PARTY-NOTICES.txt`**，随 `dist/` 分发。
+- 逐路径的权威映射写成 `REUSE.toml`，用 `uvx --from reuse reuse lint` 校验。
+- `data/meta/stage-cast.tsv` **保留提交**，但单独标成 **`CC-BY-NC-SA-3.0`**（方案 B）。
+- 上游授权凭据（`docs/permissions/`）用自定义的 `LicenseRef-Permission-Evidence` 标记。
+
+**理由**
+
+1. 本仓库是**聚合**：代码、第三方字体、汇编数据各持各的许可，没有单一 SPDX 表达式能描述整仓，
+   所以逐路径声明（REUSE 规范）而不是一句 "MIT"。
+2. **署名必须跟着分发副本走**：MIT 与 BSD-3-Clause 都要求在分发副本里保留版权与许可声明，
+   而部署出去的是 `dist/`。只把 `THIRD-PARTY-NOTICES.md` 放在仓库根**到不了产物** ——
+   这正是之前"生产 bundle 里许可横幅 **0 条**"那个缺口的补法。
+3. `stage-cast.tsv` 是**唯一**把 THBWiki 中文译文提交进仓库的地方（它的曲名与角色名是 THBWiki 的
+   **翻译**，如 `ほおずきみたいに紅い魂` → `如鬼灯般的红色之魂`；翻译是演绎行为，比"取事实"弱）。
+   它只是 `tmc.validate` 导出的离线复核表：**`tools/` 里没有任何地方读它**（唯一引用是 `validate.py`
+   的写出），`tmc.build --check` 的漂移守卫也只覆盖 `public/data/`。
+   两条路里选了**方案 B（保留提交 + 单独标许可）**而不是"移出版本库"：
+   后者会与 D3「生成物提交进仓库」相悖，而它只是构建期产物；
+   保留提交、把许可边界标到**文件级**，既不违背 D3，也照样把许可说清楚。
+   做法是在 `REUSE.toml` 里给它一条精确到文件路径的 annotation —— REUSE 默认的 `closest`
+   规则让精确路径胜过 `data/**`，所以 `data/**` 其余部分仍是 MIT。
+   而**产物里本来就只有 ZUN 的原始日文曲名**（`恋色マスタースパーク`）与日文角色名
+   （`霧雨魔理沙`），没有译文，分类数据按 MIT 发布站得住。
+
+**影响 / 代价**
+
+- **与"整仓 MIT"的直觉不符**：只看根 `LICENSE` 的人会以为数据全是 MIT。所以根 `LICENSE`
+  与 `data/README.md` 都就地写明了这条例外，`reuse spdx` 也能逐文件查到真实归属。
+- `data/meta/stage-cast.tsv` 是全仓库**唯一带 copyleft 的文件**（CC-BY-NC-SA-3.0，NC + SA）——
+  别再往它里面加内容，加了就同样受这两个条款约束。
+- 上游仓库没有 LICENSE（默认保留所有权利），本项目是按作者同意发布的：凭据与一处残余风险
+  记在 `docs/permissions/upstream-authorization.md`。
+- 「分类独立重推导」已**执行**（比原计划省事：ZUN 的原始日文曲评 `tt-ja` 就在同一份快照里，
+  不需要游戏本体）。实测 510 条里推出 142 角色曲 / 99 道中曲 / 53 系统曲，
+  **与 THBWiki 类别层 0 冲突**；但覆盖率约 58%（180 条没有曲评），
+  所以它是佐证与部分来源，**不能**单独取代类别层。脚本与数字见 `docs/data-provenance.md` §3。
+
+**实测**
+
+- `reuse lint`：**376/376** 文件有许可与版权信息，0 missing / 0 unused，**compliant with REUSE 3.3**。
+- 产物口径：`vite build --mode development` 的 sourcemap 实测 `dist/assets/index-*.js` 里出现
+  **31** 个第三方包（28 MIT + 3 BSD-3-Clause）；构建期依赖（`@babel/*`、`cosmiconfig` 等）不进产物。
+- `pnpm typecheck` ✓；about 相关单测 **44 passed**（chromium + firefox 各 22）；
+  `npx vite build` ✓ 且 `dist/THIRD-PARTY-NOTICES.txt`（8621 B）随产物落地 ✓。
+
+---
+
 # 决策记录（DECISIONS）
 
 本文件是**定稿的决策依据**。每条记录：结论 → 理由 → 影响面。文档全景见 [`README.md`](README.md)，随机数契约见 [`rng-v1.md`](rng-v1.md)，数据分类规则见 [`rules-classification-v1.md`](rules-classification-v1.md)。（开工时的 `PLAN.md` 已删，方案正文并入本文件。）

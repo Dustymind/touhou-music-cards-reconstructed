@@ -389,30 +389,18 @@ manifest 所在那一层解析 ⇒ 换域名/端口/协议、换宿主与子路�
 | `pnpm data:check` / `pnpm data:validate` | 数据生成物是否漂移 / 不变量校验（`tools/` 是 Python，用 `uv` 管环境） |
 | `cd tools && UV_CACHE_DIR=.uv/cache uv run pytest` | 数据管线测试（**66 passed**；音频/本地源那 141 条在数据仓库：`uv run --project tools pytest`） |
 
-**e2e 的前置条件**（音MAD 用例要先起本地曲库助手、浏览器要装在仓库内）见部署指南 §6。
+逐路径的权威映射在 [`REUSE.toml`](REUSE.toml)，可以校验：
 
-### 迭代时怎么快跑（全量很慢，别每次都全量）
+```bash
+uvx --from reuse reuse lint
+```
 
-全量那两条是**提交前**的闸门，不是写代码时的循环：`pnpm test` 要 **~110 秒**（856 条 × 两个引擎，
-真实浏览器）、`pnpm e2e` 要 **~9 分钟**（91 条 × 三个 project，串行）。改一处就想看一眼时，按"范围从小到大"来：
+随产物分发的第三方署名在 [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md)；同一份内容
+也以纯文本放在 [`public/THIRD-PARTY-NOTICES.txt`](public/THIRD-PARTY-NOTICES.txt) ——
+`public/` 下的文件会原样进 `dist/`，**署名必须跟着分发副本走**，页面「关于」弹窗里有入口。
 
-| 想确认什么 | 命令 | 实测耗时 |
-|---|---|---|
-| 某个单测文件 | `npx vitest run src/content/about.test.ts src/ui/components/AboutDialog.test.tsx` | **~3.5 秒** |
-| 全部单测但只一个引擎 | `pnpm test:chromium` | **~35 秒**（全量的一半） |
-| 出第一条红就停 | `npx vitest run --bail=1` | 视情况 |
-| 某个 e2e 用例（两端） | `npx playwright test e2e/smoke.spec.ts --project=chromium --project=firefox -g "关于弹窗"` | **~12 秒** |
-| 某个 e2e 用例（只手机） | `npx playwright test --project=mobile -g "关于弹窗"` | **~7 秒** |
-| 某个 e2e 文件（只一端） | `npx playwright test e2e/smoke.spec.ts --project=chromium` | **~40 秒** |
-| 提交前 | `pnpm typecheck && pnpm test && pnpm e2e` | **~12 分钟**（含 e2e 前置的 `pnpm local`） |
+上游授权记录见 [`docs/permissions/upstream-authorization.md`](docs/permissions/upstream-authorization.md)。
 
-两个省时间的细节：① e2e 的 dev server 配了 `reuseExistingServer`，**先自己起 `pnpm dev`**（或
-`pnpm local` 起助手）就不会每次重开；② `-g` 是**按用例名过滤**，中文用例名也能匹配 —— 排错时先跑那一条。
-
-技术栈：Vite 7 + React 19 + TypeScript + MUI 7（主题按 **Material Design 2** 写：4dp 圆角、8dp 栅格、
-按钮 36dp、chip 32dp、深色基线），状态用 zustand，联机用 PeerJS。
-
-设计取舍、踩过的坑与每个决定的实测数字记在 [`docs/DECISIONS.md`](docs/DECISIONS.md)；
-`附加信息` 分类规则在 [`docs/rules-classification-v1.md`](docs/rules-classification-v1.md)；
-随机数与"种子由谁生成"的契约在 [`docs/rng-v1.md`](docs/rng-v1.md)（改动即破坏联机一致性）。
-文档全景（哪份是契约、哪份是历史快照、现状数字从哪来）见 [`docs/README.md`](docs/README.md)。
+另外：本项目是**东方 Project 的非官方二次创作**，与 上海アリス幻樂団 / ZUN 无任何关联，
+遵循[东方Project使用规定案](https://thbwiki.cc/%E4%B8%9C%E6%96%B9Project%E4%BD%BF%E7%94%A8%E8%A7%84%E5%AE%9A%E6%A1%88)。
+页面上的卡面与音频是**运行时**从第三方地址加载的，不在 MIT 的授权范围内。
