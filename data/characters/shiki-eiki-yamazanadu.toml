@@ -1,10 +1,21 @@
 key = "shiki-eiki-yamazanadu"
 name = "四季映姫・ヤマザナドゥ"
 order = 32
-card = ["映姫.png"]
-searchNames = ["四季映姫・ヤマザナドゥ", "Shiki Eiki Yamazanadu", "四季映姬·亚玛萨那度", "siji yingji yamasannadu", "四季映姬·夜摩仙那度"]
+search_names = ["四季映姫・ヤマザナドゥ", "Shiki Eiki Yamazanadu", "四季映姬·亚玛萨那度", "siji yingji yamasannadu", "四季映姬·夜摩仙那度"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["映姫.png"]
 
-music = [
-  ["東方花映塚 ～ Phantasmagoria of Flower View", "六十年目の東方裁判　～ Fate of Sixty Years", "角色曲"],
-  ["伊弉諾物質 ～ Neo-traditionalism of Japan", "04. 六十年目の東方裁判 ～ Fate of Sixty Years", "秘封曲"],
-]
+[[track]]
+id = "th09_15"
+album_key = "th09"
+title = "六十年目の東方裁判　～ Fate of Sixty Years"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "hr08_04"
+album_key = "hr08"
+title = "04. 六十年目の東方裁判 ～ Fate of Sixty Years"
+extra = "秘封曲"
+sources = ["netease163", "thbwiki"]
+

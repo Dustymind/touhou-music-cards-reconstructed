@@ -1,9 +1,14 @@
 key = "tenkajin-chiyari"
 name = "天火人ちやり"
 order = 101
-card = ["天火人ちやり.png"]
-searchNames = ["天火人ちやり", "Tenkajin Chiyari", "天火人血枪", "tianhuoren xueqiang"]
+search_names = ["天火人ちやり", "Tenkajin Chiyari", "天火人血枪", "tianhuoren xueqiang"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["天火人ちやり.png"]
 
-music = [
-  ["東方獣王園 ～ Unfinished Dream of All Living Ghost", "吸血怪獣チュパカブラ", "角色曲"],
-]
+[[track]]
+id = "th19_07"
+album_key = "th19"
+title = "吸血怪獣チュパカブラ"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+

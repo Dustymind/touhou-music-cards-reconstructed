@@ -1,16 +1,63 @@
 key = "yakumo-yukari"
 name = "八雲紫"
 order = 20
-card = ["紫.png"]
-searchNames = ["八雲紫", "Yakumo Yukari", "八云紫", "bayun zi"]
+search_names = ["八雲紫", "Yakumo Yukari", "八云紫", "bayun zi"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["紫.png"]
 
-music = [
-  ["東方妖々夢 ～ Perfect Cherry Blossom", "ネクロファンタジア", "角色曲"],
-  ["幻想曲抜萃 ～ 東方萃夢想 Night Disc", "16. 夜が降りてくる ～ Evening Star", "角色曲"],
-  ["全人類ノ天楽録 ～ 東方緋想天 Arrange Disc", "10. 夜が降りてくる", "角色曲"],
-  ["完全憑依ディスコグラフィ", "夜が降りてくる　～ Evening Star", "角色曲"],
-  ["完全憑依ディスコグラフィ", "憑坐は夢と現の間に　～ Necro-Fantasia", "角色曲"],
-  ["夢違科学世紀 ～ Changeability of Strange Dream", "07. 夜が降りてくる ～ Evening Star", "秘封曲"],
-  ["大空魔術 ～ Magical Astronomy", "09. ネクロファンタジア", "秘封曲"],
-  ["七夕坂夢幻能 ~ Taboo Japan Disentanglement", "憑坐は夢と現の間に 〜 Necro-Fantasia", "秘封曲"],
-]
+[[track]]
+id = "th07_18"
+album_key = "th07"
+title = "ネクロファンタジア"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-001b_16"
+album_key = "th07.5-night"
+title = "16. 夜が降りてくる ～ Evening Star"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-003A_10"
+album_key = "th10.5-arrange"
+title = "10. 夜が降りてくる"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-009c_07"
+album_key = "th15.5"
+title = "夜が降りてくる　～ Evening Star"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-009a_17"
+album_key = "th15.5"
+title = "憑坐は夢と現の間に　～ Necro-Fantasia"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "hr03_07"
+album_key = "hr03"
+title = "07. 夜が降りてくる ～ Evening Star"
+extra = "秘封曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "hr05_09"
+album_key = "hr05"
+title = "09. ネクロファンタジア"
+extra = "秘封曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "hr12_07"
+album_key = "hr11"
+title = "憑坐は夢と現の間に 〜 Necro-Fantasia"
+extra = "秘封曲"
+sources = ["netease163", "thbwiki"]
+

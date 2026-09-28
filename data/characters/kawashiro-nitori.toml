@@ -1,13 +1,42 @@
 key = "kawashiro-nitori"
 name = "河城にとり"
 order = 36
-card = ["にとり.png"]
-searchNames = ["河城にとり", "Kawashiro Nitori", "河城荷取", "hecheng hequ"]
+search_names = ["河城にとり", "Kawashiro Nitori", "河城荷取", "hecheng hequ"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["にとり.png"]
 
-music = [
-  ["東方風神録 ～ Mountain of Faith", "芥川龍之介の河童　～ Candid Friend", "角色曲"],
-  ["東方風神録 ～ Mountain of Faith", "神々が恋した幻想郷", "道中曲"],
-  ["暗黒能楽集・心綺楼", "芥川龍之介の河童　～ Candid Friend", "角色曲"],
-  ["完全憑依ディスコグラフィ", "沢の河童の技術力", "角色曲"],
-  ["深秘的楽曲集", "芥川龍之介の河童 ～ Candid Friend", "角色曲"],
-]
+[[track]]
+id = "th10_07"
+album_key = "th10"
+title = "芥川龍之介の河童　～ Candid Friend"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th10_06"
+album_key = "th10"
+title = "神々が恋した幻想郷"
+extra = "道中曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-006a_09"
+album_key = "th13.5"
+title = "芥川龍之介の河童　～ Candid Friend"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-009a_13"
+album_key = "th15.5"
+title = "沢の河童の技術力"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-007b_07"
+album_key = "th14.5"
+title = "芥川龍之介の河童 ～ Candid Friend"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+

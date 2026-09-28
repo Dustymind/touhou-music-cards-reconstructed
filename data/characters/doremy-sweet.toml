@@ -1,13 +1,42 @@
 key = "doremy-sweet"
 name = "ドレミー・スイート"
 order = 73
-card = ["ドレミー.png"]
-searchNames = ["ドレミー・スイート", "Doremi Suito", "Doremy Sweet", "哆来咪·苏伊特", "duolaimi suyite"]
+search_names = ["ドレミー・スイート", "Doremi Suito", "Doremy Sweet", "哆来咪·苏伊特", "duolaimi suyite"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["ドレミー.png"]
 
-music = [
-  ["東方紺珠伝 ～ Legacy of Lunatic Kingdom", "永遠の春夢", "角色曲"],
-  ["東方紺珠伝 ～ Legacy of Lunatic Kingdom", "宇宙を飛ぶ不思議な巫女", "道中曲"],
-  ["東方紺珠伝 ～ Legacy of Lunatic Kingdom", "見た事も無い悪夢の世界", "更多道中曲"],
-  ["完全憑依ディスコグラフィ", "永遠の春夢", "角色曲"],
-  ["完全憑依ディスコグラフィ", "スリープシープ・パレード", "角色曲"],
-]
+[[track]]
+id = "th15_07"
+album_key = "th15"
+title = "永遠の春夢"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th15_06"
+album_key = "th15"
+title = "宇宙を飛ぶ不思議な巫女"
+extra = "道中曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th15_16"
+album_key = "th15"
+title = "見た事も無い悪夢の世界"
+extra = "更多道中曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-009c_03"
+album_key = "th15.5"
+title = "永遠の春夢"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-009b_09"
+album_key = "th15.5"
+title = "スリープシープ・パレード"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+

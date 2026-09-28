@@ -1,12 +1,35 @@
 key = "yakumo-ran"
 name = "八雲藍"
 order = 19
-card = ["藍.png"]
-searchNames = ["八雲藍", "Yakumo Ran", "八云蓝", "bayun lan"]
+search_names = ["八雲藍", "Yakumo Ran", "八云蓝", "bayun lan"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["藍.png"]
 
-music = [
-  ["東方妖々夢 ～ Perfect Cherry Blossom", "少女幻葬　～ Necro-Fantasy", "角色曲"],
-  ["東方妖々夢 ～ Perfect Cherry Blossom", "妖々跋扈　～ Who done it!", "更多道中曲"],
-  ["蓮台野夜行 ～ Ghostly Field Club", "10. 少女幻葬 ～ Necro-Fantasy", "秘封曲"],
-  ["東方獣王園 ～ Unfinished Dream of All Living Ghost", "妖々跋扈　～ Who done it!", "更多道中曲"],
-]
+[[track]]
+id = "th07_16"
+album_key = "th07"
+title = "少女幻葬　～ Necro-Fantasy"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th07_17"
+album_key = "th07"
+title = "妖々跋扈　～ Who done it!"
+extra = "更多道中曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "hr02_10"
+album_key = "hr02"
+title = "10. 少女幻葬 ～ Necro-Fantasy"
+extra = "秘封曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th19_11"
+album_key = "th19"
+title = "妖々跋扈　～ Who done it!"
+extra = "更多道中曲"
+sources = ["netease163", "thbwiki"]
+

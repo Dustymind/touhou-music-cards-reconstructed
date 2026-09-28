@@ -1,9 +1,14 @@
 key = "koakuma"
 name = "小悪魔"
 order = 8
-card = ["小悪魔.png"]
-searchNames = ["小悪魔", "Koakuma", "小恶魔", "xiaoemo"]
+search_names = ["小悪魔", "Koakuma", "小恶魔", "xiaoemo"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["小悪魔.png"]
 
-music = [
-  ["東方紅魔郷 ～ the Embodiment of Scarlet Devil", "ヴワル魔法図書館", "道中曲"],
-]
+[[track]]
+id = "th06_08"
+album_key = "th06"
+title = "ヴワル魔法図書館"
+extra = "道中曲"
+sources = ["netease163", "thbwiki"]
+

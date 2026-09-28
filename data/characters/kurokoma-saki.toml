@@ -1,11 +1,28 @@
 key = "kurokoma-saki"
 name = "驪駒早鬼"
 order = 90
-card = ["早鬼.png"]
-searchNames = ["驪駒早鬼", "Kurokoma Saki", "骊驹早鬼", "liju zaoqi"]
+search_names = ["驪駒早鬼", "Kurokoma Saki", "骊驹早鬼", "liju zaoqi"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["早鬼.png"]
 
-music = [
-  ["東方鬼形獣 ～ Wily Beast and Weakest Creature", "聖徳太子のペガサス　～ Dark Pegasus", "角色曲"],
-  ["東方鬼形獣 ～ Wily Beast and Weakest Creature", "輝かしき弱肉強食の掟", "道中曲"],
-  ["東方獣王園 ～ Unfinished Dream of All Living Ghost", "聖徳太子のペガサス　～ Dark Pegasus", "角色曲"],
-]
+[[track]]
+id = "th17_15"
+album_key = "th17"
+title = "聖徳太子のペガサス　～ Dark Pegasus"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th17_14"
+album_key = "th17"
+title = "輝かしき弱肉強食の掟"
+extra = "道中曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th19_19"
+album_key = "th19"
+title = "聖徳太子のペガサス　～ Dark Pegasus"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+

@@ -1,9 +1,14 @@
 key = "aki-shizuha"
 name = "秋静葉"
 order = 33
-card = ["静葉.png"]
-searchNames = ["秋静葉", "Aki Shizuha", "秋静叶", "qiu jingye"]
+search_names = ["秋静葉", "Aki Shizuha", "秋静叶", "qiu jingye"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["静葉.png"]
 
-music = [
-  ["東方風神録 ～ Mountain of Faith", "人恋し神様　～ Romantic Fall", "道中曲"],
-]
+[[track]]
+id = "th10_02"
+album_key = "th10"
+title = "人恋し神様　～ Romantic Fall"
+extra = "道中曲"
+sources = ["netease163", "thbwiki"]
+

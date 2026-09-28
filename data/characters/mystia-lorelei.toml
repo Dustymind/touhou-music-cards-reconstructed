@@ -1,11 +1,28 @@
 key = "mystia-lorelei"
 name = "ミスティア・ローレライ"
 order = 22
-card = ["ミスティア.png"]
-searchNames = ["ミスティア・ローレライ", "Misutia Rorerai", "Mystia Lorelei", "米斯蒂娅·萝蕾拉", "misidiya luoleila"]
+search_names = ["ミスティア・ローレライ", "Misutia Rorerai", "Mystia Lorelei", "米斯蒂娅·萝蕾拉", "misidiya luoleila"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["ミスティア.png"]
 
-music = [
-  ["東方永夜抄 ～ Imperishable Night", "もう歌しか聞こえない", "角色曲"],
-  ["東方永夜抄 ～ Imperishable Night", "夜雀の歌声　～ Night Bird", "道中曲"],
-  ["東方花映塚 ～ Phantasmagoria of Flower View", "もう歌しか聞こえない　～ Flower Mix", "角色曲"],
-]
+[[track]]
+id = "th08_05"
+album_key = "th08"
+title = "もう歌しか聞こえない"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th08_04"
+album_key = "th08"
+title = "夜雀の歌声　～ Night Bird"
+extra = "道中曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th09_09"
+album_key = "th09"
+title = "もう歌しか聞こえない　～ Flower Mix"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+

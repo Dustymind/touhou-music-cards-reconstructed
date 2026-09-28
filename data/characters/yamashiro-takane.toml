@@ -1,10 +1,21 @@
 key = "yamashiro-takane"
 name = "山城たかね"
 order = 92
-card = ["たかね.png"]
-searchNames = ["山城たかね", "Yamashiro Takane", "山城高岭", "shancheng gaoling"]
+search_names = ["山城たかね", "Yamashiro Takane", "山城高岭", "shancheng gaoling"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["たかね.png"]
 
-music = [
-  ["東方虹龍洞 ～ Unconnected Marketeers", "バンデットリィテクノロジー", "角色曲"],
-  ["東方虹龍洞 ～ Unconnected Marketeers", "深緑に隠された断崖", "道中曲"],
-]
+[[track]]
+id = "th18_05"
+album_key = "th18"
+title = "バンデットリィテクノロジー"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th18_04"
+album_key = "th18"
+title = "深緑に隠された断崖"
+extra = "道中曲"
+sources = ["netease163", "thbwiki"]
+

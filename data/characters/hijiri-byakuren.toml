@@ -1,13 +1,42 @@
 key = "hijiri-byakuren"
 name = "聖白蓮"
 order = 55
-card = ["聖.png"]
-searchNames = ["聖白蓮", "Hijiri Byakuren", "圣白莲", "sheng bailian"]
+search_names = ["聖白蓮", "Hijiri Byakuren", "圣白莲", "sheng bailian"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["聖.png"]
 
-music = [
-  ["東方星蓮船 ～ Undefined Fantastic Object", "感情の摩天楼　～ Cosmic Mind", "角色曲"],
-  ["暗黒能楽集・心綺楼", "感情の摩天楼　～ Cosmic Mind", "角色曲"],
-  ["深秘的楽曲集", "感情の摩天楼　～ Cosmic Mind", "角色曲"],
-  ["完全憑依ディスコグラフィ", "法力の下の平等", "角色曲"],
-  ["鳥船遺跡 ～ Trojan Green Asteroid", "09. 感情の摩天楼 ～ Cosmic Mind", "秘封曲"],
-]
+[[track]]
+id = "th12_13"
+album_key = "th12"
+title = "感情の摩天楼　～ Cosmic Mind"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-006a_06"
+album_key = "th13.5"
+title = "感情の摩天楼　～ Cosmic Mind"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-007b_04"
+album_key = "th14.5"
+title = "感情の摩天楼　～ Cosmic Mind"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-009a_07"
+album_key = "th15.5"
+title = "法力の下の平等"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "hr07_09"
+album_key = "hr07"
+title = "09. 感情の摩天楼 ～ Cosmic Mind"
+extra = "秘封曲"
+sources = ["netease163", "thbwiki"]
+

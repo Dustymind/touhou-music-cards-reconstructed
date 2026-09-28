@@ -1,10 +1,21 @@
 key = "kasodani-kyouko"
 name = "幽谷響子"
 order = 57
-card = ["響子.png"]
-searchNames = ["幽谷響子", "Kasodani Kyouko", "幽谷响子", "yougu xiangzi"]
+search_names = ["幽谷響子", "Kasodani Kyouko", "幽谷响子", "yougu xiangzi"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["響子.png"]
 
-music = [
-  ["東方神霊廟 ～ Ten Desires", "門前の妖怪小娘", "角色曲"],
-  ["東方神霊廟 ～ Ten Desires", "妖怪寺へようこそ", "道中曲"],
-]
+[[track]]
+id = "th13_05"
+album_key = "th13"
+title = "門前の妖怪小娘"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th13_04"
+album_key = "th13"
+title = "妖怪寺へようこそ"
+extra = "道中曲"
+sources = ["netease163", "thbwiki"]
+

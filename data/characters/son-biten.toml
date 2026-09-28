@@ -1,9 +1,14 @@
 key = "son-biten"
 name = "孫美天"
 order = 99
-card = ["孫美天.png"]
-searchNames = ["孫美天", "Son Biten", "孙美天", "sun meitian"]
+search_names = ["孫美天", "Son Biten", "孙美天", "sun meitian"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["孫美天.png"]
 
-music = [
-  ["東方獣王園 ～ Unfinished Dream of All Living Ghost", "タイニーシャングリラ", "角色曲"],
-]
+[[track]]
+id = "th19_05"
+album_key = "th19"
+title = "タイニーシャングリラ"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+

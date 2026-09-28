@@ -1,12 +1,35 @@
 key = "fujiwara-no-mokou"
 name = "藤原妹紅"
 order = 28
-card = ["妹紅.png"]
-searchNames = ["藤原妹紅", "Fujiwara no Mokou", "藤原妹红", "tengyuan meihong"]
+search_names = ["藤原妹紅", "Fujiwara no Mokou", "藤原妹红", "tengyuan meihong"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["妹紅.png"]
 
-music = [
-  ["東方永夜抄 ～ Imperishable Night", "月まで届け、不死の煙", "角色曲"],
-  ["深秘的楽曲集", "月まで届け、不死の煙", "角色曲"],
-  ["完全憑依ディスコグラフィ", "不滅のレッドソウル", "角色曲"],
-  ["卯酉東海道 ～ Retrospective 53 Minutes", "07. 月まで届け不死の煙", "秘封曲"],
-]
+[[track]]
+id = "th08_18"
+album_key = "th08"
+title = "月まで届け、不死の煙"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-007b_11"
+album_key = "th14.5"
+title = "月まで届け、不死の煙"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-009b_02"
+album_key = "th15.5"
+title = "不滅のレッドソウル"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "hr04_07"
+album_key = "hr04"
+title = "07. 月まで届け不死の煙"
+extra = "秘封曲"
+sources = ["netease163", "thbwiki"]
+

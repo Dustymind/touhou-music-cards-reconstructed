@@ -1,11 +1,28 @@
 key = "ebisu-eika"
 name = "戎瓔花"
 order = 84
-card = ["戎.png"]
-searchNames = ["戎瓔花", "Ebisu Eika", "戎璎花", "rong yinghua"]
+search_names = ["戎瓔花", "Ebisu Eika", "戎璎花", "rong yinghua"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["戎.png"]
 
-music = [
-  ["東方鬼形獣 ～ Wily Beast and Weakest Creature", "ジェリーストーン", "角色曲"],
-  ["東方鬼形獣 ～ Wily Beast and Weakest Creature", "地蔵だけが知る哀嘆", "道中曲"],
-  ["七夕坂夢幻能 ~ Taboo Japan Disentanglement", "地蔵だけが知る哀嘆", "秘封曲"],
-]
+[[track]]
+id = "th17_03"
+album_key = "th17"
+title = "ジェリーストーン"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th17_02"
+album_key = "th17"
+title = "地蔵だけが知る哀嘆"
+extra = "道中曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "hr12_09"
+album_key = "hr11"
+title = "地蔵だけが知る哀嘆"
+extra = "秘封曲"
+sources = ["netease163", "thbwiki"]
+

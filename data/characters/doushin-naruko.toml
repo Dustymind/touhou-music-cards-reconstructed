@@ -1,10 +1,21 @@
 key = "doushin-naruko"
 name = "道神馴子"
 order = 114
-card = ["馴子.png"]
-searchNames = ["道神馴子", "Doushin Naruko", "道神驯子", "daoshen xunzi"]
+search_names = ["道神馴子", "Doushin Naruko", "道神驯子", "daoshen xunzi"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["馴子.png"]
 
-music = [
-  ["東方錦上京 ～ Fossilized Wonders", "どうせなら命を賭けて謎を解け", "角色曲"],
-  ["東方錦上京 ～ Fossilized Wonders", "プレステ・ジョアンの黄金境", "道中曲"],
-]
+[[track]]
+id = "th20_07"
+album_key = "th20"
+title = "どうせなら命を賭けて謎を解け"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th20_06"
+album_key = "th20"
+title = "プレステ・ジョアンの黄金境"
+extra = "道中曲"
+sources = ["netease163", "thbwiki"]
+

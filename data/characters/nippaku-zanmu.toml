@@ -1,9 +1,14 @@
 key = "nippaku-zanmu"
 name = "日白残無"
 order = 103
-card = ["日白残無.png"]
-searchNames = ["日白残無", "Nippaku Zanmu", "日白残无", "ribai canwu"]
+search_names = ["日白残無", "Nippaku Zanmu", "日白残无", "ribai canwu"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["日白残無.png"]
 
-music = [
-  ["東方獣王園 ～ Unfinished Dream of All Living Ghost", "逸脱者達の無礙光　～ Kingdam of Nothingness.", "角色曲"],
-]
+[[track]]
+id = "th19_09"
+album_key = "th19"
+title = "逸脱者達の無礙光　～ Kingdam of Nothingness."
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+

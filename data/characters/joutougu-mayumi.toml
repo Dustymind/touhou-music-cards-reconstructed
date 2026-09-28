@@ -1,11 +1,28 @@
 key = "joutougu-mayumi"
 name = "杖刀偶磨弓"
 order = 88
-card = ["磨弓.png"]
-searchNames = ["杖刀偶磨弓", "Joutougu Mayumi", "杖刀偶磨弓", "zhangdaou moyong"]
+search_names = ["杖刀偶磨弓", "Joutougu Mayumi", "杖刀偶磨弓", "zhangdaou moyong"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["磨弓.png"]
 
-music = [
-  ["東方鬼形獣 ～ Wily Beast and Weakest Creature", "セラミックスの杖刀人", "角色曲"],
-  ["東方鬼形獣 ～ Wily Beast and Weakest Creature", "ビーストメトロポリス", "道中曲"],
-  ["東方鬼形獣 ～ Wily Beast and Weakest Creature", "エレクトリックヘリテージ", "更多道中曲"],
-]
+[[track]]
+id = "th17_11"
+album_key = "th17"
+title = "セラミックスの杖刀人"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th17_10"
+album_key = "th17"
+title = "ビーストメトロポリス"
+extra = "道中曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th17_12"
+album_key = "th17"
+title = "エレクトリックヘリテージ"
+extra = "更多道中曲"
+sources = ["netease163", "thbwiki"]
+

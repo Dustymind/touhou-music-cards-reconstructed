@@ -1,13 +1,42 @@
 key = "hata-no-kokoro"
 name = "秦こころ"
 order = 108
-card = ["こころ.png"]
-searchNames = ["秦こころ", "Hata no Kokoro", "秦心", "qin xin"]
+search_names = ["秦こころ", "Hata no Kokoro", "秦心", "qin xin"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["こころ.png"]
 
-music = [
-  ["暗黒能楽集・心綺楼", "亡失のエモーション", "角色曲"],
-  ["深秘的楽曲集", "亡失のエモーション", "角色曲"],
-  ["完全憑依ディスコグラフィ", "心綺楼演舞", "角色曲"],
-  ["旧約酒場 ～ Dateless Bar Old Adam", "亡失のエモーション", "秘封曲"],
-  ["暗黒能楽集・心綺楼", "丑三つ時の里", "角色曲"],
-]
+[[track]]
+id = "TFM-006a_16"
+album_key = "th13.5"
+title = "亡失のエモーション"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-007b_10"
+album_key = "th14.5"
+title = "亡失のエモーション"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-009b_06"
+album_key = "th15.5"
+title = "心綺楼演舞"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "hr10_09"
+album_key = "hr10"
+title = "亡失のエモーション"
+extra = "秘封曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-006a_15"
+album_key = "th13.5"
+title = "丑三つ時の里"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+

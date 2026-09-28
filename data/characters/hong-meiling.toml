@@ -1,13 +1,42 @@
 key = "hong-meiling"
 name = "紅美鈴"
 order = 7
-card = ["美鈴.png"]
-searchNames = ["紅美鈴", "Hong Meiling", "红美铃", "hongmeiling"]
+search_names = ["紅美鈴", "Hong Meiling", "红美铃", "hongmeiling"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["美鈴.png"]
 
-music = [
-  ["東方紅魔郷 ～ the Embodiment of Scarlet Devil", "明治十七年の上海アリス", "角色曲"],
-  ["東方紅魔郷 ～ the Embodiment of Scarlet Devil", "上海紅茶館　～ Chinese Tea", "道中曲"],
-  ["核熱造神ヒソウテンソク ～ 東方非想天則", "05. 上海紅茶館 ～ Chinese Tea", "角色曲"],
-  ["蓬莱人形 ～ Dolls in Pseudo Paradise", "04. 明治十七年の上海アリス", "秘封曲"],
-  ["夢違科学世紀 ～ Changeability of Strange Dream", "03. 上海紅茶館 ～ Chinese Tea", "秘封曲"],
-]
+[[track]]
+id = "th06_07"
+album_key = "th06"
+title = "明治十七年の上海アリス"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th06_06"
+album_key = "th06"
+title = "上海紅茶館　～ Chinese Tea"
+extra = "道中曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-004_05"
+album_key = "th12.3"
+title = "05. 上海紅茶館 ～ Chinese Tea"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "hr01_04"
+album_key = "hr01"
+title = "04. 明治十七年の上海アリス"
+extra = "秘封曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "hr03_03"
+album_key = "hr03"
+title = "03. 上海紅茶館 ～ Chinese Tea"
+extra = "秘封曲"
+sources = ["netease163", "thbwiki"]
+

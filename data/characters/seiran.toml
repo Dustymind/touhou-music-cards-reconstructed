@@ -1,11 +1,28 @@
 key = "seiran"
 name = "清蘭"
 order = 71
-card = ["清蘭.png"]
-searchNames = ["清蘭", "Seiran", "清兰", "qinglan"]
+search_names = ["清蘭", "Seiran", "清兰", "qinglan"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["清蘭.png"]
 
-music = [
-  ["東方紺珠伝 ～ Legacy of Lunatic Kingdom", "兎は舞い降りた", "角色曲"],
-  ["東方紺珠伝 ～ Legacy of Lunatic Kingdom", "忘れがたき、よすがの緑", "道中曲"],
-  ["東方獣王園 ～ Unfinished Dream of All Living Ghost", "忘れがたき、よすがの緑", "更多道中曲"],
-]
+[[track]]
+id = "th15_04"
+album_key = "th15"
+title = "兎は舞い降りた"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th15_02"
+album_key = "th15"
+title = "忘れがたき、よすがの緑"
+extra = "道中曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th19_14"
+album_key = "th19"
+title = "忘れがたき、よすがの緑"
+extra = "更多道中曲"
+sources = ["netease163", "thbwiki"]
+

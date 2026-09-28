@@ -1,11 +1,28 @@
 key = "kamishirasawa-keine"
 name = "上白沢慧音"
 order = 23
-card = ["慧音.png", "慧音2.png"]
-searchNames = ["上白沢慧音", "Kamishirasawa Keine", "上白泽慧音", "shangbaize huiyin"]
+search_names = ["上白沢慧音", "Kamishirasawa Keine", "上白泽慧音", "shangbaize huiyin"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["慧音.png", "慧音2.png"]
 
-music = [
-  ["東方永夜抄 ～ Imperishable Night", "プレインエイジア", "角色曲"],
-  ["東方永夜抄 ～ Imperishable Night", "懐かしき東方の血　～ Old World", "道中曲"],
-  ["東方永夜抄 ～ Imperishable Night", "エクステンドアッシュ　～ 蓬莱人", "更多道中曲"],
-]
+[[track]]
+id = "th08_07"
+album_key = "th08"
+title = "プレインエイジア"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th08_06"
+album_key = "th08"
+title = "懐かしき東方の血　～ Old World"
+extra = "道中曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th08_17"
+album_key = "th08"
+title = "エクステンドアッシュ　～ 蓬莱人"
+extra = "更多道中曲"
+sources = ["netease163", "thbwiki"]
+

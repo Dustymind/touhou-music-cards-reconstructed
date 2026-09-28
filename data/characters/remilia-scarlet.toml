@@ -1,12 +1,35 @@
 key = "remilia-scarlet"
 name = "レミリア・スカーレット"
 order = 11
-card = ["レミリア.png"]
-searchNames = ["レミリア・スカーレット", "Remiria Sukaretto", "Remilia Scarlet", "蕾米莉亚·斯卡雷特", "leimiliya sikalete", "蕾米莉亚·斯卡蕾特"]
+search_names = ["レミリア・スカーレット", "Remiria Sukaretto", "Remilia Scarlet", "蕾米莉亚·斯卡雷特", "leimiliya sikalete", "蕾米莉亚·斯卡蕾特"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["レミリア.png"]
 
-music = [
-  ["東方紅魔郷 ～ the Embodiment of Scarlet Devil", "亡き王女の為のセプテット", "角色曲"],
-  ["東方紅魔郷 ～ the Embodiment of Scarlet Devil", "ツェペシュの幼き末裔", "道中曲"],
-  ["幻想曲抜萃 ～ 東方萃夢想 Day Disc", "13. 亡き王女の為のセプテット", "角色曲"],
-  ["全人類ノ天楽録 ～ 東方緋想天 Arrange Disc", "09. 亡き王女の為のセプテット", "角色曲"],
-]
+[[track]]
+id = "th06_13"
+album_key = "th06"
+title = "亡き王女の為のセプテット"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th06_12"
+album_key = "th06"
+title = "ツェペシュの幼き末裔"
+extra = "道中曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-001a_13"
+album_key = "th07.5-day"
+title = "13. 亡き王女の為のセプテット"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-003A_09"
+album_key = "th10.5-arrange"
+title = "09. 亡き王女の為のセプテット"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+

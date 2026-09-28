@@ -1,10 +1,21 @@
 key = "kuraunpisu"
 name = "クラウンピース"
 order = 75
-card = ["クラウンピース.png"]
-searchNames = ["クラウンピース", "Kuraunpisu", "Clownpiece", "克劳恩皮丝", "kelaounpisi"]
+search_names = ["クラウンピース", "Kuraunpisu", "Clownpiece", "克劳恩皮丝", "kelaounpisi"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["クラウンピース.png"]
 
-music = [
-  ["東方紺珠伝 ～ Legacy of Lunatic Kingdom", "星条旗のピエロ", "角色曲"],
-  ["東方紺珠伝 ～ Legacy of Lunatic Kingdom", "遥か３８万キロのボヤージュ", "道中曲"],
-]
+[[track]]
+id = "th15_11"
+album_key = "th15"
+title = "星条旗のピエロ"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th15_10"
+album_key = "th15"
+title = "遥か３８万キロのボヤージュ"
+extra = "道中曲"
+sources = ["netease163", "thbwiki"]
+

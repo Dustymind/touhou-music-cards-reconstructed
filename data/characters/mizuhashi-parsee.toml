@@ -1,10 +1,21 @@
 key = "mizuhashi-parsee"
 name = "水橋パルスィ"
 order = 44
-card = ["パルスィ.png"]
-searchNames = ["水橋パルスィ", "Mizuhashi Parusi", "Mizuhashi Parsee", "水桥帕露西", "shuiqiao paluxi"]
+search_names = ["水橋パルスィ", "Mizuhashi Parusi", "Mizuhashi Parsee", "水桥帕露西", "shuiqiao paluxi"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["パルスィ.png"]
 
-music = [
-  ["東方地霊殿 ～ Subterranean Animism", "緑眼のジェラシー", "角色曲"],
-  ["東方地霊殿 ～ Subterranean Animism", "渡る者の途絶えた橋", "道中曲"],
-]
+[[track]]
+id = "th11_05"
+album_key = "th11"
+title = "緑眼のジェラシー"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th11_04"
+album_key = "th11"
+title = "渡る者の途絶えた橋"
+extra = "道中曲"
+sources = ["netease163", "thbwiki"]
+

@@ -1,11 +1,28 @@
 key = "onozuka-komachi"
 name = "小野塚小町"
 order = 31
-card = ["小町.png"]
-searchNames = ["小野塚小町", "Onozuka Komachi", "小野冢小町", "xiaoyezhong xiaoting"]
+search_names = ["小野塚小町", "Onozuka Komachi", "小野冢小町", "xiaoyezhong xiaoting"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["小町.png"]
 
-music = [
-  ["東方花映塚 ～ Phantasmagoria of Flower View", "彼岸帰航　～ Riverside View", "角色曲"],
-  ["全人類ノ天楽録 ～ 東方緋想天 Arrange Disc", "14. 彼岸帰航 ～ Riverside View", "角色曲"],
-  ["卯酉東海道 ～ Retrospective 53 Minutes", "04. 彼岸帰航 ～ Riverside View", "秘封曲"],
-]
+[[track]]
+id = "th09_14"
+album_key = "th09"
+title = "彼岸帰航　～ Riverside View"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-003A_14"
+album_key = "th10.5-arrange"
+title = "14. 彼岸帰航 ～ Riverside View"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "hr04_04"
+album_key = "hr04"
+title = "04. 彼岸帰航 ～ Riverside View"
+extra = "秘封曲"
+sources = ["netease163", "thbwiki"]
+

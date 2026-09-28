@@ -1,9 +1,14 @@
 key = "kazami-yuuka"
 name = "風見幽香"
 order = 30
-card = ["幽香.png"]
-searchNames = ["風見幽香", "Kazami Yuuka", "风见幽香", "fengjian youxiang"]
+search_names = ["風見幽香", "Kazami Yuuka", "风见幽香", "fengjian youxiang"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["幽香.png"]
 
-music = [
-  ["東方花映塚 ～ Phantasmagoria of Flower View", "今昔幻想郷　～ Flower Land", "角色曲"],
-]
+[[track]]
+id = "th09_13"
+album_key = "th09"
+title = "今昔幻想郷　～ Flower Land"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+

@@ -1,12 +1,35 @@
 key = "ibuki-suika"
 name = "伊吹萃香"
 order = 105
-card = ["萃香.png"]
-searchNames = ["伊吹萃香", "Ibuki Suika", "伊吹萃香", "yichui cuixiang"]
+search_names = ["伊吹萃香", "Ibuki Suika", "伊吹萃香", "yichui cuixiang"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["萃香.png"]
 
-music = [
-  ["幻想曲抜萃 ～ 東方萃夢想 Night Disc", "18. 御伽の国の鬼が島", "角色曲"],
-  ["幻想曲抜萃 ～ 東方萃夢想 Night Disc", "17. 砕月", "角色曲"],
-  ["全人類ノ天楽録 ～ 東方緋想天 Arrange Disc", "11. 砕月", "角色曲"],
-  ["東方獣王園 ～ Unfinished Dream of All Living Ghost", "鬼は悠久の山に", "角色曲"],
-]
+[[track]]
+id = "TFM-001b_18"
+album_key = "th07.5-night"
+title = "18. 御伽の国の鬼が島"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-001b_17"
+album_key = "th07.5-night"
+title = "17. 砕月"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-003A_11"
+album_key = "th10.5-arrange"
+title = "11. 砕月"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th19_04"
+album_key = "th19"
+title = "鬼は悠久の山に"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+

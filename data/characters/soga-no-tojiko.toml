@@ -1,9 +1,14 @@
 key = "soga-no-tojiko"
 name = "蘇我屠自古"
 order = 60
-card = ["屠自古.png"]
-searchNames = ["蘇我屠自古", "Soga no Tojiko", "苏我屠自古", "suwo tuzigu"]
+search_names = ["蘇我屠自古", "Soga no Tojiko", "苏我屠自古", "suwo tuzigu"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["屠自古.png"]
 
-music = [
-  ["東方神霊廟 ～ Ten Desires", "夢殿大祀廟", "道中曲"],
-]
+[[track]]
+id = "th13_10"
+album_key = "th13"
+title = "夢殿大祀廟"
+extra = "道中曲"
+sources = ["netease163", "thbwiki"]
+

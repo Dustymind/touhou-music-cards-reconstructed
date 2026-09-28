@@ -1,11 +1,28 @@
 key = "chen"
 name = "橙"
 order = 14
-card = ["橙.png"]
-searchNames = ["橙", "Chen", "橙", "cheng"]
+search_names = ["橙", "Chen", "橙", "cheng"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["橙.png"]
 
-music = [
-  ["東方妖々夢 ～ Perfect Cherry Blossom", "ティアオイエツォン(withered leaf)", "角色曲"],
-  ["東方妖々夢 ～ Perfect Cherry Blossom", "遠野幻想物語", "道中曲"],
-  ["東方妖々夢 ～ Perfect Cherry Blossom", "妖々跋扈", "更多道中曲"],
-]
+[[track]]
+id = "th07_05"
+album_key = "th07"
+title = "ティアオイエツォン(withered leaf)"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th07_04"
+album_key = "th07"
+title = "遠野幻想物語"
+extra = "道中曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th07_15"
+album_key = "th07"
+title = "妖々跋扈"
+extra = "更多道中曲"
+sources = ["netease163", "thbwiki"]
+

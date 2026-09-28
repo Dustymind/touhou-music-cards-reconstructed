@@ -1,9 +1,14 @@
 key = "sunny-milk"
 name = "サニーミルク"
 order = 119
-card = ["サニーミルク.png"]
-searchNames = ["サニーミルク", "Sani Miruku", "Sunny Milk", "桑尼·米尔克", "sangni mierke"]
+search_names = ["サニーミルク", "Sani Miruku", "Sunny Milk", "桑尼·米尔克", "sangni mierke"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["サニーミルク.png"]
 
-music = [
-  ["東方三月精 ～ Eastern and Little Nature Deity", "サニールチルフレクション", "角色曲"],
-]
+[[track]]
+id = "EaLND_01"
+album_key = "sangetsusei"
+title = "サニールチルフレクション"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+

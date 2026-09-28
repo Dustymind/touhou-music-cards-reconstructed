@@ -1,9 +1,14 @@
 key = "yomotsu-hisami"
 name = "豫母都日狭美"
 order = 102
-card = ["豫母都日狭美.png"]
-searchNames = ["豫母都日狭美", "Yomotsu Hisami", "豫母都日狭美", "yumodu rixiamei"]
+search_names = ["豫母都日狭美", "Yomotsu Hisami", "豫母都日狭美", "yumodu rixiamei"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["豫母都日狭美.png"]
 
-music = [
-  ["東方獣王園 ～ Unfinished Dream of All Living Ghost", "振り向かない黄泉の道", "角色曲"],
-]
+[[track]]
+id = "th19_08"
+album_key = "th19"
+title = "振り向かない黄泉の道"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+

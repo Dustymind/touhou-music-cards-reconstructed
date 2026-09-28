@@ -1,10 +1,21 @@
 key = "iwanaga-ariya"
 name = "磐永阿梨夜"
 order = 117
-card = ["阿梨夜.png"]
-searchNames = ["磐永阿梨夜", "Iwanaga Ariya", "磐永阿梨夜", "panyong aliye"]
+search_names = ["磐永阿梨夜", "Iwanaga Ariya", "磐永阿梨夜", "panyong aliye"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["阿梨夜.png"]
 
-music = [
-  ["東方錦上京 ～ Fossilized Wonders", "最後の一人は慣れてるから　〜 Stone Goddess", "角色曲"],
-  ["東方錦上京 ～ Fossilized Wonders", "ピラミッドの神域", "道中曲"],
-]
+[[track]]
+id = "th20_12"
+album_key = "th20"
+title = "最後の一人は慣れてるから　〜 Stone Goddess"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th20_13"
+album_key = "th20"
+title = "ピラミッドの神域"
+extra = "道中曲"
+sources = ["netease163", "thbwiki"]
+

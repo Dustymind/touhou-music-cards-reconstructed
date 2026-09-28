@@ -1,9 +1,14 @@
 key = "watari-nina"
 name = "渡里ニナ"
 order = 118
-card = ["ニナ.png"]
-searchNames = ["渡里ニナ", "Watari Nina", "渡里妮娜", "duli nina", "渡里贝子"]
+search_names = ["渡里ニナ", "Watari Nina", "渡里妮娜", "duli nina", "渡里贝子"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["ニナ.png"]
 
-music = [
-  ["東方錦上京 ～ Fossilized Wonders", "二枚貝の上のハルシネーション", "角色曲"],
-]
+[[track]]
+id = "th20_18"
+album_key = "th20"
+title = "二枚貝の上のハルシネーション"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+

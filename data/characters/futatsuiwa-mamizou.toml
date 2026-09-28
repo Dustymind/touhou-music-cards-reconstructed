@@ -1,14 +1,49 @@
 key = "futatsuiwa-mamizou"
 name = "二ッ岩マミゾウ"
 order = 63
-card = ["マミゾウ.png"]
-searchNames = ["二ッ岩マミゾウ", "Futatsuiwa Mamizou", "二岩猯藏", "eryan tuanzang"]
+search_names = ["二ッ岩マミゾウ", "Futatsuiwa Mamizou", "二岩猯藏", "eryan tuanzang"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["マミゾウ.png"]
 
-music = [
-  ["東方神霊廟 ～ Ten Desires", "佐渡のニッ岩", "角色曲"],
-  ["暗黒能楽集・心綺楼", "佐渡のニッ岩", "角色曲"],
-  ["深秘的楽曲集", "幻想郷の二ッ岩", "角色曲"],
-  ["完全憑依ディスコグラフィ", "深緑の狸森にて", "角色曲"],
-  ["暗黒能楽集・心綺楼", "幻想郷の二ッ岩", "角色曲"],
-  ["東方獣王園 ～ Unfinished Dream of All Living Ghost", "佐渡の二ッ岩", "角色曲"],
-]
+[[track]]
+id = "th13_15"
+album_key = "th13"
+title = "佐渡のニッ岩"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-006a_12"
+album_key = "th13.5"
+title = "佐渡のニッ岩"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-007b_09"
+album_key = "th14.5"
+title = "幻想郷の二ッ岩"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-009a_15"
+album_key = "th15.5"
+title = "深緑の狸森にて"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-006a_14"
+album_key = "th13.5"
+title = "幻想郷の二ッ岩"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th19_17"
+album_key = "th19"
+title = "佐渡の二ッ岩"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+

@@ -1,11 +1,28 @@
 key = "usami-sumireko"
 name = "宇佐見菫子"
 order = 110
-card = ["菫子.png"]
-searchNames = ["宇佐見菫子", "Usami Sumireko", "宇佐见堇子", "yuzuojian jinzi"]
+search_names = ["宇佐見菫子", "Usami Sumireko", "宇佐见堇子", "yuzuojian jinzi"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["菫子.png"]
 
-music = [
-  ["深秘的楽曲集", "ラストオカルティズム　～ 現し世の秘術師", "角色曲"],
-  ["完全憑依ディスコグラフィ", "ラストオカルティズム　～ 現し世の秘術師", "角色曲"],
-  ["完全憑依ディスコグラフィ", "夢世界フォークロア", "角色曲"],
-]
+[[track]]
+id = "TFM-007a_16"
+album_key = "th14.5"
+title = "ラストオカルティズム　～ 現し世の秘術師"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-009c_02"
+album_key = "th15.5"
+title = "ラストオカルティズム　～ 現し世の秘術師"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-009b_08"
+album_key = "th15.5"
+title = "夢世界フォークロア"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+

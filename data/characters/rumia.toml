@@ -1,10 +1,21 @@
 key = "rumia"
 name = "ルーミア"
 order = 4
-card = ["ルーミア.png"]
-searchNames = ["ルーミア", "Rumia", "露米娅", "lumiya"]
+search_names = ["ルーミア", "Rumia", "露米娅", "lumiya"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["ルーミア.png"]
 
-music = [
-  ["東方紅魔郷 ～ the Embodiment of Scarlet Devil", "妖魔夜行", "角色曲"],
-  ["東方紅魔郷 ～ the Embodiment of Scarlet Devil", "ほおずきみたいに紅い魂", "道中曲"],
-]
+[[track]]
+id = "th06_03"
+album_key = "th06"
+title = "妖魔夜行"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th06_02"
+album_key = "th06"
+title = "ほおずきみたいに紅い魂"
+extra = "道中曲"
+sources = ["netease163", "thbwiki"]
+

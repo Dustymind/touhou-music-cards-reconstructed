@@ -1,10 +1,21 @@
 key = "imaizumi-kagerou"
 name = "今泉影狼"
 order = 66
-card = ["影狼.png"]
-searchNames = ["今泉影狼", "Imaizumi Kagerou", "今泉影狼", "jinquan yinglang"]
+search_names = ["今泉影狼", "Imaizumi Kagerou", "今泉影狼", "jinquan yinglang"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["影狼.png"]
 
-music = [
-  ["東方輝針城 ～ Double Dealing Character", "孤独なウェアウルフ", "角色曲"],
-  ["東方輝針城 ～ Double Dealing Character", "満月の竹林", "道中曲"],
-]
+[[track]]
+id = "th14_07"
+album_key = "th14"
+title = "孤独なウェアウルフ"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th14_06"
+album_key = "th14"
+title = "満月の竹林"
+extra = "道中曲"
+sources = ["netease163", "thbwiki"]
+

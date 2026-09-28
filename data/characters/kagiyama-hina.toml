@@ -1,10 +1,21 @@
 key = "kagiyama-hina"
 name = "鍵山雛"
 order = 35
-card = ["雛.png"]
-searchNames = ["鍵山雛", "Kagiyama Hina", "键山雏", "jianshan chu"]
+search_names = ["鍵山雛", "Kagiyama Hina", "键山雏", "jianshan chu"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["雛.png"]
 
-music = [
-  ["東方風神録 ～ Mountain of Faith", "運命のダークサイド", "角色曲"],
-  ["東方風神録 ～ Mountain of Faith", "厄神様の通り道　～ Dark Road", "道中曲"],
-]
+[[track]]
+id = "th10_05"
+album_key = "th10"
+title = "運命のダークサイド"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th10_04"
+album_key = "th10"
+title = "厄神様の通り道　～ Dark Road"
+extra = "道中曲"
+sources = ["netease163", "thbwiki"]
+

@@ -1,12 +1,35 @@
 key = "niwatari-kutaka"
 name = "庭渡久侘歌"
 order = 86
-card = ["久侘歌.png"]
-searchNames = ["庭渡久侘歌", "Niwatari Kutaka", "庭渡久诧歌", "tingdu jiuchage"]
+search_names = ["庭渡久侘歌", "Niwatari Kutaka", "庭渡久诧歌", "tingdu jiuchage"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["久侘歌.png"]
 
-music = [
-  ["東方鬼形獣 ～ Wily Beast and Weakest Creature", "セラフィックチキン", "角色曲"],
-  ["東方鬼形獣 ～ Wily Beast and Weakest Creature", "不朽の曼珠沙華", "道中曲"],
-  ["東方鬼形獣 ～ Wily Beast and Weakest Creature", "輝かしき弱肉強食の掟", "更多道中曲"],
-  ["強欲な獣のムジカ", "セラフィックチキン", "角色曲"],
-]
+[[track]]
+id = "th17_07"
+album_key = "th17"
+title = "セラフィックチキン"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th17_06"
+album_key = "th17"
+title = "不朽の曼珠沙華"
+extra = "道中曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th17_14"
+album_key = "th17"
+title = "輝かしき弱肉強食の掟"
+extra = "更多道中曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-010b_02"
+album_key = "th17.5"
+title = "セラフィックチキン"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+

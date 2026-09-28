@@ -1,9 +1,14 @@
 key = "toramaru-shou"
 name = "寅丸星"
 order = 54
-card = ["星.png"]
-searchNames = ["寅丸星", "Toramaru Shou", "寅丸星", "yinwan xing"]
+search_names = ["寅丸星", "Toramaru Shou", "寅丸星", "yinwan xing"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["星.png"]
 
-music = [
-  ["東方星蓮船 ～ Undefined Fantastic Object", "虎柄の毘沙門天", "角色曲"],
-]
+[[track]]
+id = "th12_11"
+album_key = "th12"
+title = "虎柄の毘沙門天"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+

@@ -67,12 +67,17 @@ def load_albums(p: Problems) -> dict[str, dict]:
 
 
 def load_characters(p: Problems) -> list[dict]:
+    with open(repo.DATA / "originals.toml", "rb") as fh:
+        key_to_name = {e["key"]: e["name"] for e in tomllib.load(fh)["album"]}
     chars = []
     keys, names, orders = set(), set(), set()
     for path in sorted((repo.DATA / "characters").glob("*.toml")):
         with open(path, "rb") as fh:
             char = tomllib.load(fh)
         char["_path"] = path
+        char["card"] = list(char.get("card_name", []))
+        char["searchNames"] = list(char.get("search_names", []))
+        char["music"] = [[key_to_name[t["album_key"]], t["title"], t["extra"]] for t in char.get("track", [])]
         if char["key"] != path.stem:
             p.error(f"{path.name}: key 与文件名不一致（{char['key']}）")
         if char["key"] in keys:

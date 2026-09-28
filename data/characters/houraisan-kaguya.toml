@@ -1,10 +1,21 @@
 key = "houraisan-kaguya"
 name = "蓬莱山輝夜"
 order = 27
-card = ["輝夜.png"]
-searchNames = ["蓬莱山輝夜", "Houraisan Kaguya", "蓬莱山辉夜", "penglaishan huiye"]
+search_names = ["蓬莱山輝夜", "Houraisan Kaguya", "蓬莱山辉夜", "penglaishan huiye"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["輝夜.png"]
 
-music = [
-  ["東方永夜抄 ～ Imperishable Night", "竹取飛翔　～ Lunatic Princess", "角色曲"],
-  ["卯酉東海道 ～ Retrospective 53 Minutes", "03. 竹取飛翔 ～ Lunatic Princess", "秘封曲"],
-]
+[[track]]
+id = "th08_15"
+album_key = "th08"
+title = "竹取飛翔　～ Lunatic Princess"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "hr04_03"
+album_key = "hr04"
+title = "03. 竹取飛翔 ～ Lunatic Princess"
+extra = "秘封曲"
+sources = ["netease163", "thbwiki"]
+

@@ -1,12 +1,35 @@
 key = "kudamaki-tsukasa"
 name = "菅牧典"
 order = 98
-card = ["典.png"]
-searchNames = ["菅牧典", "Kudamaki Tsukasa", "菅牧典", "jianmu dian"]
+search_names = ["菅牧典", "Kudamaki Tsukasa", "菅牧典", "jianmu dian"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["典.png"]
 
-music = [
-  ["東方獣王園 ～ Unfinished Dream of All Living Ghost", "待ちわびた逢魔が時", "角色曲"],
-  ["東方虹龍洞 ～ Unconnected Marketeers", "幻想の地下大線路網", "道中曲"],
-  ["東方虹龍洞 ～ Unconnected Marketeers", "ルナレインボー", "更多道中曲"],
-  ["東方虹龍洞 ～ Unconnected Marketeers", "待ちわびた逢魔が時", "道中曲"],
-]
+[[track]]
+id = "th19_16"
+album_key = "th19"
+title = "待ちわびた逢魔が時"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th18_14"
+album_key = "th18"
+title = "幻想の地下大線路網"
+extra = "道中曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th18_12"
+album_key = "th18"
+title = "ルナレインボー"
+extra = "更多道中曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th18_10"
+album_key = "th18"
+title = "待ちわびた逢魔が時"
+extra = "道中曲"
+sources = ["netease163", "thbwiki"]
+

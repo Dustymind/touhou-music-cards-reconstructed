@@ -1,10 +1,21 @@
 key = "yatadera-narumi"
 name = "矢田寺成美"
 order = 81
-card = ["成美.png"]
-searchNames = ["矢田寺成美", "Yatadera Narumi", "矢田寺成美", "shidasi chengmei"]
+search_names = ["矢田寺成美", "Yatadera Narumi", "矢田寺成美", "shidasi chengmei"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["成美.png"]
 
-music = [
-  ["東方天空璋 ～ Hidden Star in Four Seasons", "魔法の笠地蔵", "角色曲"],
-  ["東方天空璋 ～ Hidden Star in Four Seasons", "幻想のホワイトトラベラー", "道中曲"],
-]
+[[track]]
+id = "th16_09"
+album_key = "th16"
+title = "魔法の笠地蔵"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th16_08"
+album_key = "th16"
+title = "幻想のホワイトトラベラー"
+extra = "道中曲"
+sources = ["netease163", "thbwiki"]
+

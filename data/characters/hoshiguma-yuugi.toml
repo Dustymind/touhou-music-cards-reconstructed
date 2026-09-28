@@ -1,11 +1,28 @@
 key = "hoshiguma-yuugi"
 name = "星熊勇儀"
 order = 45
-card = ["勇儀.png"]
-searchNames = ["星熊勇儀", "Hoshiguma Yuugi", "星熊勇仪", "xingxiong yongyi"]
+search_names = ["星熊勇儀", "Hoshiguma Yuugi", "星熊勇仪", "xingxiong yongyi"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["勇儀.png"]
 
-music = [
-  ["東方地霊殿 ～ Subterranean Animism", "華のさかづき大江山", "角色曲"],
-  ["東方地霊殿 ～ Subterranean Animism", "旧地獄街道を行く", "道中曲"],
-  ["強欲な獣のムジカ", "華のさかづき大江山", "角色曲"],
-]
+[[track]]
+id = "th11_07"
+album_key = "th11"
+title = "華のさかづき大江山"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th11_06"
+album_key = "th11"
+title = "旧地獄街道を行く"
+extra = "道中曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-010a_09"
+album_key = "th17.5"
+title = "華のさかづき大江山"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+

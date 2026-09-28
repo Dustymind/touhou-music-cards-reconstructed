@@ -1,9 +1,14 @@
 key = "inubashiri-momiji"
 name = "犬走椛"
 order = 37
-card = ["椛.png"]
-searchNames = ["犬走椛", "Inubashiri Momiji", "犬走椛", "quanzou hua"]
+search_names = ["犬走椛", "Inubashiri Momiji", "犬走椛", "quanzou hua"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["椛.png"]
 
-music = [
-  ["東方風神録 ～ Mountain of Faith", "フォールオブフォール　～ 秋めく滝", "道中曲"],
-]
+[[track]]
+id = "th10_08"
+album_key = "th10"
+title = "フォールオブフォール　～ 秋めく滝"
+extra = "道中曲"
+sources = ["netease163", "thbwiki"]
+

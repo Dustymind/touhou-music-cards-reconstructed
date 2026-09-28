@@ -1,10 +1,21 @@
 key = "miyako-yoshika"
 name = "宮古芳香"
 order = 58
-card = ["芳香.png"]
-searchNames = ["宮古芳香", "Miyako Yoshika", "宫古芳香", "gonggu fangxiang"]
+search_names = ["宮古芳香", "Miyako Yoshika", "宫古芳香", "gonggu fangxiang"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["芳香.png"]
 
-music = [
-  ["東方神霊廟 ～ Ten Desires", "リジッドパラダイス", "角色曲"],
-  ["伊弉諾物質 ～ Neo-traditionalism of Japan", "10. 素敵な墓場で暮しましょ", "秘封曲"],
-]
+[[track]]
+id = "th13_07"
+album_key = "th13"
+title = "リジッドパラダイス"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "hr08_10"
+album_key = "hr08"
+title = "10. 素敵な墓場で暮しましょ"
+extra = "秘封曲"
+sources = ["netease163", "thbwiki"]
+

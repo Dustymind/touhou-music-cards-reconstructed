@@ -1,15 +1,56 @@
 key = "patchouli-knowledge"
 name = "パチュリー・ノーレッジ"
 order = 9
-card = ["パチュリー.png"]
-searchNames = ["パチュリー・ノーレッジ", "Pachuri Noredji", "Patchouli Knowledge", "帕秋莉·诺蕾姬", "paqiuli nuoleiji"]
+search_names = ["パチュリー・ノーレッジ", "Pachuri Noredji", "Patchouli Knowledge", "帕秋莉·诺蕾姬", "paqiuli nuoleiji"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["パチュリー.png"]
 
-music = [
-  ["東方紅魔郷 ～ the Embodiment of Scarlet Devil", "ラクトガール　～ 少女密室", "角色曲"],
-  ["幻想曲抜萃 ～ 東方萃夢想 Day Disc", "10. ラクトガール ～ 少女密室", "角色曲"],
-  ["幻想曲抜萃 ～ 東方萃夢想 Night Disc", "10. ヴワル魔法図書館", "角色曲"],
-  ["全人類ノ天楽録 ～ 東方緋想天 Arrange Disc", "07. ラクトガール ～ 少女密室", "角色曲"],
-  ["核熱造神ヒソウテンソク ～ 東方非想天則", "13. ヴワル魔法図書館", "角色曲"],
-  ["卯酉東海道 ～ Retrospective 53 Minutes", "09. ラクトガール ～ 少女密室", "秘封曲"],
-  ["東方紅魔郷 ～ the Embodiment of Scarlet Devil", "魔法少女達の百年祭", "更多道中曲"],
-]
+[[track]]
+id = "th06_09"
+album_key = "th06"
+title = "ラクトガール　～ 少女密室"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-001a_10"
+album_key = "th07.5-day"
+title = "10. ラクトガール ～ 少女密室"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-001b_10"
+album_key = "th07.5-night"
+title = "10. ヴワル魔法図書館"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-003A_07"
+album_key = "th10.5-arrange"
+title = "07. ラクトガール ～ 少女密室"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-004_13"
+album_key = "th12.3"
+title = "13. ヴワル魔法図書館"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "hr04_09"
+album_key = "hr04"
+title = "09. ラクトガール ～ 少女密室"
+extra = "秘封曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th06_14"
+album_key = "th06"
+title = "魔法少女達の百年祭"
+extra = "更多道中曲"
+sources = ["netease163", "thbwiki"]
+

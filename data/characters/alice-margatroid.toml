@@ -1,15 +1,56 @@
 key = "alice-margatroid"
 name = "アリス・マーガトロイド"
 order = 2
-card = ["アリス＆上海蓬莱.png"]
-searchNames = ["アリス・マーガトロイド", "Arisu Magatoroido", "Alice Margatroid", "爱丽丝·玛格特罗依德", "ailisi mageteluoyide", "爱丽丝·玛格特洛依德"]
+search_names = ["アリス・マーガトロイド", "Arisu Magatoroido", "Alice Margatroid", "爱丽丝·玛格特罗依德", "ailisi mageteluoyide", "爱丽丝·玛格特洛依德"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["アリス＆上海蓬莱.png"]
 
-music = [
-  ["東方妖々夢 ～ Perfect Cherry Blossom", "人形裁判　～ 人の形弄びし少女", "角色曲"],
-  ["東方妖々夢 ～ Perfect Cherry Blossom", "ブクレシュティの人形師", "道中曲"],
-  ["幻想曲抜萃 ～ 東方萃夢想 Day Disc", "08. ブクレシュティの人形師", "角色曲"],
-  ["幻想曲抜萃 ～ 東方萃夢想 Night Disc", "08. 人形裁判", "角色曲"],
-  ["全人類ノ天楽録 ～ 東方緋想天 Arrange Disc", "05. ブクレシュティの人形師", "角色曲"],
-  ["核熱造神ヒソウテンソク ～ 東方非想天則", "12. the Grimoire of Alice", "角色曲"],
-  ["夢違科学世紀 ～ Changeability of Strange Dream", "08. 人形裁判 ～ 人の形弄びし少女", "秘封曲"],
-]
+[[track]]
+id = "th07_07"
+album_key = "th07"
+title = "人形裁判　～ 人の形弄びし少女"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th07_06"
+album_key = "th07"
+title = "ブクレシュティの人形師"
+extra = "道中曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-001a_08"
+album_key = "th07.5-day"
+title = "08. ブクレシュティの人形師"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-001b_08"
+album_key = "th07.5-night"
+title = "08. 人形裁判"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-003A_05"
+album_key = "th10.5-arrange"
+title = "05. ブクレシュティの人形師"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-004_12"
+album_key = "th12.3"
+title = "12. the Grimoire of Alice"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "hr03_08"
+album_key = "hr03"
+title = "08. 人形裁判 ～ 人の形弄びし少女"
+extra = "秘封曲"
+sources = ["netease163", "thbwiki"]
+

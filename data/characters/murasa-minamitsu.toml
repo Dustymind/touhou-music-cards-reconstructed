@@ -1,10 +1,21 @@
 key = "murasa-minamitsu"
 name = "村紗水蜜"
 order = 53
-card = ["村紗.png"]
-searchNames = ["村紗水蜜", "Murasa Minamitsu", "村纱水蜜", "cunsha shuimi"]
+search_names = ["村紗水蜜", "Murasa Minamitsu", "村纱水蜜", "cunsha shuimi"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["村紗.png"]
 
-music = [
-  ["東方星蓮船 ～ Undefined Fantastic Object", "キャプテン・ムラサ", "角色曲"],
-  ["強欲な獣のムジカ", "キャプテンムラサ", "角色曲"],
-]
+[[track]]
+id = "th12_09"
+album_key = "th12"
+title = "キャプテン・ムラサ"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-010a_12"
+album_key = "th17.5"
+title = "キャプテンムラサ"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+

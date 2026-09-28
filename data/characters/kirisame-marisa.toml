@@ -1,19 +1,84 @@
 key = "kirisame-marisa"
 name = "霧雨魔理沙"
 order = 1
-card = ["魔理沙.png"]
-searchNames = ["霧雨魔理沙", "Kirisame Marisa", "雾雨魔理沙", "wuyu molisha"]
+search_names = ["霧雨魔理沙", "Kirisame Marisa", "雾雨魔理沙", "wuyu molisha"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["魔理沙.png"]
 
-music = [
-  ["東方永夜抄 ～ Imperishable Night", "恋色マスタースパーク", "角色曲"],
-  ["東方花映塚 ～ Phantasmagoria of Flower View", "オリエンタルダークフライト", "角色曲"],
-  ["東方獣王園 ～ Unfinished Dream of All Living Ghost", "魔獣スクランブル", "角色曲"],
-  ["幻想曲抜萃 ～ 東方萃夢想 Day Disc", "04. 恋色マジック", "角色曲"],
-  ["幻想曲抜萃 ～ 東方萃夢想 Night Disc", "04. 魔女達の舞踏会", "角色曲"],
-  ["全人類ノ天楽録 ～ 東方緋想天 Arrange Disc", "03. 星の器 ～ Casket of Star", "角色曲"],
-  ["核熱造神ヒソウテンソク ～ 東方非想天則", "11. 恋色マジック", "角色曲"],
-  ["暗黒能楽集・心綺楼", "メイガスナイト", "角色曲"],
-  ["深秘的楽曲集", "恋色マスタースパーク", "角色曲"],
-  ["完全憑依ディスコグラフィ", "マッシュルーム・ワルツ", "角色曲"],
-  ["強欲な獣のムジカ", "恋色マスタースパーク", "角色曲"],
-]
+[[track]]
+id = "th08_10"
+album_key = "th08"
+title = "恋色マスタースパーク"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th09_03"
+album_key = "th09"
+title = "オリエンタルダークフライト"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th19_03"
+album_key = "th19"
+title = "魔獣スクランブル"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-001a_04"
+album_key = "th07.5-day"
+title = "04. 恋色マジック"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-001b_04"
+album_key = "th07.5-night"
+title = "04. 魔女達の舞踏会"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-003A_03"
+album_key = "th10.5-arrange"
+title = "03. 星の器 ～ Casket of Star"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-004_11"
+album_key = "th12.3"
+title = "11. 恋色マジック"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-006a_04"
+album_key = "th13.5"
+title = "メイガスナイト"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-007b_02"
+album_key = "th14.5"
+title = "恋色マスタースパーク"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-009a_04"
+album_key = "th15.5"
+title = "マッシュルーム・ワルツ"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-010a_03"
+album_key = "th17.5"
+title = "恋色マスタースパーク"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+

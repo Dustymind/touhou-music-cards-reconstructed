@@ -1,12 +1,35 @@
 key = "hinanawi-tenshi"
 name = "比那名居天子"
 order = 107
-card = ["天子.png"]
-searchNames = ["比那名居天子", "Hinanawi Tenshi", "比那名居天子", "binamingju tianzi"]
+search_names = ["比那名居天子", "Hinanawi Tenshi", "比那名居天子", "binamingju tianzi"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["天子.png"]
 
-music = [
-  ["全人類ノ天楽録 ～ 東方緋想天 Original Disc", "15. 有頂天変 ～ Wonderful Heaven", "角色曲"],
-  ["全人類ノ天楽録 ～ 東方緋想天 Arrange Disc", "16. 有頂天変 ～ Wonderful Heaven", "角色曲"],
-  ["完全憑依ディスコグラフィ", "有頂天変　～ Wonderful Heaven", "角色曲"],
-  ["完全憑依ディスコグラフィ", "至る有頂天", "角色曲"],
-]
+[[track]]
+id = "TFM-003O_15"
+album_key = "th10.5-original"
+title = "15. 有頂天変 ～ Wonderful Heaven"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-003A_16"
+album_key = "th10.5-arrange"
+title = "16. 有頂天変 ～ Wonderful Heaven"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-009c_05"
+album_key = "th15.5"
+title = "有頂天変　～ Wonderful Heaven"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-009b_11"
+album_key = "th15.5"
+title = "至る有頂天"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+

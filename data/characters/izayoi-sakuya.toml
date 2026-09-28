@@ -1,15 +1,56 @@
 key = "izayoi-sakuya"
 name = "十六夜咲夜"
 order = 10
-card = ["咲夜.png"]
-searchNames = ["十六夜咲夜", "Izayoi Sakuya", "十六夜咲夜", "shiliuye xiaoye"]
+search_names = ["十六夜咲夜", "Izayoi Sakuya", "十六夜咲夜", "shiliuye xiaoye"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["咲夜.png"]
 
-music = [
-  ["東方紅魔郷 ～ the Embodiment of Scarlet Devil", "月時計　～ ルナ・ダイアル", "角色曲"],
-  ["東方紅魔郷 ～ the Embodiment of Scarlet Devil", "メイドと血の懐中時計", "道中曲"],
-  ["東方花映塚 ～ Phantasmagoria of Flower View", "フラワリングナイト", "角色曲"],
-  ["幻想曲抜萃 ～ 東方萃夢想 Day Disc", "06. メイドと血の懐中時計", "角色曲"],
-  ["幻想曲抜萃 ～ 東方萃夢想 Night Disc", "06. 月時計 ～ ルナ・ダイアル", "角色曲"],
-  ["全人類ノ天楽録 ～ 東方緋想天 Arrange Disc", "04. フラワリングナイト", "角色曲"],
-  ["東方紅魔郷 ～ the Embodiment of Scarlet Devil", "ツェペシュの幼き末裔", "更多道中曲"],
-]
+[[track]]
+id = "th06_11"
+album_key = "th06"
+title = "月時計　～ ルナ・ダイアル"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th06_10"
+album_key = "th06"
+title = "メイドと血の懐中時計"
+extra = "道中曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th09_04"
+album_key = "th09"
+title = "フラワリングナイト"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-001a_06"
+album_key = "th07.5-day"
+title = "06. メイドと血の懐中時計"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-001b_06"
+album_key = "th07.5-night"
+title = "06. 月時計 ～ ルナ・ダイアル"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-003A_04"
+album_key = "th10.5-arrange"
+title = "04. フラワリングナイト"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th06_12"
+album_key = "th06"
+title = "ツェペシュの幼き末裔"
+extra = "更多道中曲"
+sources = ["netease163", "thbwiki"]
+

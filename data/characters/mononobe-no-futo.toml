@@ -1,13 +1,42 @@
 key = "mononobe-no-futo"
 name = "物部布都"
 order = 61
-card = ["布都.png"]
-searchNames = ["物部布都", "Mononobe no Futo", "物部布都", "wubu budu"]
+search_names = ["物部布都", "Mononobe no Futo", "物部布都", "wubu budu"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["布都.png"]
 
-music = [
-  ["東方神霊廟 ～ Ten Desires", "大神神話伝", "角色曲"],
-  ["暗黒能楽集・心綺楼", "大神神話伝", "角色曲"],
-  ["深秘的楽曲集", "大神神話伝", "角色曲"],
-  ["完全憑依ディスコグラフィ", "恒常不変の参廟祀", "角色曲"],
-  ["旧約酒場 ～ Dateless Bar Old Adam", "大神神話伝", "秘封曲"],
-]
+[[track]]
+id = "th13_11"
+album_key = "th13"
+title = "大神神話伝"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-006a_07"
+album_key = "th13.5"
+title = "大神神話伝"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-007b_05"
+album_key = "th14.5"
+title = "大神神話伝"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-009a_10"
+album_key = "th15.5"
+title = "恒常不変の参廟祀"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "hr10_05"
+album_key = "hr10"
+title = "大神神話伝"
+extra = "秘封曲"
+sources = ["netease163", "thbwiki"]
+

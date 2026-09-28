@@ -1,10 +1,21 @@
 key = "kurodani-yamame"
 name = "黒谷ヤマメ"
 order = 43
-card = ["ヤマメ.png"]
-searchNames = ["黒谷ヤマメ", "Kurodani Yamame", "黑谷山女", "heigu shannv"]
+search_names = ["黒谷ヤマメ", "Kurodani Yamame", "黑谷山女", "heigu shannv"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["ヤマメ.png"]
 
-music = [
-  ["東方地霊殿 ～ Subterranean Animism", "封じられた妖怪　～ Lost Place", "角色曲"],
-  ["強欲な獣のムジカ", "封じられた妖怪", "角色曲"],
-]
+[[track]]
+id = "th11_03"
+album_key = "th11"
+title = "封じられた妖怪　～ Lost Place"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-010a_07"
+album_key = "th17.5"
+title = "封じられた妖怪"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+

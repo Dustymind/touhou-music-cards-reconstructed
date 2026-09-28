@@ -1,9 +1,14 @@
 key = "letty-whiterock"
 name = "レティ・ホワイトロック"
 order = 13
-card = ["レティ.png"]
-searchNames = ["レティ・ホワイトロック", "Reti Howaitorokku", "Letty Whiterock", "蕾蒂·霍瓦特洛克", "leidi huowateluoke"]
+search_names = ["レティ・ホワイトロック", "Reti Howaitorokku", "Letty Whiterock", "蕾蒂·霍瓦特洛克", "leidi huowateluoke"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["レティ.png"]
 
-music = [
-  ["東方妖々夢 ～ Perfect Cherry Blossom", "クリスタライズシルバー", "角色曲"],
-]
+[[track]]
+id = "th07_03"
+album_key = "th07"
+title = "クリスタライズシルバー"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+

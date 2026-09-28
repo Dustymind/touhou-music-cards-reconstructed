@@ -1,11 +1,28 @@
 key = "ibaraki-kasen"
 name = "茨木華扇"
 order = 109
-card = ["華扇.png"]
-searchNames = ["茨木華扇", "Ibaraki Kasen", "茨木华扇", "cimu huashan"]
+search_names = ["茨木華扇", "Ibaraki Kasen", "茨木华扇", "cimu huashan"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["華扇.png"]
 
-music = [
-  ["深秘的楽曲集", "華狭間のバトルフィールド", "角色曲"],
-  ["完全憑依ディスコグラフィ", "華狭間のバトルフィールド", "角色曲"],
-  ["完全憑依ディスコグラフィ", "千の試練を超えて", "角色曲"],
-]
+[[track]]
+id = "TFM-007a_14"
+album_key = "th14.5"
+title = "華狭間のバトルフィールド"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-009c_06"
+album_key = "th15.5"
+title = "華狭間のバトルフィールド"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-009b_12"
+album_key = "th15.5"
+title = "千の試練を超えて"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+

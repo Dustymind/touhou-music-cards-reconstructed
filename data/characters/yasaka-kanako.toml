@@ -1,12 +1,35 @@
 key = "yasaka-kanako"
 name = "八坂神奈子"
 order = 40
-card = ["神奈子.png"]
-searchNames = ["八坂神奈子", "Yasaka Kanako", "八坂神奈子", "baban shennaizi"]
+search_names = ["八坂神奈子", "Yasaka Kanako", "八坂神奈子", "baban shennaizi"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["神奈子.png"]
 
-music = [
-  ["東方風神録 ～ Mountain of Faith", "神さびた古戦場　～ Suwa Foughten Field", "角色曲"],
-  ["東方風神録 ～ Mountain of Faith", "御柱の墓場　～ Grave of Being", "道中曲"],
-  ["東方風神録 ～ Mountain of Faith", "明日ハレの日、ケの昨日", "更多道中曲"],
-  ["強欲な獣のムジカ", "神さびた古戦場", "角色曲"],
-]
+[[track]]
+id = "th10_13"
+album_key = "th10"
+title = "神さびた古戦場　～ Suwa Foughten Field"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th10_12"
+album_key = "th10"
+title = "御柱の墓場　～ Grave of Being"
+extra = "道中曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th10_14"
+album_key = "th10"
+title = "明日ハレの日、ケの昨日"
+extra = "更多道中曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-010a_11"
+album_key = "th17.5"
+title = "神さびた古戦場"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+

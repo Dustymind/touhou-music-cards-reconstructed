@@ -1,10 +1,21 @@
 key = "yorigami-joon-shion"
 name = "依神女苑・紫苑"
 order = 111
-card = ["女苑.png", "紫苑.png"]
-searchNames = ["依神女苑・紫苑", "Yorigami Joon Shion", "依神女苑·紫苑", "yishen nvyuan ziyuan", "依神女苑", "依神紫苑"]
+search_names = ["依神女苑・紫苑", "Yorigami Joon Shion", "依神女苑·紫苑", "yishen nvyuan ziyuan", "依神女苑", "依神紫苑"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["女苑.png", "紫苑.png"]
 
-music = [
-  ["完全憑依ディスコグラフィ", "今宵は飄逸なエゴイスト(Live ver)　～ Egoistic Flowers", "角色曲"],
-  ["強欲な獣のムジカ", "今宵は飄逸なエゴイスト　～ Egoistic Flowers", "角色曲"],
-]
+[[track]]
+id = "TFM-009b_14"
+album_key = "th15.5"
+title = "今宵は飄逸なエゴイスト(Live ver)　～ Egoistic Flowers"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-010b_03"
+album_key = "th17.5"
+title = "今宵は飄逸なエゴイスト　～ Egoistic Flowers"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+

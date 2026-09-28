@@ -1,14 +1,49 @@
 key = "teireida-mai-nishida-satono"
 name = "丁礼田舞・爾子田里乃"
 order = 82
-card = ["舞.png", "里乃.png"]
-searchNames = ["丁礼田舞・爾子田里乃", "Teireida Mai Nishida Satono", "丁礼田舞·尔子田里乃", "dinglitian wu erzitian linai", "丁礼田舞", "尔子田里乃"]
+search_names = ["丁礼田舞・爾子田里乃", "Teireida Mai Nishida Satono", "丁礼田舞·尔子田里乃", "dinglitian wu erzitian linai", "丁礼田舞", "尔子田里乃"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["舞.png", "里乃.png"]
 
-music = [
-  ["東方天空璋 ～ Hidden Star in Four Seasons", "クレイジーバックダンサーズ", "角色曲"],
-  ["東方天空璋 ～ Hidden Star in Four Seasons", "禁断の扉の向こうは、この世かあの世か", "道中曲"],
-  ["東方天空璋 ～ Hidden Star in Four Seasons", "幻想のホワイトトラベラー", "更多道中曲"],
-  ["東方天空璋 ～ Hidden Star in Four Seasons", "もうドアには入れない", "道中曲"],
-  ["七夕坂夢幻能 ~ Taboo Japan Disentanglement", "禁断の扉の向こうは、この世かあの世か", "秘封曲"],
-  ["七夕坂夢幻能 ~ Taboo Japan Disentanglement", "クレイジーバックダンサーズ", "秘封曲"],
-]
+[[track]]
+id = "th16_11"
+album_key = "th16"
+title = "クレイジーバックダンサーズ"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th16_10"
+album_key = "th16"
+title = "禁断の扉の向こうは、この世かあの世か"
+extra = "道中曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th16_08"
+album_key = "th16"
+title = "幻想のホワイトトラベラー"
+extra = "更多道中曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th16_14"
+album_key = "th16"
+title = "もうドアには入れない"
+extra = "道中曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "hr12_03"
+album_key = "hr11"
+title = "禁断の扉の向こうは、この世かあの世か"
+extra = "秘封曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "hr12_06"
+album_key = "hr11"
+title = "クレイジーバックダンサーズ"
+extra = "秘封曲"
+sources = ["netease163", "thbwiki"]
+

@@ -1,16 +1,63 @@
 key = "konpaku-youmu"
 name = "魂魄妖夢"
 order = 17
-card = ["妖夢.png"]
-searchNames = ["魂魄妖夢", "Konpaku Youmu", "魂魄妖梦", "hunpo yaomeng"]
+search_names = ["魂魄妖夢", "Konpaku Youmu", "魂魄妖梦", "hunpo yaomeng"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["妖夢.png"]
 
-music = [
-  ["東方妖々夢 ～ Perfect Cherry Blossom", "広有射怪鳥事　～ Till When？", "角色曲"],
-  ["東方妖々夢 ～ Perfect Cherry Blossom", "東方妖々夢　～ Ancient Temple", "角色曲"],
-  ["東方妖々夢 ～ Perfect Cherry Blossom", "アルティメットトゥルース", "更多道中曲"],
-  ["幻想曲抜萃 ～ 東方萃夢想 Day Disc", "12. 広有射怪鳥事 ～ Till When？", "角色曲"],
-  ["幻想曲抜萃 ～ 東方萃夢想 Night Disc", "12. 東方妖々夢 ～ Ancient Temple", "角色曲"],
-  ["全人類ノ天楽録 ～ 東方緋想天 Arrange Disc", "06. 広有射怪鳥事 ～ Till When？", "角色曲"],
-  ["蓮台野夜行 ～ Ghostly Field Club", "03. 東方妖々夢 ～ Ancient Temple", "秘封曲"],
-  ["東方花映塚 ～ Phantasmagoria of Flower View", "東方妖々夢　～ Ancient Temple", "更多道中曲"],
-]
+[[track]]
+id = "th07_11"
+album_key = "th07"
+title = "広有射怪鳥事　～ Till When？"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th07_10"
+album_key = "th07"
+title = "東方妖々夢　～ Ancient Temple"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th07_12"
+album_key = "th07"
+title = "アルティメットトゥルース"
+extra = "更多道中曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-001a_12"
+album_key = "th07.5-day"
+title = "12. 広有射怪鳥事 ～ Till When？"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-001b_12"
+album_key = "th07.5-night"
+title = "12. 東方妖々夢 ～ Ancient Temple"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-003A_06"
+album_key = "th10.5-arrange"
+title = "06. 広有射怪鳥事 ～ Till When？"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "hr02_03"
+album_key = "hr02"
+title = "03. 東方妖々夢 ～ Ancient Temple"
+extra = "秘封曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th09_05"
+album_key = "th09"
+title = "東方妖々夢　～ Ancient Temple"
+extra = "更多道中曲"
+sources = ["netease163", "thbwiki"]
+

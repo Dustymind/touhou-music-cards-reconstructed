@@ -1,13 +1,42 @@
 key = "komeiji-koishi"
 name = "古明地こいし"
 order = 49
-card = ["こいし.png"]
-searchNames = ["古明地こいし", "Komeiji Koishi", "古明地恋", "gumingdi lian"]
+search_names = ["古明地こいし", "Komeiji Koishi", "古明地恋", "gumingdi lian"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["こいし.png"]
 
-music = [
-  ["東方地霊殿 ～ Subterranean Animism", "ハルトマンの妖怪少女", "角色曲"],
-  ["暗黒能楽集・心綺楼", "ハルトマンの妖怪少女", "角色曲"],
-  ["完全憑依ディスコグラフィ", "地底に咲く薔薇", "角色曲"],
-  ["鳥船遺跡 ～ Trojan Green Asteroid", "07. ハルトマンの妖怪少女", "秘封曲"],
-  ["深秘的楽曲集", "ハルトマンの妖怪少女", "角色曲"],
-]
+[[track]]
+id = "th11_15"
+album_key = "th11"
+title = "ハルトマンの妖怪少女"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-006a_10"
+album_key = "th13.5"
+title = "ハルトマンの妖怪少女"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-009a_14"
+album_key = "th15.5"
+title = "地底に咲く薔薇"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "hr07_07"
+album_key = "hr07"
+title = "07. ハルトマンの妖怪少女"
+extra = "秘封曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-007b_08"
+album_key = "th14.5"
+title = "ハルトマンの妖怪少女"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+

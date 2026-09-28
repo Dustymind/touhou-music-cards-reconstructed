@@ -1,9 +1,14 @@
 key = "komeiji-satori"
 name = "古明地さとり"
 order = 46
-card = ["さとり.png"]
-searchNames = ["古明地さとり", "Komeiji Satori", "古明地觉", "gumingdi jue"]
+search_names = ["古明地さとり", "Komeiji Satori", "古明地觉", "gumingdi jue"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["さとり.png"]
 
-music = [
-  ["東方地霊殿 ～ Subterranean Animism", "少女さとり　～ 3rd eye", "角色曲"],
-]
+[[track]]
+id = "th11_09"
+album_key = "th11"
+title = "少女さとり　～ 3rd eye"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+

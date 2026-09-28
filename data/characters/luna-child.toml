@@ -1,9 +1,14 @@
 key = "luna-child"
 name = "ルナチャイルド"
 order = 120
-card = ["ルナチャイルド.png"]
-searchNames = ["ルナチャイルド", "Runa Chairudo", "Luna Child", "露娜·切露德", "luna qielude"]
+search_names = ["ルナチャイルド", "Runa Chairudo", "Luna Child", "露娜·切露德", "luna qielude"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["ルナチャイルド.png"]
 
-music = [
-  ["東方三月精 ～ Eastern and Little Nature Deity", "夜だから眠れない", "角色曲"],
-]
+[[track]]
+id = "EaLND_02"
+album_key = "sangetsusei"
+title = "夜だから眠れない"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+

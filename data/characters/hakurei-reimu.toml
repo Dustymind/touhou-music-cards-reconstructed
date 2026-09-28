@@ -1,19 +1,84 @@
 key = "hakurei-reimu"
 name = "博麗霊夢"
 order = 3
-card = ["霊夢.png"]
-searchNames = ["博麗霊夢", "Hakurei Reimu", "博丽灵梦", "boli lingmeng"]
+search_names = ["博麗霊夢", "Hakurei Reimu", "博丽灵梦", "boli lingmeng"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["霊夢.png"]
 
-music = [
-  ["東方永夜抄 ～ Imperishable Night", "少女綺想曲　～ Dream Battle", "角色曲"],
-  ["東方花映塚 ～ Phantasmagoria of Flower View", "春色小径　～ Colorful Path", "角色曲"],
-  ["東方獣王園 ～ Unfinished Dream of All Living Ghost", "世界は可愛く出来ている", "角色曲"],
-  ["幻想曲抜萃 ～ 東方萃夢想 Day Disc", "02. 東方妖恋談", "角色曲"],
-  ["幻想曲抜萃 ～ 東方萃夢想 Night Disc", "02. 少女綺想曲 ～ Capriccio", "角色曲"],
-  ["全人類ノ天楽録 ～ 東方緋想天 Arrange Disc", "02. 東方妖恋談", "角色曲"],
-  ["核熱造神ヒソウテンソク ～ 東方非想天則", "10. 二色蓮花蝶 ～ Ancients", "角色曲"],
-  ["暗黒能楽集・心綺楼", "春色小径　～ Colorful Path", "角色曲"],
-  ["深秘的楽曲集", "二色蓮花蝶 ～ Red and White", "角色曲"],
-  ["完全憑依ディスコグラフィ", "地の色は黄色　～ Primrose", "角色曲"],
-  ["強欲な獣のムジカ", "少女綺想曲", "角色曲"],
-]
+[[track]]
+id = "th08_09"
+album_key = "th08"
+title = "少女綺想曲　～ Dream Battle"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th09_02"
+album_key = "th09"
+title = "春色小径　～ Colorful Path"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th19_02"
+album_key = "th19"
+title = "世界は可愛く出来ている"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-001a_02"
+album_key = "th07.5-day"
+title = "02. 東方妖恋談"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-001b_02"
+album_key = "th07.5-night"
+title = "02. 少女綺想曲 ～ Capriccio"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-003A_02"
+album_key = "th10.5-arrange"
+title = "02. 東方妖恋談"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-004_10"
+album_key = "th12.3"
+title = "10. 二色蓮花蝶 ～ Ancients"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-006a_03"
+album_key = "th13.5"
+title = "春色小径　～ Colorful Path"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-007b_01"
+album_key = "th14.5"
+title = "二色蓮花蝶 ～ Red and White"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-009a_03"
+album_key = "th15.5"
+title = "地の色は黄色　～ Primrose"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-010a_04"
+album_key = "th17.5"
+title = "少女綺想曲"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+

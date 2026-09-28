@@ -1,13 +1,42 @@
 key = "toyosatomimi-no-miko"
 name = "豊聡耳神子"
 order = 62
-card = ["神子.png"]
-searchNames = ["豊聡耳神子", "Toyosatomimi no Miko", "丰聪耳神子", "fengcong'er shenzi"]
+search_names = ["豊聡耳神子", "Toyosatomimi no Miko", "丰聪耳神子", "fengcong'er shenzi"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["神子.png"]
 
-music = [
-  ["東方神霊廟 ～ Ten Desires", "聖徳伝説　～　True Administrator", "角色曲"],
-  ["東方神霊廟 ～ Ten Desires", "小さな欲望の星空", "道中曲"],
-  ["暗黒能楽集・心綺楼", "聖徳伝説　～ True Administrator", "角色曲"],
-  ["深秘的楽曲集", "聖徳伝説　～ True Administrator", "角色曲"],
-  ["完全憑依ディスコグラフィ", "光輝く天球儀", "角色曲"],
-]
+[[track]]
+id = "th13_13"
+album_key = "th13"
+title = "聖徳伝説　～　True Administrator"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th13_12"
+album_key = "th13"
+title = "小さな欲望の星空"
+extra = "道中曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-006a_08"
+album_key = "th13.5"
+title = "聖徳伝説　～ True Administrator"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-007b_06"
+album_key = "th14.5"
+title = "聖徳伝説　～ True Administrator"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-009a_11"
+album_key = "th15.5"
+title = "光輝く天球儀"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+

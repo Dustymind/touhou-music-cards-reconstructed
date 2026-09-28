@@ -1,11 +1,28 @@
 key = "kishin-sagume"
 name = "稀神サグメ"
 order = 74
-card = ["サグメ.png"]
-searchNames = ["稀神サグメ", "Kishin Sagume", "稀神探女", "xishen tannv"]
+search_names = ["稀神サグメ", "Kishin Sagume", "稀神探女", "xishen tannv"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["サグメ.png"]
 
-music = [
-  ["東方紺珠伝 ～ Legacy of Lunatic Kingdom", "逆転するホイールオブフォーチュン", "角色曲"],
-  ["東方紺珠伝 ～ Legacy of Lunatic Kingdom", "凍り付いた永遠の都", "道中曲"],
-  ["燕石博物誌 ～ Dr.Latency's Freak Report", "凍り付いた永遠の都", "秘封曲"],
-]
+[[track]]
+id = "th15_09"
+album_key = "th15"
+title = "逆転するホイールオブフォーチュン"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th15_08"
+album_key = "th15"
+title = "凍り付いた永遠の都"
+extra = "道中曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "hr09_02"
+album_key = "hr09"
+title = "凍り付いた永遠の都"
+extra = "秘封曲"
+sources = ["netease163", "thbwiki"]
+

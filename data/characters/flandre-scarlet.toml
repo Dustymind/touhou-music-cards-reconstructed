@@ -1,12 +1,35 @@
 key = "flandre-scarlet"
 name = "フランドール・スカーレット"
 order = 12
-card = ["フラン.png"]
-searchNames = ["フランドール・スカーレット", "Furandoru Sukaretto", "Flandre Scarlet", "芙兰朵露·斯卡雷特", "fulanduolu sikaleite", "芙兰朵露·斯卡蕾特"]
+search_names = ["フランドール・スカーレット", "Furandoru Sukaretto", "Flandre Scarlet", "芙兰朵露·斯卡雷特", "fulanduolu sikaleite", "芙兰朵露·斯卡蕾特"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["フラン.png"]
 
-music = [
-  ["東方紅魔郷 ～ the Embodiment of Scarlet Devil", "U.N.オーエンは彼女なのか？", "角色曲"],
-  ["東方紅魔郷 ～ the Embodiment of Scarlet Devil", "魔法少女達の百年祭", "道中曲"],
-  ["強欲な獣のムジカ", "U.N.オーエンは彼女なのか？", "角色曲"],
-  ["蓬莱人形 ～ Dolls in Pseudo Paradise", "11. U.N.オーエンは彼女なのか？", "秘封曲"],
-]
+[[track]]
+id = "th06_15"
+album_key = "th06"
+title = "U.N.オーエンは彼女なのか？"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th06_14"
+album_key = "th06"
+title = "魔法少女達の百年祭"
+extra = "道中曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-010b_05"
+album_key = "th17.5"
+title = "U.N.オーエンは彼女なのか？"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "hr01_11"
+album_key = "hr01"
+title = "11. U.N.オーエンは彼女なのか？"
+extra = "秘封曲"
+sources = ["netease163", "thbwiki"]
+

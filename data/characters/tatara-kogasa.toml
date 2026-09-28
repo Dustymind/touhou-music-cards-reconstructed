@@ -1,14 +1,49 @@
 key = "tatara-kogasa"
 name = "多々良小傘"
 order = 51
-card = ["小傘.png"]
-searchNames = ["多々良小傘", "Tatara Kogasa", "多多良小伞", "duoduoliang xiaosan"]
+search_names = ["多々良小傘", "Tatara Kogasa", "多多良小伞", "duoduoliang xiaosan"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["小傘.png"]
 
-music = [
-  ["東方星蓮船 ～ Undefined Fantastic Object", "万年置き傘にご注意を", "角色曲"],
-  ["東方星蓮船 ～ Undefined Fantastic Object", "閉ざせし雲の通い路", "道中曲"],
-  ["東方星蓮船 ～ Undefined Fantastic Object", "夜空のユーフォーロマンス", "更多道中曲"],
-  ["東方神霊廟 ～ Ten Desires", "素敵な墓場で暮しましょ", "更多道中曲"],
-  ["伊弉諾物質 ～ Neo-traditionalism of Japan", "10. 素敵な墓場で暮しましょ", "秘封曲"],
-  ["強欲な獣のムジカ", "万年置き傘にご注意を", "角色曲"],
-]
+[[track]]
+id = "th12_05"
+album_key = "th12"
+title = "万年置き傘にご注意を"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th12_04"
+album_key = "th12"
+title = "閉ざせし雲の通い路"
+extra = "道中曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th12_14"
+album_key = "th12"
+title = "夜空のユーフォーロマンス"
+extra = "更多道中曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th13_06"
+album_key = "th13"
+title = "素敵な墓場で暮しましょ"
+extra = "更多道中曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "hr08_10"
+album_key = "hr08"
+title = "10. 素敵な墓場で暮しましょ"
+extra = "秘封曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-010a_06"
+album_key = "th17.5"
+title = "万年置き傘にご注意を"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+

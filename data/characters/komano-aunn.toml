@@ -1,11 +1,28 @@
 key = "komano-aunn"
 name = "高麗野あうん"
 order = 80
-card = ["あうん.png"]
-searchNames = ["高麗野あうん", "Komano Aunn", "高丽野阿吽", "gaoliye ahou"]
+search_names = ["高麗野あうん", "Komano Aunn", "高丽野阿吽", "gaoliye ahou"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["あうん.png"]
 
-music = [
-  ["東方天空璋 ～ Hidden Star in Four Seasons", "一対の神獣", "角色曲"],
-  ["東方天空璋 ～ Hidden Star in Four Seasons", "桜色の海を泳いで", "道中曲"],
-  ["東方獣王園 ～ Unfinished Dream of All Living Ghost", "一対の神獣", "角色曲"],
-]
+[[track]]
+id = "th16_07"
+album_key = "th16"
+title = "一対の神獣"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th16_06"
+album_key = "th16"
+title = "桜色の海を泳いで"
+extra = "道中曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th19_12"
+album_key = "th19"
+title = "一対の神獣"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+

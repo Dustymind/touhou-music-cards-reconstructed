@@ -1,12 +1,35 @@
 key = "nazurin"
 name = "ナズーリン"
 order = 50
-card = ["ナズーリン.png"]
-searchNames = ["ナズーリン", "Nazurin", "Nazrin", "娜兹玲", "naziling"]
+search_names = ["ナズーリン", "Nazurin", "Nazrin", "娜兹玲", "naziling"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["ナズーリン.png"]
 
-music = [
-  ["東方星蓮船 ～ Undefined Fantastic Object", "小さな小さな賢将", "角色曲"],
-  ["東方星蓮船 ～ Undefined Fantastic Object", "春の湊に", "道中曲"],
-  ["東方星蓮船 ～ Undefined Fantastic Object", "魔界地方都市エソテリア", "更多道中曲"],
-  ["東方獣王園 ～ Unfinished Dream of All Living Ghost", "春の湊に", "更多道中曲"],
-]
+[[track]]
+id = "th12_03"
+album_key = "th12"
+title = "小さな小さな賢将"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th12_02"
+album_key = "th12"
+title = "春の湊に"
+extra = "道中曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th12_10"
+album_key = "th12"
+title = "魔界地方都市エソテリア"
+extra = "更多道中曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th19_13"
+album_key = "th19"
+title = "春の湊に"
+extra = "更多道中曲"
+sources = ["netease163", "thbwiki"]
+

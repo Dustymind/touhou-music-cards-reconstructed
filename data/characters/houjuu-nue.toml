@@ -1,14 +1,49 @@
 key = "houjuu-nue"
 name = "封獣ぬえ"
 order = 56
-card = ["ぬえ.png"]
-searchNames = ["封獣ぬえ", "Houjuu Nue", "封兽鵺", "fengshou ye"]
+search_names = ["封獣ぬえ", "Houjuu Nue", "封兽鵺", "fengshou ye"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["ぬえ.png"]
 
-music = [
-  ["東方星蓮船 ～ Undefined Fantastic Object", "平安のエイリアン", "角色曲"],
-  ["東方星蓮船 ～ Undefined Fantastic Object", "夜空のユーフォーロマンス", "道中曲"],
-  ["東方星蓮船 ～ Undefined Fantastic Object", "幽霊客船の時空を越えた旅", "更多道中曲"],
-  ["東方星蓮船 ～ Undefined Fantastic Object", "法界の火", "道中曲"],
-  ["東方神霊廟 ～ Ten Desires", "妖怪裏参道", "更多道中曲"],
-  ["鳥船遺跡 ～ Trojan Green Asteroid", "06. 夜空のユーフォーロマンス", "秘封曲"],
-]
+[[track]]
+id = "th12_15"
+album_key = "th12"
+title = "平安のエイリアン"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th12_14"
+album_key = "th12"
+title = "夜空のユーフォーロマンス"
+extra = "道中曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th12_08"
+album_key = "th12"
+title = "幽霊客船の時空を越えた旅"
+extra = "更多道中曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th12_12"
+album_key = "th12"
+title = "法界の火"
+extra = "道中曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th13_14"
+album_key = "th13"
+title = "妖怪裏参道"
+extra = "更多道中曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "hr07_06"
+album_key = "hr07"
+title = "06. 夜空のユーフォーロマンス"
+extra = "秘封曲"
+sources = ["netease163", "thbwiki"]
+

@@ -1,14 +1,49 @@
 key = "saigyouji-yuyuko"
 name = "西行寺幽々子"
 order = 18
-card = ["幽々子.png"]
-searchNames = ["西行寺幽々子", "Saigyouji Yuyuko", "西行寺幽幽子", "xixingsi youyouzi"]
+search_names = ["西行寺幽々子", "Saigyouji Yuyuko", "西行寺幽幽子", "xixingsi youyouzi"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["幽々子.png"]
 
-music = [
-  ["東方妖々夢 ～ Perfect Cherry Blossom", "幽雅に咲かせ、墨染の桜　～ Border of Life", "角色曲"],
-  ["東方妖々夢 ～ Perfect Cherry Blossom", "ボーダーオブライフ", "角色曲"],
-  ["東方神霊廟 ～ Ten Desires", "死霊の夜桜", "更多道中曲"],
-  ["東方神霊廟 ～ Ten Desires", "ゴーストリード", "更多道中曲"],
-  ["幻想曲抜萃 ～ 東方萃夢想 Day Disc", "14. 幽雅に咲かせ 墨染の桜 ～ Border of Life.", "角色曲"],
-  ["全人類ノ天楽録 ～ 東方緋想天 Arrange Disc", "08. 幽雅に咲かせ、墨染の桜 ～ Border of Life", "角色曲"],
-]
+[[track]]
+id = "th07_13"
+album_key = "th07"
+title = "幽雅に咲かせ、墨染の桜　～ Border of Life"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th07_14"
+album_key = "th07"
+title = "ボーダーオブライフ"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th13_02"
+album_key = "th13"
+title = "死霊の夜桜"
+extra = "更多道中曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th13_03"
+album_key = "th13"
+title = "ゴーストリード"
+extra = "更多道中曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-001a_14"
+album_key = "th07.5-day"
+title = "14. 幽雅に咲かせ 墨染の桜 ～ Border of Life."
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "TFM-003A_08"
+album_key = "th10.5-arrange"
+title = "08. 幽雅に咲かせ、墨染の桜 ～ Border of Life"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+

@@ -1,11 +1,28 @@
 key = "kitcho-yachie"
 name = "吉弔八千慧"
 order = 87
-card = ["八千慧.png"]
-searchNames = ["吉弔八千慧", "Kitcho Yachie", "吉吊八千慧", "jidiao baqianhui"]
+search_names = ["吉弔八千慧", "Kitcho Yachie", "吉吊八千慧", "jidiao baqianhui"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["八千慧.png"]
 
-music = [
-  ["東方鬼形獣 ～ Wily Beast and Weakest Creature", "トータスドラゴン　～ 幸運と不運", "角色曲"],
-  ["東方鬼形獣 ～ Wily Beast and Weakest Creature", "アンロケイテッドヘル", "道中曲"],
-  ["東方獣王園 ～ Unfinished Dream of All Living Ghost", "トータスドラゴン　～ 幸運と不運", "角色曲"],
-]
+[[track]]
+id = "th17_09"
+album_key = "th17"
+title = "トータスドラゴン　～ 幸運と不運"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th17_08"
+album_key = "th17"
+title = "アンロケイテッドヘル"
+extra = "道中曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th19_18"
+album_key = "th19"
+title = "トータスドラゴン　～ 幸運と不運"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+

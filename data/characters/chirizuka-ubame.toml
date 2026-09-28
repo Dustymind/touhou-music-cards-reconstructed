@@ -1,10 +1,21 @@
 key = "chirizuka-ubame"
 name = "塵塚ウバメ"
 order = 112
-card = ["ウバメ.png"]
-searchNames = ["塵塚ウバメ", "Chirizuka Ubame", "尘塚姥芽", "chenzhong muya", "chenzhong laoya"]
+search_names = ["塵塚ウバメ", "Chirizuka Ubame", "尘塚姥芽", "chenzhong muya", "chenzhong laoya"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["ウバメ.png"]
 
-music = [
-  ["東方錦上京 ～ Fossilized Wonders", "例え世界から忘れられても", "角色曲"],
-  ["東方錦上京 ～ Fossilized Wonders", "愛おしき塵の住処", "道中曲"],
-]
+[[track]]
+id = "th20_03"
+album_key = "th20"
+title = "例え世界から忘れられても"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th20_02"
+album_key = "th20"
+title = "愛おしき塵の住処"
+extra = "道中曲"
+sources = ["netease163", "thbwiki"]
+

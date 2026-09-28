@@ -1,9 +1,14 @@
 key = "kisume"
 name = "キスメ"
 order = 42
-card = ["キスメ.png"]
-searchNames = ["キスメ", "Kisume", "琪斯美", "qisimei"]
+search_names = ["キスメ", "Kisume", "琪斯美", "qisimei"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["キスメ.png"]
 
-music = [
-  ["東方地霊殿 ～ Subterranean Animism", "暗闇の風穴", "道中曲"],
-]
+[[track]]
+id = "th11_02"
+album_key = "th11"
+title = "暗闇の風穴"
+extra = "道中曲"
+sources = ["netease163", "thbwiki"]
+

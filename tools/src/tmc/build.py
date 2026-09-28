@@ -39,15 +39,22 @@ def _dumps(payload) -> str:
 
 
 def load_characters() -> list[dict]:
-    """真相源：``data/characters/*.toml``（一角色一份，含**该角色的全部**曲目）。"""
+    """真相源：``data/characters/*.toml``（一角色一份，含**该角色的全部**曲目）。
+
+    S1b 起 TOML 是规整化形状（``search_names`` / ``card``=卡面组 id / ``card_name``
+    / ``[[track]]`` 带 ``id``·``album_key``·``sources``）；这里**还原旧内存形状**
+    （``searchNames`` / ``card``=文件名 / ``music``=三元组），contentHash 与输出不变。
+    """
+    key_to_name = {a["key"]: a["name"] for a in load_albums()}
     chars = []
     for path in sorted((repo.DATA / "characters").glob("*.toml")):
         with open(path, "rb") as fh:
             c = tomllib.load(fh)
+        music = [[key_to_name[t["album_key"]], t["title"], t["extra"]] for t in c.get("track", [])]
         chars.append({
             "key": c["key"], "name": c["name"], "order": c["order"],
-            "card": list(c["card"]), "searchNames": list(c["searchNames"]),
-            "music": [list(entry) for entry in c["music"]],
+            "card": list(c["card_name"]), "searchNames": list(c["search_names"]),
+            "music": music,
         })
     chars.sort(key=lambda c: c["order"])
     return chars

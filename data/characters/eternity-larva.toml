@@ -1,10 +1,21 @@
 key = "eternity-larva"
 name = "エタニティラルバ"
 order = 78
-card = ["エタニティラルバ.png"]
-searchNames = ["エタニティラルバ", "Etaniti Raruba", "Eternity Larva", "爱塔妮缇·拉尔瓦", "aitaniti laerwa", "爱塔妮缇拉尔瓦"]
+search_names = ["エタニティラルバ", "Etaniti Raruba", "Eternity Larva", "爱塔妮缇·拉尔瓦", "aitaniti laerwa", "爱塔妮缇拉尔瓦"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["エタニティラルバ.png"]
 
-music = [
-  ["東方天空璋 ～ Hidden Star in Four Seasons", "真夏の妖精の夢", "道中曲"],
-  ["東方天空璋 ～ Hidden Star in Four Seasons", "希望の星は青霄に昇る", "道中曲"],
-]
+[[track]]
+id = "th16_03"
+album_key = "th16"
+title = "真夏の妖精の夢"
+extra = "道中曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "th16_02"
+album_key = "th16"
+title = "希望の星は青霄に昇る"
+extra = "道中曲"
+sources = ["netease163", "thbwiki"]
+

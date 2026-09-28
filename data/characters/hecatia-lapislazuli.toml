@@ -1,10 +1,21 @@
 key = "hecatia-lapislazuli"
 name = "ヘカーティア・ラピスラズリ"
 order = 77
-card = ["ヘカーティア.png"]
-searchNames = ["ヘカーティア・ラピスラズリ", "Hekatia Rapisurazuri", "Hecatia Lapislazuli", "赫卡提亚·拉碧斯拉祖利", "hekatiya labisilazuli"]
+search_names = ["ヘカーティア・ラピスラズリ", "Hekatia Rapisurazuri", "Hecatia Lapislazuli", "赫卡提亚·拉碧斯拉祖利", "hekatiya labisilazuli"]
+card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
+card_name = ["ヘカーティア.png"]
 
-music = [
-  ["東方紺珠伝 ～ Legacy of Lunatic Kingdom", "パンデモニックプラネット", "角色曲"],
-  ["旧約酒場 ～ Dateless Bar Old Adam", "パンデモニックプラネット", "秘封曲"],
-]
+[[track]]
+id = "th15_17"
+album_key = "th15"
+title = "パンデモニックプラネット"
+extra = "角色曲"
+sources = ["netease163", "thbwiki"]
+
+[[track]]
+id = "hr10_06"
+album_key = "hr10"
+title = "パンデモニックプラネット"
+extra = "秘封曲"
+sources = ["netease163", "thbwiki"]
+
