@@ -11,9 +11,13 @@ import argparse
 import collections
 import hashlib
 import json
+import random
 import sys
 import re
 import tomllib
+import urllib.error
+import urllib.parse
+import urllib.request
 
 from . import build as build_mod
 from . import packs as packs_mod
@@ -703,6 +707,65 @@ def check_roster(p: "Problems") -> int:
     return len(roster_mod.read_roster())
 
 
+# ---- 音源实链抽查（S5 起并入 validate，原 tmc.check_urls） ----
+URL_UA = ("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) "
+          "Chrome/126.0.0.0 Safari/537.36")
+URL_CHUNK = 4096
+
+
+def _looks_like_audio(head: bytes) -> bool:
+    return head[:3] == b"ID3" or head[:2] in (b"\xff\xfb", b"\xff\xf3", b"\xff\xf2")
+
+
+def _encode_url(url: str) -> str:
+    parts = urllib.parse.urlsplit(url)
+    return urllib.parse.urlunsplit(
+        (parts.scheme, parts.netloc, urllib.parse.quote(parts.path), parts.query, parts.fragment))
+
+
+def _probe_url(url: str, timeout: float = 20.0) -> tuple[bool, str]:
+    req = urllib.request.Request(_encode_url(url),
+                                 headers={"User-Agent": URL_UA, "Referer": "https://music.163.com/",
+                                          "Range": f"bytes=0-{URL_CHUNK - 1}"})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310
+            head = resp.read(16)
+            status = resp.status
+            ctype = resp.headers.get("Content-Type", "")
+            if status not in (200, 206):
+                return False, f"HTTP {status}"
+            if "audio" not in ctype and not _looks_like_audio(head):
+                return False, f"不像音频（{ctype or 'no content-type'}）"
+            if status == 206 and not resp.headers.get("Content-Range"):
+                return False, "206 但没有 Content-Range"
+            return True, f"{status} {ctype}"
+    except urllib.error.HTTPError as exc:
+        return False, f"HTTP {exc.code}"
+    except Exception as exc:  # noqa: BLE001 - 抽查工具，如实记录
+        return False, type(exc).__name__
+
+
+def check_source_urls(per_source: int = 5, all_: bool = False, seed: int = 0) -> int:
+    """对每张镜像源表抽样发 Range 请求，确认能取到音频（原 tmc.check_urls，S5 并入）。"""
+    rng = random.Random(seed)
+    failures: list[tuple[str, str, str, str]] = []
+    for source_id in build_mod.mirror_source_ids():
+        entries = build_mod.load_mirror_tracks(source_id)
+        sample = entries if all_ else rng.sample(entries, min(per_source, len(entries)))
+        for album, title, url in sample:
+            ok, detail = _probe_url(url)
+            print(f"[{source_id}] {'ok' if ok else 'bad'}  {album} / {title}")
+            if not ok:
+                failures.append((source_id, f"{album} / {title}", url, detail))
+    if failures:
+        print("\n失败明细：")
+        for source_id, track, url, detail in failures:
+            print(f"  [{source_id}] {track}\n      {url}\n      {detail}")
+        return 1
+    print("[OK] 抽查全部通过（Range 请求可播放、206 带 Content-Range）")
+    return 0
+
+
 def run() -> tuple["Problems", dict]:
     """跑全部不变量校验，返回 (问题集合, 统计)。供 CLI 与测试复用。"""
     p = Problems()
@@ -755,6 +818,10 @@ def run() -> tuple["Problems", dict]:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--report", action="store_true", help="写出 docs/reports/validation-report.md")
+    ap.add_argument("--urls", action="store_true", help="附带音源实链抽查（每源抽样 Range 请求，原 tmc.check_urls）")
+    ap.add_argument("--urls-all", action="store_true", help="抽查全量（651×2 条，较慢）")
+    ap.add_argument("--urls-per", type=int, default=5, help="每张表抽多少条（默认 5）")
+    ap.add_argument("--urls-seed", type=int, default=0)
     args = ap.parse_args(argv)
 
     p, stats = run()
@@ -831,6 +898,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"\n[FAIL] 校验失败：{len(p.errors)} 个错误", file=sys.stderr)
         return 1
     print(f"[OK] 校验通过（引用集合指纹 {stats['digest']}）")
+    if args.urls:
+        return check_source_urls(per_source=args.urls_per, all_=args.urls_all, seed=args.urls_seed)
     return 0
 
 

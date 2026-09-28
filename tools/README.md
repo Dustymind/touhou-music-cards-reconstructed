@@ -20,7 +20,7 @@ git -C .. submodule update --init data/otomads   # 音MAD 数据（可选；没�
 | `tmc.scaffold` | 为「真源里有、曲包里还没有」的角色预置骨架文件 `packs/otomads/<角色 key>.toml`（`pnpm data:scaffold`）：幂等、**不覆盖**已有文件、不含 `[[track]]` 所以对生成物与 `contentHash` 完全惰性（D137） |
 | `tmc.validate` | 不变量校验、面次核对、覆盖表一致性、角色清单守卫 |
 | `tmc.build` | 生成 `data/public/data/*.json`（可复现性由 `pnpm gate` 的两次构建比对承担；`contentHash` 含曲包音频口径；按源注册表的 `loudness` 把响度表拷进数据集目录 —— 源还可以在**自己的 manifest** 里声明表，前端优先按它取 ⇒ 表跟着源走，D139） |
-| `tmc.check_urls` | 远程音源实链抽查（Range 请求 + 音频嗅探） |
+| （`--urls`） | `tmc.validate --urls` 附带远程音源实链抽查（Range 请求 + 音频嗅探，S5 起并入 validate） |
 
 **不在这里**（数据仓库 `data/otomads/tools/`，自带 uv 工程、与主仓库零 import / 零 path 依赖）：
 `otomads.local_source`（本地曲库助手）、`otomads.fetch_audio` / `loudness` / `measure_loudness`（抓取、裁剪、响度）、

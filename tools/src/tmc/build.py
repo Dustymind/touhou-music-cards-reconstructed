@@ -208,7 +208,7 @@ def mirror_source_ids() -> tuple[str, ...]:
     """**镜像表**的音源 id = 原曲注册表里 ``kind = "remote"`` 的那些。
 
     镜像清单只有注册表一处真源（review R7④）：构建（把表写进 ``data/public/data/sources/``）、
-    `tmc.validate` 的三处检查、`tmc.check_urls` 的抽查都从这里取 —— 加一个镜像只改 TOML。
+    `tmc.validate` 的三处检查与其 `--urls` 抽查都从这里取 —— 加一个镜像只改 TOML。
     远程镜像全在原曲注册表里（音MAD 侧只有一个本地源，契约 `docs/sources-separation-v1.md`）。
     """
     return tuple(entry["id"] for entry in load_registry("originals") if entry["kind"] == "remote")
