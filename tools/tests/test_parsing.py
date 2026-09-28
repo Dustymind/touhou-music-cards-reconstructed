@@ -1,6 +1,5 @@
 """解析与 slug 的黄金样例（来自上游数据实测）。"""
 from tmc import repo
-from tmc.migrate import choose_slug
 
 
 def test_split_artist_style_path():
@@ -49,14 +48,14 @@ def test_lookup_key_prefix_tolerance_is_only_for_lookup():
 
 def test_choose_slug_prefers_english_name():
     taken: set[str] = set()
-    assert choose_slug("アリス・マーガトロイド",
+    assert repo.choose_slug("アリス・マーガトロイド",
                        ["アリス・マーガトロイド", "Arisu Magatoroido", "Alice Margatroid",
                         "ailisi mageteluoyide"], taken) == "alice-margatroid"
-    assert choose_slug("チルノ", ["チルノ", "Cirno", "qilunuo"], taken) == "cirno"
-    assert choose_slug("霧雨魔理沙", ["霧雨魔理沙", "Kirisame Marisa", "wuyu molisha"], taken) == "kirisame-marisa"
+    assert repo.choose_slug("チルノ", ["チルノ", "Cirno", "qilunuo"], taken) == "cirno"
+    assert repo.choose_slug("霧雨魔理沙", ["霧雨魔理沙", "Kirisame Marisa", "wuyu molisha"], taken) == "kirisame-marisa"
 
 
 def test_choose_slug_deduplicates():
     taken: set[str] = set()
-    assert choose_slug("Ａ", ["A"], taken) == "a"
-    assert choose_slug("Ａ", ["A"], taken) == "a-2"
+    assert repo.choose_slug("Ａ", ["A"], taken) == "a"
+    assert repo.choose_slug("Ａ", ["A"], taken) == "a-2"

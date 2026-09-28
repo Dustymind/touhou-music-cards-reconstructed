@@ -11,7 +11,7 @@ THBWIKI_DIR = ROOT / ".ref" / "thbwiki"
 DATA = ROOT / "data"
 PUBLIC_DATA = ROOT / "public" / "data"
 #: 阶段产物与历史快照。**定义只此一处** —— 2026-09-28 从根目录 `reports/` 移进 `docs/`，
-#: 别再各处写 `ROOT / "reports"`（`tmc.validate` / `tmc.migrate` 都从这里取）。
+#: 别再各处写 `ROOT / "reports"`（`tmc.validate` 从这里取）。
 DOCS = ROOT / "docs"
 REPORTS = DOCS / "reports"
 
@@ -136,6 +136,25 @@ def lookup_key(text: str) -> str:
     s = re.sub(r"[。.．]+$", "", s)
     s = re.sub(r"\s+", "", s)
     return s.strip().lower()
+
+
+def choose_slug(name: str, search_names: list[str], taken: set[str]) -> str:
+    """从 searchNames 里挑一个 ASCII 罗马字做稳定 key。
+
+    规则：候选 = 全 ASCII 的别名；优先"含空格且非全小写"的最后一个（英文名优于训令式罗马字，
+    例如 ``Alice Margatroid`` 优于 ``Arisu Magatoroido``），否则取第一个候选。
+    """
+    ascii_names = [s for s in search_names if s and s.isascii()]
+    spaced = [s for s in ascii_names if " " in s and s != s.lower()]
+    raw = (spaced[-1] if spaced else (ascii_names[0] if ascii_names else name))
+    slug = unicodedata.normalize("NFKC", raw).lower()
+    slug = "".join(ch if ch.isalnum() else "-" for ch in slug).strip("-")
+    slug = "-".join(part for part in slug.split("-") if part) or "character"
+    candidate, n = slug, 2
+    while candidate in taken:
+        candidate, n = f"{slug}-{n}", n + 1
+    taken.add(candidate)
+    return candidate
 
 
 # ---------------------------------------------------------------- 专辑注册表种子
