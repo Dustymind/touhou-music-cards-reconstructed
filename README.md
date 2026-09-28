@@ -40,9 +40,9 @@ pnpm dev                     # http://127.0.0.1:5173/?locale=zh
 fnm use 24
 pnpm install                                         # 前端
 git submodule update --init data/otomads              # 音MAD 曲包真源（可选；不拉也能跑原曲模式）
-cd tools && UV_CACHE_DIR=.uv/cache uv sync && cd ..   # 数据管线 + 曲库助手（建 tools/.venv）
+pnpm data:sync                                        # 数据管线（建 tools/.venv）
 # 只为跑测试 / e2e（浏览器落在仓库内，已 gitignore）
-PLAYWRIGHT_BROWSERS_PATH="$PWD/.playwright-browsers" pnpm exec playwright install chromium firefox
+pnpm exec playwright install chromium firefox   # 装进仓库内 .playwright-browsers/（脚本会指过去）
 ```
 
 `public/data/*.json` 是**提交进仓库**的生成物，所以起开发服务器**不需要**先跑数据管线；
@@ -262,7 +262,7 @@ manifest 所在那一层解析 ⇒ 换域名/端口/协议、换宿主与子路�
 | `pnpm test` | 单测（真实浏览器）：chromium + firefox 两个引擎各跑一遍；只跑一个引擎用 `pnpm test:chromium` / `pnpm test:firefox` |
 | `pnpm e2e` | 端到端：chromium + firefox + 移动端（Pixel 7）；会自己起 dev（5190）与信令（9100） |
 | `pnpm e2e:perf` | 「点击长任务」性能守卫（对机器负载敏感，单独跑） |
-| `cd tools && UV_CACHE_DIR=.uv/cache uv run pytest` | 数据管线测试；音频/本地源那些在数据仓库里：`uv run --project tools pytest` |
+| `pnpm data:test` | 数据管线测试（音频/本地源那些在数据仓库里，各有自己的 `pnpm` 脚本） |
 | `pnpm data:check` | `public/data` 与 `data/` 是否漂移（提交前必跑） |
 | `pnpm data:validate` | 数据不变量校验（分类、面次、覆盖表、曲包） |
 | `pnpm data:build` | 改了 `data/` 之后重新生成 `public/data/*.json` |

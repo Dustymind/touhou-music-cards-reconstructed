@@ -56,27 +56,30 @@ git config --global core.longpaths true
 顺带把克隆放在**短路径**下（`C:\dev\tmc` 之类），别放在 `C:\Users\<你>\Documents\…` 的深处 ——
 路径预算要留给 pnpm 的 store。
 
-### 2.2 `script-shell`（**必需**，否则 15 个脚本全报错）
+### 2.2 脚本已经是跨平台的 —— **不需要**配 `script-shell`
 
-`package.json` 里 **15/25** 个脚本是 POSIX sh 写法：
+`package.json` 的 25 个脚本原先**全是 POSIX sh 写法**，`cmd.exe` 一个都不认：
 
-| 写法 | 用在哪 |
+| 原写法 | 用在哪 | 现在 |
+|---|---|---|
+| `[ -d … ] \|\| { echo …; exit 1; }` | `local` / `audio:*` / `media:*` | `node scripts/require-submodule.mjs` |
+| `[ -n "$VAR" ] \|\| { … }` | `media:pull` | `node scripts/require-env.mjs` |
+| `PLAYWRIGHT_BROWSERS_PATH="$PWD/…" cmd` | `test*` / `e2e*` | `node scripts/run.mjs cmd`（它自己设） |
+| `UV_CACHE_DIR=.uv/cache cmd` | 全部 `data:*` | 同上 |
+| `cd data/otomads/tools && …`（`cd` 带斜杠，cmd 不认） | `local` / `audio:*` / `media:*` | `uv run --project data/otomads/tools` |
+| `$VAR` 传参（POSIX 认 `$VAR`、cmd 认 `%VAR%`） | `media:pull` | `run.mjs` 自己展开 |
+
+改法是三个 Node 帮助脚本（Node 本来就是硬前置），路径**一律从脚本自身位置推导**、
+没有一个写死的绝对路径：
+
+| 脚本 | 干什么 |
 |---|---|
-| `[ -d … ] \|\| { echo …; exit 1; }` | `local` / `audio:*` / `media:*` |
-| `PLAYWRIGHT_BROWSERS_PATH="$PWD/…"` | `test*` / `e2e*` |
-| `UV_CACHE_DIR=.uv/cache uv run …`（行内环境变量前缀） | 全部 `data:*` |
+| `scripts/run.mjs <命令> [参数…]` | 设好 `PLAYWRIGHT_BROWSERS_PATH` / `UV_CACHE_DIR`（**已在环境里设过的不覆盖**）再 spawn；`$VAR` 由它展开；仅在 Windows 过 shell（`.cmd` 垫片需要），POSIX 走 `shell:false` 以**精确保留带空格的参数** |
+| `scripts/require-submodule.mjs [路径]` | 子模块没初始化就 exit 1 |
+| `scripts/require-env.mjs <变量> [提示]` | 变量没设就 exit 1 |
 
-`cmd.exe` **一个都不认**。最省事的办法是让 pnpm 用 Git Bash 跑脚本：
-
-```bash
-pnpm config set script-shell "C:\Program Files\Git\bin\bash.exe"
-```
-
-这条写进**用户级** `~/.npmrc`，不动仓库里那份 —— 仓库的 `.npmrc` 保持平台无关
-（它只管 pnpm 的 store 位置与 peer 检查）。
-
-> **没有**把这 15 个脚本改成跨平台写法：改装就得在 Windows 上逐条验证，
-> 而当前会话在 Linux 上 —— 改完无法验证，风险大于收益。用 `script-shell` 绕过是等价的。
+**所以不要**再配 `script-shell` 指向某个 bash 绝对路径 —— 那既硬编码、又把仓库绑到某个平台。
+三种平台的跑法完全一致，且 Linux 侧已实测（见 §3）。
 
 ### 2.3 行尾：**别设 `core.autocrlf=true`**
 
@@ -89,11 +92,19 @@ pnpm config set script-shell "C:\Program Files\Git\bin\bash.exe"
 ### 2.4 重装 Playwright 浏览器
 
 ```bash
-PLAYWRIGHT_BROWSERS_PATH="$PWD/.playwright-browsers" pnpm exec playwright install
+pnpm exec playwright install chromium firefox
 ```
 
-装在**仓库内**（与 Linux 上同一口径），因为 `package.json` 的 `test*` / `e2e*` 脚本把
-`PLAYWRIGHT_BROWSERS_PATH` 指向 `$PWD/.playwright-browsers`。它已 gitignore。
+**裸敲**这条时 Playwright 会装到系统默认位置；`pnpm test*` / `pnpm e2e*` 则经
+`scripts/run.mjs` 把 `PLAYWRIGHT_BROWSERS_PATH` 指到**仓库内**的 `.playwright-browsers/`
+（与 Linux 上同一口径，已 gitignore）。想装到那一份就显式给：
+
+```bash
+# POSIX
+PLAYWRIGHT_BROWSERS_PATH="$PWD/.playwright-browsers" pnpm exec playwright install
+# Windows（cmd）
+set PLAYWRIGHT_BROWSERS_PATH=%CD%\.playwright-browsers && pnpm exec playwright install
+```
 
 ## 3. 迁后自检
 
@@ -110,7 +121,7 @@ pnpm exec playwright install             # 见 §2.4
 数据管线那侧（Python）：
 
 ```bash
-cd tools && uv sync && uv run pytest     # 期望 83 passed
+pnpm data:sync && pnpm data:test         # 期望 83 passed
 ```
 
 音MAD 相关的 e2e 要先起本地曲库助手：`pnpm local`（需要 `data/otomads` submodule 已初始化 +
@@ -121,7 +132,7 @@ cd tools && uv sync && uv run pytest     # 期望 83 passed
 | 项 | Linux（旧） | Windows（新） |
 |---|---|---|
 | 脚本 shell | `/bin/sh` | Git Bash（靠 §2.2 指定） |
-| uv 缓存 | `UV_CACHE_DIR=.uv/cache`（沙箱里 `$HOME` 只读） | 仍需，因为脚本里写死了；Windows 上不清也无害 |
+| uv 缓存 | `UV_CACHE_DIR=.uv/cache`（沙箱里 `$HOME` 只读） | 仍走仓库内缓存，但改由 `scripts/run.mjs` 设（`<仓库>/.uv/cache`），**不写进脚本**；已在环境里设过的不覆盖 |
 | 浏览器 | 仓库内 `.playwright-browsers/` | 同左，但**要重装** |
 | 长路径 | 无限制 | 需 `core.longpaths`（§2.1） |
 | 大小写 | 敏感 | **不敏感** —— 本仓库已核过：**无仅大小写不同的路径**，安全 |

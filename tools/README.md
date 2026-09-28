@@ -2,8 +2,8 @@
 **数据仓库**（`data/otomads/tools/`，见那里的 `README.md`）；主仓库这里只留数据生成与校验。
 
 ```bash
-UV_CACHE_DIR=.uv/cache uv sync          # 建立 tools/.venv（已不再依赖 yt-dlp）
-UV_CACHE_DIR=.uv/cache uv run pytest    # 数据/规则测试（当前 83 条）
+pnpm data:sync                          # 建立 tools/.venv（已不再依赖 yt-dlp）
+pnpm data:test                          # 数据/规则测试（当前 83 条）
 git -C .. submodule update --init data/otomads   # 音MAD 数据（可选；没有它曲包相关用例会 skip）
 ```
 
@@ -28,4 +28,5 @@ git -C .. submodule update --init data/otomads   # 音MAD 数据（可选；没�
 `otomads.ingest_pack` / `parse_ingest_rows` / `ingest_otomads` / `ingest_local_audio`（录入）、`otomads.packformat`（格式层）。
 主仓库的 `pnpm local` / `pnpm audio:fetch` / `pnpm audio:measure` 只是**纯路径包装**（D130）。
 
-> 本机沙箱下 `$HOME/.cache` 只读，因此必须给 `uv` 指定仓库内的缓存目录（`UV_CACHE_DIR=.uv/cache`，已在 `.gitignore` 中忽略）。
+> 直接敲 `uv` 时若 `$HOME` 只读（沙箱）会失败 —— 把缓存指到仓库内即可（`UV_CACHE_DIR` 指 `.uv/cache`）。
+> 上面的 `pnpm data:*` 脚本由 `scripts/run.mjs` 代设，不用自己管，且跨平台。
