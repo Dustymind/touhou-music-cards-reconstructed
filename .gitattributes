@@ -1,0 +1,41 @@
+# 行尾与二进制属性。
+#
+# 为什么这个文件是**必需**的（2026-09-28 为迁移到 Windows 而加）：
+# 本仓库的工作树**必须是 LF**。两处硬依赖：
+#
+#   1. `pnpm data:check` 把 `public/data/*.json` 的**生成结果**与**已提交内容**逐字节比对 ——
+#      检出时若被转成 CRLF，这个守卫会立刻报"生成物与 data/ 不一致"，而数据其实没问题；
+#   2. `package.json` 里的脚本是 POSIX sh 写法（见 `docs/WINDOWS.md`），CRLF 会让 shebang 之类失效。
+#
+# Windows 上 `git config core.autocrlf` 的默认值在安装时可能被选成 true（= 检出转 CRLF），
+# 光靠 `.editorconfig` 拦不住它（那只管编辑器）。所以在这里钉死。
+#
+# 口径：`text=auto eol=lf` —— 提交时归一化成 LF，**检出时也写 LF**（不跟随平台）。
+
+* text=auto eol=lf
+
+# 二进制：显式声明，别让 git 去猜（也不做行尾转换）
+*.png   -text
+*.jpg   -text
+*.jpeg  -text
+*.gif   -text
+*.mp3   -text
+*.wav   -text
+*.ttf   -text
+*.otf   -text
+*.woff  -text
+*.woff2 -text
+*.gz    -text
+*.zip   -text
+*.tar   -text
+*.7z    -text
+
+# 生成物：`pnpm data:check` 逐字节比对，钉死成 LF
+public/data/**  text eol=lf
+data/**/*.json  text eol=lf
+
+# 给 diff / GitHub 看的语言标注（顺带让 `.tsv` 在网页上按表格渲染）
+*.tsv   text eol=lf
+*.toml  text eol=lf
+*.py    text eol=lf
+*.mjs   text eol=lf

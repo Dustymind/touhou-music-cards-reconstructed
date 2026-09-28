@@ -45,6 +45,7 @@
 
 [`DEVELOPMENT.md`](DEVELOPMENT.md)：日常命令、迭代时怎么快跑、改「关于」弹窗、技术栈。
 环境搭建与部署在主 [`README.md`](../README.md)。
+**Windows 上跑**（迁移清单、`script-shell`、长路径、行尾）见 [`WINDOWS.md`](WINDOWS.md)。
 
 ## 决策日志
 
