@@ -79,10 +79,10 @@ export const aboutContent: AboutContent = {
     },
     // （数据仓库为独立仓库：https://github.com/Dustymind/touhou-music-cards-otomads-data）
     {
-      label: { en: "Repository", zh: "源代码仓库（暂未开放）" },
+      label: { en: "Repository", zh: "源代码仓库（AI 生成警告）" },
       name: "Dustymind/touhou-music-cards-reconstructed",
-      // url: "https://github.com/Dustymind/touhou-music-cards-reconstructed",
-      // Not avaliable due to AI generated README.
+      url: "https://github.com/Dustymind/touhou-music-cards-reconstructed",
+      // Make it public anyway.
     },
     {
       label: { en: "Otomads data set", zh: "音 MAD 数据集" },
