@@ -21,7 +21,7 @@ sources = ["netease163", "thbwiki"]
 
 [[track]]
 id = "hr12_04"
-album_key = "hr11"
+album_key = "hr12"
 title = "スモーキングドラゴン"
 extra = "秘封曲"
 sources = ["netease163", "thbwiki"]

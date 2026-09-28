@@ -21,7 +21,7 @@ sources = ["netease163", "thbwiki"]
 
 [[track]]
 id = "hr12_09"
-album_key = "hr11"
+album_key = "hr12"
 title = "地蔵だけが知る哀嘆"
 extra = "秘封曲"
 sources = ["netease163", "thbwiki"]

@@ -35,14 +35,14 @@ sources = ["netease163", "thbwiki"]
 
 [[track]]
 id = "hr12_03"
-album_key = "hr11"
+album_key = "hr12"
 title = "禁断の扉の向こうは、この世かあの世か"
 extra = "秘封曲"
 sources = ["netease163", "thbwiki"]
 
 [[track]]
 id = "hr12_06"
-album_key = "hr11"
+album_key = "hr12"
 title = "クレイジーバックダンサーズ"
 extra = "秘封曲"
 sources = ["netease163", "thbwiki"]

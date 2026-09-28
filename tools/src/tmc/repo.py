@@ -172,8 +172,8 @@ ALBUM_SEED: tuple[tuple[str, str, str, str, int], ...] = (
     ("hr08", "伊弉諾物質 ～ Neo-traditionalism of Japan", "hifuu", "", 8),
     ("hr09", "燕石博物誌 ～ Dr.Latency's Freak Report", "hifuu", "", 9),
     ("hr10", "旧約酒場 ～ Dateless Bar Old Adam", "hifuu", "", 10),
-    ("hr11", "七夕坂夢幻能 ~ Taboo Japan Disentanglement", "hifuu", "", 11),
-    ("hr12", "虹色のセプテントリオン", "hifuu", "", 12),
+    ("hr12", "七夕坂夢幻能 ~ Taboo Japan Disentanglement", "hifuu", "", 11),
+    ("hr11", "虹色のセプテントリオン", "hifuu", "", 12),
     # ---- CD（格斗作 / arrange 碟）→ 界面第二组，顺序沿用上游预设
     ("th07.5-day", "幻想曲抜萃 ～ 東方萃夢想 Day Disc", "fighting", "东方萃梦想", 13),
     ("th07.5-night", "幻想曲抜萃 ～ 東方萃夢想 Night Disc", "fighting", "东方萃梦想", 14),

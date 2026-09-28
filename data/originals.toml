@@ -72,14 +72,14 @@ pack = "originals"
 order = 10
 
 [[album]]
-key = "hr11"
+key = "hr12"
 name = "七夕坂夢幻能 ~ Taboo Japan Disentanglement"
 kind = "hifuu"
 pack = "originals"
 order = 11
 
 [[album]]
-key = "hr12"
+key = "hr11"
 name = "虹色のセプテントリオン"
 kind = "hifuu"
 pack = "originals"

@@ -56,7 +56,7 @@ sources = ["netease163", "thbwiki"]
 
 [[track]]
 id = "hr12_07"
-album_key = "hr11"
+album_key = "hr12"
 title = "憑坐は夢と現の間に 〜 Necro-Fantasia"
 extra = "秘封曲"
 sources = ["netease163", "thbwiki"]

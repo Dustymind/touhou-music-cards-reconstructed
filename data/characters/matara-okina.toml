@@ -35,7 +35,7 @@ sources = ["netease163", "thbwiki"]
 
 [[track]]
 id = "hr12_10"
-album_key = "hr11"
+album_key = "hr12"
 title = "秘匿されたフォーシーズンズ"
 extra = "秘封曲"
 sources = ["netease163", "thbwiki"]
