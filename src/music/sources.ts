@@ -47,6 +47,9 @@ export type TableMap = Record<string, SourceTable>;
 interface ResolvedTrack {
   sourceId: string;
   url: string;
+  /** 命中的那个键（`entries` 里的键）。运行时换源要按**同一个键**记失败 ——
+   *  id / 桥接键 / 归一化兜底是三条查找路径，记错了会在下一次解析时"复活"同一个失败源（S2）。 */
+  key: string;
 }
 
 /** 运行时覆盖：`local` 只改 `kind === "local"` 的源、`custom` 只改 `kind === "custom"` 的源（D140/D157）。
@@ -85,9 +88,16 @@ function normalizeTitle(title: string): string {
  *  `revision` 是**整表兜底**版本（D144，见 `tableRevision`）：行里自带第 4 位时以行为准。 */
 export function buildEntries(rows: unknown, manifestUrl = "", revision = ""): Map<string, string> {
   const entries = new Map<string, string>();
-  // S2：主仓库的源表是 `{entries: {曲id: {url, revision?}}}`（id 键控）；远端/本地清单仍是元组行
-  if (rows && typeof rows === "object" && !Array.isArray(rows)) {
-    const table = (rows as { entries?: unknown }).entries;
+  // 三种形状都在这一个入口归一（**别再让调用方自己剥一层** —— S2 就是这么漏的：构建期那张
+  // id 键控表被按 `{tracks}` 剥成 undefined ⇒ 表空 ⇒ 整个曲库"所有已启用的音源都取不到"）：
+  //   1. 构建期源表 `{schema, entries: {曲id: {url, revision?}}}`（`data/public/data/sources/*.json`）；
+  //   2. 本机助手 / 远端清单 `{schema, pack, tracks: [[专辑, 曲名, 地址, 版本?], …]}`；
+  //   3. 远程镜像的裸数组 `[[专辑, 曲名, 地址, …], …]`。
+  const payload = rows !== null && typeof rows === "object" && !Array.isArray(rows)
+    ? rows as { entries?: unknown; tracks?: unknown }
+    : null;
+  if (payload) {
+    const table = payload.entries;
     if (table && typeof table === "object") {
       for (const [id, rec] of Object.entries(table as Record<string, { url?: unknown; revision?: unknown }>)) {
         if (!rec || typeof rec.url !== "string" || rec.url.length === 0) continue;
@@ -101,8 +111,9 @@ export function buildEntries(rows: unknown, manifestUrl = "", revision = ""): Ma
       return entries;
     }
   }
-  if (!Array.isArray(rows)) return entries;
-  for (const row of rows) {
+  const list = payload ? payload.tracks : rows;
+  if (!Array.isArray(list)) return entries;
+  for (const row of list) {
     if (!Array.isArray(row) || row.length < 3) continue;
     const [album, title, url, own] = row as [string, string, string, unknown];
     if (typeof url !== "string" || url.length === 0) continue;
@@ -136,11 +147,11 @@ export function resolveTrack(
     if (!table || table.status === "error" || table.status === "idle") continue;
     if (!failed.has(`${sourceId}\u0000${entry.id}`)) {
       const url = table.entries.get(entry.id);
-      if (url) return { sourceId, url };
+      if (url) return { sourceId, url, key: entry.id };
     }
     if (!failed.has(`${sourceId}\u0000${bridge}`)) {
       const url = table.entries.get(bridge);
-      if (url) return { sourceId, url };
+      if (url) return { sourceId, url, key: bridge };
     }
     // 回退：按**归一化曲名**扫一遍（去 `作者 - ` 前缀、压空白、小写）。
     // 本地 manifest 的曲名来自磁盘文件名（带作者前缀、大小写原样），曲包数据的曲名不带前缀，
@@ -153,7 +164,7 @@ export function resolveTrack(
       // 用 `^[^-]+ - ` 去前缀会失手；改成"磁盘名以 `作者 - 曲名` 结尾"就与作者长什么样无关 ✓
       const stored = normalizeTitle(key.slice(separator + 1));
       if (stored !== wanted && !stored.endsWith(` - ${wanted}`)) continue;
-      if (!failed.has(`${sourceId}\u0000${key}`)) return { sourceId, url };
+      if (!failed.has(`${sourceId}\u0000${key}`)) return { sourceId, url, key };
     }
   }
   return null;
@@ -213,11 +224,8 @@ export async function loadSourceTables(
       const response = await fetcher(source.tableUrl, { cache: "no-cache" });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const payload: unknown = await response.json();
-      // 远端源表是裸数组；本地助手的 manifest 是 {tracks:[...]}
-      const rows = Array.isArray(payload)
-        ? payload
-        : (payload as { tracks?: unknown } | null)?.tracks;
-      table.entries = buildEntries(rows, source.tableUrl, tableRevision(payload));
+      // 形状归一交给 `buildEntries`（id 键控表 / `{tracks}` 清单 / 裸数组三种都认）
+      table.entries = buildEntries(payload, source.tableUrl, tableRevision(payload));
       // 源可以自己声明响度表（**相对 manifest 自身**，D139）：表跟着源部署，跨宿主也不用改应用。
       // 没声明就留空 —— 调用方（AppShell）回落到注册表里那份（相对数据集目录）。
       const declared = Array.isArray(payload)

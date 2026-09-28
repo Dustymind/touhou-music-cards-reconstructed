@@ -133,7 +133,8 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
   const [duration, setDuration] = useState(0);
   const [volume, setVolumeState] = useState(1);
   const [setting, setSettingState] = useState<PlaybackSetting>(DEFAULT_PLAYBACK_SETTING);
-  const [resolved, setResolved] = useState<{ url: string; sourceId: string } | null>(null);
+  // `key` = 解析时命中的那个 entries 键（运行时换源的失败标记要按它记，见 onError / resolveTrack）
+  const [resolved, setResolved] = useState<{ url: string; sourceId: string; key: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const character = useMemo(
@@ -297,7 +298,7 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
   // ---- 换歌：解析 URL ----
   // 调用方（React 组件）常常每次渲染都传新的数组/对象，所以这里只在**值真的变了**时更新 state，
   // 否则 setState → 重渲染 → 依赖变化 → 再 setState，会变成无限渲染。
-  const applyResolved = useCallback((found: { url: string; sourceId: string } | null, message: string | null) => {
+  const applyResolved = useCallback((found: { url: string; sourceId: string; key: string } | null, message: string | null) => {
     setResolved((current) => {
       if (current === null && found === null) return current;
       if (current && found && current.url === found.url && current.sourceId === found.sourceId) return current;
@@ -315,7 +316,8 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
     // 命中就不再查媒体表。原曲 / 音MAD 两份数据不带这个字段 ⇒ 一个字都不改。
     const own = character?.audio?.[entryIndexOf(character, entry)];
     if (own) {
-      applyResolved({ url: own, sourceId: ownAudioSourceId }, null);
+      // 模式 3 的音频挂在卡自己身上、不走媒体表 ⇒ `key` 只作占位（失败集合里永远查不到它）
+      applyResolved({ url: own, sourceId: ownAudioSourceId, key: entry.id }, null);
       return;
     }
     const found = resolveTrack(inputs.tables, inputs.sourceOrder, entry, failedRef.current);
@@ -332,8 +334,11 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
       nowPlayingRef.current = null;
       return;
     }
+    // 失败标记必须用**解析时命中的那个键**（`resolved.key`）：id / 桥接键 / 归一化兜底是三条查找
+    // 路径，用 `entry.id` 记失败时，走另两条路解析出来的同一首会在下一次解析里"复活"同一个源（S2）。
+    // 起播位置的派生仍用 `entry.id`（见下面 randomStart）：那个值两端必须逐字同值，不随源而变。
     nowPlayingRef.current = entry
-      ? { sourceId: resolved.sourceId, trackKey: entry.id }
+      ? { sourceId: resolved.sourceId, trackKey: resolved.key }
       : null;
     audio.src = resolved.url;
     audio.load();
