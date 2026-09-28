@@ -1,6 +1,6 @@
 /** 音乐模式（原曲 / 音MAD / 自定义）：C 之后"模式"= **用哪份数据集**，不再按 `album.pack` 逐条过滤。
  *
- * 数据来自真实生成物（`public/data/{,otomads/,custom/}index.json`），
+ * 数据来自真实生成物（`data/public/data/{,otomads/,custom/}index.json`），
  * 所以这里同时验证"三份数据集真的分开了、且前两份的并集与分离前一致"。
  */
 import { beforeAll, describe, expect, it } from "vitest";

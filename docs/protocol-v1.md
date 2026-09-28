@@ -102,6 +102,7 @@ e2e 逐回合比对两端摘要 —— 不一致就说明协议或随机派生�
 
 | 版本 | 变更 |
 |---|---|
+| **7** | 曲目身份从「元组」换成**曲id**（S2：`MusicEntry` 变对象 + `TrackIndex`）⇒ 生成物 `schema` 升到 **2**、三个模式的 `contentHash` 取值口径随之变，**硬切**：旧端在握手期被拒。线上字段一个没变，变的只是哈希取值；单曲存档同时升到 `v:2`，老元组 pin 走一次性迁移（查 `TrackIndex`，查不到的丢弃）。见 `docs/DECISIONS.md` D173 |
 | **6** | `GameState` 多两个字段：`perTrackFaces`（这一局的牌面按不按曲目给）与 `currentCardIndex`（本回合答案卡的卡序）—— 音MAD 的源封面集下"这一回合放哪一首"由**答案卡**决定，两端必须从同一份状态推出同一首（D168）。**会话配置没变** |
 | 5 | 第三个模式（自定义）⇒ `dataHash` 变成 `{originals, otomads, custom}`；`hello` / `reject` 多一个可选的 `customSourceUrl`，会话配置也带上它（契约 `custom-mode-v1.md` C6/D160） |
 | 4 | 数据按音乐模式分成两份数据集 ⇒ `dataHash` 变成 `{originals, otomads}`，两个都交换、都校验（契约 `otomads-separation-v1.md` §6 C3） |

@@ -22,7 +22,7 @@
 
 | # | 不变量 | 由谁守 |
 |---|---|---|
-| 1 | 生成物可复现：`pnpm data:check` 无漂移 | `tmc.build --check` |
+| 1 | 生成物可复现：两次构建逐字相同、无漂移 | `pnpm gate`（`tmc.build` 已无 `--check`，S3 起生成物不进仓库） |
 | 2 | 两端同数据 → 联机一致：哈希不同的两端**在握手期**就被拒（D107 §6） | `contentHash` + `hello.dataHash` |
 | 3 | MD2 与间隔不变：不改任何间距 / 内边距 / 字号 / 尺寸常量 | e2e 的 8 条桌面布局守卫 + 3 条移动端用例 |
 | 4 | `main` 不受影响：全部改动在 `enhanced-otomad-mode` 分支上完成，未确认不合并 | 分支 + 推送规矩（B-C-PLAN §头部） |
@@ -71,7 +71,7 @@ public/data/
 | `build.py` | 去掉 `apply_tracks()`；`build_characters(mode)` / `build_albums(mode)` 各出一份；每模式一份 `index`（各自的 `contentHash`）；共享项只出一次 |
 | `validate.py` | 按模式跑现有检查（角色存在、专辑注册、重复、`附加信息` 合法）；新增**跨模式**一致性检查：同一个角色 key 在两份里的身份字段必须一致（`name`/`order`/`card`/`searchNames`），否则界面会出现"同一个角色两个名字" |
 | `tools/src/tmc/packs.py` | **不改**（D109 的读法照旧：清单 + 一角色一份曲目文件） |
-| `pnpm data:check` | 按模式逐份比对（含 `index.json` 的哈希） |
+| `pnpm gate` | 构建 + 校验 + 署名检查；可复现性靠两次构建比对（S3 起生成物不进仓库） |
 | `docs/reports/validation-report.md` | 统计分两段（每模式一段 + 共享项） |
 
 ---
@@ -228,7 +228,7 @@ C3 的形状没变（还是两个哈希、还是握手期任一不符即拒）�
 cd ~/touhou-music-cards-reconstructed/touhou-music-cards-reconstructed
 pnpm typecheck
 pnpm test                                     # 275 条 × chromium + firefox
-pnpm data:check                               # 按模式逐份比对
+pnpm gate                                     # 构建 + 校验 + 署名检查（两次构建须逐字相同）
 pnpm data:validate
 cd tools && UV_CACHE_DIR=.uv/cache uv run pytest && cd ..
 # e2e 前置：pnpm local（数据仓库的 otomads.local_source，D130）

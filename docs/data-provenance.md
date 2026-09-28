@@ -1,6 +1,6 @@
 # 数据来源与重推导
 
-本文件说明 `data/**` 与 `public/data/**` 从哪来、THBWiki 的依赖具体落在哪几个文件上，
+本文件说明 `data/**` 与它的构建产物 `data/public/data/**` 从哪来、THBWiki 的依赖具体落在哪几个文件上，
 以及**分类重推导**的设计、阻塞与解锁条件。
 
 ---
@@ -29,11 +29,11 @@ THBWiki Music Room 类别标签的归类（见 §2 的历史推导），本仓�
 
 ### 关键区分：什么进了产物，什么没进（实测）
 
-- **进产物的是 ZUN 的原始日文曲名**，不是 THBWiki 的译名。`public/data/characters.json` 里是
+- **进产物的是 ZUN 的原始日文曲名**，不是 THBWiki 的译名。`data/public/data/characters.json` 里是
   `恋色マスタースパーク`、`人形裁判　～ 人の形弄びし少女`，角色名也是 `霧雨魔理沙`、
   `アリス・マーガトロイド` 这样的日文原名。
 - 搜过 THBWiki 的中文译名（`如鬼灯般的红色之魂`）：**`public/` 与 `dist/` 里都没有**。
-  它只出现在 `data/meta/stage-cast.tsv`。
+  它只出现在 `data/meta/stage-cast.tsv`（该表与整条分类派生链已在 S5 删除）。
 
 所以"取的是事实不是表达"这个立场：
 

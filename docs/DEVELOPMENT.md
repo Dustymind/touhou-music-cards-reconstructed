@@ -13,7 +13,7 @@
 | `pnpm e2e:chromium` / `pnpm e2e:firefox` / `pnpm e2e:mobile` | 只跑其中一端（调试用） |
 | `pnpm e2e:perf` | 单独跑「点击长任务」性能守卫（对机器负载敏感，不进全量） |
 | `pnpm audio:fetch` | 抓取并裁剪曲包音频（见主 README 部署指南 §4） |
-| `pnpm data:check` / `pnpm data:validate` | 数据生成物是否漂移 / 不变量校验（`tools/` 是 Python，用 `uv` 管环境） |
+| `pnpm gate` / `pnpm data:validate` | 数据门禁（build + validate + 署名检查）/ 只跑不变量校验（`tools/` 是 Python，用 `uv` 管环境） |
 | `pnpm data:test` | 数据管线测试（音频/本地源那些在数据仓库里，各有自己的脚本） |
 
 > **各套测试的实测条数只在 [`README.md`](README.md) 的现状表里维护一份**，别在别处再抄。

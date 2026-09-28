@@ -108,7 +108,7 @@ describe("collectPackAuthors", () => {
   });
 });
 
-describe("真实数据（public/data/otomads/characters.json）", () => {
+describe("真实数据（data/public/data/otomads/characters.json）", () => {
   it("真实曲包的署名去重后 50+ 个，且首字母混排真的生效", async () => {
     const bundle = await loadRealBundle();
     const sorted = collectPackAuthors(bundle);

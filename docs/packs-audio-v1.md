@@ -109,7 +109,7 @@ pnpm audio:fetch          # = cd data/otomads/tools && uv run python -m otomads.
 其余全是网络（playurl 往返 + 音频本体），
 而那段时间 CPU 空闲。所以重叠网络等待即收益；上限由带宽与 bilibili 的 412 风控决定（默认 4，先用它试）。
 
-**`tmc.build` / `pnpm data:check` 保持离线和机器无关**：只做 TOML 的**结构校验**，**不检查音频文件是否存在**。
+**`tmc.build`（`pnpm gate` 的第一步）保持离线和机器无关**：只做 TOML 的**结构校验**，**不检查音频文件是否存在**。
 理由：曲库根在 `local-source.toml` 里，而那个文件是 gitignored 的**机器相关**配置 —— 让构建依赖它，
 CI 与别人的机器会直接失败。"音频齐不齐"由 `audio:fetch` 自己把关（它本来就需要那份配置）。
 
@@ -195,9 +195,9 @@ ffmpeg -y -ss <start-BACK> -i <原件> -ss <BACK> -t <stop-start> -c:a libmp3lam
    `loudness` 表的键、单曲模式存档，全都建立在 `<作者> - <标题>.mp3` 上。
 5. **响度按源（D130）**：响度表是**每个源自己的表** —— 源注册表里的可选 `loudness` 键（路径相对该源所在仓库的根）。
    表由**源的所有者**生成（音MAD 在数据仓库 `tools/`）；主仓库 `tmc.build` 只按注册表声明的路径把它
-   拷进 `public/data/<mode>/`。运行时 `SourceRecord.loudnessUrl`（相对数据集目录）交给播放层，
+   拷进 `data/public/data/<mode>/`。运行时 `SourceRecord.loudnessUrl`（相对数据集目录）交给播放层，
    播放层按**解析到的 sourceId** 取表；**没有表的源**（三个远程镜像）系数按 1。
-   全局那一份 `public/data/loudness.json` 已退场。
+   全局那一份共享的 `loudness.json` 已退场。
 6. **表跟着源部署（D139）**：源还可以在自己的 **manifest** 里用 `loudness` 键声明表 —— 路径**相对 manifest 自身**
    （例如 `loudness/otomads.json`）。前端**优先**按它取，没声明才回落到第 5 条的 `SourceRecord.loudnessUrl`
    （数据集目录）。这样"源自包含"：表跟 `manifest.json` / `media/` 一起走，源换宿主（R2 / 别的域名 /
@@ -514,7 +514,7 @@ if is_anthology:
 
 | 层 | 今天从哪来 | 数据一变要做什么 |
 |---|---|---|
-| **音MAD 曲目表**（`public/data/otomads/characters.json`） | **构建期**（`pnpm data:build` 读 submodule 的 `packs/`） | 重跑 → 提交 → **重新部署前端** |
+| **音MAD 曲目表**（`data/public/data/otomads/characters.json`） | **构建期**（`pnpm data:build` 读 submodule 的 `packs/`） | 重跑 → 提交 → **重新部署前端** |
 | 音MAD 媒体地址（manifest） | **运行时**从源取（CDN / 本机助手） | 铺源 |
 | 音MAD 音频 / 响度表 | 运行时 | 铺源 |
 | 原曲那 368 首 | 构建期 | 重跑 + 重新部署前端（**C 不管这个**） |
@@ -591,7 +591,7 @@ if is_anthology:
    **不会**被握手拦住 —— 今天也拦不住（D143 之前更拦不住）。
 
 **原曲那份哈希没变**（还是构建期那个 sha256）：原曲没有"源给的数据"这回事。
-**当时协议版本没动**（D145 落地时是 4；**现为 v6**）：线上形状没变，变的是 otomads 哈希的**取值**——那本身就是"数据不同"的判据，
+**当时协议版本没动**（D145 落地时是 4；**现为 v7**）：线上形状没变，变的是 otomads 哈希的**取值**——那本身就是"数据不同"的判据，
 不一致照样在握手期被拒。
 
 ### 5. 兜底与中间态

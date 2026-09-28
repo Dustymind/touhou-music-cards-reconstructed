@@ -3,7 +3,7 @@
 
 ```bash
 pnpm data:sync                          # 建立 tools/.venv（已不再依赖 yt-dlp）
-pnpm data:test                          # 数据/规则测试（当前 83 条）
+pnpm data:test                          # 数据不变量测试（当前 71 条）
 git -C .. submodule update --init data/otomads   # 音MAD 数据（可选；没有它曲包相关用例会 skip）
 ```
 
@@ -13,9 +13,8 @@ git -C .. submodule update --init data/otomads   # 音MAD 数据（可选；没�
 |---|---|
 | `tmc.repo` | 常量与文本处理（`split_track_path` / `lookup_key` / 专辑注册表种子） |
 | `tmc.packs` | 曲包的**只读**加载与校验：清单 `<根>/<id>.toml` + 角色文件 `<根>/<id>/<角色 key>.toml`（根 = 主仓库 `data/packs/` + submodule `data/otomads/packs/`；写入侧已搬去数据仓库） |
-| `tmc.roster` | 从 `data/characters/*.toml` 生成数据仓库的角色清单 `characters.toml`（`pnpm data:roster`） |
-| `tmc.scaffold` | 为「真源里有、曲包里还没有」的角色预置骨架文件 `packs/otomads/<角色 key>.toml`（`pnpm data:scaffold`）：幂等、**不覆盖**已有文件、不含 `[[track]]` 所以对生成物与 `contentHash` 完全惰性（D137） |
-| `tmc.validate` | 不变量校验、面次核对、覆盖表一致性、角色清单守卫 |
+| `tmc.roster` | 从 `data/characters/*.toml` 生成数据仓库的角色清单 `characters.toml`（`pnpm data:roster`）。S5 起 `--scaffold` 也在这里：为「真源里有、曲包里还没有」的角色预置骨架文件 `packs/otomads/<角色 key>.toml`（`pnpm data:scaffold`）—— 幂等、**不覆盖**已有文件、不含 `[[track]]` 所以对生成物与 `contentHash` 完全惰性（D137） |
+| `tmc.validate` | 不变量校验（角色/专辑/曲目引用、同名曲、图集、按源注册与引用指纹）、`--report` 写出报告、`--urls` 抽查远程实链 |
 | `tmc.build` | 生成 `data/public/data/*.json`（可复现性由 `pnpm gate` 的两次构建比对承担；`contentHash` 含曲包音频口径；按源注册表的 `loudness` 把响度表拷进数据集目录 —— 源还可以在**自己的 manifest** 里声明表，前端优先按它取 ⇒ 表跟着源走，D139） |
 | （`--urls`） | `tmc.validate --urls` 附带远程音源实链抽查（Range 请求 + 音频嗅探，S5 起并入 validate） |
 

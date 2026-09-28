@@ -44,7 +44,7 @@ export interface PeerInfo {
   name: string;
   isObserver: boolean;
   isHost: boolean;
-  /** 该端的静态数据哈希：**一个模式一个**（`public/data/index.json` 与 `public/data/otomads/index.json`） */
+  /** 该端的静态数据哈希：**一个模式一个**（`data/public/data/index.json` 与 `data/public/data/otomads/index.json`） */
   dataHash: DataHashes;
 }
 

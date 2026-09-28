@@ -1,4 +1,4 @@
-/** 运行时数据形状（对应 `tools` 生成的 `public/data/*.json`）。 */
+/** 运行时数据形状（对应 `tools` 生成的 `data/public/data/*.json`）。 */
 import type { MusicMode } from "../music/mode";
 import type { CardRatio } from "../theme/cardRatio";
 

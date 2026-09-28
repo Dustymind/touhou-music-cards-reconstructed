@@ -76,7 +76,7 @@ describe("buildSongConflicts", () => {
   // （由 `tmc.validate` 的 check_datasets 守），所以"空转自链接"这一类不可能再出现。
 });
 
-describe("真实数据（public/data）", () => {
+describe("真实数据（data/public/data）", () => {
   it("原曲模式的 10 首共用曲目全在表里，且不误伤只间接相连的角色", async () => {
     const bundle = await loadRealBundle();
     const table = buildSongConflicts(bundle.datasets.originals.characters);

@@ -6859,3 +6859,47 @@ Cloudflare 的静态资源站对**非规范**路径先回 **307** 跳到规范�
 —— 它自己的注释写着「**历史**清单，故意不跟注册表走」，指的是**上游**那三张表
 （`.ref/upstream-v3/`）；改了就没法复现当初的迁移。本日志与 `docs/reports/` 里的历史提及同样保留。
 
+
+---
+
+## D173 曲目身份换成**曲id**：`MusicEntry` 对象化、生成物 `schema` 2、协议 v7、单曲存档 v2 迁移（2026-09-29）
+
+**结论**：v2 重构（REFACTOR-PLAN v2，S0–S5）里动契约的那一步。`MusicEntry` 从 `[专辑, 曲名, 分类]`
+元组变成**对象**（`{id, album, title, extra, author?, authors?}`）；生成物里 `characters.json` 的 `music`
+缩成**曲id 列表**、曲目信息搬到每模式一份的 `tracks.json`（TrackIndex）；运行时用曲id 认曲目，
+`trackId(专辑, 曲名)` 只留作**旧清单的桥接键**（本机助手 / 远端清单仍是元组行）。三件必须一起动：
+
+1. **生成物 `schema` 1 → 2**（`tmc.build.SCHEMA_VERSION`）：`load.ts` 只认 2，`schema` 进 `contentHash`
+   ⇒ 原曲 `ef2609eed260` → `f24566164f7e`；
+2. **协议 6 → 7**（`PROTOCOL_VERSION`）：曲id 口径变了 ⇒ 三个模式的哈希取值随之变 ⇒ **握手期硬切**、不做版本
+   协商（与 v4/v5 同一条口径：数据不同就拒绝开局）。**线上字段一个没变**，变的只是哈希取值；
+3. **单曲存档 v1 → v2**：`single-track.<mode>.pins` 存的就是元组 ⇒ `migrate` 查 TrackIndex 一次性转换，
+   查不到的条目**丢弃、不猜**；其余键形状没变、版本号不动（`preset` / `queue` / `sources`）。
+
+**为什么不留双读**：旧形状的容忍分支（`isEntry` 的元组分支等）全部删掉，`migrate` 是唯一旧入口 ——
+两个形状并存会让"这条数据是新是旧"变成每个消费点都要回答的问题（REFACTOR-PLAN v2 §15 的裁定）。
+
+**Linux 补跑发现并修掉的四个真实缺陷** —— Windows 那轮只跑了 typecheck + pytest，vitest / e2e 因缺浏览器
+跳过，所以下面这些当时没暴露：
+
+- **源表全部解析成空**：`loadSourceTables` 把构建期那张 id 键控表 `{schema, entries:{…}}` 按旧的 `{tracks}`
+  形状剥了一层 ⇒ `undefined` ⇒ 表空 ⇒ **整个曲库"所有已启用的音源都取不到"**（冒烟用例与真机都会中）。
+  修法：形状归一收进 `buildEntries`（id 键控表 / `{tracks}` 清单 / 裸数组三种都认），调用方不再自己剥。
+- **自定义模式"两张卡共用一首歌"的互斥失效**：曲id 用了卡的 key ⇒ `distinctTracks` 多算一首、
+  `songConflicts` 不再把两张卡判成同一首歌（契约 `custom-mode-v1.md` C2 §4 明文要求互斥）。改回**按歌取**
+  （`trackId(专辑, 曲名)`，即 S2 之前的身份）；卡的唯一性仍由角色 key 守。
+- **运行时换源会"复活"失败的源**：失败集合按 `entry.id` 记，而解析可以走桥接键 / 归一化兜底两条路 ⇒
+  标记对不上、下一次解析又选回同一个源（候选耗尽后本应给可见错误）。`resolveTrack` 现在把**命中的那个键**
+  一起返回，失败集合按它记。
+- **一批测试夹具还停在元组形状**：`load` / `packSnapshot` / `sources` / `App` / `ConfigPanel` /
+  `e2e/smoke`（预设统计 `142 / 378` → `144 / 378`：S1/S2 对齐上游 `extra` 后角色曲 236 → 234 条）、
+  `e2e/pack-snapshot`（清单快照要把**每个**角色的曲id 转成元组行，只转第一个会让整段快照被拒）。
+
+**验证**（Linux，2026-09-29）：`pnpm typecheck` 0 错误；`pnpm gate` 绿（19 个文件，引用指纹
+`9eecf074138b`）；pytest 主仓库 **71** + 音MAD **222** + 自定义 **368**；vitest chromium **635**、
+firefox **635**；e2e **115 passed + 1 skipped**。S2 的数据等价性由 `backup-commits.tmp/s2_equiv.py`
+的一次性比对脚本逐条核过（368 TrackIndex + 651×2 id 键控源表 + 191 otomad id）。
+
+**没动的**：`data/otomads` / `data/custom` 两个 submodule 的 gitlink（本分支不换数据）；
+数据仓库侧的工具合并（REFACTOR-PLAN v2 §13.2/§13.3）属于各自仓库的后续。
+

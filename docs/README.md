@@ -4,25 +4,25 @@
 
 用户向的内容（怎么跑起来 / 怎么玩 / 联机 / 许可）在主 [`README.md`](../README.md)，不在本目录。
 
-## 现状（最近一次实测：2026-09-28）
+## 现状（最近一次实测：2026-09-29，Linux）
 
 > **各套测试的条数以本表为唯一维护点** —— 主 README 与 DEVELOPMENT 都只写"跑什么、怎么跑"，
 > 不抄数字（抄过，然后就过期了）。
 
 | 项 | 值 | 从哪来 / 怎么复现 |
 |---|---|---|
-| 角色 | 121 | `public/data/index.json` |
+| 角色 | 121 | `data/public/data/index.json`（构建期生成，gitignored） |
 | 专辑 | 39 | 同上 |
 | 角色曲目条目 / 去重曲目 | 569 / 559（**三份数据集**：原曲 121 角色 378 条 + 音MAD 80 角色 191 条 + 自定义 0，前两份互斥） | 同上（各份 `index.json` 的 `counts`） |
-| 卡面集 / 注册音源 | 8 / 4（含 1 套音MAD **本地图集**：素材用户自己放进 `public/cards-otomads/`；1 套音MAD 封面集 `source_only`；自定义模式用代码里的合成图集 + 用户在「卡面设置」里选的**常规 / 16:9 / 4:3** 档位 —— D167 起画幅纯前端裁、数据侧只有一条链接，都不进这张表） | 同上 |
+| 卡面集 / 注册音源 | 8 / 4（含 1 套音MAD **本地图集**：素材用户自己放进仓库根 `cards-otomads/`；1 套音MAD 封面集 `source_only`；自定义模式用代码里的合成图集 + 用户在「卡面设置」里选的**常规 / 16:9 / 4:3** 档位 —— D167 起画幅纯前端裁、数据侧只有一条链接，都不进这张表） | 同上 |
 | 音MAD 曲包 | 1 包：191 首 / 80 个角色；**191 条带 `source`**（可自动抓取）、**36 条带裁剪区间**（前导静音已裁） | 真源在数据 submodule：清单 `data/otomads/packs/otomads.toml` + 一角色一份 `data/otomads/packs/otomads/*.toml`（D128）；`pnpm audio:fetch --dry-run`（数据仓库的 `otomads.fetch_audio`，D130） |
-| 前端单测 | **1258 passed**（chromium 与 firefox **各 629**；真实浏览器，vitest 浏览器模式；双引擎同跑偶发一条 flaky） | `pnpm test` |
-| 数据管线测试 | **83 passed**（主仓库）+ **222 passed**（音MAD 数据仓库 `tools/`）+ **368 passed**（自定义数据仓库 `tools/`） | `cd tools && uv run pytest` / `uv run --project tools pytest`（在各自的数据仓库） |
+| 前端单测 | **1270 passed**（chromium 与 firefox **各 635**；真实浏览器，vitest 浏览器模式；双引擎同跑偶发一条 flaky，稳跑法见 `DEVELOPMENT.md`） | `pnpm test:chromium` / `pnpm test:firefox` |
+| 数据管线测试 | **71 passed**（主仓库）+ **222 passed**（音MAD 数据仓库 `tools/`）+ **368 passed**（自定义数据仓库 `tools/`） | `cd tools && uv run pytest` / `uv run --project tools pytest`（在各自的数据仓库） |
 | 端到端 | **115 passed + 1 skipped**（chromium 52 + firefox 51，mobile 12；含模式 3 的 **8** 条 × 两个桌面引擎；skip 的那条是联机用例只在 chromium 跑）。整跑负载下 firefox 偶发一条超时（`pack-snapshot`，单跑 ✓）。**前置：先 `pnpm local` 起本地曲库助手** | `pnpm e2e` |
-| 数据漂移 | 无 | `pnpm data:check` |
+| 数据漂移 | 无（S3 起生成物不进仓库） | `pnpm gate`（build + validate + notices；可复现性由 CI 的两次构建比对承担） |
 | 数据校验 | 通过 | `pnpm data:validate` |
-| 联机协议版本 | **6** | `src/net/protocol.ts`（D168 起 `GameState` 带 `perTrackFaces` / `currentCardIndex` —— "这一回合放哪一首"由答案卡决定；`SessionConfigWire` = 音乐模式 + 会话种子 + 自定义源链接；`dataHash` = 三个模式各一个） |
-| 决策日志 | 编号 D1–D172 中**实有 171 条**（**D165 未使用**，是编号空洞，见该处的编号说明）；D172 是最近一条：移除 Cloudflare R2 音源（原曲镜像 3 → 2）。带 `⚠️` 的 16 条是「已被取代」/「前提已变」标记，**不是待办** | [`DECISIONS.md`](DECISIONS.md) |
+| 联机协议版本 | **7** | `src/net/protocol.ts`（D168 起 `GameState` 带 `perTrackFaces` / `currentCardIndex` —— "这一回合放哪一首"由答案卡决定；`SessionConfigWire` = 音乐模式 + 会话种子 + 自定义源链接；`dataHash` = 三个模式各一个；**7** = 曲id 身份 + 生成物 schema 2，硬切，见 `protocol-v1.md` / D173） |
+| 决策日志 | 编号 D1–D173 中**实有 172 条**（**D165 未使用**，是编号空洞，见该处的编号说明）；D173 是最近一条：曲目身份换成曲id（生成物 `schema` 2、协议 v7、单曲存档 v2 一次性迁移）。带 `⚠️` 的 16 条是「已被取代」/「前提已变」标记，**不是待办** | [`DECISIONS.md`](DECISIONS.md) |
 
 > **e2e 的前置条件**：音MAD 相关用例会取同源的 `/manifest.json`（开发服务器代理到本地曲库助手），
 > 必须先起助手再跑，否则那几条会红 —— 这是环境问题，不是代码问题（D105 记过这个坑）。

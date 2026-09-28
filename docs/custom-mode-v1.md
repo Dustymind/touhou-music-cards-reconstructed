@@ -19,9 +19,10 @@
 | **使用者的源**（`manifest.json` + 素材） | 卡表（一张卡 = 一个卡名 + 一张卡面 + 一首曲目）、素材地址、可选的响度表 | 任何应用逻辑 |
 | **数据仓库**（独立仓库，`touhou-music-cards-custom-data`，挂在 `data/custom`） | **提供工具 + 作者自己的源**：把手写的卡表抓成素材并生成清单；**仓库里不放文档**（无 `.md` 被跟踪）。它**含作者自己那张卡的源数据**（`cards.toml` / `manifest.json` / `covers.json` / `loudness/custom.json`），但**不是应用的构建输入** | 卡数据本身；应用不 import 它、`data:build` 不读它 |
 
-**不依赖主仓库构建**（Q2）：`data/custom` submodule 初始化与否，`pnpm data:build` / `data:check`
+**不依赖主仓库构建**（Q2）：`data/custom` submodule 初始化与否，`pnpm data:build`
 的输出**逐字相同**（有守卫用例：把"曲包真源在不在"这个开关翻过来跑两遍比文本；另有手工验证：
-把 `data/otomads` 与 `data/custom` 分别挪走跑 `data:check` —— 都无漂移）。
+把 `data/otomads` 与 `data/custom` 分别挪走各跑一次 —— 都无漂移；S3 起生成物不进仓库，
+"无漂移"由 `pnpm gate` 与 CI 的两次构建比对承担）。
 
 ## 2. C1 数据集来源
 
@@ -114,9 +115,10 @@ sourceOnly: true, dir: "", origins: [], localPrefix: "./", ratios: ["16x9","4x3"
 以及 **"用户此刻选了哪一档"**（16:9 / 4:3 / 常规都是显示偏好，不是数据 ——
 两端各选各的照样能握手，D164）。
 
-协议 **v6**（`docs/protocol-v1.md`；下面这些字段是 **v5** 引入的）：`DataHashes` 三项、`MusicModeWire` 三项、
+协议 **v7**（`docs/protocol-v1.md`；下面这些字段是 **v5** 引入的）：`DataHashes` 三项、`MusicModeWire` 三项、
 `SessionConfigWire.customSourceUrl`、`hello.customSourceUrl`、`reject.customSourceUrl`。
-v6 另加了 `perTrackFaces` / `currentCardIndex`，**对模式 3 同样生效**（`src/data/cardFaces.ts` 的 `sourceOnly`）。
+v6 另加了 `perTrackFaces` / `currentCardIndex`，**对模式 3 同样生效**（`src/data/cardFaces.ts` 的 `sourceOnly`）；
+v7（曲id 身份 + 生成物 `schema` 2）只改哈希取值与存档迁移，**对模式 3 的字段没有增删**。
 
 ## 7. C7 空源与联机采用（F3）
 
@@ -148,8 +150,8 @@ v6 另加了 `perTrackFaces` / `currentCardIndex`，**对模式 3 同样生效**
 
 | # | 不变量 | 由谁守 |
 |---|---|---|
-| 1 | 应用**不带**这个模式的任何数据 | `public/data/custom/` 恒为空 + `mode.test.ts` |
+| 1 | 应用**不带**这个模式的任何数据 | `data/public/data/custom/` 恒为空 + `mode.test.ts` |
 | 2 | 坏清单**整份**不生效（不半信半疑地用） | `customManifest.test.ts` 的 **28** 条坏形状矩阵 |
 | 3 | 卡名/顺序/卡面不同 ⇒ **握手期**就拒 | `customHash` + `protocol.ts` 的三项比较 |
 | 4 | 禁用的卡不进轮播**也不进卡池** | `AppShell.isUsable` → 队列与 `GamePanel.cardKeys` |
-| 5 | 主仓库构建**不依赖** `data/custom` | `tools/tests/test_build.py` + 手工 `data:check` |
+| 5 | 主仓库构建**不依赖** `data/custom` | `tools/tests/test_build.py` + 手工 `pnpm gate` 比两次 |

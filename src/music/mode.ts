@@ -1,7 +1,7 @@
 /** 音乐模式：原曲（originals）/ 音MAD（otomads）/ 自定义（custom）。
  *
  * C 之后这里只剩**"当前在用哪份数据集"**这一件事：两个模式各自有一份完整数据集
- * （`public/data/index.json` 与 `public/data/otomads/index.json`，契约见
+ * （`data/public/data/index.json` 与 `data/public/data/otomads/index.json`，契约见
  * `docs/otomads-separation-v1.md`），运行时靠 `src/data/useDataset.ts` 选一份，
  * **不再**按 `album.pack` 逐条过滤曲目（原先那 6 个判定函数已随 C 删除）。
  *
@@ -11,7 +11,7 @@
  * - 当前模式下没有曲目的角色不进轮播（现在等于"数据集里没有这个角色"）。
  *
  * **模式 3「自定义」（custom）** 与前两个不同：它的自带数据集**恒为空**（0 角色 0 专辑，
- * `public/data/custom/`），卡名/卡面/曲目全部来自使用者自己填的源清单，运行时由应用整体重建
+ * `data/public/data/custom/`），卡名/卡面/曲目全部来自使用者自己填的源清单，运行时由应用整体重建
  * （`src/data/customManifest.ts`；契约 `docs/custom-mode-v1.md`）。所以"切到这个模式"在数据侧
  * 只是拿到一份空兜底，界面上要给出"必须填写自定义源链接"的提示。
  */

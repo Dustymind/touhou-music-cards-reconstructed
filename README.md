@@ -316,7 +316,7 @@ manifest 所在那一层解析 ⇒ 换域名/端口/协议、换宿主与子路�
 改「关于」弹窗的内容、技术栈都在那儿。
 
 设计取舍与每个决定的实测数字在 [`docs/DECISIONS.md`](docs/DECISIONS.md)；
-契约（随机数 / 联机协议 / 分类规则 / 曲包音频等）见 [`docs/README.md`](docs/README.md) 的契约表。
+契约（随机数 / 联机协议 / 自定义模式 / 曲包音频等）见 [`docs/README.md`](docs/README.md) 的契约表。
 
 ## 许可
 
