@@ -10,11 +10,9 @@ def test_python_supports_tomllib():
 
 
 def test_repo_skeleton_exists():
-    # 2026-09-28 起 `reports/` 移进 `docs/reports/`（见 docs/DECISIONS.md 的 D170 同批整理），
-    # 所以这里列的是**根目录**那一层：reports 不再单列，改为断言它的新位置。
+    # S5 起 `docs/reports/` 是 gitignored 的工作记录目录（validate --report 现写现用），不随仓库分发。
     for rel in ("data", "docs", "tools", "src", "tests"):
         assert (ROOT / rel).is_dir(), rel
-    assert (ROOT / "docs" / "reports").is_dir(), "docs/reports"
 
 
 def test_decision_records_present():

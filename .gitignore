@@ -33,6 +33,8 @@ cards-otomads/
 # S3：生成物不进仓库（dev 懒生成缓存 + Vite publicDir 的落点）
 data/public/
 .cache/
+# S5：校验报告是本地工作记录（validate --report 现写现用），不随仓库分发
+docs/reports/
 
 # 编辑器 / 系统
 .DS_Store
