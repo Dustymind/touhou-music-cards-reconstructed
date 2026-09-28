@@ -12,7 +12,7 @@ import { loadRealBundle } from "../test-utils";
 import { datasetFor } from "./useDataset";
 import {
   packHash, parsePackSnapshot, withPackSnapshot,
-  type PackSnapshot, type PackSnapshotCharacter,
+  type PackSnapshot,
 } from "./packSnapshot";
 import type { AlbumRecord, CharacterRecord, DataBundle } from "./types";
 
@@ -26,9 +26,11 @@ const ALBUM: AlbumRecord = {
   key: "otomads", name: "otomads", kind: "other", pack: "otomads", order: 100,
   showAlbumName: false,
 };
-const CHARACTER: PackSnapshotCharacter = {
+/** 源清单里的角色条目是 **wire** 形状：`music` 还是元组行（数据仓库的清单口径），
+ *  曲id 由应用按"该角色在清单里的出现顺序"赋（`<角色 key>_otomad_<序号>`，§11.1）。 */
+const CHARACTER = {
   key: "cirno",
-  music: [{ id: "cirno_otomad_001", album: "otomads", title: "おてんば恋娘", extra: "角色曲", author: "作者" }],
+  music: [["otomads", "おてんば恋娘", "角色曲", "作者"]],
   card: ["c.png"],
 };
 
@@ -104,7 +106,8 @@ describe("parsePackSnapshot", () => {
     }));
     expect(parsed).toEqual({
       albums: [ALBUM],
-      characters: [{ key: "cirno", music: [["otomads", "おてんば恋娘", "角色曲", "作者"]],
+      characters: [{ key: "cirno",
+        music: [{ id: "cirno_otomad_001", album: "otomads", title: "おてんば恋娘", extra: "角色曲", author: "作者" }],
         card: ["c.png"], name: "チルノ", order: 3, searchNames: ["cirno"] }],
     });
   });
@@ -118,7 +121,12 @@ describe("parsePackSnapshot", () => {
       ] }],
     }));
     expect(parsed?.characters[0]!.music).toHaveLength(3);
-    expect(parsed?.characters[0]!.music[2]).toEqual(["otomads", "三", "秘封曲", "甲 & 乙", ["甲", "乙"]]);
+    // 元组 → 对象，id 按出现顺序（001 / 002 / 003）
+    expect(parsed?.characters[0]!.music).toEqual([
+      { id: "cirno_otomad_001", album: "otomads", title: "一", extra: "角色曲" },
+      { id: "cirno_otomad_002", album: "otomads", title: "二", extra: "道中曲", author: "甲" },
+      { id: "cirno_otomad_003", album: "otomads", title: "三", extra: "秘封曲", author: "甲 & 乙", authors: ["甲", "乙"] },
+    ]);
   });
 
   it("源封面（D153）：与曲目一一对应的绝对 URL 数组照收，没有这个键就没有这个字段", () => {
@@ -139,7 +147,7 @@ describe("parsePackSnapshot", () => {
     const two = parsePackSnapshot(payload({
       characters: [{
         ...CHARACTER,
-        music: [...CHARACTER.music, { ...CHARACTER.music[0]!, id: "cirno_otomad_002" }],
+        music: [...CHARACTER.music, ["otomads", "二", "角色曲"]],
         covers: [wide, "https://i0.hdslb.com/b.jpg"],
       }],
     }))!;

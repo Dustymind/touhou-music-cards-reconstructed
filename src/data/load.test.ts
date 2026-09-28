@@ -4,16 +4,17 @@ import {
   DataLoadError, loadDataBundle, validateAlbums, validateCharacters, validateIndex,
   validateSources, validateTracks,
 } from "./load";
-import { displayTitle, splitTrackId, trackId, type CharacterRecord } from "./types";
+import { displayTitle, splitTrackId, trackId } from "./types";
 import { cardAspectRatio, cardRatioChoices, CardAspectRatio } from "../theme/cardRatio";
 
-const character = (overrides: Partial<CharacterRecord> = {}): CharacterRecord => ({
+/** 生成物里的**原始**角色记录（S2）：`music` 是曲id 列表，曲目信息在 `tracks.json`。 */
+const character = (overrides: Record<string, unknown> = {}): Record<string, unknown> => ({
   key: "cirno",
   name: "チルノ",
   order: 1,
   card: ["チルノ.png"],
   searchNames: ["チルノ", "Cirno"],
-  music: [{ id: "th06_03", album: "東方紅魔郷 ～ the Embodiment of Scarlet Devil", title: "おてんば恋娘", extra: "角色曲" }],
+  music: ["th06_03"],
   ...overrides,
 });
 

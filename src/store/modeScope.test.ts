@@ -59,7 +59,8 @@ beforeEach(() => {
 describe("老存档迁移（单键 → .originals）", () => {
   it("预设/单曲/队列的老键都搬到 .originals，音MAD 从默认值长起，老键不删", () => {
     localStorage.setItem("tmc.v1.preset", JSON.stringify({ v: 1, data: { ...FRESH_PRESET, albums: { [ALBUM]: false } } }));
-    localStorage.setItem("tmc.v1.single-track", JSON.stringify({ v: 1, data: { ...FRESH_SINGLE, enabled: true, pins: { cirno: PIN } } }));
+    // 单曲那把是 v2（S4 起）：这条用例验的是**键名迁移**，不是 v1 元组 pin 的迁移（那在 single.test.ts）
+    localStorage.setItem("tmc.v1.single-track", JSON.stringify({ v: 2, data: { ...FRESH_SINGLE, enabled: true, pins: { cirno: PIN } } }));
     localStorage.setItem("tmc.v1.queue", JSON.stringify({ v: 1, data: { ...FRESH_QUEUE, order: ["cirno"], currentKey: "cirno" } }));
 
     expect(defineStore(presetSpec("originals")).load().albums[ALBUM]).toBe(false);

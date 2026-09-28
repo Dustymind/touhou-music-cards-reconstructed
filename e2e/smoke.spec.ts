@@ -131,9 +131,9 @@ test("设置页：秘封父项是批量控制，三态开关改变统计", async
   await expect(parent).toHaveAttribute("aria-checked", "mixed");
   await parent.check();
 
-  // 三态：角色曲 → 已禁用（236 条落选）
+  // 三态：角色曲 → 已禁用（234 条落选；S1/S2 对齐上游 extra 后 236 → 234）
   await page.getByTestId("tri-角色曲-off").click();
-  await expect(stats).toContainText("142 / 378");
+  await expect(stats).toContainText("144 / 378");
   await expect(stats).toContainText("86 characters have tracks");
 });
 
@@ -1087,8 +1087,8 @@ test("MD2 细节：下拉标签入框、搜索框居中、边框可见（用户�
     }));
   expect(orderBadges.length).toBeGreaterThanOrEqual(2);
   expect(orderBadges.every((badge) => badge.round && badge.square && badge.size === 24)).toBe(true);
-  // 原曲注册表里三个远程镜像（本地源属于音MAD，见 sources-separation-v1.md）
-  expect(orderBadges.map((badge) => badge.text)).toEqual(["1", "2", "3"]);
+  // 原曲注册表里**两个**远程镜像（D172 移除了 Cloudflare R2；本地源属于音MAD，见 sources-separation-v1.md）
+  expect(orderBadges.map((badge) => badge.text)).toEqual(["1", "2"]);
 });
 
 test("游戏页按钮尺寸、内边距与图标间距统一", async ({ page }) => {

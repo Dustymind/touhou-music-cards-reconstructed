@@ -136,7 +136,7 @@ describe("sources resolver", () => {
     expect(entries.get(trackId("otomads", "b"))).toBe("https://cdn.example.com/media/otomads/b.mp3?v=whole");
   });
 
-  it("没有版本的源**逐字不变**（三个远程镜像的裸数组就是这种）", () => {
+  it("没有版本的源**逐字不变**（远程镜像的裸数组就是这种）", () => {
     // 关键的一条：D144 不许顺手改掉别人的地址 —— 没声明版本就一个字节都不拼
     expect(buildEntries(rows, "https://cdn.example.com/manifest.json").get(trackId("紅魔郷", "おてんば恋娘")))
       .toBe("https://a/1.mp3");
@@ -414,18 +414,25 @@ describe("源给的曲目表快照：同一个 payload，不额外发请求（D1
     id: "local", label: { en: "l", zh: "l" }, tableUrl: "manifest.json", kind: "local" as const,
     order: 1, enabled: true, proxyable: false, description: { en: "", zh: "" },
   };
-  const SNAPSHOT = {
+  /** 源那边的 **wire** 形状：曲目还是元组行（数据仓库的清单口径，没有曲id）。 */
+  const SNAPSHOT_WIRE = {
     albums: [{ key: "otomads", name: "otomads", kind: "other", pack: "otomads", order: 100,
       showAlbumName: false }],
     characters: [{ key: "cirno", music: [["otomads", "おてんば恋娘", "角色曲", "作者"]], card: ["c.png"] }],
   };
+  /** 应用解析后的快照：曲目变对象，id 按"该角色在清单里的出现顺序"赋（§11.1）。 */
+  const SNAPSHOT_PARSED = {
+    albums: SNAPSHOT_WIRE.albums,
+    characters: [{ key: "cirno", card: ["c.png"],
+      music: [{ id: "cirno_otomad_001", album: "otomads", title: "おてんば恋娘", extra: "角色曲", author: "作者" }] }],
+  };
 
   it("解析出来挂在源表上（调用方拿去重建数据集）", async () => {
-    const payload = { schema: 1, pack: "otomads", tracks: rows, ...SNAPSHOT };
+    const payload = { schema: 1, pack: "otomads", tracks: rows, ...SNAPSHOT_WIRE };
     const fetcher = vi.fn(async () => new Response(JSON.stringify(payload), { status: 200 })) as unknown as typeof fetch;
     const result = await loadSourceTables([LOCAL], {}, fetcher);
     expect(result.tables.local!.status).toBe("ready");
-    expect(result.tables.local!.snapshot).toEqual(SNAPSHOT);
+    expect(result.tables.local!.snapshot).toEqual(SNAPSHOT_PARSED);
     expect(fetcher).toHaveBeenCalledTimes(1);          // 快照就在同一份 payload 里
   });
 
@@ -438,7 +445,7 @@ describe("源给的曲目表快照：同一个 payload，不额外发请求（D1
   });
 
   it("形状不对的快照整段丢掉（走自带那份兜底，绝不半信半疑地用）", async () => {
-    const payload = { schema: 1, pack: "otomads", tracks: rows, albums: SNAPSHOT.albums,
+    const payload = { schema: 1, pack: "otomads", tracks: rows, albums: SNAPSHOT_WIRE.albums,
       characters: [{ key: "cirno", music: [["otomads", "曲", "插曲"]] }] };
     const fetcher = vi.fn(async () => new Response(JSON.stringify(payload), { status: 200 })) as unknown as typeof fetch;
     const result = await loadSourceTables([LOCAL], {}, fetcher);

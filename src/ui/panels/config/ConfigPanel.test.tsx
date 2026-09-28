@@ -236,9 +236,9 @@ describe("ConfigPanel", () => {
     expect(before.category.角色曲).toBe("unset");
     await click(container.querySelector('[data-testid="tri-角色曲-off"]')!);
     expect(usePreset.getState().category.角色曲).toBe("off");
-    // 236 条角色曲被否决 → 可用数下降（378 - 236 = 142）
+    // 234 条角色曲被否决 → 可用数下降（378 - 234 = 144；S1/S2 对齐上游 extra 后 236 → 234）
     const stats = container.querySelector('[data-testid="preset-stats"]')!.textContent ?? "";
-    expect(stats).toContain("142 / 378");
+    expect(stats).toContain("144 / 378");
   });
 
   it("取消一张官作专辑只影响它自己的曲目", async () => {

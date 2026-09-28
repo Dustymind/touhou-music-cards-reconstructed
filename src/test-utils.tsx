@@ -1,7 +1,7 @@
 /** 极简 renderHook：不引入 testing-library，保持依赖面最小。
  *
  * 测试跑在**真实浏览器**里（vitest 浏览器模式 + Playwright，chromium / firefox）：
- * `public/` 由 Vite 直接服务，所以 `public/data/*.json` 直接用真 `fetch` 取，不需要 Node 读盘。
+ * `publicDir` 是 `data/public/`（S3），所以站点里的 `/data/*.json` 直接用真 `fetch` 取，不需要 Node 读盘。
  */
 import { act } from "react";
 
@@ -108,10 +108,14 @@ export function installDataFetchStub(): void {
   globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = new URL(String(input), globalThis.location?.origin ?? "http://localhost/");
     if (url.pathname.startsWith("/data/")) return realFetch(input as RequestInfo, init);
+    // S2：生成物里 `music` 是**曲id 列表**（曲目信息在 tracks.json）⇒ 假表按 id 键控。
+    // 还按元组解构的话，这串 id 会被拆成一个个字符，播放层一首也解析不出来。
     const characters = (await (await realFetch("/data/characters.json")).json()) as {
-      characters: { music: [string, string, string][] }[];
+      characters: { music: string[] }[];
     };
-    return json(characters.characters[0]!.music.map(([album, title]) => [album, title, "data:audio/mpeg;base64,"]));
+    const entries: Record<string, { url: string }> = {};
+    for (const id of characters.characters[0]!.music) entries[id] = { url: "data:audio/mpeg;base64," };
+    return json({ entries });
   }) as typeof fetch;
 }
 

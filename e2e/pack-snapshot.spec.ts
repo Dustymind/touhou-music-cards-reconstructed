@@ -96,11 +96,13 @@ test("源里多一首曲目 ⇒ 应用里出现、统计跟着涨、能选中并
     donorUrl = donor[2]!;
     // ① 清单的**地址表**多一行（指向一份真实存在的音频：借用第一首的地址）
     payload.tracks = [...rows, ["otomads", NEW_TITLE, donorUrl, donor[3]]];
-    // ② 清单的**曲目表**多一首（加到第一个角色名下）—— 应用就是按这一段决定"有哪些曲目"
-    const characters = baked.characters.map(({ key, music, card }) => ({ key, music, card }));
-    characters[0]!.music = [
-      ...toRows(characters[0]!.music, baked.tracks), ["otomads", NEW_TITLE, "角色曲"],
-    ];
+    // ② 清单的**曲目表**多一首（加到第一个角色名下）—— 应用就是按这一段决定"有哪些曲目"。
+    //    生成物里 `music` 是**曲id 列表**（S2）⇒ 每个角色都要先转成清单的元组行，
+    //    只转第一个的话其余角色是坏形状，整段快照会被拒（应用回落自带那份，统计就不涨）。
+    const characters = baked.characters.map(({ key, music, card }) => ({
+      key, music: toRows(music, baked.tracks), card,
+    }));
+    characters[0]!.music = [...characters[0]!.music, ["otomads", NEW_TITLE, "角色曲"]];
     payload.albums = baked.albums;
     payload.characters = characters;
   });
