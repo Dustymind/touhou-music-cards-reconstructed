@@ -8,6 +8,7 @@
     "dev": "vite",
     "local": "node scripts/require-submodule.mjs data/otomads && node scripts/run.mjs uv run --project data/otomads/tools python -m otomads.local_source --config local-source.toml",
     "build": "tsc --noEmit && vite build",
+    "notices": "node scripts/gen-notices.mjs",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "data:sync": "node scripts/run.mjs uv sync --project tools",
