@@ -21,20 +21,37 @@
 
 | 路径 | 体积 | 怎么办 |
 |---|---:|---|
-| `.playwright-browsers/` | 964 MB | **Linux 二进制，Windows 上跑不起来** ⇒ 重装（见 §2.4） |
-| `node_modules/` | 572 MB | pnpm 的 symlink 布局跨平台不通用 ⇒ 重新 `pnpm install` |
 | `.uv/` · `tools/.venv/` · `data/*/tools/.venv/` | 23 MB | Linux venv ⇒ 重新 `uv sync` |
 
-**下面这些已在 2026-09-28 就地删除，迁移时不必再考虑**（合计约 1.56 GB）：`dist/`、`.pnpm-store/`、
-两个 `otomads-media.tar.gz`（主仓库那份是 88 成员的**旧包**）、`test-results/`、各 `.pytest_cache/`，
-以及工作区根的 **13 张一次性验证截图**（`appearance-*` / `slot-*` / `opt-*` / `ratio-preview-*` /
-`otomads-cover-*` / `local-deploy*`，约 2.9 MB，无保留价值）。
+**下面这些已在 2026-09-28 就地删除，迁移时不必再考虑**（合计约 3.4 GB）：
 
-归档若要重取（数据仓库已公开，可匿名下）：
+| 已删 | 体积 | 怎么恢复 |
+|---|---:|---|
+| `.playwright-browsers/` | 964 MB | `pnpm exec playwright install chromium firefox`（见根 README §1） |
+| `node_modules/` | 572 MB | `pnpm install` |
+| `.ref/upstream-v3/` | 355 MB | `git clone https://github.com/lightbulb128/touhou-card-player-v3.git .ref/upstream-v3`（上游公开，本地所在提交 `af8b0aa` 在 `origin/main` 上） |
+| 两个 `otomads-media.tar.gz` | 1.05 GB | `pnpm media:pack`，或 `gh release download media --pattern otomads-media.tar.gz -R Dustymind/touhou-music-cards-otomads-data`（数据仓库已公开，可匿名下） |
+| `.pnpm-store/` · `dist/` · `test-results/` · 各 `.pytest_cache/` | ~1.6 MB | 各自重跑即自建 |
+| 工作区根的 13 张一次性验证截图 | 2.9 MB | 一次性产物，无保留价值，**不恢复** |
 
-```bash
-gh release download media --pattern otomads-media.tar.gz -R Dustymind/touhou-music-cards-otomads-data
-```
+**只保留不可再生的**：
+
+- `.music/`（780 MB）—— 见 §1.4：**理论可重建，但没有把握**，所以留着。
+- `.ref/notes/`（332 KB）—— 被 `src/game/rules.ts`、`src/i18n/localization.ts` 当**出处的依据**引用。
+- `.ref/scripts/`（672 KB）—— 被 `docs/rules-classification-v1.md`、`docs/data-provenance.md` 引用。
+- `.ref/thbwiki/`（2.4 MB）—— 重推导的原始证据（45 份 Music Room 快照），重抓要另花一轮。
+
+### 1.4 `.music/` 为什么没删
+
+`.music/` 里几乎没有"用户手工放的音频"：`incoming/` 只有一份说明用的 `README.txt`，780 MB 全是
+`otomads/` 下抓取与裁剪的成品（191 个 mp3 + 8 个 1 MB 的 REAPER `peaks/` 缓存）。
+
+它**在原理上完全可重建**：191 条曲目**每条都带 `source`**（36 条另带 `start_time`），
+`pnpm audio:fetch` 能重新下载并按区间重裁；数据仓库里还有**第二份拷贝**（898 MB）。
+
+但不删的理由是**重建依赖第三方**：源是 bilibili / YouTube 上的音MAD 投稿，被删除或设为私有的概率
+不低，而且失效时**不会有任何提示**——重抓才发现少了。相比之下它只占 780 MB，
+而迁移载荷总量已经是 GB 级，省这一份不划算。真要重抓，先 `pnpm audio:fetch --dry-run` 看能拿到几条。
 
 ### 1.3 迁移前的安全检查（**已做过，结论：干净**）
 
