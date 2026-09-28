@@ -951,7 +951,7 @@ test("音乐源回退顺序：显示用源名称，重排不打乱开关（用�
   // 显示的是源名称 + 顺序编号，而不是内部 id
   await expect(display).toContainText("网易云音乐");
   await expect(display).toContainText("→");
-  for (const internalId of ["netease163", "cloudflare_r2", "thbwiki"]) {
+  for (const internalId of ["netease163", "thbwiki"]) {
     await expect(display).not.toContainText(internalId);
   }
 
@@ -961,26 +961,23 @@ test("音乐源回退顺序：显示用源名称，重排不打乱开关（用�
       number: (badge.textContent ?? "").trim(),
       name: badge.closest(".MuiBox-root")?.querySelector(".MuiTypography-body2")?.textContent?.trim(),
     })));
-  // 原曲注册表里只有三个远程镜像（本地源属于音MAD，见 sources-separation-v1.md）
+  // 原曲注册表里只有两个远程镜像（本地源属于音MAD，见 sources-separation-v1.md）
   expect(await rowNames()).toEqual([
     { number: "1", name: "网易云音乐" },
-    { number: "2", name: "Cloudflare R2" },
-    { number: "3", name: "THBWiki" },
+    { number: "2", name: "THBWiki" },
   ]);
 
   await page.getByLabel("thbwiki-up").click();
-  await page.getByLabel("thbwiki-up").click();
   await expect(display).toContainText("1THBWiki");
-  // THBWiki 这一行真的挪到了第一位，编号仍是 1..3
+  // THBWiki 这一行真的挪到了第一位，编号仍是 1..2
   expect(await rowNames()).toEqual([
     { number: "1", name: "THBWiki" },
     { number: "2", name: "网易云音乐" },
-    { number: "3", name: "Cloudflare R2" },
   ]);
 
   // 第一个源不能再上移，最后一个源不能再下移
   await expect(page.getByLabel("thbwiki-up")).toBeDisabled();
-  await expect(page.getByLabel("cloudflare_r2-down")).toBeDisabled();
+  await expect(page.getByLabel("netease163-down")).toBeDisabled();
 
   // 关掉 THBWiki 不会改变它在回退顺序里的位置
   const orderBefore = (await display.textContent()) ?? "";

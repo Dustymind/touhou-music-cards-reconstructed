@@ -132,7 +132,7 @@ test("卡面图集：源给了封面才多出「B 站封面」，且只在音MAD
 });
 
 test("音MAD 模式下不再下载原曲的镜像表（音源层按模式拆的直接收益）", async ({ page }) => {
-  // 原曲：三份镜像表会被取（控制组）
+  // 原曲：镜像表会被取（控制组）
   const originals: string[] = [];
   page.on("request", (request) => {
     if (/\/data\/sources\/[a-z0-9_]+\.json$/.test(new URL(request.url()).pathname)) {
@@ -142,7 +142,7 @@ test("音MAD 模式下不再下载原曲的镜像表（音源层按模式拆的�
   await page.goto("/?localmusic=127.0.0.1:8011");
   await expect.poll(() => originals.length).toBeGreaterThan(0);
 
-  // 切到音MAD（音源注册表里只有本地曲库）→ 那三份表一次都不该再取
+  // 切到音MAD（音源注册表里只有本地曲库）→ 那些表一次都不该再取
   await page.getByRole("tab", { name: "Config", exact: true }).click();
   await expandSection(page, "source");
   await page.getByTestId("music-mode-otomads").click();

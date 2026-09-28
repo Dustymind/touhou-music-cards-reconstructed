@@ -49,7 +49,7 @@ Vercel 用 `vercel.json` 的 `headers`；GitHub Pages **不认** `_headers`（�
 
 静态站没有代理层，音源表默认是**同源**相对路径（原曲 `data/sources/*.json`）；
 **音MAD 的默认源是项目 CDN 的绝对地址**（D141）⇒ 什么素材都不用自带就能出声。**原曲**照常可播
-（三份镜像表跟站点一起发出去，音频来自网易云 / R2 / THBWiki）。**音MAD** 有三条路：
+（两份镜像表跟站点一起发出去，音频来自网易云 / THBWiki）。**音MAD** 有三条路：
 
 1. **默认：走 CDN**（推荐，D141）—— 打开就有声音，站点不必带那 324 MB；代价是依赖外网与 CDN 可用性。
 2. **站点自带素材**（同源，不依赖外网）：把音MAD 的音频与卡面铺进 `dist/`，**并把数据里的 `table_url`
@@ -332,7 +332,7 @@ node deploy/single-port-proxy.mjs        # 默认 0.0.0.0:8080
 | **本地曲库的音频地址** | manifest 里的音频地址由助手按**请求头**现拼。所以最外层那层 https 隧道/反代**必须转发 `X-Forwarded-Proto: https`**（Cloudflare Tunnel、ngrok、Caddy 都会自动带；Caddyfile 里也显式写了 `header_up X-Forwarded-Proto {scheme}`）。`deploy/single-port-proxy.mjs` 会把上游传来的值**原样传下去**；上层完全不转发时用 `PROTO=https node deploy/single-port-proxy.mjs` 或助手的 `--public-base https://<域名>/` 显式指定。 |
 | **联机信令** | `?peersecure=` 省略时**跟着页面协议走**（https 页面用 `wss://`），不会再被当混合内容拦掉；要强制可用 `peersecure=0/1`。 |
 
-数据侧已经确认**没有任何 `http://` 资源**（三份镜像表、卡面 origins 全是 https），所以不用改数据。
+数据侧已经确认**没有任何 `http://` 资源**（两份镜像表、卡面 origins 全是 https），所以不用改数据。
 
 **自查方法**：浏览器 DevTools → Console 会直接点名被拦的 `http://…` 请求；或 Network 面板按协议筛。
 

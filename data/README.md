@@ -21,7 +21,7 @@
   commit 的名字）：换数据 = `git -C data/otomads fetch` → `checkout <commit>` → `pnpm data:build`。另有角色清单 `otomads/characters.toml`
   （`pnpm data:roster` 生成）、本源响度表 `otomads/loudness/otomads.json` 与自带工具 `otomads/tools/`（D130）。
   submodule 未初始化时它整个不存在，构建会跳过音MAD 数据集
-- `sources/*.json` 音乐源表，数组形式 `[[专辑, 曲目, URL], …]`（三份镜像：netease163 / cloudflare_r2 / thbwiki）
+- `sources/*.json` 音乐源表，数组形式 `[[专辑, 曲目, URL], …]`（两份镜像：netease163 / thbwiki）
 - `sources/originals.toml` **原曲**的源注册表（三个远程镜像）；音MAD 那份在 submodule 里
   （`otomads/sources/otomads.toml` = 本地曲库助手，其同源路径 `/manifest.json`）
 - `sources/custom.toml` **自定义模式**的源注册表：只有一条 `kind = "custom"` 的源，**`table_url` 是空串**

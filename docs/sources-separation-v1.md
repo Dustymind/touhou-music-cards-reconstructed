@@ -19,7 +19,7 @@
 
 | 项 | 现状 |
 |---|---|
-| 注册表 | 一份 `sources.toml`：3 个 `kind = "remote"`（netease163 / cloudflare_r2 / thbwiki，服务原曲）+ 1 个 `kind = "local"`（`tableUrl = /manifest.json`，服务音MAD，**默认 `enabled = false`**） |
+| 注册表 | 一份 `sources.toml`：2 个 `kind = "remote"`（netease163 / thbwiki，服务原曲）+ 1 个 `kind = "local"`（`tableUrl = /manifest.json`，服务音MAD，**默认 `enabled = false`**） |
 | 镜像表内容 | 三份各 **651 条 / 39 张专辑**，**全部是原曲曲目**；曲包曲目不进镜像表（D52） |
 | 运行期 | `loadSourceTables()` 把**当前启用的源全部并行取**（`src/music/sources.ts:158`）⇒ 音MAD 下那 **334 KB** 镜像表照样下载，一条也用不上 |
 | 用户存档 | `tmc.v1.sources` **一份共享**（B 时明确没拆） |
@@ -49,15 +49,14 @@
 ## 2. 真源与生成物
 
 ```
-data/sources/originals.toml        # 三个镜像（netease163 / cloudflare_r2 / thbwiki）
+data/sources/originals.toml        # 两个镜像（netease163 / thbwiki）
 data/otomads/sources/otomads.toml  # 只有 local 源，且 enabled = true（D128：在 submodule 里）
-data/sources/netease163.json       # 三份镜像表：**不拆**（内容是纯原曲，音MAD 一条都没有）
-data/sources/cloudflare_r2.json
+data/sources/netease163.json       # 两份镜像表：**不拆**（内容是纯原曲，音MAD 一条都没有）
 data/sources/thbwiki.json
 
 public/data/sources.json           # 原曲注册表（生成物）
 public/data/otomads/sources.json   # 音MAD 注册表（生成物）
-public/data/sources/*.json         # 三份镜像表原样复制（它们本来就在原曲数据集根下）
+public/data/sources/*.json         # 两份镜像表原样复制（它们本来就在原曲数据集根下）
 ```
 
 - **镜像表不拆**：它们的内容已经只属于原曲，位置 `public/data/sources/` 就在原曲数据集根下；
@@ -99,9 +98,9 @@ public/data/sources/*.json         # 三份镜像表原样复制（它们本来�
 | 4 | 两份注册表的 `id` 不得冲突 | 同名不同表会让人看不懂"这个开关到底在关哪个" |
 
 **保留** `applyManifestOverrides()`（`?localmusic=` 部署覆盖）与单端口部署的 `/manifest.json` 代理 ——
+那是部署参数，不是模式补丁。D141 起它的用途更明确：默认源在 CDN 上，本机开发/自建素材靠这个覆盖指回去。
 （这个函数后来**改过名与签名**：当时叫 `applyLocalManifestUrl()`，现在收 `sources` 与
 `{ local, custom }` 两个覆盖 —— `src/music/sources.ts:59`，调用点 `src/music/useSources.ts:36`。）
-那是部署参数，不是模式补丁。D141 起它的用途更明确：默认源在 CDN 上，本机开发/自建素材靠这个覆盖指回去。
 
 ## 6. 不进哈希（明确的约定）
 
@@ -120,7 +119,7 @@ public/data/sources/*.json         # 三份镜像表原样复制（它们本来�
 
 **验证**：`pnpm data:check`（两份注册表都按模式比）/ `pnpm data:validate`（§5 的 4 条不变量）/
 `uv run pytest` / `pnpm typecheck` / `pnpm test`（真实浏览器，chromium + firefox）/
-`pnpm e2e`（三端）+ `pnpm e2e:perf`；另加一条 e2e：**音MAD 模式下不请求那三份镜像表**
+`pnpm e2e`（三端）+ `pnpm e2e:perf`；另加一条 e2e：**音MAD 模式下不请求那两份镜像表**
 （用 `page.on("request")` 抓 `/data/sources/*.json`，断言 0 次）—— 这就是这次拆分最直接的可观测收益。
 
 **回滚**：只动数据与前端（**不动协议**），回滚 = 回退一个提交；`tmc.v1.sources.*` 两个新键退回老键即可。
@@ -131,7 +130,7 @@ public/data/sources/*.json         # 三份镜像表原样复制（它们本来�
 |---|---|---|---|
 | **Q1** | 注册表生成物放哪：`public/data/sources.json` + `public/data/otomads/sources.json` / 都塞进模式目录（`originals/…`，会动原曲那套既定路径） | **根 + otomads/ ✅** | 后者要与 C 的"原曲在根"约定打一架 |
 | **Q2** | 源表归属：`dataset.sources`（随数据集）/ 留在 `shared` 加 mode 字段 | **随数据集 ✅** | 留 shared 等于"数据分离了、源没分离" |
-| **Q3** | 三份镜像表是否跟着挪到某个模式目录下 | **不挪 ✅** | 挪了要改 `table_url` 与部署代理，收益为零 |
+| **Q3** | 两份镜像表是否跟着挪到某个模式目录下 | **不挪 ✅** | 挪了要改 `table_url` 与部署代理，收益为零 |
 | **Q4** | 音MAD 下本地源**可不可以被用户关掉**（关了那个模式就没源） | **可以，但给一行提示 ✅**（`source-none-enabled`） | 强制不可点会与"存档分键、用户说了算"的口径打架；完全不管则用户可能自己把自己弄哑 |
 | **Q5** | 老存档 `tmc.v1.sources` 归哪个模式 | **归原曲 ✅**（同 B/D110） | 归音MAD 会让原曲的镜像顺序丢 |
 | **Q6** | `SourceSection` 在音MAD 下是否保留"曲目只存在于本机"的提示行 | **保留 ✅**（`music-mode-local-hint`） | 去掉会让"为什么这里只有一个源"没人解释 |
@@ -144,16 +143,16 @@ public/data/sources/*.json         # 三份镜像表原样复制（它们本来�
 
 | 文件 | 内容 |
 |---|---|
-| `data/sources/originals.toml` | 三个远程镜像（netease163 / cloudflare_r2 / thbwiki），**不含**本地源 |
+| `data/sources/originals.toml` | 两个远程镜像（netease163 / thbwiki），**不含**本地源 |
 | `data/otomads/sources/otomads.toml` | 只有本地曲库源，`order = 1`、`enabled = true`（本模式唯一来源；D128 起在 submodule 里；**默认 `table_url` 是 CDN 的绝对地址**，D141） |
 | `public/data/sources.json` / `public/data/otomads/sources.json` | 各自的生成物（`build_sources(mode)`） |
-| `public/data/sources/{netease163,cloudflare_r2,thbwiki}.json` | **不挪**（契约 §2） |
+| `public/data/sources/{netease163,thbwiki}.json` | **不挪**（契约 §2） |
 
 - `tmc.validate` 的 `check_source_registry()` 按模式跑，并加了契约 §5 的四条不变量
   （每模式至少一个默认启用的源 / otomads 恰好一个 local 且默认开 / originals 不得含 local / 两表 id 不冲突）。
+- 生成物从 12 个文件变 **14 个**（多出原曲与音MAD 各自的 `sources.json`）。
   **后续**：加了自定义模式与音MAD 响度表之后，现在是 **17 个**（`tools/src/tmc/build.py:318-344`）——
   本条按"落地当时"读。
-- 生成物从 12 个文件变 **14 个**（多出原曲与音MAD 各自的 `sources.json`）。
 
 **前端**：
 

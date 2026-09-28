@@ -5,9 +5,11 @@ import { defineStore } from "../persist";
 import { useSession } from "./session";
 import { effectiveOrder, sourceSpec, sourceStoreFor } from "./sources";
 
-const ids = ["netease163", "cloudflare_r2", "thbwiki"];
+// 夹具：三源注册表。第三个用**合成 id**，免得真实音源一变这些用例就跟着红
+// （真实注册表见 `data/sources/originals.toml`，现在只有 netease163 与 thbwiki 两个远程镜像）。
+const ids = ["netease163", "mirror_b", "thbwiki"];
 /** 注册表里的默认开关（各自的 toml 决定） */
-const defaults: Record<string, boolean> = { netease163: true, cloudflare_r2: true, thbwiki: true };
+const defaults: Record<string, boolean> = { netease163: true, mirror_b: true, thbwiki: true };
 
 const originals = sourceStoreFor("originals");
 const otomads = sourceStoreFor("otomads");
@@ -38,13 +40,13 @@ describe("音乐源顺序与开关（用户反馈后的回归）", () => {
     move("thbwiki", -1, ids, defaults);
     move("thbwiki", -1, ids, defaults);
     expect(effectiveOrder(originals.getState().overrides, ids))
-      .toEqual(["thbwiki", "netease163", "cloudflare_r2"]);
+      .toEqual(["thbwiki", "netease163", "mirror_b"]);
 
-    // 现在关掉 cloudflare_r2：顺序必须保持
-    toggle("cloudflare_r2", false, ids);
+    // 现在关掉 mirror_b：顺序必须保持
+    toggle("mirror_b", false, ids);
     const after = originals.getState().overrides;
-    expect(effectiveOrder(after, ids)).toEqual(["thbwiki", "netease163", "cloudflare_r2"]);
-    expect(after.cloudflare_r2!.enabled).toBe(false);
+    expect(effectiveOrder(after, ids)).toEqual(["thbwiki", "netease163", "mirror_b"]);
+    expect(after.mirror_b!.enabled).toBe(false);
     // 位置不重复
     expect(new Set(Object.values(after).map((entry) => entry.order)).size).toBe(3);
   });
@@ -70,14 +72,14 @@ describe("音乐源顺序与开关（用户反馈后的回归）", () => {
   });
 
   it("清理注册表里已经没有的源，留着的那几项开关与顺序原样保留", () => {
-    // 用户排过序（thbwiki 最前）+ 关掉一个源，之后注册表里去掉了 cloudflare_r2
+    // 用户排过序（thbwiki 最前）+ 关掉一个源，之后注册表里去掉了 mirror_b
     const { move, toggle, prune } = originals.getState();
     move("thbwiki", -1, ids, defaults);
     move("thbwiki", -1, ids, defaults);
-    toggle("cloudflare_r2", false, ids);
+    toggle("mirror_b", false, ids);
     const before = originals.getState().overrides;
     expect(before.thbwiki!.order).toBe(1);
-    expect(before.cloudflare_r2!.enabled).toBe(false);
+    expect(before.mirror_b!.enabled).toBe(false);
 
     // 数据集里的注册表只剩两个源（音MAD 那份只有本地源 —— 与本条无关，用的是当前数据集的 id）
     const remaining = ["thbwiki", "netease163"];
@@ -130,10 +132,10 @@ describe("音乐源顺序与开关（用户反馈后的回归）", () => {
     // 覆盖表里多余的死条目既进不了顺序、也占不到编号
     const stale = {
       netease163: { enabled: true, order: 1 },
-      cloudflare_r2: { enabled: true, order: 2 },
+      mirror_b: { enabled: true, order: 2 },
       gone: { enabled: false, order: 3 },
     };
-    const remaining = ["netease163", "cloudflare_r2"];
+    const remaining = ["netease163", "mirror_b"];
     expect(effectiveOrder(stale, remaining)).toEqual(remaining);
     // 界面编号就是这个下标 + 1（SourceSection 的 order.map((id, index) => index + 1)）
     expect(effectiveOrder(stale, remaining).map((_id, index) => index + 1)).toEqual([1, 2]);

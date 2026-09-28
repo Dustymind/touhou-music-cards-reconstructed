@@ -11,7 +11,7 @@
 # 为什么按模式拆（契约 docs/sources-separation-v1.md）：远程镜像里只有**原曲**曲目，本地助手只服务**音MAD**，
 # 拆开之后音MAD 模式不会再下载那三份用不上的镜像表（约 334 KB），也不再需要"切模式时偷偷把本地源打开"。
 #
-# 原曲：三个远程镜像（**不含**本地源 —— 本地曲库只服务音MAD）。
+# 原曲：两个远程镜像（**不含**本地源 —— 本地曲库只服务音MAD）。
 
 [[source]]
 id = "netease163"
@@ -25,17 +25,6 @@ proxyable = true
 description_en = "Music from NetEase Cloud Music (163.com). Some tracks may be region-locked outside China; URLs are https with an http CDN redirect that browsers upgrade automatically."
 description_zh = "网易云音乐。境外部分曲目可能不可用；外链已统一为 https，302 落点的 CDN 支持 https，浏览器会自动升级。"
 
-[[source]]
-id = "cloudflare_r2"
-label_en = "Cloudflare R2"
-label_zh = "Cloudflare R2"
-table_url = "data/sources/cloudflare_r2.json"
-kind = "remote"
-order = 2
-enabled = true
-proxyable = false
-description_en = "Music hosted in a Cloudflare R2 bucket (the upstream author's)."
-description_zh = "上游作者的 Cloudflare R2 桶，速度稳定。"
 
 [[source]]
 id = "thbwiki"
@@ -43,7 +32,7 @@ label_en = "THBWiki"
 label_zh = "THBWiki"
 table_url = "data/sources/thbwiki.json"
 kind = "remote"
-order = 3
+order = 2
 enabled = true
 proxyable = false
 description_en = "Music from THBWiki. Sometimes very slow."
