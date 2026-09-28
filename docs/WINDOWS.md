@@ -133,6 +133,36 @@ PLAYWRIGHT_BROWSERS_PATH="$PWD/.playwright-browsers" pnpm exec playwright instal
 set PLAYWRIGHT_BROWSERS_PATH=%CD%\.playwright-browsers && pnpm exec playwright install
 ```
 
+### 2.5 装完却报 `ERR_MODULE_NOT_FOUND`（pnpm 退化成目录联接）
+
+**症状**：`pnpm install` 成功，但 `pnpm build` / `pnpm dev` 报
+
+`@
+Cannot find package 'rollup' imported from …/node_modules/vite/dist/node/…
+`@
+
+**原因**：创建**符号链接**需要权限（管理员，或打开"开发者模式"）。没有权限时 pnpm 退化成
+**目录联接（junction）**，而 **Node 的模块解析不解析联接** —— 实测同一路径
+`fs.realpathSync`（JS 实现）返回顶层路径、`fs.realpathSync.native` 才落到
+`node_modules/.pnpm/<pkg>@<ver>/node_modules/`；模块解析走前者，于是找不到那个包的**兄弟依赖**
+（pnpm 默认不把传递依赖提升到顶层）。
+
+**做法**（任选其一）：
+
+`@powershell
+# A. 扁平布局：不需要任何权限；代价是失去 pnpm 的严格隔离
+pnpm install --frozen-lockfile --node-linker hoisted
+
+# B. 打开 设置 → 系统 → 开发者选项，再用默认布局重装
+`@
+
+**本仓库刻意不把 `node-linker` 写进 `.npmrc`** —— 它是环境绕法，不是项目口径；
+默认布局在有符号链接权限的机器上更好。
+
+**另一条**：受限环境（沙箱 / `$HOME` 只读）里 pnpm 的**依赖构建脚本**可能因为拿不到管道而失败
+（`spawn EPERM`，典型是 `esbuild` 的 postinstall）。此时加 `--ignore-scripts` ——
+平台包（`@.gitignore`@ 里的 `.esbuild/win32-x64` 那类）照常安装，esbuild 的二进制来自它，通常仍可用。
+
 ## 3. 迁后自检
 
 ```bash
@@ -163,3 +193,4 @@ pnpm data:sync && pnpm data:test         # 期望 83 passed
 | 浏览器 | 仓库内 `.playwright-browsers/` | 同左，但**要重装** |
 | 长路径 | 无限制 | 需 `core.longpaths`（§2.1） |
 | 大小写 | 敏感 | **不敏感** —— 本仓库已核过：**无仅大小写不同的路径**，安全 |
+| pnpm 布局 | 符号链接 | 无符号链接权限时退化成**目录联接** ⇒ Node 解析不了、报 `ERR_MODULE_NOT_FOUND`，需 `--node-linker hoisted`（§2.5） |
