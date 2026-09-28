@@ -326,7 +326,7 @@ manifest 所在那一层解析 ⇒ 换域名/端口/协议、换宿主与子路�
 |---|---|
 | `src/` `tools/` `e2e/` `deploy/` `tests/` `docs/`，以及根目录的配置文件 | **MIT**，见 [`LICENSE`](LICENSE) |
 | `data/**`、`public/data/**` | **MIT**（本仓库自己的汇编；来源见 [`docs/data-provenance.md`](docs/data-provenance.md)） |
-| `public/fonts/Inconsolata-Medium.ttf` | **SIL OFL-1.1** —— 原样分发，**不可**按 MIT 再许可 |
+| `src/assets/Inconsolata-Medium.ttf` | **SIL OFL-1.1** —— 原样分发，**不可**按 MIT 再许可 |
 | 打包进 `dist/` 的第三方 npm 包 | MIT 与 BSD-3-Clause；另有 Google Material Icons 的 Apache-2.0 |
 | `data/otomads/`、`data/custom/` | 独立仓库（submodule），许可在各自仓库里声明 |
 
