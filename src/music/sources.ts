@@ -85,6 +85,22 @@ function normalizeTitle(title: string): string {
  *  `revision` 是**整表兜底**版本（D144，见 `tableRevision`）：行里自带第 4 位时以行为准。 */
 export function buildEntries(rows: unknown, manifestUrl = "", revision = ""): Map<string, string> {
   const entries = new Map<string, string>();
+  // S2：主仓库的源表是 `{entries: {曲id: {url, revision?}}}`（id 键控）；远端/本地清单仍是元组行
+  if (rows && typeof rows === "object" && !Array.isArray(rows)) {
+    const table = (rows as { entries?: unknown }).entries;
+    if (table && typeof table === "object") {
+      for (const [id, rec] of Object.entries(table as Record<string, { url?: unknown; revision?: unknown }>)) {
+        if (!rec || typeof rec.url !== "string" || rec.url.length === 0) continue;
+        const resolved = manifestUrl ? sourceRelativeUrl(manifestUrl, rec.url) : rec.url;
+        entries.set(
+          id,
+          versionedUrl(canonicalPathEncoding(resolved),
+                       typeof rec.revision === "string" ? rec.revision : revision),
+        );
+      }
+      return entries;
+    }
+  }
   if (!Array.isArray(rows)) return entries;
   for (const row of rows) {
     if (!Array.isArray(row) || row.length < 3) continue;
@@ -104,24 +120,26 @@ export function buildEntries(rows: unknown, manifestUrl = "", revision = ""): Ma
   return entries;
 }
 
-/** 按顺序找第一个"有这条曲目且没失败过"的源。 */
+/** 按顺序找第一个"有这条曲目且没失败过"的源（S2：先按曲id 直查，再走旧清单行的桥接键）。 */
 export function resolveTrack(
   tables: TableMap,
   order: readonly string[],
-  album: string,
-  title: string,
+  entry: { id: string; album: string; title: string },
   failed: ReadonlySet<string> = new Set(),
 ): ResolvedTrack | null {
-  // 两个键：原名 + 归一化名（去 `作者 - ` 前缀、压空白、小写）。
-  // 本地 manifest 的曲名来自**磁盘文件名**（带作者前缀、大小写原样），曲包数据里作者是独立字段、
-  // 曲名不带前缀 —— 只有归一化后两边才在同一口径上（否则 `Masuo…` 这种含拉丁字母的会因大小写对不上 ✗）。
-  const wanted = normalizeTitle(title);
+  const bridge = trackId(entry.album, entry.title);
+  // 桥接键 + 归一化名（去 `作者 - ` 前缀、压空白、小写）：本地 manifest 的曲名来自**磁盘文件名**
+  // （带作者前缀、大小写原样），曲包数据里作者是独立字段、曲名不带前缀 —— 只有归一化后两边才同一口径。
+  const wanted = normalizeTitle(entry.title);
   for (const sourceId of order) {
     const table = tables[sourceId];
     if (!table || table.status === "error" || table.status === "idle") continue;
-    const id = trackId(album, title);
-    if (!failed.has(`${sourceId}\u0000${id}`)) {
-      const url = table.entries.get(id);
+    if (!failed.has(`${sourceId}\u0000${entry.id}`)) {
+      const url = table.entries.get(entry.id);
+      if (url) return { sourceId, url };
+    }
+    if (!failed.has(`${sourceId}\u0000${bridge}`)) {
+      const url = table.entries.get(bridge);
       if (url) return { sourceId, url };
     }
     // 回退：按**归一化曲名**扫一遍（去 `作者 - ` 前缀、压空白、小写）。
@@ -130,7 +148,7 @@ export function resolveTrack(
     // 注意**不能**把别名写进 entries ✗ —— 那样 `entries.size` 会翻倍，界面上的条目数就错了（D96）。
     for (const [key, url] of table.entries) {
       const separator = key.indexOf("\u0001");
-      if (separator < 0 || key.slice(0, separator) !== album) continue;
+      if (separator < 0 || key.slice(0, separator) !== entry.album) continue;
       // 兜底判定用"后缀"而不是"去前缀"：作者名里本身可能带连字符（如 `Rendering-Liu` ✗），
       // 用 `^[^-]+ - ` 去前缀会失手；改成"磁盘名以 `作者 - 曲名` 结尾"就与作者长什么样无关 ✓
       const stored = normalizeTitle(key.slice(separator + 1));

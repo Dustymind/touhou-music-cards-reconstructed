@@ -14,11 +14,15 @@ const albums: AlbumRecord[] = [
 
 const cirno: CharacterRecord = {
   key: "cirno", name: "チルノ", order: 1, card: ["c.png"], searchNames: ["チルノ", "Cirno"],
-  music: [["紅魔郷", "おてんば恋娘", "角色曲"], ["妖々夢", "無何有の郷", "更多道中曲"], ["蓬莱人形", "氷の妖精", "秘封曲"]],
+  music: [
+    { id: "th06_03", album: "紅魔郷", title: "おてんば恋娘", extra: "角色曲" },
+    { id: "th07_02", album: "妖々夢", title: "無何有の郷", extra: "更多道中曲" },
+    { id: "hr01_01", album: "蓬莱人形", title: "氷の妖精", extra: "秘封曲" },
+  ],
 };
 const marisa: CharacterRecord = {
   key: "kirisame-marisa", name: "霧雨魔理沙", order: 2, card: ["m.png"], searchNames: ["霧雨魔理沙"],
-  music: [["紅魔郷", "恋色マスタースパーク", "角色曲"]],
+  music: [{ id: "th08_10", album: "紅魔郷", title: "恋色マスタースパーク", extra: "角色曲" }],
 };
 
 describe("groupAlbums", () => {
@@ -55,7 +59,7 @@ describe("singleModeRows / effectivePin", () => {
     preset.albums["妖々夢"] = false;
     const rows = singleModeRows(preset, [cirno, marisa], {}, {});
     expect(rows.map((row) => row.character.key)).toEqual(["cirno", "kirisame-marisa"]);
-    expect(rows[0]!.allowed.map((entry) => entry[1])).toEqual(["おてんば恋娘", "氷の妖精"]);
+    expect(rows[0]!.allowed.map((entry) => entry.title)).toEqual(["おてんば恋娘", "氷の妖精"]);
   });
 
   it("搜索命中别名（Cirno）", () => {
@@ -66,9 +70,9 @@ describe("singleModeRows / effectivePin", () => {
 
   it("effectivePin 手选优先，否则取第一首", () => {
     const preset = defaultPreset(albums);
-    expect(effectivePin(preset, cirno, {})?.[1]).toBe("おてんば恋娘");
-    const picked: CharacterRecord["music"][number] = ["蓬莱人形", "氷の妖精", "秘封曲"];
-    expect(effectivePin(preset, cirno, { cirno: picked })?.[1]).toBe("氷の妖精");
+    expect(effectivePin(preset, cirno, {})?.title).toBe("おてんば恋娘");
+    const picked: CharacterRecord["music"][number] = { id: "hr01_01", album: "蓬莱人形", title: "氷の妖精", extra: "秘封曲" };
+    expect(effectivePin(preset, cirno, { cirno: picked })?.title).toBe("氷の妖精");
   });
 
   it("没有任何可用曲目时返回 null", () => {

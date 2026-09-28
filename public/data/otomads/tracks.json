@@ -1,0 +1,1224 @@
+{
+ "schema": 1,
+ "tracks": {
+  "kirisame-marisa_otomad_001": {
+   "album": "otomads",
+   "title": "普通肥猫魔法使",
+   "extra": "角色曲",
+   "author": "川先僧"
+  },
+  "alice-margatroid_otomad_001": {
+   "album": "otomads",
+   "title": "电棍裁判 ~ 玩弄唢呐的选手",
+   "extra": "角色曲",
+   "author": "鞍山侯国玉电乐团"
+  },
+  "alice-margatroid_otomad_002": {
+   "album": "otomads",
+   "title": "【东方电气棍】鞍山的唢呐师",
+   "extra": "角色曲",
+   "author": "鞍山侯国玉电乐团"
+  },
+  "hakurei-reimu_otomad_001": {
+   "album": "otomads",
+   "title": "恶俗小径　～ Chaoshan Path",
+   "extra": "角色曲",
+   "author": "nulla"
+  },
+  "hakurei-reimu_otomad_002": {
+   "album": "otomads",
+   "title": "♿春色小径（心绮楼Ver.）",
+   "extra": "角色曲",
+   "author": "弦卷こころOfficial"
+  },
+  "hakurei-reimu_otomad_003": {
+   "album": "otomads",
+   "title": "【缺明星】少女绮想曲",
+   "extra": "角色曲",
+   "author": "FFFanwen"
+  },
+  "rumia_otomad_001": {
+   "album": "otomads",
+   "title": "露米娅的██视频流出",
+   "extra": "角色曲",
+   "author": "木大的雷某"
+  },
+  "rumia_otomad_002": {
+   "album": "otomads",
+   "title": "妖魔夜行！",
+   "extra": "角色曲",
+   "author": "芙兰厨陈YuYue"
+  },
+  "daiyousei_otomad_001": {
+   "album": "otomads",
+   "title": "[原图不使用]Lunate Elf♿",
+   "extra": "角色曲",
+   "author": "黑区awa"
+  },
+  "cirno_otomad_001": {
+   "album": "otomads",
+   "title": "东方原曲大致最开始的音的おてんば恋娘",
+   "extra": "角色曲",
+   "author": "きゅーみぅ"
+  },
+  "cirno_otomad_002": {
+   "album": "otomads",
+   "title": "无何有之棍 ~ Deep Silver",
+   "extra": "角色曲",
+   "author": "鞍山侯国玉电乐团"
+  },
+  "hong-meiling_otomad_001": {
+   "album": "otomads",
+   "title": "【东方馅挂炒饭】上海红茶馆",
+   "extra": "角色曲",
+   "author": "拔剑Sketon"
+  },
+  "hong-meiling_otomad_002": {
+   "album": "otomads",
+   "title": "【东方电气棍】鞍山红茶馆 ~ Chinese Tea",
+   "extra": "角色曲",
+   "author": "Chyan_184"
+  },
+  "hong-meiling_otomad_003": {
+   "album": "otomads",
+   "title": "明治十七年の上郡アリス",
+   "extra": "角色曲",
+   "author": "Rokkan"
+  },
+  "koakuma_otomad_001": {
+   "album": "otomads",
+   "title": "Masuo魔法図書館",
+   "extra": "角色曲",
+   "author": "地下部 & Rinsaku & 逢封fn_eg & Moonview210 & chleain",
+   "authors": [
+    "地下部",
+    "Rinsaku",
+    "逢封fn_eg",
+    "Moonview210",
+    "chleain"
+   ]
+  },
+  "patchouli-knowledge_otomad_001": {
+   "album": "otomads",
+   "title": "【183／东方电气棍】Locked Girl ~ 室密棍哥",
+   "extra": "角色曲",
+   "author": "_Karacher_"
+  },
+  "izayoi-sakuya_otomad_001": {
+   "album": "otomads",
+   "title": "月时盆",
+   "extra": "角色曲",
+   "author": "打酱油的小火柴 & 长叶松烯",
+   "authors": [
+    "打酱油的小火柴",
+    "长叶松烯"
+   ]
+  },
+  "izayoi-sakuya_otomad_002": {
+   "album": "otomads",
+   "title": "【音MAD】バグ ナイワケ ナイツ",
+   "extra": "角色曲",
+   "author": "ねむちゃんぐ"
+  },
+  "izayoi-sakuya_otomad_003": {
+   "album": "otomads",
+   "title": "【东方都映冢】Flowering Night【音MAD】",
+   "extra": "角色曲",
+   "author": "SYLVASTER"
+  },
+  "izayoi-sakuya_otomad_004": {
+   "album": "otomads",
+   "title": "【音MAD】2020骑士之夜合作",
+   "extra": "角色曲",
+   "author": "NOVA音MAD社"
+  },
+  "izayoi-sakuya_otomad_005": {
+   "album": "otomads",
+   "title": "【东方馅挂炒饭】night♂of knight",
+   "extra": "角色曲",
+   "author": "van艺复泄"
+  },
+  "remilia-scarlet_otomad_001": {
+   "album": "otomads",
+   "title": "【音MAD】献给逝去公主的七重奏！",
+   "extra": "角色曲",
+   "author": "芙兰厨陈YuYue"
+  },
+  "remilia-scarlet_otomad_002": {
+   "album": "otomads",
+   "title": "【东方电气棍】献给已逝棍妣的八重奏",
+   "extra": "角色曲",
+   "author": "鞍山侯国玉电乐团"
+  },
+  "remilia-scarlet_otomad_003": {
+   "album": "otomads",
+   "title": "【东方红魔馆】献给已逝猫咪的七重奏",
+   "extra": "角色曲",
+   "author": "川先僧"
+  },
+  "flandre-scarlet_otomad_001": {
+   "album": "otomads",
+   "title": "最终鬼畜蓝蓝路 (2023 Remix)",
+   "extra": "角色曲"
+  },
+  "flandre-scarlet_otomad_002": {
+   "album": "otomads",
+   "title": "【最终鬼畜妹】来了！2026！",
+   "extra": "角色曲",
+   "author": "木大的雷某"
+  },
+  "flandre-scarlet_otomad_003": {
+   "album": "otomads",
+   "title": "最终鬼畜全明星•BILIBILI【东方新春宴'24单品】",
+   "extra": "角色曲",
+   "author": "心水湛清 & thwy & 許祭 & Passthem & 浪涛I2A",
+   "authors": [
+    "心水湛清",
+    "thwy",
+    "許祭",
+    "Passthem",
+    "浪涛I2A"
+   ]
+  },
+  "letty-whiterock_otomad_001": {
+   "album": "otomads",
+   "title": "Crystallize Masuo",
+   "extra": "角色曲",
+   "author": "循環"
+  },
+  "letty-whiterock_otomad_002": {
+   "album": "otomads",
+   "title": "Crystallize Otto ／ 结晶化的白银",
+   "extra": "角色曲",
+   "author": "鞍山侯国玉电乐团"
+  },
+  "chen_otomad_001": {
+   "album": "otomads",
+   "title": "【2023新春宴音MAD单品】远野马娘前线",
+   "extra": "角色曲",
+   "author": "丹花伊吹 & 艾了个拉 & 四季映姬78 & thwy & Binkales",
+   "authors": [
+    "丹花伊吹",
+    "艾了个拉",
+    "四季映姬78",
+    "thwy",
+    "Binkales"
+   ]
+  },
+  "chen_otomad_002": {
+   "album": "otomads",
+   "title": "【东方电气棍】掉业棕（Withered Estick）",
+   "extra": "角色曲",
+   "author": "鞍山侯国玉电乐团"
+  },
+  "chen_otomad_003": {
+   "album": "otomads",
+   "title": "【东方电气棍】击败跋扈",
+   "extra": "角色曲",
+   "author": "鞍山侯国玉电乐团"
+  },
+  "lily-white_otomad_001": {
+   "album": "otomads",
+   "title": "【东方馅挂炒饭】暮里的兄贵之都（天空的花之都）",
+   "extra": "角色曲",
+   "author": "龙青瑶RyuuSeiyou"
+  },
+  "prismriver-sisters_otomad_001": {
+   "album": "otomads",
+   "title": "【音Mad】疾走全明星あんさんぶる！",
+   "extra": "角色曲",
+   "author": "芙兰厨陈YuYue"
+  },
+  "prismriver-sisters_otomad_002": {
+   "album": "otomads",
+   "title": "【东方Project】猫灵乐团~幻影合奏",
+   "extra": "角色曲",
+   "author": "川先僧"
+  },
+  "konpaku-youmu_otomad_001": {
+   "album": "otomads",
+   "title": "【东方Project】广有射怪猫管我鸟事",
+   "extra": "角色曲",
+   "author": "川先僧"
+  },
+  "konpaku-youmu_otomad_002": {
+   "album": "otomads",
+   "title": "【2025连缘羽梦祭单品】连缘妖妖梦~Ancient Temple",
+   "extra": "角色曲",
+   "author": "钬__"
+  },
+  "saigyouji-yuyuko_otomad_001": {
+   "album": "otomads",
+   "title": "【东方电气棍】幽雅地退役吧，墨染的电棍 ~ Border of Otto",
+   "extra": "角色曲",
+   "author": "鞍山侯国玉电乐团"
+  },
+  "yakumo-ran_otomad_001": {
+   "album": "otomads",
+   "title": "【东方电气棍】电棍幻葬 ~ Netto-Fantasy",
+   "extra": "角色曲",
+   "author": "鞍山侯国玉电乐团"
+  },
+  "yakumo-ran_otomad_002": {
+   "album": "otomads",
+   "title": "【东方电气棍】吉吉跋扈 ~ Who Kai Da!",
+   "extra": "角色曲",
+   "author": "鞍山侯国玉电乐团"
+  },
+  "yakumo-yukari_otomad_001": {
+   "album": "otomads",
+   "title": "Otto-Fantasia",
+   "extra": "角色曲",
+   "author": "鞍山侯国玉电乐团"
+  },
+  "wriggle-nightbug_otomad_001": {
+   "album": "otomads",
+   "title": "【东方电气棍】怎么这么蠢的虫月 ~ Mooned Insect",
+   "extra": "角色曲",
+   "author": "鞍山侯国玉电乐团"
+  },
+  "wriggle-nightbug_otomad_002": {
+   "album": "otomads",
+   "title": "蠢々秋月",
+   "extra": "角色曲",
+   "author": "芙兰厨陈YuYue"
+  },
+  "mystia-lorelei_otomad_001": {
+   "album": "otomads",
+   "title": "【原汤化原食】已经只能听见歌声了",
+   "extra": "角色曲",
+   "author": "芙兰厨陈YuYue"
+  },
+  "kamishirasawa-keine_otomad_001": {
+   "album": "otomads",
+   "title": "Beat My Old World 【音MAD|个人全明星】",
+   "extra": "角色曲",
+   "author": "霜幻不容筱 & Shui__Huo & 逢封fn_eg",
+   "authors": [
+    "霜幻不容筱",
+    "Shui__Huo",
+    "逢封fn_eg"
+   ]
+  },
+  "kamishirasawa-keine_otomad_002": {
+   "album": "otomads",
+   "title": "【东方新春宴音MAD合作单品⁹】Extend Ash~蓬莱人",
+   "extra": "角色曲",
+   "author": "稀神灵梦 & SayoYasuda",
+   "authors": [
+    "稀神灵梦",
+    "SayoYasuda"
+   ]
+  },
+  "kamishirasawa-keine_otomad_003": {
+   "album": "otomads",
+   "title": "【东方馅挂炒饭】Extend Ash　～ 蓬莱人",
+   "extra": "角色曲",
+   "author": "鬼剑士草贝戋神"
+  },
+  "inaba-tewi_otomad_001": {
+   "album": "otomads",
+   "title": "【东方德夜抄】♿侯国玉的菜盒子　～ Kagome-Kagome♿",
+   "extra": "角色曲",
+   "author": "冰の妖睛"
+  },
+  "inaba-tewi_otomad_002": {
+   "album": "otomads",
+   "title": "【东方馅挂炒饭】宇佐大人的白旗",
+   "extra": "角色曲",
+   "author": "青空彼方"
+  },
+  "inaba-tewi_otomad_003": {
+   "album": "otomads",
+   "title": "Masuo大人的白旗",
+   "extra": "角色曲",
+   "author": "森林"
+  },
+  "reisen-udongein-inaba_otomad_001": {
+   "album": "otomads",
+   "title": "【铁道音MAD】放在降弓用刑处轴温很快就会升高 ~ 狂气的CR（2021东方乘车录单品）",
+   "extra": "角色曲",
+   "author": "Satani_ZC & 天空海Skyocean & ItsZTChun & Rendering-Liu & 专治各种乱入",
+   "authors": [
+    "Satani_ZC",
+    "天空海Skyocean",
+    "ItsZTChun",
+    "Rendering-Liu",
+    "专治各种乱入"
+   ]
+  },
+  "reisen-udongein-inaba_otomad_002": {
+   "album": "otomads",
+   "title": "【疾走向】今晚七点有狂气之瞳表演",
+   "extra": "角色曲",
+   "author": "芙兰厨陈YuYue"
+  },
+  "reisen-udongein-inaba_otomad_003": {
+   "album": "otomads",
+   "title": "【东方夏银梦】邀请后辈马上袭击～狂气的野兽先辈",
+   "extra": "角色曲",
+   "author": "海老ルーミア"
+  },
+  "yagokoro-eirin_otomad_001": {
+   "album": "otomads",
+   "title": "【2022摩多罗国玉祭单品】电棍1969",
+   "extra": "角色曲",
+   "author": "锤子先辈"
+  },
+  "yagokoro-eirin_otomad_002": {
+   "album": "otomads",
+   "title": "yeah4oyage1029",
+   "extra": "角色曲",
+   "author": "myrevolution"
+  },
+  "yagokoro-eirin_otomad_003": {
+   "album": "otomads",
+   "title": "【東方永夜抄】千年幻想郷 ～ History of Thomas",
+   "extra": "角色曲",
+   "author": "川先僧"
+  },
+  "yagokoro-eirin_otomad_004": {
+   "album": "otomads",
+   "title": "千年マスオ郷　～ History of the Masuo",
+   "extra": "角色曲",
+   "author": "マトウダイ"
+  },
+  "houraisan-kaguya_otomad_001": {
+   "album": "otomads",
+   "title": "【原曲不使用】竹取Fa♂翔",
+   "extra": "角色曲",
+   "author": "丶Mikan"
+  },
+  "fujiwara-no-mokou_otomad_001": {
+   "album": "otomads",
+   "title": "【東方永夜抄】飘上月球，不死之喵",
+   "extra": "角色曲",
+   "author": "川先僧"
+  },
+  "fujiwara-no-mokou_otomad_002": {
+   "album": "otomads",
+   "title": "【东方】飘上月球，不死乒乓",
+   "extra": "角色曲",
+   "author": "打酱油的小火柴"
+  },
+  "medicine-melancholy_otomad_001": {
+   "album": "otomads",
+   "title": "剧毒Masuo ～ Forsaken Masuo",
+   "extra": "角色曲",
+   "author": "餃子と垂れ"
+  },
+  "kazami-yuuka_otomad_001": {
+   "album": "otomads",
+   "title": "【东方电气棍】今昔幻想乡",
+   "extra": "角色曲",
+   "author": "比占庭"
+  },
+  "kazami-yuuka_otomad_002": {
+   "album": "otomads",
+   "title": "今昔gay想郷　～ Masuo Land",
+   "extra": "角色曲",
+   "author": "みぇち"
+  },
+  "onozuka-komachi_otomad_001": {
+   "album": "otomads",
+   "title": "电棍：源流懐♿",
+   "extra": "角色曲",
+   "author": "DJGun"
+  },
+  "onozuka-komachi_otomad_002": {
+   "album": "otomads",
+   "title": "【东方】厨♂房归航",
+   "extra": "角色曲",
+   "author": "龙青瑶RyuuSeiyou"
+  },
+  "onozuka-komachi_otomad_003": {
+   "album": "otomads",
+   "title": "【东方馅挂炒饭】彼岸♂归航",
+   "extra": "角色曲",
+   "author": "Deepmau5"
+  },
+  "onozuka-komachi_otomad_004": {
+   "album": "otomads",
+   "title": "【元首】彼岸归元~Magical Führer Tour 2019",
+   "extra": "角色曲",
+   "author": "轩缘无痕"
+  },
+  "shiki-eiki-yamazanadu_otomad_001": {
+   "album": "otomads",
+   "title": "【原曲不使用】第六十年的东方审判",
+   "extra": "角色曲",
+   "author": "麦恩_exe"
+  },
+  "shiki-eiki-yamazanadu_otomad_002": {
+   "album": "otomads",
+   "title": "【东方电气棍】第六十年的职业选手 ～ Pro Player of Sixty Years",
+   "extra": "角色曲",
+   "author": "云生结海lou"
+  },
+  "shiki-eiki-yamazanadu_otomad_003": {
+   "album": "otomads",
+   "title": "【东方充电男】第六十年的疯子裁判",
+   "extra": "角色曲",
+   "author": "鬼剑士草贝戋神"
+  },
+  "aki-shizuha_otomad_001": {
+   "album": "otomads",
+   "title": "【东方傻风神录】是个眷爱众生的神.. ~ Rinenmaotic Fa哦哦哦哦ll",
+   "extra": "道中曲",
+   "author": "_萳苝_"
+  },
+  "aki-shizuha_otomad_002": {
+   "album": "otomads",
+   "title": "【东方头破七分】洗脑众生之神 ～ Fraudulent Gakkai",
+   "extra": "道中曲",
+   "author": "阴暗处的水晶"
+  },
+  "aki-minoriko_otomad_001": {
+   "album": "otomads",
+   "title": "【东方鬼畜音mad】会受囧仙叱责的啦",
+   "extra": "角色曲",
+   "author": "bili_67169714501"
+  },
+  "kagiyama-hina_otomad_001": {
+   "album": "otomads",
+   "title": "【东方矿工艺】史蒂夫的阴暗面",
+   "extra": "角色曲",
+   "author": "东风谷早苗纯电动公交"
+  },
+  "kawashiro-nitori_otomad_001": {
+   "album": "otomads",
+   "title": "汤姆眷恋的幻想郷",
+   "extra": "道中曲",
+   "author": "川先僧"
+  },
+  "kawashiro-nitori_otomad_002": {
+   "album": "otomads",
+   "title": "【东方馅挂炒饭】芥川door♂之介的兄贵 ~ Candid♂Slave",
+   "extra": "角色曲",
+   "author": "龙青瑶RyuuSeiyou"
+  },
+  "inubashiri-momiji_otomad_001": {
+   "album": "otomads",
+   "title": "【东方电气棍】Fall of Otto ~ 秋意渐浓之棍",
+   "extra": "道中曲",
+   "author": "bEI_sOMG"
+  },
+  "inubashiri-momiji_otomad_002": {
+   "album": "otomads",
+   "title": "秋意渐浓之瀑~",
+   "extra": "道中曲",
+   "author": "芙兰厨陈YuYue"
+  },
+  "shameimaru-aya_otomad_001": {
+   "album": "otomads",
+   "title": "【东方电气棍】大旋風神哈利路少女",
+   "extra": "角色曲",
+   "author": "云生结海lou"
+  },
+  "shameimaru-aya_otomad_002": {
+   "album": "otomads",
+   "title": "風神魔酢汚",
+   "extra": "角色曲",
+   "author": "Rinsaku"
+  },
+  "shameimaru-aya_otomad_003": {
+   "album": "otomads",
+   "title": "【东方食雪汉】**少女",
+   "extra": "角色曲",
+   "author": "フランソウ"
+  },
+  "shameimaru-aya_otomad_004": {
+   "album": "otomads",
+   "title": "Masuo的笔记　～ Mysteriousuo Note",
+   "extra": "角色曲",
+   "author": "みぇち"
+  },
+  "shameimaru-aya_otomad_005": {
+   "album": "otomads",
+   "title": "【东方雪花帖】傻风之循环 ~ Wind Tangpu",
+   "extra": "角色曲",
+   "author": "_萳苝_"
+  },
+  "shameimaru-aya_otomad_006": {
+   "album": "otomads",
+   "title": "【2024东方新春宴音MAD合作单品】山东之国的不眠夜",
+   "extra": "角色曲",
+   "author": "鱼调YuDiao & 天空海Skyocean & DKZ53",
+   "authors": [
+    "鱼调YuDiao",
+    "天空海Skyocean",
+    "DKZ53"
+   ]
+  },
+  "shameimaru-aya_otomad_007": {
+   "album": "otomads",
+   "title": "对了，一起去回忆京都吧。",
+   "extra": "角色曲",
+   "author": "手稲"
+  },
+  "shameimaru-aya_otomad_008": {
+   "album": "otomads",
+   "title": "对了 向北邮出发吧",
+   "extra": "角色曲",
+   "author": "y的自然对数"
+  },
+  "shameimaru-aya_otomad_009": {
+   "album": "otomads",
+   "title": "【原曲不使用】妖怪之山 ~ Mysterious Mountain",
+   "extra": "角色曲",
+   "author": "静識Seishiki"
+  },
+  "shameimaru-aya_otomad_010": {
+   "album": "otomads",
+   "title": "【2022东方华灯宴音MAD单品²】炎吹师之山 ~ Passionate Mountain",
+   "extra": "角色曲",
+   "author": "铝合金键盘 & 霜幻不容筱",
+   "authors": [
+    "铝合金键盘",
+    "霜幻不容筱"
+   ]
+  },
+  "shameimaru-aya_otomad_011": {
+   "album": "otomads",
+   "title": "妖怪之山 ~ A Summer Day's Mountain",
+   "extra": "角色曲",
+   "author": "叉子桑"
+  },
+  "kochiya-sanae_otomad_001": {
+   "album": "otomads",
+   "title": "【德国BOY】KBCrusher fortune",
+   "extra": "道中曲",
+   "author": "马里K"
+  },
+  "kochiya-sanae_otomad_002": {
+   "album": "otomads",
+   "title": "电棍：Calamity Fortune♿♿",
+   "extra": "道中曲",
+   "author": "_Qubc"
+  },
+  "kochiya-sanae_otomad_003": {
+   "album": "otomads",
+   "title": "[合作单品] 信仰是为了萨尼铁塔",
+   "extra": "角色曲",
+   "author": "-摇摇铃仙- & 腌西瓜瓜瓜 & y的自然对数",
+   "authors": [
+    "-摇摇铃仙-",
+    "腌西瓜瓜瓜",
+    "y的自然对数"
+   ]
+  },
+  "kochiya-sanae_otomad_004": {
+   "album": "otomads",
+   "title": "信仰是为了过膝之袜",
+   "extra": "角色曲",
+   "author": "轩缘无痕"
+  },
+  "kochiya-sanae_otomad_005": {
+   "album": "otomads",
+   "title": "Otto Remote",
+   "extra": "道中曲",
+   "author": "鞍山侯国玉电乐团"
+  },
+  "kochiya-sanae_otomad_006": {
+   "album": "otomads",
+   "title": "Otto Remote - xHGNz",
+   "extra": "道中曲",
+   "author": "xHGNz_"
+  },
+  "kochiya-sanae_otomad_007": {
+   "album": "otomads",
+   "title": "Last Remote",
+   "extra": "道中曲",
+   "author": "账号已注销:uid_195705121"
+  },
+  "kochiya-sanae_otomad_008": {
+   "album": "otomads",
+   "title": "【东方家具神乐】Last Remote",
+   "extra": "道中曲",
+   "author": "龙青瑶RyuuSeiyou"
+  },
+  "kochiya-sanae_otomad_009": {
+   "album": "otomads",
+   "title": "【原曲不使用】⚡️Last remote⚡️",
+   "extra": "道中曲",
+   "author": "束風谷早苗"
+  },
+  "kochiya-sanae_otomad_010": {
+   "album": "otomads",
+   "title": "我的素材之疾走Last Remote",
+   "extra": "道中曲",
+   "author": "芙兰厨陈YuYue"
+  },
+  "kochiya-sanae_otomad_011": {
+   "album": "otomads",
+   "title": "Didu Remote",
+   "extra": "道中曲",
+   "author": "遗忘之音"
+  },
+  "kochiya-sanae_otomad_012": {
+   "album": "otomads",
+   "title": "【2023东方新春宴单品²】曙光",
+   "extra": "道中曲",
+   "author": "伊鸽Er & 莫名的蓝移 & 妖梦owo & 月上行者",
+   "authors": [
+    "伊鸽Er",
+    "莫名的蓝移",
+    "妖梦owo",
+    "月上行者"
+   ]
+  },
+  "kochiya-sanae_otomad_013": {
+   "album": "otomads",
+   "title": "【183】Last Remote",
+   "extra": "道中曲",
+   "author": "multimode_Liu a.k.a. Dustymind"
+  },
+  "yasaka-kanako_otomad_001": {
+   "album": "otomads",
+   "title": "【东方馅挂炒饭】神圣庄严的古日♂暮里 ~ Suwa Wrestled Gym",
+   "extra": "角色曲",
+   "author": "东风股早苗"
+  },
+  "yasaka-kanako_otomad_002": {
+   "album": "otomads",
+   "title": "【东方电气棍】神圣庄严的棍战场～Otto Foughten Field",
+   "extra": "角色曲",
+   "author": "束風谷早苗"
+  },
+  "yasaka-kanako_otomad_003": {
+   "album": "otomads",
+   "title": "神圣庄严的键盘使～ Crasher Foughten Field",
+   "extra": "角色曲",
+   "author": "レオル"
+  },
+  "yasaka-kanako_otomad_004": {
+   "album": "otomads",
+   "title": "Masuo的古战场",
+   "extra": "角色曲",
+   "author": "Rinsaku"
+  },
+  "moriya-suwako_otomad_001": {
+   "album": "otomads",
+   "title": "【铁道音mad合作单曲】TRAINMAD's 6 - Native Faith",
+   "extra": "角色曲",
+   "author": "佛山公交_Official_伪"
+  },
+  "moriya-suwako_otomad_002": {
+   "album": "otomads",
+   "title": "【音MAD】土著信仰 ~ Native Faith",
+   "extra": "角色曲",
+   "author": "Gusty露露"
+  },
+  "kisume_otomad_001": {
+   "album": "otomads",
+   "title": "【东方弟临店】昏暗的冰室",
+   "extra": "道中曲",
+   "author": "驹草JX"
+  },
+  "kisume_otomad_002": {
+   "album": "otomads",
+   "title": "【东方棍灵殿】昏暗的哈利路大旋风穴",
+   "extra": "道中曲",
+   "author": "福州许昊龙炫乐团"
+  },
+  "kisume_otomad_003": {
+   "album": "otomads",
+   "title": "【东方电气棍】昏暗的小穴♿",
+   "extra": "道中曲",
+   "author": "AZS的蜜柑"
+  },
+  "kisume_otomad_004": {
+   "album": "otomads",
+   "title": "【原曲不使用】昏暗的风穴",
+   "extra": "道中曲",
+   "author": "静識Seishiki"
+  },
+  "kurodani-yamame_otomad_001": {
+   "album": "otomads",
+   "title": "【东方头破七分】被封印的头妖怪　～Lost Parn",
+   "extra": "角色曲"
+  },
+  "kurodani-yamame_otomad_002": {
+   "album": "otomads",
+   "title": "被封印的Masuo ～ Masuo Place",
+   "extra": "角色曲",
+   "author": "固形物"
+  },
+  "mizuhashi-parsee_otomad_001": {
+   "album": "otomads",
+   "title": "【东方电气棍】阻绝电棍之桥",
+   "extra": "道中曲",
+   "author": "鞍山侯国玉电乐团"
+  },
+  "mizuhashi-parsee_otomad_002": {
+   "album": "otomads",
+   "title": "阻绝Masuo之桥",
+   "extra": "道中曲",
+   "author": "マトウダイ"
+  },
+  "mizuhashi-parsee_otomad_003": {
+   "album": "otomads",
+   "title": "【东方电气棍】急眼的嫉妒",
+   "extra": "角色曲",
+   "author": "komeiji310"
+  },
+  "mizuhashi-parsee_otomad_004": {
+   "album": "otomads",
+   "title": "【东方馅挂炒饭】绿眼的嫉妒【BGA还原】",
+   "extra": "角色曲",
+   "author": "EarthSky"
+  },
+  "hoshiguma-yuugi_otomad_001": {
+   "album": "otomads",
+   "title": "【东方弟临店】漫游旧塘埔街道【东方英豪传】",
+   "extra": "道中曲",
+   "author": "驹草JX"
+  },
+  "hoshiguma-yuugi_otomad_002": {
+   "album": "otomads",
+   "title": "【东方电气棍】大鞍山的古神酒宴",
+   "extra": "角色曲",
+   "author": "鞍山侯国玉电乐团"
+  },
+  "komeiji-satori_otomad_001": {
+   "album": "otomads",
+   "title": "【地铁音MAD】【广州地铁】少女角～Innumerable Five",
+   "extra": "角色曲",
+   "author": "andyW09"
+  },
+  "komeiji-satori_otomad_002": {
+   "album": "otomads",
+   "title": "【東方頭破七分】少女まさみ",
+   "extra": "角色曲",
+   "author": "高興帝"
+  },
+  "komeiji-satori_otomad_003": {
+   "album": "otomads",
+   "title": "【东方头破七分合作】老女本 3rd eyes",
+   "extra": "角色曲",
+   "author": "法海酱WAV & aotermen & 古明地薄暮 & 磨人の大妖精",
+   "authors": [
+    "法海酱WAV",
+    "aotermen",
+    "古明地薄暮",
+    "磨人の大妖精"
+   ]
+  },
+  "komeiji-satori_otomad_004": {
+   "album": "otomads",
+   "title": "少女宫本　～ Gays on Me!",
+   "extra": "角色曲",
+   "author": "トイレが好きです"
+  },
+  "kaenbyou-rin_otomad_001": {
+   "album": "otomads",
+   "title": "♿废狱腰烂曲",
+   "extra": "道中曲",
+   "author": "弦卷こころOfficial"
+  },
+  "kaenbyou-rin_otomad_002": {
+   "album": "otomads",
+   "title": "【MC效果音MAD】下界摇篮曲",
+   "extra": "道中曲",
+   "author": "GensokyoFIPA"
+  },
+  "kaenbyou-rin_otomad_003": {
+   "album": "otomads",
+   "title": "废园摇篮曲",
+   "extra": "道中曲",
+   "author": "味增汤"
+  },
+  "kaenbyou-rin_otomad_004": {
+   "album": "otomads",
+   "title": "！？废狱狱废？！",
+   "extra": "道中曲",
+   "author": "钬__"
+  },
+  "kaenbyou-rin_otomad_005": {
+   "album": "otomads",
+   "title": "【东方馅挂炒饭】废狱摇篮曲",
+   "extra": "道中曲",
+   "author": "鬼剑士草贝戋神"
+  },
+  "kaenbyou-rin_otomad_006": {
+   "album": "otomads",
+   "title": "【万岁祭单品】废狱摇篮曲",
+   "extra": "道中曲",
+   "author": "铝合金键盘"
+  },
+  "kaenbyou-rin_otomad_007": {
+   "album": "otomads",
+   "title": "电棍：尸体旅行~Be of good cheer!",
+   "extra": "角色曲",
+   "author": "弦卷こころOfficial"
+  },
+  "kaenbyou-rin_otomad_008": {
+   "album": "otomads",
+   "title": "【单品投稿】MGRの時代 比寒武更久的梦音mad合作 九州拾遗东方例会音mad",
+   "extra": "角色曲",
+   "author": "上海龙教练"
+  },
+  "reiuji-utsuho_otomad_001": {
+   "album": "otomads",
+   "title": "灵知的原子信仰",
+   "extra": "角色曲",
+   "author": "超几何冰精"
+  },
+  "reiuji-utsuho_otomad_002": {
+   "album": "otomads",
+   "title": "全是阿空的灵知の太阳信仰☢",
+   "extra": "角色曲",
+   "author": "芙兰厨陈YuYue"
+  },
+  "reiuji-utsuho_otomad_003": {
+   "album": "otomads",
+   "title": "【东方鬼畜音mad】囧仙儿的太阳信仰",
+   "extra": "角色曲",
+   "author": "轩缘无痕"
+  },
+  "reiuji-utsuho_otomad_004": {
+   "album": "otomads",
+   "title": "【东方热血汉】热血的太阳修造 ～ Nuclear Shusion",
+   "extra": "角色曲",
+   "author": "Anonymität"
+  },
+  "reiuji-utsuho_otomad_005": {
+   "album": "otomads",
+   "title": "【2024东方新春宴合作单品²】元首的秘密武器",
+   "extra": "角色曲",
+   "author": "gt2k01"
+  },
+  "komeiji-koishi_otomad_001": {
+   "album": "otomads",
+   "title": "【里御三家】哈德曼的妖怪少女【东方新春宴音MAD单品²】",
+   "extra": "角色曲",
+   "author": "bili_67169714501 & 静泡_J1NGPAO",
+   "authors": [
+    "bili_67169714501",
+    "静泡_J1NGPAO"
+   ]
+  },
+  "komeiji-koishi_otomad_002": {
+   "album": "otomads",
+   "title": "【2020年东方华灯宴音MAD合作单品】哈德曼的妖怪老女",
+   "extra": "角色曲",
+   "author": "法WAV & LittleBitHarsh",
+   "authors": [
+    "法WAV",
+    "LittleBitHarsh"
+   ]
+  },
+  "komeiji-koishi_otomad_003": {
+   "album": "otomads",
+   "title": "【東方魔酢汚】Masuo的妖怪少女",
+   "extra": "角色曲",
+   "author": "はゆまが"
+  },
+  "komeiji-koishi_otomad_004": {
+   "album": "otomads",
+   "title": "マスオマンの破壊少女",
+   "extra": "角色曲",
+   "author": "ゆっけ"
+  },
+  "komeiji-koishi_otomad_005": {
+   "album": "otomads",
+   "title": "音mad | 梨子妈：哈德曼的妖怪少女",
+   "extra": "角色曲",
+   "author": "passthem"
+  },
+  "komeiji-koishi_otomad_006": {
+   "album": "otomads",
+   "title": "【音MAD】哈德曼的妖怪少女(人气爆发) | 精简的第二作",
+   "extra": "角色曲",
+   "author": "榆木华"
+  },
+  "wakasagihime_otomad_001": {
+   "album": "otomads",
+   "title": "【原曲不使用】秘境的人鱼",
+   "extra": "角色曲",
+   "author": "芙兰厨陈YuYue"
+  },
+  "sekibanki_otomad_001": {
+   "album": "otomads",
+   "title": "【东方蛮法天】杜拉罕…夜中的柳树下不去吗？",
+   "extra": "角色曲",
+   "author": "フランソウ"
+  },
+  "imaizumi-kagerou_otomad_001": {
+   "album": "otomads",
+   "title": "【東方蛮法天】紅狂曲☆真・二十年来的涟漪",
+   "extra": "角色曲",
+   "author": "ゑゐしゃあ"
+  },
+  "tsukumo-benben-yatsuhashi_otomad_001": {
+   "album": "otomads",
+   "title": "【东方英豪传】幻想净珯琳【东方安真城】",
+   "extra": "角色曲",
+   "author": "DaleYua"
+  },
+  "kijin-seija_otomad_001": {
+   "album": "otomads",
+   "title": "【原曲不使用】Reverse Ideology♿",
+   "extra": "角色曲",
+   "author": "弦卷こころOfficial"
+  },
+  "sukuna-shinmyoumaru_otomad_001": {
+   "album": "otomads",
+   "title": "【东方头破七分】辉光之针的小人族（2022拜年祭单品预告）",
+   "extra": "角色曲",
+   "author": "雨墨祈祷"
+  },
+  "horikawa-raiko_otomad_001": {
+   "album": "otomads",
+   "title": "【2023东方新春宴单品²】辉针城天津分城《Pristine Happiness》",
+   "extra": "角色曲",
+   "author": "LHDW_"
+  },
+  "seiran_otomad_001": {
+   "album": "otomads",
+   "title": "何已着陆",
+   "extra": "角色曲",
+   "author": "锖色塔"
+  },
+  "ringo_otomad_001": {
+   "album": "otomads",
+   "title": "🐧九月的灵感菇🐧",
+   "extra": "角色曲",
+   "author": "杀死大老爷的侍童"
+  },
+  "doremy-sweet_otomad_001": {
+   "album": "otomads",
+   "title": "【东方棚瓜劈】永远的生瓜蛋子",
+   "extra": "角色曲",
+   "author": "阿我饿一屋雨"
+  },
+  "kishin-sagume_otomad_001": {
+   "album": "otomads",
+   "title": "向着将要永远封冻的京都，一起去吧。",
+   "extra": "道中曲",
+   "author": "手稲"
+  },
+  "kishin-sagume_otomad_002": {
+   "album": "otomads",
+   "title": "【明日方舟】逆转的ko~ko~da~yo~☆",
+   "extra": "角色曲",
+   "author": "轩缘无痕"
+  },
+  "kuraunpisu_otomad_001": {
+   "album": "otomads",
+   "title": "[东方专员辖区]神俄のピエロ",
+   "extra": "角色曲",
+   "author": "曰狗真人"
+  },
+  "kuraunpisu_otomad_002": {
+   "album": "otomads",
+   "title": "星条旗的Masuo",
+   "extra": "角色曲",
+   "author": "mos"
+  },
+  "junko_otomad_001": {
+   "album": "otomads",
+   "title": "【北邮东方音MAD合作单品²】Pure Furies ~ 心之所在",
+   "extra": "角色曲",
+   "author": "multimode_Liu"
+  },
+  "junko_otomad_002": {
+   "album": "otomads",
+   "title": "【合作告知Ⅱ】东方雨天水～Rain Everyday",
+   "extra": "道中曲",
+   "author": "フランソウ"
+  },
+  "junko_otomad_003": {
+   "album": "otomads",
+   "title": "[原图不使用]纯粹的孤儿～妈之所在",
+   "extra": "角色曲",
+   "author": "黑区awa"
+  },
+  "hecatia-lapislazuli_otomad_001": {
+   "album": "otomads",
+   "title": "【音MAD】Pandemonic Planet[天香祭单品]",
+   "extra": "角色曲",
+   "author": "稀神灵梦"
+  },
+  "eternity-larva_otomad_001": {
+   "album": "otomads",
+   "title": "真夏的舞萌梦",
+   "extra": "角色曲",
+   "author": "蓝色火焰AoiHonoo"
+  },
+  "eternity-larva_otomad_002": {
+   "album": "otomads",
+   "title": "【8月8日爱塔日接力&音Mad】仲夏的妖精梦",
+   "extra": "角色曲",
+   "author": "芙兰厨陈YuYue"
+  },
+  "sakata-nemuno_otomad_001": {
+   "album": "otomads",
+   "title": "山酢污的遭遇",
+   "extra": "角色曲",
+   "author": "汚砂"
+  },
+  "komano-aunn_otomad_001": {
+   "album": "otomads",
+   "title": "【2025东方新春宴音MAD合作单品】一对的薮包",
+   "extra": "角色曲",
+   "author": "ijxhshs"
+  },
+  "komano-aunn_otomad_002": {
+   "album": "otomads",
+   "title": "一对的神兽合作",
+   "extra": "角色曲",
+   "author": "ユウシ"
+  },
+  "yatadera-narumi_otomad_001": {
+   "album": "otomads",
+   "title": "【东方充电男】魔王の笠地蔵",
+   "extra": "角色曲",
+   "author": "乾パンマン"
+  },
+  "teireida-mai-nishida-satono_otomad_001": {
+   "album": "otomads",
+   "title": "【东方清源录音MAD单品²】疯狂的背景舞者",
+   "extra": "角色曲",
+   "author": "multimode_Liu"
+  },
+  "teireida-mai-nishida-satono_otomad_002": {
+   "album": "otomads",
+   "title": "【东方斗破八分】Crazy Gaigai Dancers",
+   "extra": "角色曲",
+   "author": "账号已注销"
+  },
+  "matara-okina_otomad_001": {
+   "album": "otomads",
+   "title": "【合作单品】被差别民的真正姿态 ~ Hidden Star in Fifth Season.",
+   "extra": "角色曲",
+   "author": "铝合金键盘"
+  },
+  "ebisu-eika_otomad_001": {
+   "album": "otomads",
+   "title": "【原曲不使用】只有少女知晓的哀叹",
+   "extra": "道中曲",
+   "author": "卡诺热机之梦"
+  },
+  "ebisu-eika_otomad_002": {
+   "album": "otomads",
+   "title": "东方效果音的Jelly Stone",
+   "extra": "角色曲",
+   "author": "手稲"
+  },
+  "ushizaki-urumi_otomad_001": {
+   "album": "otomads",
+   "title": "【东方鬼形兽】石之曲奇与水中囧",
+   "extra": "角色曲",
+   "author": "轩缘无痕"
+  },
+  "niwatari-kutaka_otomad_001": {
+   "album": "otomads",
+   "title": "【东方鬼形兽】セラフィックチキン 鸡你太美",
+   "extra": "角色曲",
+   "author": "豪俊提琴"
+  },
+  "kitcho-yachie_otomad_001": {
+   "album": "otomads",
+   "title": "Tortas Dragon田中~幸运与不幸追尾了黑色高级车名",
+   "extra": "角色曲",
+   "author": "ころころ"
+  },
+  "joutougu-mayumi_otomad_001": {
+   "album": "otomads",
+   "title": "セックスの杖刀人",
+   "extra": "角色曲",
+   "author": "ふゆこけ"
+  },
+  "haniyasushin-keiki_otomad_001": {
+   "album": "otomads",
+   "title": "【合作单品】寄世界于先祖像",
+   "extra": "角色曲",
+   "author": "香菇."
+  },
+  "kurokoma-saki_otomad_001": {
+   "album": "otomads",
+   "title": "【东方鬼形兽】圣德太子的饼干 ~ Lazy Tom☆",
+   "extra": "角色曲",
+   "author": "轩缘无痕"
+  },
+  "ibuki-suika_otomad_001": {
+   "album": "otomads",
+   "title": "岁月",
+   "extra": "角色曲",
+   "author": "thwy"
+  },
+  "ibuki-suika_otomad_002": {
+   "album": "otomads",
+   "title": "【北京地铁音MAD•东方蓟门桥】来自北京地铁的东方萃梦想！！！",
+   "extra": "角色曲",
+   "author": "不可阻挡的TRT"
+  },
+  "ibuki-suika_otomad_003": {
+   "album": "otomads",
+   "title": "【东方】家居萃梦想",
+   "extra": "角色曲",
+   "author": "打酱油的小火柴"
+  },
+  "ibuki-suika_otomad_004": {
+   "album": "otomads",
+   "title": "[东方鬼厨音mad]碎碗",
+   "extra": "角色曲",
+   "author": "边界之光"
+  },
+  "ibuki-suika_otomad_005": {
+   "album": "otomads",
+   "title": "【东方萃梦想】碎 月",
+   "extra": "角色曲",
+   "author": "芙兰厨陈YuYue"
+  },
+  "ibuki-suika_otomad_006": {
+   "album": "otomads",
+   "title": "【東方吔夢想】御伽之国的吔屎警署 ~ Missing Gunpower",
+   "extra": "角色曲",
+   "author": "kirby1324"
+  },
+  "ibuki-suika_otomad_007": {
+   "album": "otomads",
+   "title": "【东方馅挂炒饭】新日暮里的地♂牢 ~ Missing Aniki（御伽之国的鬼岛 ~ Missing Power）",
+   "extra": "角色曲",
+   "author": "龙青瑶RyuuSeiyou"
+  },
+  "nagae-iku_otomad_001": {
+   "album": "otomads",
+   "title": "黒いマスオに紅く ～ Killed Fish",
+   "extra": "角色曲",
+   "author": "guest"
+  },
+  "hinanawi-tenshi_otomad_001": {
+   "album": "otomads",
+   "title": "【东方电气棍】緋想天♿",
+   "extra": "角色曲",
+   "author": "鞍山侯国玉电乐团"
+  },
+  "hinanawi-tenshi_otomad_002": {
+   "album": "otomads",
+   "title": "化楽天変　～ Wonderful Health",
+   "extra": "角色曲",
+   "author": "ハルトモ"
+  },
+  "hinanawi-tenshi_otomad_003": {
+   "album": "otomads",
+   "title": "【多素材音mad】有顶天变 ~ Wonderful Heaven",
+   "extra": "角色曲",
+   "author": "龙青瑶RyuuSeiyou"
+  },
+  "yorigami-joon-shion_otomad_001": {
+   "album": "otomads",
+   "title": "今宵是绝望的利己主义黄豆",
+   "extra": "角色曲",
+   "author": "卡诺热机之梦"
+  },
+  "yorigami-joon-shion_otomad_002": {
+   "album": "otomads",
+   "title": "今宵是飘逸的利己主义喵",
+   "extra": "角色曲",
+   "author": "川先僧"
+  }
+ }
+}

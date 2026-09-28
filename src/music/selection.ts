@@ -71,7 +71,7 @@ export function allowedTracks(
   pinned?: MusicEntry | null,
 ): AllowedTracks {
   if (pinned) return { entries: [pinned], pinned };
-  const entries = character.music.filter(([album, , extra]) => isTrackEnabled(preset, album, extra));
+  const entries = character.music.filter((entry) => isTrackEnabled(preset, entry.album, entry.extra));
   return { entries, pinned: null };
 }
 

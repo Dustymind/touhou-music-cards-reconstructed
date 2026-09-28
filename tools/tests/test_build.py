@@ -30,12 +30,12 @@ def test_generated_outputs_are_exactly_the_contract():
     paths = {str(path.relative_to(repo.PUBLIC_DATA)) for path in outputs}
     expected = {
         "cardsets.json",                                   # 共享：卡面图集
-        "index.json", "characters.json", "albums.json", "sources.json",            # 原曲
+        "index.json", "characters.json", "albums.json", "sources.json", "tracks.json",  # 原曲
         "otomads/index.json", "otomads/characters.json",
-        "otomads/albums.json", "otomads/sources.json",     # 音MAD
+        "otomads/albums.json", "otomads/sources.json", "otomads/tracks.json",  # 音MAD
         "otomads/loudness/otomads.json",                   # 音MAD 的响度表（源自己生成，D130）
         "custom/index.json", "custom/characters.json",
-        "custom/albums.json", "custom/sources.json",       # 自定义：恒为空的兜底数据集
+        "custom/albums.json", "custom/sources.json", "custom/tracks.json",  # 自定义：恒为空的兜底数据集
         *(f"sources/{source_id}.json" for source_id in build.mirror_source_ids()),  # 镜像表
     }
     assert paths == expected
@@ -323,9 +323,9 @@ def test_source_covers_are_one_link_per_track():
     """
     chars = [
         {"key": "a", "name": "甲", "order": 1, "card": ["a.png"], "searchNames": ["甲"],
-         "music": [["旧作", "甲曲", "角色曲"]]},
+         "music": [{"id": "x_1", "album": "旧作", "title": "甲曲", "extra": "角色曲"}]},
         {"key": "b", "name": "乙", "order": 2, "card": ["b.png"], "searchNames": ["乙"],
-         "music": [["旧作", "乙曲", "角色曲"]]},
+         "music": [{"id": "x_2", "album": "旧作", "title": "乙曲", "extra": "角色曲"}]},
     ]
     tracks = [
         {"pack": "otomads", "character": "a", "album": "otomads", "title": "一", "extra": "角色曲"},

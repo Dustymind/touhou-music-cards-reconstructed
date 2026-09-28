@@ -210,7 +210,7 @@ describe("customHash：覆盖什么、不覆盖什么（契约 C6）", () => {
   ];
   const character = (overrides: Partial<CharacterRecord> = {}): CharacterRecord => ({
     key: "custom-a", name: "爱丽丝", order: 0, card: ["https://x/a.jpg"], covers: ["https://x/a.jpg"],
-    searchNames: ["爱丽丝"], music: [["旧作", "第一首", "角色曲", "甲"]],
+    searchNames: ["爱丽丝"], music: [{ id: "custom-a", album: "旧作", title: "第一首", extra: "角色曲", author: "甲" }],
     audio: ["https://x/a.mp3?v=1"], ...overrides,
   });
 
@@ -233,9 +233,9 @@ describe("customHash：覆盖什么、不覆盖什么（契约 C6）", () => {
     expect(customHash(albums, [character({ card: ["https://x/b.jpg"], covers: ["https://x/b.jpg"] })]))
       .not.toBe(base);
     expect(customHash([{ ...albums[0]!, order: 9 }], [character()])).not.toBe(base);
-    expect(customHash(albums, [character({ music: [["旧作", "第一首", "角色曲", "乙"]] })]))
+    expect(customHash(albums, [character({ music: [{ id: "custom-a", album: "旧作", title: "第一首", extra: "角色曲", author: "乙" }] })]))
       .not.toBe(base);
-    expect(customHash(albums, [character({ music: [["旧作", "第二首", "角色曲", "甲"]] })]))
+    expect(customHash(albums, [character({ music: [{ id: "custom-a", album: "旧作", title: "第二首", extra: "角色曲", author: "甲" }] })]))
       .not.toBe(base);
   });
 

@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   DataLoadError, loadDataBundle, validateAlbums, validateCharacters, validateIndex,
-  validateSources,
+  validateSources, validateTracks,
 } from "./load";
 import { displayTitle, splitTrackId, trackId, type CharacterRecord } from "./types";
 import { cardAspectRatio, cardRatioChoices, CardAspectRatio } from "../theme/cardRatio";
@@ -13,7 +13,7 @@ const character = (overrides: Partial<CharacterRecord> = {}): CharacterRecord =>
   order: 1,
   card: ["チルノ.png"],
   searchNames: ["チルノ", "Cirno"],
-  music: [["東方紅魔郷 ～ the Embodiment of Scarlet Devil", "おてんば恋娘", "角色曲"]],
+  music: [{ id: "th06_03", album: "東方紅魔郷 ～ the Embodiment of Scarlet Devil", title: "おてんば恋娘", extra: "角色曲" }],
   ...overrides,
 });
 
@@ -37,8 +37,8 @@ describe("data validators", () => {
     expect(() => validateCharacters(wrap([character()]), 2)).toThrow(/记录数/);
     expect(() => validateCharacters(wrap([character(), character()]), 2)).toThrow(/key 重复/);
     expect(() => validateCharacters(wrap([character({ music: [] })]), 1)).toThrow(/缺曲目/);
-    expect(() => validateCharacters(
-      wrap([character({ music: [["a", "b", "非法" as never]] })]), 1)).toThrow(/附加信息/);
+    expect(() => validateTracks(
+      { tracks: { x: { album: "a", title: "b", extra: "非法" as never } } })).toThrow(/附加信息/);
   });
 
   it("`audio`（模式 3 的逐卡音频，F1）要写就得是非空字符串数组", () => {

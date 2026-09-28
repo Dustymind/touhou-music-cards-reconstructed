@@ -61,10 +61,10 @@ const PLAYER_CONTROL_WIDTH = 420;
  *  注意只有**显示**排序：第 4 位那个整串是磁盘文件名/响度表的键，任何时候都不能重排（见 `gainKeyOf`）。 */
 export function creditLine(entry: MusicEntry | null, albums: readonly AlbumRecord[]): string | null {
   if (!entry) return null;
-  if (entry[4]?.length) return formatAuthors(entry[4]);
-  if (entry[3]) return entry[3];
-  const album = albums.find((item) => item.name === entry[0]);
-  return album?.showAlbumName === false ? null : entry[0];
+  if (entry.authors?.length) return formatAuthors(entry.authors);
+  if (entry.author) return entry.author;
+  const album = albums.find((item) => item.name === entry.album);
+  return album?.showAlbumName === false ? null : entry.album;
 }
 
 function PlayerPanelInner(props: PlayerPanelProps) {
@@ -133,7 +133,7 @@ function PlayerPanelInner(props: PlayerPanelProps) {
 
           {/* 曲名（唯一的大字级） */}
           <Typography variant="h6" data-testid="now-title" sx={{ lineHeight: 1.3 }}>
-            {player.entry ? displayTitle(player.entry[1]) : (props.pin ? displayTitle(props.pin[1]) : "—")}
+            {player.entry ? displayTitle(player.entry.title) : (props.pin ? displayTitle(props.pin.title) : "—")}
           </Typography>
 
           {/* 作者不"白名单"（即非官作、标题里带 `作者 - 曲名`）→ 显示作者；否则显示作品（专辑）名 */}

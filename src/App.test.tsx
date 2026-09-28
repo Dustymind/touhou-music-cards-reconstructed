@@ -243,7 +243,7 @@ describe("App 冒烟（真实数据）", () => {
     const sources = sourceStoreFor("originals");
     await act(async () => {
       useSession.setState({ musicMode: "originals" });
-      single.setState({ ...single.getState(), pins: { "gone-key": ["专辑", "曲目", "角色曲"] } });
+      single.setState({ ...single.getState(), pins: { "gone-key": { id: "x_1", album: "专辑", title: "曲目", extra: "角色曲" } } });
       sources.setState({ overrides: { gone: { enabled: false, order: 9 } } });
     });
 
@@ -267,7 +267,7 @@ describe("App 冒烟（真实数据）", () => {
     const liveKey = characters.characters[0]!.key;
     const request = async (key: string): Promise<void> => {
       await act(async () => {
-        useSession.setState({ entryRequest: { key, entry: ["专辑", "曲目", "角色曲"] } });
+        useSession.setState({ entryRequest: { key, entry: { id: "x_1", album: "专辑", title: "曲目", extra: "角色曲" } } });
         await new Promise((resolve) => setTimeout(resolve, 20));
       });
     };

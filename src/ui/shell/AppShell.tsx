@@ -10,7 +10,7 @@ import { Localization, localized, t } from "../../i18n/localization";
 import { stableHash } from "../../rng";
 import { effectiveCustomSourceUrl, TAB_ORDER, useSession, type TabId } from "../../store/session";
 import { MD2, NoFontFamily } from "../../theme/theme";
-import { trackId, type CharacterRecord, type DataBundle, type MusicEntry } from "../../data/types";
+import { type CharacterRecord, type DataBundle, type MusicEntry } from "../../data/types";
 import { usePreset } from "../../store/preset";
 import { currentQueue, useQueue } from "../../store/queue";
 import { selectSessionSeed, useSeeds } from "../../store/seeds";
@@ -307,7 +307,7 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
   }, [playRequestSeq]);
 
   // ---- 记下本局播过的曲目：曲目确定后追加一次（两端按同一确定性结果 → 天然同步 ✓）----
-  const playedTrackId = player.entry ? trackId(player.entry[0], player.entry[1]) : null;
+  const playedTrackId = player.entry ? player.entry.id : null;
   useEffect(() => {
     if (!gameActive || !playedTrackId) return;
     useGame.getState().markPlayed(playedTrackId);

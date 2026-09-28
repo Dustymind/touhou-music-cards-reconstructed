@@ -14,7 +14,7 @@ function fakeDataset(characters: CharacterRecord[], albums: AlbumRecord[]): Mode
   return {
     mode: "originals",
     index: { schema: 1, mode: "originals", contentHash: "fake-hash-1234", counts: { characters: characters.length, albums: albums.length, trackEntries: 0, distinctTracks: 0 } },
-    characters, albums, sources: [],
+    characters, albums, sources: [], tracks: {},
     characterByKey: new Map(characters.map((character) => [character.key, character])),
     albumByName: new Map(albums.map((album) => [album.name, album])),
   };
@@ -23,13 +23,13 @@ function fakeDataset(characters: CharacterRecord[], albums: AlbumRecord[]): Mode
 const albums: AlbumRecord[] = [{ key: "th06", name: "紅魔郷", kind: "game", pack: "originals", order: 1 }];
 const cirno: CharacterRecord = {
   key: "cirno", name: "チルノ", order: 1, card: ["c.png"], searchNames: ["チルノ"],
-  music: [["紅魔郷", "おてんば恋娘", "角色曲"]],
+  music: [{ id: "th06_03", album: "紅魔郷", title: "おてんば恋娘", extra: "角色曲" }],
 };
 const marisa: CharacterRecord = {
   key: "kirisame-marisa", name: "霧雨魔理沙", order: 2, card: ["m.png"], searchNames: ["霧雨魔理沙"],
   music: [
-    ["紅魔郷", "恋色マスタースパーク", "角色曲"],
-    ["紅魔郷", "オリエンタルダークフライト", "角色曲"],
+    { id: "th08_10", album: "紅魔郷", title: "恋色マスタースパーク", extra: "角色曲" },
+    { id: "th09_03", album: "紅魔郷", title: "オリエンタルダークフライト", extra: "角色曲" },
   ],
 };
 
@@ -74,7 +74,7 @@ describe("usePlayer", () => {
     // 对局中忽略预设（= 全曲库）：这时不看三元，与另两个模式同一条口径
     const during = await renderHook(() =>
       usePlayer(inputs({ cardEnabled: () => false, ignorePreset: true })));
-    expect(during.result.current.entry?.[1]).toBe("おてんば恋娘");
+    expect(during.result.current.entry?.title).toBe("おてんば恋娘");
   });
 
   it("模式 3：给了 `cardEnabled` 就**直接取那一首**（一卡一首，不走预设/类别那套）", async () => {
@@ -83,7 +83,7 @@ describe("usePlayer", () => {
       cardEnabled: () => true,
       preset: { albums: { 紅魔郷: false }, hifuu: {}, category: { 角色曲: "off", 道中曲: "off", 更多道中曲: "off" } },
     })));
-    expect(hook.result.current.entry?.[1]).toBe("おてんば恋娘");
+    expect(hook.result.current.entry?.title).toBe("おてんば恋娘");
   });
 
   it("模式 3：手选 / 列表点播仍然优先（`pinned` 压过 `cardEnabled`）", async () => {
@@ -115,7 +115,7 @@ describe("usePlayer", () => {
       audio: ["https://cards.example.com/media/1.mp3", "https://cards.example.com/media/2.mp3"],
     }], albums);
     const hook = await renderHook(() => usePlayer(inputs({ dataset, tables: {}, sourceOrder: [], currentKey: "kirisame-marisa" })));
-    const index = marisa.music.findIndex((entry) => entry[1] === hook.result.current.entry?.[1]);
+    const index = marisa.music.findIndex((entry) => entry.title === hook.result.current.entry?.title);
     expect(hook.result.current.url).toBe(`https://cards.example.com/media/${index + 1}.mp3`);
   });
 
@@ -133,9 +133,9 @@ describe("usePlayer", () => {
 
   it("多曲目按种子稳定选一首（同种子 → 同曲目）", async () => {
     const a = await renderHook(() => usePlayer(inputs({ currentKey: "kirisame-marisa", seed: 7 })));
-    const first = a.result.current.entry?.[1];
+    const first = a.result.current.entry?.title;
     const b = await renderHook(() => usePlayer(inputs({ currentKey: "kirisame-marisa", seed: 7 })));
-    expect(b.result.current.entry?.[1]).toBe(first);
+    expect(b.result.current.entry?.title).toBe(first);
   });
 
   it("播放时长到点自动暂停", async () => {
@@ -366,11 +366,11 @@ describe("usePlayer", () => {
   });
 
   it("单曲模式固定曲目优先于随机", async () => {
-    const pinned = { cirno: ["紅魔郷", "おてんば恋娘", "角色曲"] as const };
+    const pinned = { cirno: { id: "th06_03", album: "紅魔郷", title: "おてんば恋娘", extra: "角色曲" } as const };
     const hook = await renderHook(() => usePlayer(inputs({
-      pinned: { cirno: [...pinned.cirno] as CharacterRecord["music"][number] },
+      pinned: { cirno: { ...pinned.cirno } },
     })));
-    expect(hook.result.current.entry?.[1]).toBe("おてんば恋娘");
+    expect(hook.result.current.entry?.title).toBe("おてんば恋娘");
   });
 
   it("回合的卡面曲（D168）：`roundTrackIndex` 给哪一首就放哪一首", async () => {
@@ -378,33 +378,33 @@ describe("usePlayer", () => {
     const hook = await renderHook(() => usePlayer(inputs({
       currentKey: "kirisame-marisa", roundTrackIndex: 1,
     })));
-    expect(hook.result.current.entry?.[1]).toBe("オリエンタルダークフライト");
+    expect(hook.result.current.entry?.title).toBe("オリエンタルダークフライト");
     expect(decodeURIComponent(hook.result.current.url ?? "")).toContain("オリエンタルダークフライト");
   });
 
   it("回合的卡面曲压过单曲模式的手选（对局里放哪一首由场上的牌决定）", async () => {
-    const pinnedEntry: CharacterRecord["music"][number] = ["紅魔郷", "恋色マスタースパーク", "角色曲"];
+    const pinnedEntry: CharacterRecord["music"][number] = { id: "th08_10", album: "紅魔郷", title: "恋色マスタースパーク", extra: "角色曲" };
     const hook = await renderHook(() => usePlayer(inputs({
       currentKey: "kirisame-marisa",
       pinned: { "kirisame-marisa": pinnedEntry },
       roundTrackIndex: 1,
     })));
-    expect(hook.result.current.entry?.[1]).toBe("オリエンタルダークフライト");
+    expect(hook.result.current.entry?.title).toBe("オリエンタルダークフライト");
   });
 
   it("点播（`request`）仍然压过回合的卡面曲：使用者点的那一首马上放", async () => {
-    const requested: CharacterRecord["music"][number] = ["紅魔郷", "恋色マスタースパーク", "角色曲"];
+    const requested: CharacterRecord["music"][number] = { id: "th08_10", album: "紅魔郷", title: "恋色マスタースパーク", extra: "角色曲" };
     const hook = await renderHook(() => usePlayer(inputs({
       currentKey: "kirisame-marisa",
       request: { key: "kirisame-marisa", entry: requested },
       roundTrackIndex: 1,
     })));
-    expect(hook.result.current.entry?.[1]).toBe("恋色マスタースパーク");
+    expect(hook.result.current.entry?.title).toBe("恋色マスタースパーク");
   });
 
   it("卡序越界（数据换了 / 存档旧了）⇒ 落回原来的口径，不空白也不炸", async () => {
     const hook = await renderHook(() => usePlayer(inputs({ roundTrackIndex: 99 })));
-    expect(hook.result.current.entry?.[1]).toBe("おてんば恋娘");
+    expect(hook.result.current.entry?.title).toBe("おてんば恋娘");
     expect(hook.result.current.error).toBeNull();
   });
 
@@ -450,8 +450,8 @@ describe("逐曲音量均衡（方案 A，只对本地音MAD 生效）", () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it("曲包曲目用「作者 - 曲名」查系数（= 磁盘文件名），其它源用曲名", () => {
-    expect(gainKeyOf(["otomads", "普通肥猫魔法使", "角色曲", "川先僧"])).toBe("川先僧 - 普通肥猫魔法使");
-    expect(gainKeyOf(["東方永夜抄 ～ Imperishable Night", "恋色マスタースパーク", "角色曲"])).toBe("恋色マスタースパーク");
+    expect(gainKeyOf({ id: "cirno_otomad_001", album: "otomads", title: "普通肥猫魔法使", extra: "角色曲", author: "川先僧" })).toBe("川先僧 - 普通肥猫魔法使");
+    expect(gainKeyOf({ id: "th08_10", album: "東方永夜抄 ～ Imperishable Night", title: "恋色マスタースパーク", extra: "角色曲" })).toBe("恋色マスタースパーク");
     expect(gainKeyOf(null)).toBeNull();
   });
 
@@ -473,7 +473,7 @@ describe("逐曲音量均衡（方案 A，只对本地音MAD 生效）", () => {
     const otomadAlbum: AlbumRecord[] = [{ key: "otomads", name: "otomads", kind: "other", pack: "otomads", order: 100 }];
     const otomad: CharacterRecord = {
       key: "cirno", name: "チルノ", order: 1, card: ["c.png"], searchNames: ["チルノ"],
-      music: [["otomads", "普通肥猫魔法使", "角色曲", "川先僧"]],
+      music: [{ id: "cirno_otomad_001", album: "otomads", title: "普通肥猫魔法使", extra: "角色曲", author: "川先僧" }],
     };
     const localTables = {
       local: { id: "local", status: "ready" as const, entries: buildEntries([["otomads", "普通肥猫魔法使", "https://fake/otomad.mp3"]]) },

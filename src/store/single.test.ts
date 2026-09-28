@@ -27,19 +27,19 @@ describe("single track store", () => {
   it("手选一曲后不再禁用该角色", () => {
     useSingleTrack.getState().toggleCharacter("cirno");
     expect(useSingleTrack.getState().disabledCharacters.cirno).toBe(true);
-    useSingleTrack.getState().setPin("cirno", ["紅魔郷", "おてんば恋娘", "角色曲"]);
-    expect(useSingleTrack.getState().pins.cirno?.[1]).toBe("おてんば恋娘");
+    useSingleTrack.getState().setPin("cirno", { id: "th06_03", album: "紅魔郷", title: "おてんば恋娘", extra: "角色曲" });
+    expect(useSingleTrack.getState().pins.cirno?.title).toBe("おてんば恋娘");
     expect(useSingleTrack.getState().disabledCharacters.cirno).toBeUndefined();
   });
 
   it("清除手选", () => {
-    useSingleTrack.getState().setPin("cirno", ["紅魔郷", "おてんば恋娘", "角色曲"]);
+    useSingleTrack.getState().setPin("cirno", { id: "th06_03", album: "紅魔郷", title: "おてんば恋娘", extra: "角色曲" });
     useSingleTrack.getState().setPin("cirno", null);
     expect(useSingleTrack.getState().pins.cirno).toBeUndefined();
   });
 
   it("prune 清理已消失的角色", () => {
-    useSingleTrack.getState().setPin("cirno", ["紅魔郷", "おてんば恋娘", "角色曲"]);
+    useSingleTrack.getState().setPin("cirno", { id: "th06_03", album: "紅魔郷", title: "おてんば恋娘", extra: "角色曲" });
     useSingleTrack.getState().toggleCharacter("gone");
     useSingleTrack.getState().prune(["cirno"]);
     expect(useSingleTrack.getState().pins.gone).toBeUndefined();
@@ -48,7 +48,7 @@ describe("single track store", () => {
   });
 
   it("prune 没有死条目时不动 store、不写盘（与 sources.prune 同一口径）", () => {
-    useSingleTrack.getState().setPin("cirno", ["紅魔郷", "おてんば恋娘", "角色曲"]);
+    useSingleTrack.getState().setPin("cirno", { id: "th06_03", album: "紅魔郷", title: "おてんば恋娘", extra: "角色曲" });
     const pins = useSingleTrack.getState().pins;
     const disabled = useSingleTrack.getState().disabledCharacters;
     const saved = localStorage.getItem("tmc.v1.single-track.originals");
@@ -61,9 +61,9 @@ describe("single track store", () => {
     expect(localStorage.getItem("tmc.v1.single-track.originals")).toBe(saved);
   });
 
-  it("带作者的 4 元手选落盘后可完整读回（音MAD 侧手选刷新即丢的那条）", () => {
-    // 音MAD 那批曲目基本都带作者（真数据 86 条里 85 条是 4 元），手选存进去的就是 4 元组
-    const pin: MusicEntry = ["音MAD", "音MAD 一首", "角色曲", "作者"];
+  it("带作者的手选落盘后可完整读回（音MAD 侧手选刷新即丢的那条）", () => {
+    // 音MAD 那批曲目基本都带作者，手选存进去的就是带 author 的对象
+    const pin: MusicEntry = { id: "cirno_otomad_001", album: "音MAD", title: "音MAD 一首", extra: "角色曲", author: "作者" };
     const otomads = singleStoreFor("otomads");
     otomads.setState(fresh);
     otomads.getState().setPin("cirno", pin);
@@ -77,8 +77,8 @@ describe("single track store", () => {
   });
 
   it("手选/禁用同一角色时清掉列表页那条旧点播（否则手选被它盖住）", () => {
-    const requested: MusicEntry = ["紅魔郷", "おてんば恋娘", "角色曲"];
-    const repicked: MusicEntry = ["紅魔郷", "ルーミアのテーマ", "角色曲"];
+    const requested: MusicEntry = { id: "th06_03", album: "紅魔郷", title: "おてんば恋娘", extra: "角色曲" };
+    const repicked: MusicEntry = { id: "th06_02", album: "紅魔郷", title: "ルーミアのテーマ", extra: "角色曲" };
 
     // 设置页手选：用户明确改的就是这个角色 → 旧点播必须让位，否则播放器还按旧的那首解析
     useSession.setState({ entryRequest: { key: "cirno", entry: requested } });
@@ -102,11 +102,11 @@ describe("single track store", () => {
       data: {
         enabled: true,
         pins: {
-          good: ["紅魔郷", "おてんば恋娘", "角色曲"],
-          withAuthor: ["紅魔郷", "おてんば恋娘", "角色曲", "作者"],
-          bad: ["a"],
+          good: { id: "th06_03", album: "紅魔郷", title: "おてんば恋娘", extra: "角色曲" },
+          withAuthor: { id: "cirno_otomad_001", album: "音MAD", title: "音MAD 一首", extra: "角色曲", author: "作者" },
+          bad: ["a"],                       // S2 起元组是旧形状（S4 的 migrate 才认），validate 直接丢
           worse: ["a", "b", "非法"],
-          badAuthor: ["a", "b", "角色曲", 7],
+          badAuthor: { id: "x", album: "a", title: "b", extra: "角色曲", author: 7 },
         },
         disabledCharacters: { x: true, y: "no" },
       },
@@ -114,7 +114,7 @@ describe("single track store", () => {
     const loaded = defineStore(singleTrackSpec("originals")).load();
     expect(loaded.enabled).toBe(true);
     expect(Object.keys(loaded.pins)).toEqual(["good", "withAuthor"]);
-    expect(loaded.pins.withAuthor?.[3]).toBe("作者");
+    expect(loaded.pins.withAuthor?.author).toBe("作者");
     expect(loaded.disabledCharacters).toEqual({ x: true });
   });
 

@@ -21,7 +21,7 @@ export function collectPackAuthors(bundle: DataBundle): string[] {
     for (const entry of character.music) {
       // 曲包写了 `authors = [...]` → 按数组逐个署名；只写了 `author = "A & B"` → 那一整串算一个署名
       // （不猜哪个 `&` 是分隔符：人名里也可能有 `&`，见 D135）
-      for (const name of entry[4] ?? [entry[3] ?? ""]) {
+      for (const name of entry.authors ?? [entry.author ?? ""]) {
         const author = name.trim();
         if (author !== "") names.add(author);
       }

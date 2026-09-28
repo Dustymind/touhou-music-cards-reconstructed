@@ -50,7 +50,8 @@ def load_characters() -> list[dict]:
     for path in sorted((repo.DATA / "characters").glob("*.toml")):
         with open(path, "rb") as fh:
             c = tomllib.load(fh)
-        music = [[key_to_name[t["album_key"]], t["title"], t["extra"]] for t in c.get("track", [])]
+        music = [{"id": t["id"], "album": key_to_name[t["album_key"]], "title": t["title"],
+                  "extra": t["extra"]} for t in c.get("track", [])]
         chars.append({
             "key": c["key"], "name": c["name"], "order": c["order"],
             "card": list(c["card_name"]), "searchNames": list(c["search_names"]),
@@ -94,7 +95,7 @@ def build_characters(mode: str, chars: list[dict], pack_tracks: list[dict],
     """
     by_key = {char["key"]: char for char in chars}
     if mode == "originals":
-        chosen = [dict(char, music=[list(entry) for entry in char["music"]]) for char in chars]
+        chosen = [dict(char, music=[dict(entry) for entry in char["music"]]) for char in chars]
     elif mode == "custom":
         chosen = []
     else:
@@ -105,8 +106,18 @@ def build_characters(mode: str, chars: list[dict], pack_tracks: list[dict],
             char = by_key[key]
             face = cards.get(key)
             cover = covers.get(key)
+            # 曲id（§11.1）：<角色id>_otomad_<序号>，三位、从 01 起、按曲包文件顺序（与数据仓库 manifest 同序）
+            music = []
+            for index, entry in enumerate(entries, start=1):
+                item = {"id": f"{key}_otomad_{index:03d}", "album": entry[0],
+                        "title": entry[1], "extra": entry[2]}
+                if len(entry) > 3:
+                    item["author"] = entry[3]
+                if len(entry) > 4:
+                    item["authors"] = entry[4]
+                music.append(item)
             # 源封面（D153/D167）：每条曲目**一条链接**，生成物里就是 `covers` 字符串数组
-            chosen.append(dict(char, music=[list(entry) for entry in entries],
+            chosen.append(dict(char, music=music,
                                **({"card": list(face)} if face else {}),
                                **({"covers": list(cover)} if cover else {})))
         order = {char["key"]: char["order"] for char in chars}
@@ -159,6 +170,13 @@ def load_mirror_tracks(source_id: str) -> list[list[str]]:
     with open(repo.DATA / "sources" / f"{source_id}.toml", "rb") as fh:
         data = tomllib.load(fh)
     return [[t["album"], t["title"], t["url"]] for t in data.get("track", [])]
+
+
+def load_mirror_entries(source_id: str) -> list[dict]:
+    """读一张镜像源表的 ``[[track]]`` → ``[{id, album, title, url}, …]``（S2：id 键控的生成物由此重排）。"""
+    with open(repo.DATA / "sources" / f"{source_id}.toml", "rb") as fh:
+        data = tomllib.load(fh)
+    return [dict(t) for t in data.get("track", [])]
 
 
 def load_registry(mode: str) -> list[dict]:
@@ -318,8 +336,7 @@ def build_index(mode: str, characters: dict, albums: dict, digest: str) -> dict:
             "characters": len(chars),
             "albums": len(albums["albums"]),
             "trackEntries": sum(len(c["music"]) for c in chars),
-            # 条目是 [专辑, 曲名, extra] 外加**可选**的作者（第 4 位）→ 用 *rest 接住
-            "distinctTracks": len({(a, t) for c in chars for a, t, *_rest in c["music"]}),
+            "distinctTracks": len({e["id"] for c in chars for e in c["music"]}),
         },
     }
 
@@ -365,7 +382,16 @@ def build_outputs() -> tuple[dict, dict[str, dict[str, str]]]:
         index = build_index(mode, characters, albums, digest)
         indices[mode] = index
         base = dataset_dir(mode)
-        outputs[base / "characters.json"] = _dumps(characters)
+        # 契约 §6：characters.json 的 music 只留曲id[]，曲目信息在 tracks.json（TrackIndex）
+        tracks = {e["id"]: {k: e[k] for k in ("album", "title", "extra") if k in e}
+                  | ({k: e[k] for k in ("author", "authors") if k in e})
+                  for c in characters["characters"] for e in c["music"]}
+        outputs[base / "tracks.json"] = _dumps({"schema": SCHEMA_VERSION, "tracks": tracks})
+        outputs[base / "characters.json"] = _dumps({
+            "schema": characters["schema"],
+            "characters": [{**c, "music": [e["id"] for e in c["music"]]}
+                           for c in characters["characters"]],
+        })
         outputs[base / "albums.json"] = _dumps(albums)
         outputs[base / "index.json"] = _dumps(index)
         # 源表随数据集走（音源层也按模式分，见 sources-separation-v1.md）
@@ -383,10 +409,10 @@ def build_outputs() -> tuple[dict, dict[str, dict[str, str]]]:
     # 共享项：与模式无关，只写一份
     outputs[repo.PUBLIC_DATA / "cardsets.json"] = _dumps(build_card_sets())
     for source_id in mirror_source_ids():
-        rows = load_mirror_tracks(source_id)
-        # 与旧 JSON 逐字节同形：indent=1 + ensure_ascii=False + 结尾换行（S1c 转换脚本逐字节校验过）
+        entries = {t["id"]: {"url": t["url"]} for t in load_mirror_entries(source_id)}
+        # 契约 §6：SourceTable（曲id → SourceEntry{url, revision?}）
         outputs[repo.PUBLIC_DATA / "sources" / f"{source_id}.json"] = \
-            json.dumps(rows, ensure_ascii=False, indent=1) + "\n"
+            json.dumps({"schema": SCHEMA_VERSION, "entries": entries}, ensure_ascii=False, indent=1) + "\n"
     return indices, outputs
 
 

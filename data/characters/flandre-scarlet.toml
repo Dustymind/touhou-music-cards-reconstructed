@@ -16,7 +16,7 @@ sources = ["netease163", "thbwiki"]
 id = "th06_14"
 album_key = "th06"
 title = "魔法少女達の百年祭"
-extra = "道中曲"
+extra = "更多道中曲"
 sources = ["netease163", "thbwiki"]
 
 [[track]]
@@ -32,4 +32,5 @@ album_key = "hr01"
 title = "11. U.N.オーエンは彼女なのか？"
 extra = "秘封曲"
 sources = ["netease163", "thbwiki"]
+
 

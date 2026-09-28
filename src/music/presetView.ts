@@ -46,7 +46,9 @@ export function presetStats(
   let charactersWithTracks = 0;
   for (const character of characters) {
     let usable = 0;
-    for (const [album, , extra] of character.music) {
+    for (const entry of character.music) {
+      const album = entry.album;
+      const extra = entry.extra;
       totalTracks += 1;
       byExtra[extra].total += 1;
       if (isTrackEnabled(preset, album, extra)) {

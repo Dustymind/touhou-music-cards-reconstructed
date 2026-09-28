@@ -47,7 +47,7 @@ const COVERS = [
 function character(overrides: Partial<CharacterRecord> = {}): CharacterRecord {
   return {
     key: "cirno", name: "チルノ", order: 6, card: ["チルノ.png"],
-    searchNames: ["チルノ"], music: [["otomads", "おてんば恋娘", "角色曲"]], ...overrides,
+    searchNames: ["チルノ"], music: [{ id: "cirno_otomad_001", album: "otomads", title: "おてんば恋娘", extra: "角色曲" }], ...overrides,
   };
 }
 
@@ -58,7 +58,7 @@ function dataset(mode: MusicMode, characters: CharacterRecord[]): ModeDataset {
       schema: 1, mode, contentHash: "0123456789abcdef",
       counts: { characters: characters.length, albums: 0, trackEntries: 0, distinctTracks: 0 },
     },
-    albums: [], characters, sources: [],
+    albums: [], characters, sources: [], tracks: {},
     characterByKey: new Map(characters.map((item) => [item.key, item])),
     albumByName: new Map(),
   };

@@ -24,23 +24,27 @@ const EXTRAS_SET = new Set<string>(EXTRAS);
 
 const FRESH: SingleTrackState = { enabled: false, pins: {}, disabledCharacters: {} };
 
-/** 手选条目：3 元（专辑 / 曲目 / 附加信息）/ 4 元（第 4 位是**可选作者**，音MAD 那批基本都有）/
- *  5 元（第 5 位是 `authors` 字符串数组 —— D135 起跟着存档走）。 */
+/** 手选条目（S2：对象）：`id / album / title / extra`，`author` 是**可选作者**（音MAD 那批基本都有）、
+ *  `authors` 是字符串数组（D135 起跟着存档走）。旧元组存档由 S4 的 `migrate` 钩子一次性迁移。 */
 function isEntry(raw: unknown): raw is MusicEntry {
-  return Array.isArray(raw) && raw.length >= 3 && raw.length <= 5
-    && typeof raw[0] === "string" && typeof raw[1] === "string"
-    && EXTRAS_SET.has(String(raw[2]))
-    && (raw.length < 4 || typeof raw[3] === "string")
-    && (raw.length < 5
-      || (Array.isArray(raw[4]) && raw[4].length > 0
-          && raw[4].every((name) => typeof name === "string")));
+  return isRecord(raw)
+    && typeof raw.id === "string" && raw.id.length > 0
+    && typeof raw.album === "string" && typeof raw.title === "string"
+    && EXTRAS_SET.has(String(raw.extra))
+    && (raw.author === undefined || typeof raw.author === "string")
+    && (raw.authors === undefined
+      || (Array.isArray(raw.authors) && raw.authors.length > 0
+          && raw.authors.every((name) => typeof name === "string")));
 }
 
-/** 只留校验过的位置；**作者（第 4 位）与多作者（第 5 位）都跟着走** ——
+/** 只留校验过的字段；**作者与多作者都跟着走** ——
  *  丢掉它们，播放页那一行对 pin 的曲目就只剩专辑名。 */
 function copyEntry(value: MusicEntry): MusicEntry {
-  const copy = value.slice(0, Math.min(value.length, 5)) as MusicEntry;
-  return copy;
+  return {
+    id: value.id, album: value.album, title: value.title, extra: value.extra,
+    ...(value.author !== undefined ? { author: value.author } : {}),
+    ...(value.authors !== undefined ? { authors: value.authors } : {}),
+  };
 }
 
 function validateSingleTrack(raw: unknown): SingleTrackState | null {

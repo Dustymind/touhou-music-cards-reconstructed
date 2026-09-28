@@ -52,9 +52,9 @@ describe("音乐模式（原曲 / 音MAD / 自定义）", () => {
     expect(originals.albums.every((album) => album.pack !== "otomads")).toBe(true);
     const entries = originals.characters.flatMap((character) => character.music);
     expect(entries.length).toBe(originals.index.counts.trackEntries);
-    expect(new Set(entries.map((entry) => `${entry[0]}\u0001${entry[1]}`)).size)
+    expect(new Set(entries.map((entry) => entry.id)).size)
       .toBe(originals.index.counts.distinctTracks);
-    expect(entries.every((entry) => entry[0] !== "otomads")).toBe(true);
+    expect(entries.every((entry) => entry.album !== "otomads")).toBe(true);
   });
 
   it("音MAD 数据集：只含有曲目的角色，且每条曲目都属于曲包专辑", () => {
@@ -66,7 +66,7 @@ describe("音乐模式（原曲 / 音MAD / 自定义）", () => {
     expect(otomads.albums.map((album) => album.name)).toEqual(["otomads"]);
     for (const character of otomads.characters) {
       expect(character.music.length).toBeGreaterThan(0);        // 空角色不进这份数据集
-      expect(character.music.every((entry) => entry[0] === "otomads")).toBe(true);
+      expect(character.music.every((entry) => entry.album === "otomads")).toBe(true);
     }
     // S1：音MAD 这份是共享身份的投影 —— 每个角色都得在原曲那份里有出处
     const originalKeys = new Set(originals.characters.map((character) => character.key));
@@ -86,7 +86,7 @@ describe("音乐模式（原曲 / 音MAD / 自定义）", () => {
     expect(originals).toBeDefined();
     expect(otomads).toBeDefined();                              // 琪露诺有音MAD 曲目
 
-    const keys = (entries: readonly MusicEntry[]) => entries.map((entry) => `${entry[0]}\u0001${entry[1]}`);
+    const keys = (entries: readonly MusicEntry[]) => entries.map((entry) => entry.id);
     const left = new Set(keys(originals.music));
     const right = keys(otomads!.music);
     expect(right.length).toBeGreaterThan(0);
@@ -102,7 +102,7 @@ describe("音乐模式（原曲 / 音MAD / 自定义）", () => {
     const cirno = originals.characters.find((character) => character.key === "cirno")!;
     const entries = allowedTracks(preset, cirno).entries;
     expect(entries.length).toBeGreaterThan(0);
-    expect(entries.every((entry) => entry[0] !== "otomads")).toBe(true);
+    expect(entries.every((entry) => entry.album !== "otomads")).toBe(true);
 
     // pinned：模式只影响"接下来能选哪些"，不打断已选的这一首
     const pinned = allowedTracks(defaultPreset(otomads.albums),

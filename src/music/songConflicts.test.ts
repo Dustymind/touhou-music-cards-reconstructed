@@ -15,14 +15,19 @@ const character = (
   ...(covers.length ? { covers } : {}),
 });
 
+/** 测试用曲目对象：id = 专辑+曲名（同一首歌在不同角色下共用一个 id，互斥表按 id 判）。 */
+const entry = (album: string, title: string, extra: MusicEntry["extra"] = "角色曲"): MusicEntry => ({
+  id: `${album}:${title}`, album, title, extra,
+});
+
 
 describe("buildSongConflicts", () => {
   it("共用一首曲子的角色互相排斥；只间接相连的不算（按歌，不是连通分量）", () => {
     const table = buildSongConflicts([
-      character("a", [["原曲盘", "x", "角色曲"]]),
-      character("b", [["原曲盘", "x", "角色曲"], ["原曲盘", "y", "角色曲"]]),
-      character("c", [["原曲盘", "y", "角色曲"]]),
-      character("d", [["原曲盘", "z", "角色曲"]]),
+      character("a", [entry("原曲盘", "x")]),
+      character("b", [entry("原曲盘", "x"), entry("原曲盘", "y")]),
+      character("c", [entry("原曲盘", "y")]),
+      character("d", [entry("原曲盘", "z")]),
     ]);
 
     expect(table["a"]).toEqual(["b"]);
@@ -39,10 +44,10 @@ describe("buildSongConflicts", () => {
     //    只看"当前图集"更糟：两端选了不同图集就会算出两张不同的表。
     const covers = ["https://i0.hdslb.com/a.jpg", "https://i0.hdslb.com/b.jpg", "https://i0.hdslb.com/c.jpg"];
     const table = buildSongConflicts([
-      character("per-track", [["原曲盘", "x", "角色曲"]], ["only.png"], covers),
+      character("per-track", [entry("原曲盘", "x")], ["only.png"], covers),
       // ② 反向：封面只有 1 条，但原版立绘 3 张（合成角色）—— 打原版图集时它们仍是"三个角色共用一个 key"
-      character("composite", [["原曲盘", "y", "角色曲"]], ["l.png", "m.png", "r.png"], ["https://i0.hdslb.com/d.jpg"]),
-      character("single", [["原曲盘", "z", "角色曲"]]),
+      character("composite", [entry("原曲盘", "y")], ["l.png", "m.png", "r.png"], ["https://i0.hdslb.com/d.jpg"]),
+      character("single", [entry("原曲盘", "z")]),
     ]);
 
     expect(table).toEqual({ "per-track": ["per-track"], composite: ["composite"] });
@@ -50,8 +55,8 @@ describe("buildSongConflicts", () => {
 
   it("同一角色的多张卡面互相排斥（自链接）", () => {
     const table = buildSongConflicts([
-      character("sisters", [["原曲盘", "x", "角色曲"]], ["l.png", "m.png", "r.png"]),
-      character("single", [["原曲盘", "y", "角色曲"]]),
+      character("sisters", [entry("原曲盘", "x")], ["l.png", "m.png", "r.png"]),
+      character("single", [entry("原曲盘", "y")]),
     ]);
 
     expect(table).toEqual({ sisters: ["sisters"] });
@@ -59,8 +64,8 @@ describe("buildSongConflicts", () => {
 
   it("同一专辑里两个角色共用一首曲目照样互斥（模式过滤已不在这一层）", () => {
     const characters = [
-      character("a", [["音MAD盘", "m", "角色曲"]]),
-      character("b", [["音MAD盘", "m", "角色曲"]]),
+      character("a", [entry("音MAD盘", "m")]),
+      character("b", [entry("音MAD盘", "m")]),
     ];
     // C：数据集自己就是"某个模式的那份"，所以同样的角色表交给它即可
     expect(buildSongConflicts([characters[0]!])).toEqual({});

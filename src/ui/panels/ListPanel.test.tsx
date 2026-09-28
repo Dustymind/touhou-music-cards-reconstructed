@@ -18,15 +18,15 @@ const OTOMADS_ALBUM: AlbumRecord = { key: "otomads", name: "otomads", kind: "oth
 
 const cirnoOriginals: CharacterRecord = {
   key: "cirno", name: "チルノ", order: 1, card: ["c.png"], searchNames: ["Cirno"],
-  music: [["原曲盘", "おてんば恋娘", "角色曲"]],
+  music: [{ id: "th06_03", album: "原曲盘", title: "おてんば恋娘", extra: "角色曲" }],
 };
 const reimu: CharacterRecord = {
   key: "reimu", name: "霊夢", order: 2, card: ["r.png"], searchNames: ["Reimu"],
-  music: [["原曲盘", "少女綺想曲", "角色曲"]],
+  music: [{ id: "th06_02", album: "原曲盘", title: "少女綺想曲", extra: "角色曲" }],
 };
 const cirnoOtomads: CharacterRecord = {
   key: "cirno", name: "チルノ", order: 1, card: ["c.png"], searchNames: ["Cirno"],
-  music: [["otomads", "音MAD 一首", "角色曲", "作者"]],
+  music: [{ id: "cirno_otomad_001", album: "otomads", title: "音MAD 一首", extra: "角色曲", author: "作者" }],
 };
 
 function dataset(mode: "originals" | "otomads", characters: CharacterRecord[], albums: AlbumRecord[]): ModeDataset {
@@ -36,7 +36,7 @@ function dataset(mode: "originals" | "otomads", characters: CharacterRecord[], a
       schema: 1, mode, contentHash: `hash-${mode}-12345678`,
       counts: { characters: characters.length, albums: albums.length, trackEntries: 0, distinctTracks: 0 },
     },
-    characters, albums, sources: [],
+    characters, albums, sources: [], tracks: {},
     characterByKey: new Map(characters.map((character) => [character.key, character])),
     albumByName: new Map(albums.map((album) => [album.name, album])),
   };

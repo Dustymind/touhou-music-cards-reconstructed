@@ -17,7 +17,7 @@
  * "只有兜底的一边"在同一份数据上算出来自然相同，数据仓库也不必复制主仓库 `tmc.build.content_hash`
  * 的算法。口径（覆盖什么、不覆盖什么）写死在 `packHash` 的注释里，并进契约。
  */
-import { EXTRAS, trackId, type AlbumKind, type AlbumRecord, type CharacterRecord, type DataBundle, type DataIndex, type Extra, type ModeDataset, type MusicEntry } from "./types";
+import { EXTRAS, type AlbumKind, type AlbumRecord, type CharacterRecord, type DataBundle, type DataIndex, type Extra, type ModeDataset, type MusicEntry, type TrackRecord } from "./types";
 import { stableHash } from "../rng";
 import { isRecord } from "../persist";
 
@@ -79,24 +79,30 @@ function parseAlbum(raw: unknown): AlbumRecord | undefined {
   return album;
 }
 
-/** 一条曲目：与 `load.ts` 的 `validateCharacters` 同一套判据（形状必须与自带数据一致）。 */
-function parseMusicEntry(raw: unknown): MusicEntry | undefined {
+/** 一条曲目：与 `load.ts` 的 `validateCharacters` 同一套判据（形状必须与自带数据一致）。
+ *
+ * 清单行是 `[专辑, 曲名, extra, 作者?, 多作者?]` 元组（数据仓库的 wire 格式），**没有曲id** ⇒
+ * 按「该角色在清单里的出现顺序」赋 `<角色id>_otomad_<序号>`（与构建期同一规则，§11.1）。 */
+function parseMusicEntry(raw: unknown, key: string, index: number): MusicEntry | undefined {
   if (!Array.isArray(raw) || raw.length < 3 || raw.length > 5) return undefined;
   const album = text(raw[0]);
   const title = text(raw[1]);
   const extra = raw[2];
   if (album === undefined || title === undefined) return undefined;
   if (!(EXTRAS as readonly unknown[]).includes(extra)) return undefined;
-  const entry: MusicEntry = [album, title, extra as Extra];
+  const entry: MusicEntry = {
+    id: `${key}_otomad_${String(index).padStart(3, "0")}`,
+    album, title, extra: extra as Extra,
+  };
   if (raw.length >= 4) {
     // 第 4 位与第 5 位**同源**（D135）：写了多作者就一定有署名整串，缺一个就是坏形状
     if (typeof raw[3] !== "string") return undefined;
-    entry.push(raw[3]);
+    entry.author = raw[3];
   }
   if (raw.length === 5) {
     const authors = stringList(raw[4]);
     if (authors === undefined) return undefined;
-    entry.push(authors);
+    entry.authors = authors;
   }
   return entry;
 }
@@ -107,8 +113,8 @@ function parseCharacter(raw: unknown): PackSnapshotCharacter | undefined {
   if (key === undefined) return undefined;
   if (!Array.isArray(raw.music) || raw.music.length === 0) return undefined;
   const music: MusicEntry[] = [];
-  for (const entry of raw.music) {
-    const parsed = parseMusicEntry(entry);
+  for (const [index, entry] of raw.music.entries()) {
+    const parsed = parseMusicEntry(entry, key, index + 1);
     if (parsed === undefined) return undefined;
     music.push(parsed);
   }
@@ -210,12 +216,19 @@ export function withPackSnapshot(
     ? snapshotCharacters(snapshot, originals, base, onProblem)
     : base.characters;
   const index = withContentHash(base.index, albums, characters);
+  const tracks: Record<string, TrackRecord> = {};
+  for (const character of characters) {
+    for (const entry of character.music) {
+      tracks[entry.id] = { album: entry.album, title: entry.title, extra: entry.extra };
+    }
+  }
   const otomads: ModeDataset = {
     mode: "otomads",
     index,
     albums,
     characters,
     sources: base.sources,
+    tracks,
     characterByKey: new Map(characters.map((character) => [character.key, character])),
     albumByName: new Map(albums.map((album) => [album.name, album])),
   };
@@ -272,7 +285,7 @@ function withContentHash(
   let entries = 0;
   for (const character of characters) {
     entries += character.music.length;
-    for (const entry of character.music) distinct.add(trackId(entry[0], entry[1]));
+    for (const entry of character.music) distinct.add(entry.id);
   }
   return {
     ...baked,

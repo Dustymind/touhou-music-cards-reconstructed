@@ -5,7 +5,7 @@ import {
 import { useMemo, useState } from "react";
 
 import type { DataBundle, MusicEntry } from "../../../data/types";
-import { displayTitle, trackId } from "../../../data/types";
+import { displayTitle } from "../../../data/types";
 import { Localization, t } from "../../../i18n/localization";
 import { SectionPanel } from "./SectionCard";
 import { LazyRow } from "../../components/LazyRow";
@@ -17,7 +17,7 @@ import { useProgressiveRows } from "../../useProgressiveRows";
 import { memoOnLocale } from "../../memoOnLocale";
 
 function entryLabel(entry: MusicEntry): string {
-  return `${displayTitle(entry[1])} (${entry[0]})`;
+  return `${displayTitle(entry.title)} (${entry.album})`;
 }
 
 /** 首屏先渲染多少行；其余分片补齐（每片 12 行 ≈ 100ms 里的一小段 —— 单行 Select ≈ 7ms） */
@@ -80,7 +80,7 @@ function SingleTrackSectionInner({ bundle }: { bundle: DataBundle }) {
       >
         {rows.slice(0, rendered).map(({ character, allowed, pinned, disabled }) => {
           const current = pinned ?? allowed[0] ?? null;
-          const value = current ? trackId(current[0], current[1]) : "";
+          const value = current ? current.id : "";
           return (
             <LazyRow key={character.key} testId={`single-row-${character.key}`}>
             <Stack
@@ -117,7 +117,7 @@ function SingleTrackSectionInner({ bundle }: { bundle: DataBundle }) {
                   variant="outlined"
                   inputProps={{ "aria-label": `single-${character.key}` }}
                   onChange={(event) => {
-                    const chosen = allowed.find((entry) => trackId(entry[0], entry[1]) === event.target.value);
+                    const chosen = allowed.find((entry) => entry.id === event.target.value);
                     single.setPin(character.key, chosen ?? null);
                   }}
                 >
@@ -125,7 +125,7 @@ function SingleTrackSectionInner({ bundle }: { bundle: DataBundle }) {
                     <MenuItem value="" disabled>{t(Localization.ConfigTabSingleNoTracks)}</MenuItem>
                   )}
                   {allowed.map((entry) => (
-                    <MenuItem key={trackId(entry[0], entry[1])} value={trackId(entry[0], entry[1])}>
+                    <MenuItem key={entry.id} value={entry.id}>
                       {entryLabel(entry)}
                     </MenuItem>
                   ))}

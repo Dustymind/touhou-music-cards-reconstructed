@@ -16,7 +16,7 @@ sources = ["netease163", "thbwiki"]
 id = "th12_14"
 album_key = "th12"
 title = "夜空のユーフォーロマンス"
-extra = "道中曲"
+extra = "更多道中曲"
 sources = ["netease163", "thbwiki"]
 
 [[track]]
@@ -46,4 +46,5 @@ album_key = "hr07"
 title = "06. 夜空のユーフォーロマンス"
 extra = "秘封曲"
 sources = ["netease163", "thbwiki"]
+
 

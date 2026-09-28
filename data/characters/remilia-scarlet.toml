@@ -16,7 +16,7 @@ sources = ["netease163", "thbwiki"]
 id = "th06_12"
 album_key = "th06"
 title = "ツェペシュの幼き末裔"
-extra = "道中曲"
+extra = "更多道中曲"
 sources = ["netease163", "thbwiki"]
 
 [[track]]
@@ -32,4 +32,5 @@ album_key = "th10.5-arrange"
 title = "09. 亡き王女の為のセプテット"
 extra = "角色曲"
 sources = ["netease163", "thbwiki"]
+
 

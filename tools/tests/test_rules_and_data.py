@@ -117,7 +117,8 @@ def test_every_extra_is_one_of_four():
     for path in sorted((repo.DATA / "characters").glob("*.toml")):
         with open(path, "rb") as fh:
             char = tomllib.load(fh)
-        for _album, _title, extra in char["music"]:
+        for entry in char["music"]:
+            extra = entry["extra"]
             seen.add(extra)
     assert seen <= {"角色曲", "道中曲", "更多道中曲", "秘封曲"}
     assert "秘封曲" in seen
@@ -148,7 +149,7 @@ def test_card_override_is_allowed_for_otomads_only():
     其余身份字段（name / order / searchNames）仍必须一致；没覆盖的角色连 card 也要一致。
     """
     chars = [{"key": "a", "name": "A", "order": 1, "card": ["a.png"], "searchNames": ["a"],
-              "music": [["原曲盘", "t", "角色曲"]]}]
+              "music": [{"id": "x_1", "album": "原曲盘", "title": "t", "extra": "角色曲"}]}]
     pack_albums = [{"key": "otomads", "name": "otomads", "kind": "other", "pack": "otomads", "order": 1}]
     pack_tracks = [{"character": "a", "album": "otomads", "title": "t2", "extra": "角色曲", "pack": "otomads"}]
     albums = {"原曲盘": {}, "otomads": {}}
@@ -179,7 +180,7 @@ def test_source_covers_are_otomads_only_and_must_match_the_track_count():
     所以要比的是"真源的 cover 真的进了 otomads 生成物"，以及"条数与曲目数相等"。
     """
     chars = [{"key": "a", "name": "A", "order": 1, "card": ["a.png"], "searchNames": ["a"],
-              "music": [["原曲盘", "t", "角色曲"]]}]
+              "music": [{"id": "x_1", "album": "原曲盘", "title": "t", "extra": "角色曲"}]}]
     pack_albums = [{"key": "otomads", "name": "otomads", "kind": "other", "pack": "otomads", "order": 1}]
     pack_tracks = [{"character": "a", "album": "otomads", "title": "t2", "extra": "角色曲", "pack": "otomads"},
                    {"character": "a", "album": "otomads", "title": "t3", "extra": "角色曲", "pack": "otomads"}]

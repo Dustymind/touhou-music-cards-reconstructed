@@ -16,7 +16,7 @@ sources = ["netease163", "thbwiki"]
 id = "th17_14"
 album_key = "th17"
 title = "輝かしき弱肉強食の掟"
-extra = "道中曲"
+extra = "更多道中曲"
 sources = ["netease163", "thbwiki"]
 
 [[track]]
@@ -25,4 +25,5 @@ album_key = "th19"
 title = "聖徳太子のペガサス　～ Dark Pegasus"
 extra = "角色曲"
 sources = ["netease163", "thbwiki"]
+
 

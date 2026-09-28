@@ -12,9 +12,9 @@ const albums: AlbumRecord[] = [
 const character: CharacterRecord = {
   key: "cirno", name: "チルノ", order: 1, card: ["c.png"], searchNames: ["チルノ"],
   music: [
-    ["紅魔郷", "おてんば恋娘", "角色曲"],
-    ["妖々夢", "無何有の郷　～ Deep Mountain", "更多道中曲"],
-    ["蓬莱人形", "氷の妖精", "秘封曲"],
+    { id: "th06_03", album: "紅魔郷", title: "おてんば恋娘", extra: "角色曲" },
+    { id: "th07_02", album: "妖々夢", title: "無何有の郷　～ Deep Mountain", extra: "更多道中曲" },
+    { id: "hr01_01", album: "蓬莱人形", title: "氷の妖精", extra: "秘封曲" },
   ],
 };
 

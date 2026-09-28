@@ -110,7 +110,7 @@ describe("customSingle（只有逐卡禁用）", () => {
   });
 
   it("禁用一张卡会清掉它那条列表页点播（否则点播会一直盖住「已禁用」，B2 的同一条）", () => {
-    useSession.setState({ entryRequest: { key: "custom-爱丽丝", entry: ["旧作", "曲", "角色曲"] } });
+    useSession.setState({ entryRequest: { key: "custom-爱丽丝", entry: { id: "custom-爱丽丝", album: "旧作", title: "曲", extra: "角色曲" } } });
     useCustomSingle.getState().toggle("custom-爱丽丝");
     expect(useSession.getState().entryRequest).toBeNull();
   });

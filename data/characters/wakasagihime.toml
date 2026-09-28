@@ -16,6 +16,7 @@ sources = ["netease163", "thbwiki"]
 id = "th14_02"
 album_key = "th14"
 title = "ミストレイク"
-extra = "道中曲"
+extra = "更多道中曲"
 sources = ["netease163", "thbwiki"]
+
 

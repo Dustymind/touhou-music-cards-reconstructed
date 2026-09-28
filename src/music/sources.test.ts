@@ -19,8 +19,9 @@ describe("sources resolver", () => {
       s1: { id: "s1", status: "ready" as const, entries: new Map() },
       s2: { id: "s2", status: "ready" as const, entries: buildEntries(rows) },
     };
-    expect(resolveTrack(tables, ["s1", "s2"], "紅魔郷", "おてんば恋娘")?.sourceId).toBe("s2");
-    expect(resolveTrack(tables, ["s1"], "紅魔郷", "おてんば恋娘")).toBeNull();
+    const entry = { id: "th06_03", album: "紅魔郷", title: "おてんば恋娘" };
+    expect(resolveTrack(tables, ["s1", "s2"], entry)?.sourceId).toBe("s2");
+    expect(resolveTrack(tables, ["s1"], entry)).toBeNull();
   });
 
   it("记入失败集合的源会被跳过（运行时换源）", () => {
@@ -28,9 +29,10 @@ describe("sources resolver", () => {
       s1: { id: "s1", status: "ready" as const, entries: buildEntries(rows) },
       s2: { id: "s2", status: "ready" as const, entries: buildEntries(rows) },
     };
+    const entry = { id: "th06_03", album: "紅魔郷", title: "おてんば恋娘" };
     const failed = new Set([`s1\u0000${trackId("紅魔郷", "おてんば恋娘")}`]);
-    expect(resolveTrack(tables, ["s1", "s2"], "紅魔郷", "おてんば恋娘", failed)?.sourceId).toBe("s2");
-    expect(resolveTrack(tables, ["s1"], "紅魔郷", "おてんば恋娘", failed)).toBeNull();
+    expect(resolveTrack(tables, ["s1", "s2"], entry, failed)?.sourceId).toBe("s2");
+    expect(resolveTrack(tables, ["s1"], entry, failed)).toBeNull();
   });
 
   /** 真实曲包里那几种"作者/曲名自带连字符"的形状 —— 兜底匹配**必须**照样命中（2026-09-27 逐条复核过
@@ -57,10 +59,10 @@ describe("sources resolver", () => {
     const tables = { local: { id: "local", status: "ready" as const, entries: buildEntries(diskRows) } };
 
     for (const [album, title] of shapes) {
-      expect(resolveTrack(tables, ["local"], album, title)?.url, title).toMatch(/^https:\/\/a\//);
+      expect(resolveTrack(tables, ["local"], { id: "x", album, title })?.url, title).toMatch(/^https:\/\/a\//);
     }
     // 另一张专辑里的同名行不许被串上（兜底扫描仍然按专辑过滤）
-    expect(resolveTrack(tables, ["local"], "紅魔郷", "Otto Remote - xHGNz")).toBeNull();
+    expect(resolveTrack(tables, ["local"], { id: "x", album: "紅魔郷", title: "Otto Remote - xHGNz" })).toBeNull();
   });
 
   it("加载失败的源不参与解析，状态被记录", async () => {
@@ -77,7 +79,7 @@ describe("sources resolver", () => {
     expect(result.tables.good!.status).toBe("ready");
     expect(result.tables.bad!.status).toBe("error");
     expect(result.tables.off!.status).toBe("idle");
-    expect(resolveTrack(result.tables, result.order, "紅魔郷", "おてんば恋娘")?.sourceId).toBe("good");
+    expect(resolveTrack(result.tables, result.order, { id: "th06_03", album: "紅魔郷", title: "おてんば恋娘" })?.sourceId).toBe("good");
     expect(countResolvable(result.tables, result.order)).toBe(2);
   });
 

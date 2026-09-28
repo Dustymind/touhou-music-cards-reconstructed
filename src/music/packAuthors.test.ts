@@ -14,10 +14,11 @@ const ALBUM: AlbumRecord = { key: "otomads", name: "otomads", kind: "other", pac
 function character(key: string, authors: (string | undefined)[]): CharacterRecord {
   return {
     key, name: key, order: 1, card: [], searchNames: [],
-    music: authors.map((author, index): MusicEntry =>
-      (author === undefined
-        ? ["otomads", `曲 ${index}`, "角色曲"]
-        : ["otomads", `曲 ${index}`, "角色曲", author])),
+    music: authors.map((author, index): MusicEntry => ({
+      id: `${key}_otomad_${String(index + 1).padStart(3, "0")}`,
+      album: "otomads", title: `曲 ${index}`, extra: "角色曲",
+      ...(author === undefined ? {} : { author }),
+    })),
   };
 }
 
@@ -28,7 +29,7 @@ function dataset(mode: MusicMode, characters: CharacterRecord[], sources: Source
       schema: 1, mode, contentHash: `hash-${mode}`,
       counts: { characters: characters.length, albums: 1, trackEntries: 0, distinctTracks: 0 },
     },
-    characters, albums: [ALBUM], sources,
+    characters, albums: [ALBUM], sources, tracks: {},
     characterByKey: new Map(characters.map((entry) => [entry.key, entry])),
     albumByName: new Map([[ALBUM.name, ALBUM]]),
   };
@@ -87,9 +88,9 @@ describe("collectPackAuthors", () => {
     const data = bundle([{
       key: "cirno", name: "cirno", order: 1, card: [], searchNames: [],
       music: [
-        ["otomads", "合写的", "角色曲", "乙 & 甲", ["乙", "甲"]],   // 老写法 + 新数组（同源）
-        ["otomads", "单独的", "角色曲", "丙"],
-        ["otomads", "没作者", "角色曲"],
+        { id: "cirno_otomad_001", album: "otomads", title: "合写的", extra: "角色曲", author: "乙 & 甲", authors: ["乙", "甲"] },   // 老写法 + 新数组（同源）
+        { id: "cirno_otomad_002", album: "otomads", title: "单独的", extra: "角色曲", author: "丙" },
+        { id: "cirno_otomad_003", album: "otomads", title: "没作者", extra: "角色曲" },
       ],
     }]);
     // 「乙 & 甲」拆成两个人（并按首字母排序），整串本身不再算一个署名

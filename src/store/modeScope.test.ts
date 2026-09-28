@@ -19,7 +19,7 @@ import { singleStoreFor, singleTrackSpec } from "./single";
 import { useSession } from "./session";
 
 const ALBUM = "東方紅魔郷 ～ the Embodiment of Scarlet Devil";
-const PIN: MusicEntry = [ALBUM, "おてんば恋娘", "角色曲"];
+const PIN: MusicEntry = { id: "th06_03", album: ALBUM, title: "おてんば恋娘", extra: "角色曲" };
 
 const preset = { originals: presetStoreFor("originals"), otomads: presetStoreFor("otomads") };
 const single = { originals: singleStoreFor("originals"), otomads: singleStoreFor("otomads") };
@@ -104,15 +104,15 @@ describe("两模式互不干扰", () => {
 
   it("音MAD 侧改，反过来也不动原曲（手选同一个角色也不会串）", () => {
     single.originals.getState().setPin("cirno", PIN);
-    single.otomads.getState().setPin("cirno", ["otomads", "音MAD 一首", "角色曲"]);
+    single.otomads.getState().setPin("cirno", { id: "cirno_otomad_001", album: "otomads", title: "音MAD 一首", extra: "角色曲" });
 
-    expect(single.originals.getState().pins.cirno?.[1]).toBe("おてんば恋娘");
-    expect(single.otomads.getState().pins.cirno?.[1]).toBe("音MAD 一首");
+    expect(single.originals.getState().pins.cirno?.title).toBe("おてんば恋娘");
+    expect(single.otomads.getState().pins.cirno?.title).toBe("音MAD 一首");
   });
 });
 
 describe("列表页点播（entryRequest）不跨模式", () => {
-  const OTOMAD: MusicEntry = ["音MAD 专辑", "音MAD 一首", "角色曲"];
+  const OTOMAD: MusicEntry = { id: "cirno_otomad_001", album: "音MAD 专辑", title: "音MAD 一首", extra: "角色曲" };
 
   it("切音乐模式时清掉点播：旧请求指向另一个数据集的曲目，留着会把播放器带进死路", () => {
     useSession.getState().setEntryRequest({ key: "cirno", entry: PIN });

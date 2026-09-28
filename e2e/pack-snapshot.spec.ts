@@ -20,10 +20,27 @@ const NEW_TITLE = "e2e 新增曲目";
 
 interface BakedCharacter {
   key: string;
-  music: unknown[][];
+  music: string[];
   card: string[];
 }
 
+interface BakedTrack {
+  album: string;
+  title: string;
+  extra: string;
+  author?: string;
+  authors?: string[];
+}
+
+/** 自带数据的曲id[] → 清单的元组行（S2：生成物按曲id 存，清单 wire 格式仍是元组）。 */
+function toRows(ids: string[], tracks: Record<string, BakedTrack>): (string | string[])[] {
+  return ids.map((id) => {
+    const track = tracks[id]!;
+    if (track.authors) return [track.album, track.title, track.extra, track.author ?? "", track.authors];
+    if (track.author) return [track.album, track.title, track.extra, track.author];
+    return [track.album, track.title, track.extra];
+  });
+}
 
 /** 应用栏上的数据指纹（12 位十六进制）—— 联机握手比的就是它。 */
 async function fingerprint(page: Page): Promise<string> {
@@ -32,12 +49,17 @@ async function fingerprint(page: Page): Promise<string> {
 }
 
 /** 用同源的生成物当"自带那份曲目表"（应用里兜底用的就是它）。 */
-async function bakedSnapshot(page: Page): Promise<{ albums: unknown[]; characters: BakedCharacter[] }> {
+async function bakedSnapshot(page: Page): Promise<{
+  albums: unknown[]; characters: BakedCharacter[]; tracks: Record<string, BakedTrack>;
+}> {
   const albums = await (await page.request.get("/data/otomads/albums.json")).json() as { albums: unknown[] };
   const characters = await (await page.request.get("/data/otomads/characters.json")).json() as {
     characters: BakedCharacter[];
   };
-  return { albums: albums.albums, characters: characters.characters };
+  const tracksPayload = await (await page.request.get("/data/otomads/tracks.json")).json() as {
+    tracks: Record<string, BakedTrack>;
+  };
+  return { albums: albums.albums, characters: characters.characters, tracks: tracksPayload.tracks };
 }
 
 /** 截住助手的 manifest：取回真清单 → `mutate` 改一改 → 交回应用。 */
@@ -76,7 +98,9 @@ test("源里多一首曲目 ⇒ 应用里出现、统计跟着涨、能选中并
     payload.tracks = [...rows, ["otomads", NEW_TITLE, donorUrl, donor[3]]];
     // ② 清单的**曲目表**多一首（加到第一个角色名下）—— 应用就是按这一段决定"有哪些曲目"
     const characters = baked.characters.map(({ key, music, card }) => ({ key, music, card }));
-    characters[0]!.music = [...characters[0]!.music, ["otomads", NEW_TITLE, "角色曲"]];
+    characters[0]!.music = [
+      ...toRows(characters[0]!.music, baked.tracks), ["otomads", NEW_TITLE, "角色曲"],
+    ];
     payload.albums = baked.albums;
     payload.characters = characters;
   });
@@ -127,7 +151,9 @@ test("老清单（不带这两个键）⇒ 与今天逐字一致；源给的正�
   await page.unroute(HELPER_MANIFEST);
   await interceptManifest(page, (payload, baked) => {
     payload.albums = baked.albums;
-    payload.characters = baked.characters.map(({ key, music, card }) => ({ key, music, card }));
+    payload.characters = baked.characters.map(({ key, music, card }) => ({
+      key, music: toRows(music, baked.tracks), card,
+    }));
   });
   await page.reload();
   await useOtomadsMode(page);

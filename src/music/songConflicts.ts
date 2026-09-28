@@ -22,7 +22,7 @@
  */
 import type { CharacterRecord } from "../data/types";
 import { maxCardCount } from "../data/cardFaces";
-import { trackId } from "../data/types";
+
 import type { SongConflicts } from "../game/types";
 
 /** 派生互斥表；表里没有的角色 = 与谁都不互斥（不必查表）。
@@ -36,7 +36,7 @@ export function buildSongConflicts(characters: readonly CharacterRecord[]): Song
   for (const character of characters) {
     for (const entry of character.music) {
       playable.add(character.key);
-      const id = trackId(entry[0], entry[1]);
+      const id = entry.id;
       const owners = ownersOfTrack.get(id) ?? new Set<string>();
       owners.add(character.key);
       ownersOfTrack.set(id, owners);

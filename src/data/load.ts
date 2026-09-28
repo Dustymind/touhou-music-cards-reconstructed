@@ -12,6 +12,7 @@ import {
   EXTRAS,
   type ModeDataset,
   type SourceRecord,
+  type TrackRecord,
 } from "./types";
 import { MUSIC_MODES, type MusicMode } from "../music/mode";
 import { isCardRatio } from "../theme/cardRatio";
@@ -49,12 +50,15 @@ export function validateIndex(raw: unknown, expected: MusicMode): DataIndex {
   return index;
 }
 
-export function validateCharacters(raw: unknown, expected: number): CharacterRecord[] {
+/** 生成物里的角色记录：`music` 是曲id 字符串数组（物化见 loadDataset）。 */
+type RawCharacter = Omit<CharacterRecord, "music"> & { music: string[] };
+
+export function validateCharacters(raw: unknown, expected: number): RawCharacter[] {
   const list = (raw as { characters?: unknown } | null)?.characters;
   assert(Array.isArray(list), "characters.json 缺少 characters 数组");
   assert(list.length === expected,
     `characters.json 记录数与 index 不符（${list.length} vs ${expected}）`);
-  const characters = list as CharacterRecord[];
+  const characters = list as RawCharacter[];
   const keys = new Set<string>();
   for (const character of characters) {
     assert(typeof character.key === "string" && character.key.length > 0, "角色缺 key");
@@ -76,21 +80,33 @@ export function validateCharacters(raw: unknown, expected: number): CharacterRec
           && character.audio.every((url) => typeof url === "string" && url.trim() !== "")),
       `${character.key} 的 audio 必须是非空字符串数组`);
     for (const entry of character.music) {
-      // `[专辑, 曲名, extra]`，第 4 位是**可选**的作者（音MAD 这类曲目才有）
-      assert(Array.isArray(entry) && entry.length >= 3 && entry.length <= 5,
-        `${character.key} 曲目条目形状不对`);
-      assert((EXTRAS as readonly string[]).includes(entry[2]),
-        `${character.key} 的附加信息非法：${String(entry[2])}`);
-      assert(entry.length < 4 || typeof entry[3] === "string",
-        `${character.key} 的作者字段必须是字符串`);
-      // 第 5 位（多作者数组，D135）：要写就得是非空字符串数组
-      assert(entry.length < 5
-        || (Array.isArray(entry[4]) && entry[4].length > 0
-            && entry[4].every((name) => typeof name === "string" && name.trim() !== "")),
-        `${character.key} 的多作者字段必须是非空字符串数组`);
+      // S2 起生成物里是**曲id 字符串**（曲目信息在 tracks.json），load 时按 TrackIndex 物化
+      assert(typeof entry === "string" && entry.length > 0,
+        `${character.key} 的曲目条目不是曲id`);
     }
   }
   return characters;
+}
+
+export function validateTracks(raw: unknown): Record<string, TrackRecord> {
+  const payload = raw as { tracks?: unknown } | null;
+  assert(payload && typeof payload.tracks === "object" && payload.tracks !== null,
+    "tracks.json 缺少 tracks 对象");
+  const tracks = payload.tracks as Record<string, TrackRecord>;
+  for (const [id, track] of Object.entries(tracks)) {
+    assert(typeof track === "object" && track !== null, `曲id ${id} 的条目不是对象`);
+    assert(typeof track.album === "string" && typeof track.title === "string",
+      `曲id ${id} 缺专辑/曲名`);
+    assert((EXTRAS as readonly string[]).includes(track.extra),
+      `曲id ${id} 的附加信息非法：${String(track.extra)}`);
+    assert(track.author === undefined || typeof track.author === "string",
+      `曲id ${id} 的作者字段必须是字符串`);
+    assert(track.authors === undefined
+      || (Array.isArray(track.authors) && track.authors.length > 0
+          && track.authors.every((name) => typeof name === "string" && name.trim() !== "")),
+      `曲id ${id} 的多作者字段必须是非空字符串数组`);
+  }
+  return tracks;
 }
 
 export function validateAlbums(raw: unknown): AlbumRecord[] {
@@ -155,12 +171,23 @@ function validateCardSets(raw: unknown): CardSetRecord[] {
 async function loadDataset(base: string, expected: MusicMode): Promise<ModeDataset> {
   const url = (name: string) => `${base.replace(/\/$/, "")}/${name}`;
   const index = validateIndex(await fetchJson(url("index.json")), expected);
-  const [rawCharacters, rawAlbums, rawSources] = await Promise.all([
+  const [rawCharacters, rawAlbums, rawSources, rawTracks] = await Promise.all([
     fetchJson(url("characters.json")),
     fetchJson(url("albums.json")),
     fetchJson(url("sources.json")),
+    fetchJson(url("tracks.json")),
   ]);
-  const characters = validateCharacters(rawCharacters, index.counts.characters);
+  const tracks = validateTracks(rawTracks);
+  const characters = validateCharacters(rawCharacters, index.counts.characters)
+    .map((character) => ({
+      ...character,
+      // 曲id[] → MusicEntry[]（物化：TrackIndex 里没有的曲id 当场报错，绝不半信半疑地用）
+      music: character.music.map((id) => {
+        const track = tracks[id];
+        assert(track !== undefined, `${character.key} 的曲id 不在 TrackIndex 里：${id}`);
+        return { id, ...track };
+      }),
+    }));
   const albums = validateAlbums(rawAlbums);
   // 每个源自己的响度表：注册表里的 `loudnessUrl` 相对**数据集目录**解析（契约 D130）
   const sources = validateSources(rawSources).map((source) => ({
@@ -172,7 +199,7 @@ async function loadDataset(base: string, expected: MusicMode): Promise<ModeDatas
   for (const album of albums) {
     assert(album.kind !== "hifuu" || album.name.length > 0, "秘封专辑缺名字");
   }
-  return { mode: expected, index, characters, albums, sources, characterByKey, albumByName };
+  return { mode: expected, index, characters, albums, sources, tracks, characterByKey, albumByName };
 }
 
 /** 载入全部运行时数据：**三个模式的数据集一起取**（契约 §4 策略 A：没有"切模式取数据失败"这条路）。

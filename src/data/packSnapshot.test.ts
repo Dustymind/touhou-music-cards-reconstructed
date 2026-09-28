@@ -14,7 +14,7 @@ import {
   packHash, parsePackSnapshot, withPackSnapshot,
   type PackSnapshot, type PackSnapshotCharacter,
 } from "./packSnapshot";
-import type { AlbumRecord, CharacterRecord, DataBundle, MusicEntry } from "./types";
+import type { AlbumRecord, CharacterRecord, DataBundle } from "./types";
 
 let bundle: DataBundle;
 
@@ -27,7 +27,9 @@ const ALBUM: AlbumRecord = {
   showAlbumName: false,
 };
 const CHARACTER: PackSnapshotCharacter = {
-  key: "cirno", music: [["otomads", "おてんば恋娘", "角色曲", "作者"]], card: ["c.png"],
+  key: "cirno",
+  music: [{ id: "cirno_otomad_001", album: "otomads", title: "おてんば恋娘", extra: "角色曲", author: "作者" }],
+  card: ["c.png"],
 };
 
 function payload(overrides: Record<string, unknown> = {}): Record<string, unknown> {
@@ -137,7 +139,7 @@ describe("parsePackSnapshot", () => {
     const two = parsePackSnapshot(payload({
       characters: [{
         ...CHARACTER,
-        music: [...CHARACTER.music, [...CHARACTER.music[0]!] as typeof CHARACTER.music[0]],
+        music: [...CHARACTER.music, { ...CHARACTER.music[0]!, id: "cirno_otomad_002" }],
         covers: [wide, "https://i0.hdslb.com/b.jpg"],
       }],
     }))!;
@@ -151,7 +153,7 @@ describe("withPackSnapshot", () => {
     return {
       albums: dataset.albums.map((album) => ({ ...album })),
       characters: dataset.characters.map((character) => ({
-        key: character.key, music: character.music.map((entry) => [...entry] as MusicEntry),
+        key: character.key, music: character.music.map((entry) => ({ ...entry })),
         card: [...character.card],
         // 源封面（D153）：有才带 —— 与真源 per-track `cover = "…"` 攒出来的数组同形
         ...(character.covers ? { covers: [...character.covers] } : {}),
@@ -197,7 +199,7 @@ describe("withPackSnapshot", () => {
     const first = snapshot.characters[0]!;
     const grown: PackSnapshot = {
       albums: snapshot.albums,
-      characters: [{ ...first, music: [...first.music, ["otomads", "新加的曲目", "角色曲", "作者"]] },
+      characters: [{ ...first, music: [...first.music, { id: "cirno_otomad_999", album: "otomads", title: "新加的曲目", extra: "角色曲", author: "作者" }] },
         ...snapshot.characters.slice(1)],
     };
     const live = withPackSnapshot(bundle, grown).datasets.otomads;
@@ -211,11 +213,14 @@ describe("packHash", () => {
   const albums: AlbumRecord[] = [ALBUM];
   const cirno: CharacterRecord = {
     key: "cirno", name: "チルノ", order: 1, card: ["c.png"], searchNames: ["cirno"],
-    music: [["otomads", "一", "角色曲", "甲"], ["otomads", "二", "道中曲", "甲 & 乙", ["甲", "乙"]]],
+    music: [
+      { id: "cirno_otomad_001", album: "otomads", title: "一", extra: "角色曲", author: "甲" },
+      { id: "cirno_otomad_002", album: "otomads", title: "二", extra: "道中曲", author: "甲 & 乙", authors: ["甲", "乙"] },
+    ],
   };
   const marisa: CharacterRecord = {
     key: "kirisame-marisa", name: "霧雨魔理沙", order: 2, card: ["m.png"], searchNames: ["魔理沙"],
-    music: [["otomads", "三", "角色曲"]],
+    music: [{ id: "kirisame-marisa_otomad_001", album: "otomads", title: "三", extra: "角色曲" }],
   };
 
   it("同数据同值（可复现）、16 位十六进制、两次不同标签拼成 62 位", () => {
@@ -233,7 +238,7 @@ describe("packHash", () => {
 
   it("换一首就变；连专辑的展示开关也算", () => {
     const base = packHash(albums, [cirno, marisa]);
-    expect(packHash(albums, [{ ...cirno, music: [...cirno.music, ["otomads", "四", "角色曲"]] }, marisa]))
+    expect(packHash(albums, [{ ...cirno, music: [...cirno.music, { id: "cirno_otomad_003", album: "otomads", title: "四", extra: "角色曲" }] }, marisa]))
       .not.toBe(base);
     expect(packHash([{ ...ALBUM, showAlbumName: true }], [cirno, marisa])).not.toBe(base);
     expect(packHash([{ ...ALBUM, order: 99 }], [cirno, marisa])).not.toBe(base);

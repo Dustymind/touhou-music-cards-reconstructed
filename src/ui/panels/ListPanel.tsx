@@ -74,7 +74,7 @@ function ListPanelInner({ bundle, onPlayTrack, playingKey, playingEntry }: ListP
   /** 正在播放的那一首（角色 + 专辑 + 曲名），用于高亮；只算一次传给各行 */
   const playing = useMemo(
     () => (playingKey && playingEntry
-      ? `${playingKey}|${playingEntry[0]}|${playingEntry[1]}`
+      ? `${playingKey}|${playingEntry.album}|${playingEntry.title}`
       : null),
     [playingKey, playingEntry],
   );
@@ -143,7 +143,7 @@ const ListRow = memo(function ListRow({
   onToggle: (key: string) => void;
   onPlayTrack?: (key: string, entry: MusicEntry) => void;
 }) {
-  const [album, title] = character.music[0]!;
+  const { album, title } = character.music[0]!;
   return (
     <ListItem disablePadding divider sx={{ display: "block" }}>
       {/* 行本身点一下展开/收起曲目（默认折叠）；同时仍然选中这个角色 */}
@@ -192,7 +192,7 @@ const ListRow = memo(function ListRow({
       <Collapse in={expanded} timeout={MD2.accordion.timeout} unmountOnExit>
         <List disablePadding data-testid={`list-tracks-${character.key}`}>
           {character.music.map((entry) => {
-            const id = `${character.key}|${entry[0]}|${entry[1]}`;
+            const id = `${character.key}|${entry.album}|${entry.title}`;
             const active = playing === id;
             return (
               <ListItem key={id} disablePadding divider>
@@ -204,7 +204,7 @@ const ListRow = memo(function ListRow({
                     ...(active ? { bgcolor: "action.selected" } : {}),
                   }}
                   onClick={() => onPlayTrack?.(character.key, entry)}
-                  data-testid={`list-track-${character.key}-${entry[0]}-${entry[1]}`}
+                  data-testid={`list-track-${character.key}-${entry.album}-${entry.title}`}
                 >
                   <Box sx={{ mr: 2, display: "flex", alignItems: "center" }}>
                     {active
@@ -213,8 +213,8 @@ const ListRow = memo(function ListRow({
                   </Box>
                   {/* 与列表行同一套格式：主文本 = 曲名，次文本 = 专辑 */}
                   <ListItemText
-                    primary={displayTitle(entry[1])}
-                    secondary={entry[0]}
+                    primary={displayTitle(entry.title)}
+                    secondary={entry.album}
                     slotProps={{
                       primary: {
                         variant: "body2",

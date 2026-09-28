@@ -44,9 +44,9 @@ export function triAllows(value: Tri | undefined): boolean {
 export function customCardEnabled(state: CustomPresetState, character: CharacterRecord): boolean {
   const entry = character.music[0];
   if (!entry) return false;
-  const author = entry[3];
+  const author = entry.author;
   // 没有作者的卡只看专辑那一维（作者维度对它不适用，Q7）
-  return triAllows(state.albums[entry[0]])
+  return triAllows(state.albums[entry.album])
     && (author === undefined || triAllows(state.authors[author]));
 }
 
@@ -54,7 +54,7 @@ export function customCardEnabled(state: CustomPresetState, character: Character
 export function customAuthorsOf(characters: readonly CharacterRecord[]): string[] {
   const seen = new Set<string>();
   for (const character of characters) {
-    const author = character.music[0]?.[3];
+    const author = character.music[0]?.author;
     if (author !== undefined) seen.add(author);
   }
   return sortAuthors([...seen]);
@@ -79,7 +79,7 @@ export function customPresetStats(
   return {
     enabled,
     total: characters.length,
-    albums: new Set(characters.map((character) => character.music[0]?.[0]).filter(Boolean)).size,
+    albums: new Set(characters.map((character) => character.music[0]?.album).filter(Boolean)).size,
     authors: customAuthorsOf(characters).length,
   };
 }
@@ -119,5 +119,5 @@ export function customSingleRows(
 export function customCardCredit(character: CharacterRecord): string {
   const entry = character.music[0];
   if (!entry) return "";
-  return [displayTitle(entry[1]), entry[0], entry[3]].filter(Boolean).join(" · ");
+  return [displayTitle(entry.title), entry.album, entry.author].filter(Boolean).join(" · ");
 }

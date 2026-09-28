@@ -1,0 +1,1845 @@
+{
+ "schema": 1,
+ "tracks": {
+  "th08_10": {
+   "album": "東方永夜抄 ～ Imperishable Night",
+   "title": "恋色マスタースパーク",
+   "extra": "角色曲"
+  },
+  "th09_03": {
+   "album": "東方花映塚 ～ Phantasmagoria of Flower View",
+   "title": "オリエンタルダークフライト",
+   "extra": "角色曲"
+  },
+  "th19_03": {
+   "album": "東方獣王園 ～ Unfinished Dream of All Living Ghost",
+   "title": "魔獣スクランブル",
+   "extra": "角色曲"
+  },
+  "TFM-001a_04": {
+   "album": "幻想曲抜萃 ～ 東方萃夢想 Day Disc",
+   "title": "04. 恋色マジック",
+   "extra": "角色曲"
+  },
+  "TFM-001b_04": {
+   "album": "幻想曲抜萃 ～ 東方萃夢想 Night Disc",
+   "title": "04. 魔女達の舞踏会",
+   "extra": "角色曲"
+  },
+  "TFM-003A_03": {
+   "album": "全人類ノ天楽録 ～ 東方緋想天 Arrange Disc",
+   "title": "03. 星の器 ～ Casket of Star",
+   "extra": "角色曲"
+  },
+  "TFM-004_11": {
+   "album": "核熱造神ヒソウテンソク ～ 東方非想天則",
+   "title": "11. 恋色マジック",
+   "extra": "角色曲"
+  },
+  "TFM-006a_04": {
+   "album": "暗黒能楽集・心綺楼",
+   "title": "メイガスナイト",
+   "extra": "角色曲"
+  },
+  "TFM-007b_02": {
+   "album": "深秘的楽曲集",
+   "title": "恋色マスタースパーク",
+   "extra": "角色曲"
+  },
+  "TFM-009a_04": {
+   "album": "完全憑依ディスコグラフィ",
+   "title": "マッシュルーム・ワルツ",
+   "extra": "角色曲"
+  },
+  "TFM-010a_03": {
+   "album": "強欲な獣のムジカ",
+   "title": "恋色マスタースパーク",
+   "extra": "角色曲"
+  },
+  "th07_07": {
+   "album": "東方妖々夢 ～ Perfect Cherry Blossom",
+   "title": "人形裁判　～ 人の形弄びし少女",
+   "extra": "角色曲"
+  },
+  "th07_06": {
+   "album": "東方妖々夢 ～ Perfect Cherry Blossom",
+   "title": "ブクレシュティの人形師",
+   "extra": "道中曲"
+  },
+  "TFM-001a_08": {
+   "album": "幻想曲抜萃 ～ 東方萃夢想 Day Disc",
+   "title": "08. ブクレシュティの人形師",
+   "extra": "角色曲"
+  },
+  "TFM-001b_08": {
+   "album": "幻想曲抜萃 ～ 東方萃夢想 Night Disc",
+   "title": "08. 人形裁判",
+   "extra": "角色曲"
+  },
+  "TFM-003A_05": {
+   "album": "全人類ノ天楽録 ～ 東方緋想天 Arrange Disc",
+   "title": "05. ブクレシュティの人形師",
+   "extra": "角色曲"
+  },
+  "TFM-004_12": {
+   "album": "核熱造神ヒソウテンソク ～ 東方非想天則",
+   "title": "12. the Grimoire of Alice",
+   "extra": "角色曲"
+  },
+  "hr03_08": {
+   "album": "夢違科学世紀 ～ Changeability of Strange Dream",
+   "title": "08. 人形裁判 ～ 人の形弄びし少女",
+   "extra": "秘封曲"
+  },
+  "th08_09": {
+   "album": "東方永夜抄 ～ Imperishable Night",
+   "title": "少女綺想曲　～ Dream Battle",
+   "extra": "角色曲"
+  },
+  "th09_02": {
+   "album": "東方花映塚 ～ Phantasmagoria of Flower View",
+   "title": "春色小径　～ Colorful Path",
+   "extra": "角色曲"
+  },
+  "th19_02": {
+   "album": "東方獣王園 ～ Unfinished Dream of All Living Ghost",
+   "title": "世界は可愛く出来ている",
+   "extra": "角色曲"
+  },
+  "TFM-001a_02": {
+   "album": "幻想曲抜萃 ～ 東方萃夢想 Day Disc",
+   "title": "02. 東方妖恋談",
+   "extra": "角色曲"
+  },
+  "TFM-001b_02": {
+   "album": "幻想曲抜萃 ～ 東方萃夢想 Night Disc",
+   "title": "02. 少女綺想曲 ～ Capriccio",
+   "extra": "角色曲"
+  },
+  "TFM-003A_02": {
+   "album": "全人類ノ天楽録 ～ 東方緋想天 Arrange Disc",
+   "title": "02. 東方妖恋談",
+   "extra": "角色曲"
+  },
+  "TFM-004_10": {
+   "album": "核熱造神ヒソウテンソク ～ 東方非想天則",
+   "title": "10. 二色蓮花蝶 ～ Ancients",
+   "extra": "角色曲"
+  },
+  "TFM-006a_03": {
+   "album": "暗黒能楽集・心綺楼",
+   "title": "春色小径　～ Colorful Path",
+   "extra": "角色曲"
+  },
+  "TFM-007b_01": {
+   "album": "深秘的楽曲集",
+   "title": "二色蓮花蝶 ～ Red and White",
+   "extra": "角色曲"
+  },
+  "TFM-009a_03": {
+   "album": "完全憑依ディスコグラフィ",
+   "title": "地の色は黄色　～ Primrose",
+   "extra": "角色曲"
+  },
+  "TFM-010a_04": {
+   "album": "強欲な獣のムジカ",
+   "title": "少女綺想曲",
+   "extra": "角色曲"
+  },
+  "th06_03": {
+   "album": "東方紅魔郷 ～ the Embodiment of Scarlet Devil",
+   "title": "妖魔夜行",
+   "extra": "角色曲"
+  },
+  "th06_02": {
+   "album": "東方紅魔郷 ～ the Embodiment of Scarlet Devil",
+   "title": "ほおずきみたいに紅い魂",
+   "extra": "道中曲"
+  },
+  "th06_04": {
+   "album": "東方紅魔郷 ～ the Embodiment of Scarlet Devil",
+   "title": "ルーネイトエルフ",
+   "extra": "道中曲"
+  },
+  "th06_05": {
+   "album": "東方紅魔郷 ～ the Embodiment of Scarlet Devil",
+   "title": "おてんば恋娘",
+   "extra": "角色曲"
+  },
+  "th07_02": {
+   "album": "東方妖々夢 ～ Perfect Cherry Blossom",
+   "title": "無何有の郷　～ Deep Mountain",
+   "extra": "更多道中曲"
+  },
+  "th14_02": {
+   "album": "東方輝針城 ～ Double Dealing Character",
+   "title": "ミストレイク",
+   "extra": "更多道中曲"
+  },
+  "TFM-004_04": {
+   "album": "核熱造神ヒソウテンソク ～ 東方非想天則",
+   "title": "04. おてんば恋娘",
+   "extra": "角色曲"
+  },
+  "th09_07": {
+   "album": "東方花映塚 ～ Phantasmagoria of Flower View",
+   "title": "おてんば恋娘の冒険",
+   "extra": "角色曲"
+  },
+  "th06_07": {
+   "album": "東方紅魔郷 ～ the Embodiment of Scarlet Devil",
+   "title": "明治十七年の上海アリス",
+   "extra": "角色曲"
+  },
+  "th06_06": {
+   "album": "東方紅魔郷 ～ the Embodiment of Scarlet Devil",
+   "title": "上海紅茶館　～ Chinese Tea",
+   "extra": "道中曲"
+  },
+  "TFM-004_05": {
+   "album": "核熱造神ヒソウテンソク ～ 東方非想天則",
+   "title": "05. 上海紅茶館 ～ Chinese Tea",
+   "extra": "角色曲"
+  },
+  "hr01_04": {
+   "album": "蓬莱人形 ～ Dolls in Pseudo Paradise",
+   "title": "04. 明治十七年の上海アリス",
+   "extra": "秘封曲"
+  },
+  "hr03_03": {
+   "album": "夢違科学世紀 ～ Changeability of Strange Dream",
+   "title": "03. 上海紅茶館 ～ Chinese Tea",
+   "extra": "秘封曲"
+  },
+  "th06_08": {
+   "album": "東方紅魔郷 ～ the Embodiment of Scarlet Devil",
+   "title": "ヴワル魔法図書館",
+   "extra": "道中曲"
+  },
+  "th06_09": {
+   "album": "東方紅魔郷 ～ the Embodiment of Scarlet Devil",
+   "title": "ラクトガール　～ 少女密室",
+   "extra": "角色曲"
+  },
+  "TFM-001a_10": {
+   "album": "幻想曲抜萃 ～ 東方萃夢想 Day Disc",
+   "title": "10. ラクトガール ～ 少女密室",
+   "extra": "角色曲"
+  },
+  "TFM-001b_10": {
+   "album": "幻想曲抜萃 ～ 東方萃夢想 Night Disc",
+   "title": "10. ヴワル魔法図書館",
+   "extra": "角色曲"
+  },
+  "TFM-003A_07": {
+   "album": "全人類ノ天楽録 ～ 東方緋想天 Arrange Disc",
+   "title": "07. ラクトガール ～ 少女密室",
+   "extra": "角色曲"
+  },
+  "TFM-004_13": {
+   "album": "核熱造神ヒソウテンソク ～ 東方非想天則",
+   "title": "13. ヴワル魔法図書館",
+   "extra": "角色曲"
+  },
+  "hr04_09": {
+   "album": "卯酉東海道 ～ Retrospective 53 Minutes",
+   "title": "09. ラクトガール ～ 少女密室",
+   "extra": "秘封曲"
+  },
+  "th06_14": {
+   "album": "東方紅魔郷 ～ the Embodiment of Scarlet Devil",
+   "title": "魔法少女達の百年祭",
+   "extra": "更多道中曲"
+  },
+  "th06_11": {
+   "album": "東方紅魔郷 ～ the Embodiment of Scarlet Devil",
+   "title": "月時計　～ ルナ・ダイアル",
+   "extra": "角色曲"
+  },
+  "th06_10": {
+   "album": "東方紅魔郷 ～ the Embodiment of Scarlet Devil",
+   "title": "メイドと血の懐中時計",
+   "extra": "道中曲"
+  },
+  "th09_04": {
+   "album": "東方花映塚 ～ Phantasmagoria of Flower View",
+   "title": "フラワリングナイト",
+   "extra": "角色曲"
+  },
+  "TFM-001a_06": {
+   "album": "幻想曲抜萃 ～ 東方萃夢想 Day Disc",
+   "title": "06. メイドと血の懐中時計",
+   "extra": "角色曲"
+  },
+  "TFM-001b_06": {
+   "album": "幻想曲抜萃 ～ 東方萃夢想 Night Disc",
+   "title": "06. 月時計 ～ ルナ・ダイアル",
+   "extra": "角色曲"
+  },
+  "TFM-003A_04": {
+   "album": "全人類ノ天楽録 ～ 東方緋想天 Arrange Disc",
+   "title": "04. フラワリングナイト",
+   "extra": "角色曲"
+  },
+  "th06_12": {
+   "album": "東方紅魔郷 ～ the Embodiment of Scarlet Devil",
+   "title": "ツェペシュの幼き末裔",
+   "extra": "更多道中曲"
+  },
+  "th06_13": {
+   "album": "東方紅魔郷 ～ the Embodiment of Scarlet Devil",
+   "title": "亡き王女の為のセプテット",
+   "extra": "角色曲"
+  },
+  "TFM-001a_13": {
+   "album": "幻想曲抜萃 ～ 東方萃夢想 Day Disc",
+   "title": "13. 亡き王女の為のセプテット",
+   "extra": "角色曲"
+  },
+  "TFM-003A_09": {
+   "album": "全人類ノ天楽録 ～ 東方緋想天 Arrange Disc",
+   "title": "09. 亡き王女の為のセプテット",
+   "extra": "角色曲"
+  },
+  "th06_15": {
+   "album": "東方紅魔郷 ～ the Embodiment of Scarlet Devil",
+   "title": "U.N.オーエンは彼女なのか？",
+   "extra": "角色曲"
+  },
+  "TFM-010b_05": {
+   "album": "強欲な獣のムジカ",
+   "title": "U.N.オーエンは彼女なのか？",
+   "extra": "角色曲"
+  },
+  "hr01_11": {
+   "album": "蓬莱人形 ～ Dolls in Pseudo Paradise",
+   "title": "11. U.N.オーエンは彼女なのか？",
+   "extra": "秘封曲"
+  },
+  "th07_03": {
+   "album": "東方妖々夢 ～ Perfect Cherry Blossom",
+   "title": "クリスタライズシルバー",
+   "extra": "角色曲"
+  },
+  "th07_05": {
+   "album": "東方妖々夢 ～ Perfect Cherry Blossom",
+   "title": "ティアオイエツォン(withered leaf)",
+   "extra": "角色曲"
+  },
+  "th07_04": {
+   "album": "東方妖々夢 ～ Perfect Cherry Blossom",
+   "title": "遠野幻想物語",
+   "extra": "道中曲"
+  },
+  "th07_15": {
+   "album": "東方妖々夢 ～ Perfect Cherry Blossom",
+   "title": "妖々跋扈",
+   "extra": "更多道中曲"
+  },
+  "th07_08": {
+   "album": "東方妖々夢 ～ Perfect Cherry Blossom",
+   "title": "天空の花の都",
+   "extra": "道中曲"
+  },
+  "th07_09": {
+   "album": "東方妖々夢 ～ Perfect Cherry Blossom",
+   "title": "幽霊楽団　～ Phantom Ensemble",
+   "extra": "角色曲"
+  },
+  "th09_08": {
+   "album": "東方花映塚 ～ Phantasmagoria of Flower View",
+   "title": "幽霊楽団　～ Phantom Ensemble",
+   "extra": "角色曲"
+  },
+  "th07_11": {
+   "album": "東方妖々夢 ～ Perfect Cherry Blossom",
+   "title": "広有射怪鳥事　～ Till When？",
+   "extra": "角色曲"
+  },
+  "th07_10": {
+   "album": "東方妖々夢 ～ Perfect Cherry Blossom",
+   "title": "東方妖々夢　～ Ancient Temple",
+   "extra": "角色曲"
+  },
+  "th07_12": {
+   "album": "東方妖々夢 ～ Perfect Cherry Blossom",
+   "title": "アルティメットトゥルース",
+   "extra": "更多道中曲"
+  },
+  "TFM-001a_12": {
+   "album": "幻想曲抜萃 ～ 東方萃夢想 Day Disc",
+   "title": "12. 広有射怪鳥事 ～ Till When？",
+   "extra": "角色曲"
+  },
+  "TFM-001b_12": {
+   "album": "幻想曲抜萃 ～ 東方萃夢想 Night Disc",
+   "title": "12. 東方妖々夢 ～ Ancient Temple",
+   "extra": "角色曲"
+  },
+  "TFM-003A_06": {
+   "album": "全人類ノ天楽録 ～ 東方緋想天 Arrange Disc",
+   "title": "06. 広有射怪鳥事 ～ Till When？",
+   "extra": "角色曲"
+  },
+  "hr02_03": {
+   "album": "蓮台野夜行 ～ Ghostly Field Club",
+   "title": "03. 東方妖々夢 ～ Ancient Temple",
+   "extra": "秘封曲"
+  },
+  "th09_05": {
+   "album": "東方花映塚 ～ Phantasmagoria of Flower View",
+   "title": "東方妖々夢　～ Ancient Temple",
+   "extra": "更多道中曲"
+  },
+  "th07_13": {
+   "album": "東方妖々夢 ～ Perfect Cherry Blossom",
+   "title": "幽雅に咲かせ、墨染の桜　～ Border of Life",
+   "extra": "角色曲"
+  },
+  "th07_14": {
+   "album": "東方妖々夢 ～ Perfect Cherry Blossom",
+   "title": "ボーダーオブライフ",
+   "extra": "角色曲"
+  },
+  "th13_02": {
+   "album": "東方神霊廟 ～ Ten Desires",
+   "title": "死霊の夜桜",
+   "extra": "更多道中曲"
+  },
+  "th13_03": {
+   "album": "東方神霊廟 ～ Ten Desires",
+   "title": "ゴーストリード",
+   "extra": "更多道中曲"
+  },
+  "TFM-001a_14": {
+   "album": "幻想曲抜萃 ～ 東方萃夢想 Day Disc",
+   "title": "14. 幽雅に咲かせ 墨染の桜 ～ Border of Life.",
+   "extra": "角色曲"
+  },
+  "TFM-003A_08": {
+   "album": "全人類ノ天楽録 ～ 東方緋想天 Arrange Disc",
+   "title": "08. 幽雅に咲かせ、墨染の桜 ～ Border of Life",
+   "extra": "角色曲"
+  },
+  "th07_16": {
+   "album": "東方妖々夢 ～ Perfect Cherry Blossom",
+   "title": "少女幻葬　～ Necro-Fantasy",
+   "extra": "角色曲"
+  },
+  "th07_17": {
+   "album": "東方妖々夢 ～ Perfect Cherry Blossom",
+   "title": "妖々跋扈　～ Who done it!",
+   "extra": "更多道中曲"
+  },
+  "hr02_10": {
+   "album": "蓮台野夜行 ～ Ghostly Field Club",
+   "title": "10. 少女幻葬 ～ Necro-Fantasy",
+   "extra": "秘封曲"
+  },
+  "th19_11": {
+   "album": "東方獣王園 ～ Unfinished Dream of All Living Ghost",
+   "title": "妖々跋扈　～ Who done it!",
+   "extra": "更多道中曲"
+  },
+  "th07_18": {
+   "album": "東方妖々夢 ～ Perfect Cherry Blossom",
+   "title": "ネクロファンタジア",
+   "extra": "角色曲"
+  },
+  "TFM-001b_16": {
+   "album": "幻想曲抜萃 ～ 東方萃夢想 Night Disc",
+   "title": "16. 夜が降りてくる ～ Evening Star",
+   "extra": "角色曲"
+  },
+  "TFM-003A_10": {
+   "album": "全人類ノ天楽録 ～ 東方緋想天 Arrange Disc",
+   "title": "10. 夜が降りてくる",
+   "extra": "角色曲"
+  },
+  "TFM-009c_07": {
+   "album": "完全憑依ディスコグラフィ",
+   "title": "夜が降りてくる　～ Evening Star",
+   "extra": "角色曲"
+  },
+  "TFM-009a_17": {
+   "album": "完全憑依ディスコグラフィ",
+   "title": "憑坐は夢と現の間に　～ Necro-Fantasia",
+   "extra": "角色曲"
+  },
+  "hr03_07": {
+   "album": "夢違科学世紀 ～ Changeability of Strange Dream",
+   "title": "07. 夜が降りてくる ～ Evening Star",
+   "extra": "秘封曲"
+  },
+  "hr05_09": {
+   "album": "大空魔術 ～ Magical Astronomy",
+   "title": "09. ネクロファンタジア",
+   "extra": "秘封曲"
+  },
+  "hr12_07": {
+   "album": "七夕坂夢幻能 ~ Taboo Japan Disentanglement",
+   "title": "憑坐は夢と現の間に 〜 Necro-Fantasia",
+   "extra": "秘封曲"
+  },
+  "th08_03": {
+   "album": "東方永夜抄 ～ Imperishable Night",
+   "title": "蠢々秋月　～ Mooned Insect",
+   "extra": "角色曲"
+  },
+  "th08_02": {
+   "album": "東方永夜抄 ～ Imperishable Night",
+   "title": "幻視の夜　～ Ghostly Eyes",
+   "extra": "道中曲"
+  },
+  "th08_05": {
+   "album": "東方永夜抄 ～ Imperishable Night",
+   "title": "もう歌しか聞こえない",
+   "extra": "角色曲"
+  },
+  "th08_04": {
+   "album": "東方永夜抄 ～ Imperishable Night",
+   "title": "夜雀の歌声　～ Night Bird",
+   "extra": "道中曲"
+  },
+  "th09_09": {
+   "album": "東方花映塚 ～ Phantasmagoria of Flower View",
+   "title": "もう歌しか聞こえない　～ Flower Mix",
+   "extra": "角色曲"
+  },
+  "th08_07": {
+   "album": "東方永夜抄 ～ Imperishable Night",
+   "title": "プレインエイジア",
+   "extra": "角色曲"
+  },
+  "th08_06": {
+   "album": "東方永夜抄 ～ Imperishable Night",
+   "title": "懐かしき東方の血　～ Old World",
+   "extra": "道中曲"
+  },
+  "th08_17": {
+   "album": "東方永夜抄 ～ Imperishable Night",
+   "title": "エクステンドアッシュ　～ 蓬莱人",
+   "extra": "更多道中曲"
+  },
+  "th09_10": {
+   "album": "東方花映塚 ～ Phantasmagoria of Flower View",
+   "title": "お宇佐さまの素い幡",
+   "extra": "角色曲"
+  },
+  "th08_11": {
+   "album": "東方永夜抄 ～ Imperishable Night",
+   "title": "シンデレラケージ　～ Kagome-Kagome",
+   "extra": "更多道中曲"
+  },
+  "hr04_06": {
+   "album": "卯酉東海道 ～ Retrospective 53 Minutes",
+   "title": "06. お宇佐さまの素い幡",
+   "extra": "秘封曲"
+  },
+  "th08_12": {
+   "album": "東方永夜抄 ～ Imperishable Night",
+   "title": "狂気の瞳　～ Invisible Full Moon",
+   "extra": "角色曲"
+  },
+  "TFM-003A_12": {
+   "album": "全人類ノ天楽録 ～ 東方緋想天 Arrange Disc",
+   "title": "12. 狂気の瞳 ～ Invisible Full Moon",
+   "extra": "角色曲"
+  },
+  "TFM-008_01": {
+   "album": "深秘的楽曲集·補 東方深秘録初回特典CD",
+   "title": "狂気の瞳～ Invisible Full Moon",
+   "extra": "角色曲"
+  },
+  "TFM-009b_03": {
+   "album": "完全憑依ディスコグラフィ",
+   "title": "永遠に続く回廊",
+   "extra": "角色曲"
+  },
+  "th09_06": {
+   "album": "東方花映塚 ～ Phantasmagoria of Flower View",
+   "title": "狂気の瞳　～ Invisible Full Moon",
+   "extra": "角色曲"
+  },
+  "th08_14": {
+   "album": "東方永夜抄 ～ Imperishable Night",
+   "title": "千年幻想郷　～ History of the Moon",
+   "extra": "角色曲"
+  },
+  "th08_13": {
+   "album": "東方永夜抄 ～ Imperishable Night",
+   "title": "ヴォヤージュ1969",
+   "extra": "道中曲"
+  },
+  "th08_16": {
+   "album": "東方永夜抄 ～ Imperishable Night",
+   "title": "ヴォヤージュ1970",
+   "extra": "角色曲"
+  },
+  "hr03_04": {
+   "album": "夢違科学世紀 ～ Changeability of Strange Dream",
+   "title": "04. ヴォヤージュ1969",
+   "extra": "秘封曲"
+  },
+  "hr04_10": {
+   "album": "卯酉東海道 ～ Retrospective 53 Minutes",
+   "title": "10. 千年幻想郷 ～ History of the Moon",
+   "extra": "秘封曲"
+  },
+  "th08_15": {
+   "album": "東方永夜抄 ～ Imperishable Night",
+   "title": "竹取飛翔　～ Lunatic Princess",
+   "extra": "角色曲"
+  },
+  "hr04_03": {
+   "album": "卯酉東海道 ～ Retrospective 53 Minutes",
+   "title": "03. 竹取飛翔 ～ Lunatic Princess",
+   "extra": "秘封曲"
+  },
+  "th08_18": {
+   "album": "東方永夜抄 ～ Imperishable Night",
+   "title": "月まで届け、不死の煙",
+   "extra": "角色曲"
+  },
+  "TFM-007b_11": {
+   "album": "深秘的楽曲集",
+   "title": "月まで届け、不死の煙",
+   "extra": "角色曲"
+  },
+  "TFM-009b_02": {
+   "album": "完全憑依ディスコグラフィ",
+   "title": "不滅のレッドソウル",
+   "extra": "角色曲"
+  },
+  "hr04_07": {
+   "album": "卯酉東海道 ～ Retrospective 53 Minutes",
+   "title": "07. 月まで届け不死の煙",
+   "extra": "秘封曲"
+  },
+  "th09_12": {
+   "album": "東方花映塚 ～ Phantasmagoria of Flower View",
+   "title": "ポイズンボディ　～ Forsaken Doll",
+   "extra": "角色曲"
+  },
+  "th09_13": {
+   "album": "東方花映塚 ～ Phantasmagoria of Flower View",
+   "title": "今昔幻想郷　～ Flower Land",
+   "extra": "角色曲"
+  },
+  "th09_14": {
+   "album": "東方花映塚 ～ Phantasmagoria of Flower View",
+   "title": "彼岸帰航　～ Riverside View",
+   "extra": "角色曲"
+  },
+  "TFM-003A_14": {
+   "album": "全人類ノ天楽録 ～ 東方緋想天 Arrange Disc",
+   "title": "14. 彼岸帰航 ～ Riverside View",
+   "extra": "角色曲"
+  },
+  "hr04_04": {
+   "album": "卯酉東海道 ～ Retrospective 53 Minutes",
+   "title": "04. 彼岸帰航 ～ Riverside View",
+   "extra": "秘封曲"
+  },
+  "th09_15": {
+   "album": "東方花映塚 ～ Phantasmagoria of Flower View",
+   "title": "六十年目の東方裁判　～ Fate of Sixty Years",
+   "extra": "角色曲"
+  },
+  "hr08_04": {
+   "album": "伊弉諾物質 ～ Neo-traditionalism of Japan",
+   "title": "04. 六十年目の東方裁判 ～ Fate of Sixty Years",
+   "extra": "秘封曲"
+  },
+  "th10_02": {
+   "album": "東方風神録 ～ Mountain of Faith",
+   "title": "人恋し神様　～ Romantic Fall",
+   "extra": "道中曲"
+  },
+  "th10_03": {
+   "album": "東方風神録 ～ Mountain of Faith",
+   "title": "稲田姫様に叱られるから",
+   "extra": "角色曲"
+  },
+  "th10_05": {
+   "album": "東方風神録 ～ Mountain of Faith",
+   "title": "運命のダークサイド",
+   "extra": "角色曲"
+  },
+  "th10_04": {
+   "album": "東方風神録 ～ Mountain of Faith",
+   "title": "厄神様の通り道　～ Dark Road",
+   "extra": "道中曲"
+  },
+  "th10_07": {
+   "album": "東方風神録 ～ Mountain of Faith",
+   "title": "芥川龍之介の河童　～ Candid Friend",
+   "extra": "角色曲"
+  },
+  "th10_06": {
+   "album": "東方風神録 ～ Mountain of Faith",
+   "title": "神々が恋した幻想郷",
+   "extra": "道中曲"
+  },
+  "TFM-006a_09": {
+   "album": "暗黒能楽集・心綺楼",
+   "title": "芥川龍之介の河童　～ Candid Friend",
+   "extra": "角色曲"
+  },
+  "TFM-009a_13": {
+   "album": "完全憑依ディスコグラフィ",
+   "title": "沢の河童の技術力",
+   "extra": "角色曲"
+  },
+  "TFM-007b_07": {
+   "album": "深秘的楽曲集",
+   "title": "芥川龍之介の河童 ～ Candid Friend",
+   "extra": "角色曲"
+  },
+  "th10_08": {
+   "album": "東方風神録 ～ Mountain of Faith",
+   "title": "フォールオブフォール　～ 秋めく滝",
+   "extra": "道中曲"
+  },
+  "th10_09": {
+   "album": "東方風神録 ～ Mountain of Faith",
+   "title": "妖怪の山　～ Mysterious Mountain",
+   "extra": "角色曲"
+  },
+  "th09_11": {
+   "album": "東方花映塚 ～ Phantasmagoria of Flower View",
+   "title": "風神少女　 (Short Version)",
+   "extra": "角色曲"
+  },
+  "TFM-003A_13": {
+   "album": "全人類ノ天楽録 ～ 東方緋想天 Arrange Disc",
+   "title": "13. 風神少女",
+   "extra": "角色曲"
+  },
+  "th10_11": {
+   "album": "東方風神録 ～ Mountain of Faith",
+   "title": "信仰は儚き人間の為に",
+   "extra": "角色曲"
+  },
+  "th10_10": {
+   "album": "東方風神録 ～ Mountain of Faith",
+   "title": "少女が見た日本の原風景",
+   "extra": "道中曲"
+  },
+  "th11_14": {
+   "album": "東方地霊殿 ～ Subterranean Animism",
+   "title": "ラストリモート",
+   "extra": "更多道中曲"
+  },
+  "TFM-004_03": {
+   "album": "核熱造神ヒソウテンソク ～ 東方非想天則",
+   "title": "03. 信仰は儚き人間の為に",
+   "extra": "角色曲"
+  },
+  "th10_13": {
+   "album": "東方風神録 ～ Mountain of Faith",
+   "title": "神さびた古戦場　～ Suwa Foughten Field",
+   "extra": "角色曲"
+  },
+  "th10_12": {
+   "album": "東方風神録 ～ Mountain of Faith",
+   "title": "御柱の墓場　～ Grave of Being",
+   "extra": "道中曲"
+  },
+  "th10_14": {
+   "album": "東方風神録 ～ Mountain of Faith",
+   "title": "明日ハレの日、ケの昨日",
+   "extra": "更多道中曲"
+  },
+  "TFM-010a_11": {
+   "album": "強欲な獣のムジカ",
+   "title": "神さびた古戦場",
+   "extra": "角色曲"
+  },
+  "th10_15": {
+   "album": "東方風神録 ～ Mountain of Faith",
+   "title": "ネイティブフェイス",
+   "extra": "角色曲"
+  },
+  "TFM-004_07": {
+   "album": "核熱造神ヒソウテンソク ～ 東方非想天則",
+   "title": "07. 明日ハレの日、ケの昨日",
+   "extra": "角色曲"
+  },
+  "hr06_03": {
+   "album": "未知の花 魅知の旅",
+   "title": "03. 明日ハレの日、ケの昨日",
+   "extra": "秘封曲"
+  },
+  "th11_02": {
+   "album": "東方地霊殿 ～ Subterranean Animism",
+   "title": "暗闇の風穴",
+   "extra": "道中曲"
+  },
+  "th11_03": {
+   "album": "東方地霊殿 ～ Subterranean Animism",
+   "title": "封じられた妖怪　～ Lost Place",
+   "extra": "角色曲"
+  },
+  "TFM-010a_07": {
+   "album": "強欲な獣のムジカ",
+   "title": "封じられた妖怪",
+   "extra": "角色曲"
+  },
+  "th11_05": {
+   "album": "東方地霊殿 ～ Subterranean Animism",
+   "title": "緑眼のジェラシー",
+   "extra": "角色曲"
+  },
+  "th11_04": {
+   "album": "東方地霊殿 ～ Subterranean Animism",
+   "title": "渡る者の途絶えた橋",
+   "extra": "道中曲"
+  },
+  "th11_07": {
+   "album": "東方地霊殿 ～ Subterranean Animism",
+   "title": "華のさかづき大江山",
+   "extra": "角色曲"
+  },
+  "th11_06": {
+   "album": "東方地霊殿 ～ Subterranean Animism",
+   "title": "旧地獄街道を行く",
+   "extra": "道中曲"
+  },
+  "TFM-010a_09": {
+   "album": "強欲な獣のムジカ",
+   "title": "華のさかづき大江山",
+   "extra": "角色曲"
+  },
+  "th11_09": {
+   "album": "東方地霊殿 ～ Subterranean Animism",
+   "title": "少女さとり　～ 3rd eye",
+   "extra": "角色曲"
+  },
+  "th11_11": {
+   "album": "東方地霊殿 ～ Subterranean Animism",
+   "title": "死体旅行　～ Be of good cheer!",
+   "extra": "角色曲"
+  },
+  "th11_10": {
+   "album": "東方地霊殿 ～ Subterranean Animism",
+   "title": "廃獄ララバイ",
+   "extra": "道中曲"
+  },
+  "th11_08": {
+   "album": "東方地霊殿 ～ Subterranean Animism",
+   "title": "ハートフェルトファンシー",
+   "extra": "更多道中曲"
+  },
+  "th11_12": {
+   "album": "東方地霊殿 ～ Subterranean Animism",
+   "title": "業火マントル",
+   "extra": "道中曲"
+  },
+  "hr08_03": {
+   "album": "伊弉諾物質 ～ Neo-traditionalism of Japan",
+   "title": "03. ハートフェルトファンシー",
+   "extra": "秘封曲"
+  },
+  "th19_15": {
+   "album": "東方獣王園 ～ Unfinished Dream of All Living Ghost",
+   "title": "死体旅行　～ Be of good cheer!",
+   "extra": "角色曲"
+  },
+  "th11_13": {
+   "album": "東方地霊殿 ～ Subterranean Animism",
+   "title": "霊知の太陽信仰　～ Nuclear Fusion",
+   "extra": "角色曲"
+  },
+  "TFM-004_06": {
+   "album": "核熱造神ヒソウテンソク ～ 東方非想天則",
+   "title": "06. 霊知の太陽信仰 ～ Nuclear Fusion",
+   "extra": "角色曲"
+  },
+  "TFM-010a_14": {
+   "album": "強欲な獣のムジカ",
+   "title": "霊知の太陽信仰",
+   "extra": "角色曲"
+  },
+  "th11_15": {
+   "album": "東方地霊殿 ～ Subterranean Animism",
+   "title": "ハルトマンの妖怪少女",
+   "extra": "角色曲"
+  },
+  "TFM-006a_10": {
+   "album": "暗黒能楽集・心綺楼",
+   "title": "ハルトマンの妖怪少女",
+   "extra": "角色曲"
+  },
+  "TFM-009a_14": {
+   "album": "完全憑依ディスコグラフィ",
+   "title": "地底に咲く薔薇",
+   "extra": "角色曲"
+  },
+  "hr07_07": {
+   "album": "鳥船遺跡 ～ Trojan Green Asteroid",
+   "title": "07. ハルトマンの妖怪少女",
+   "extra": "秘封曲"
+  },
+  "TFM-007b_08": {
+   "album": "深秘的楽曲集",
+   "title": "ハルトマンの妖怪少女",
+   "extra": "角色曲"
+  },
+  "th12_03": {
+   "album": "東方星蓮船 ～ Undefined Fantastic Object",
+   "title": "小さな小さな賢将",
+   "extra": "角色曲"
+  },
+  "th12_02": {
+   "album": "東方星蓮船 ～ Undefined Fantastic Object",
+   "title": "春の湊に",
+   "extra": "道中曲"
+  },
+  "th12_10": {
+   "album": "東方星蓮船 ～ Undefined Fantastic Object",
+   "title": "魔界地方都市エソテリア",
+   "extra": "更多道中曲"
+  },
+  "th19_13": {
+   "album": "東方獣王園 ～ Unfinished Dream of All Living Ghost",
+   "title": "春の湊に",
+   "extra": "更多道中曲"
+  },
+  "th12_05": {
+   "album": "東方星蓮船 ～ Undefined Fantastic Object",
+   "title": "万年置き傘にご注意を",
+   "extra": "角色曲"
+  },
+  "th12_04": {
+   "album": "東方星蓮船 ～ Undefined Fantastic Object",
+   "title": "閉ざせし雲の通い路",
+   "extra": "道中曲"
+  },
+  "th12_14": {
+   "album": "東方星蓮船 ～ Undefined Fantastic Object",
+   "title": "夜空のユーフォーロマンス",
+   "extra": "更多道中曲"
+  },
+  "th13_06": {
+   "album": "東方神霊廟 ～ Ten Desires",
+   "title": "素敵な墓場で暮しましょ",
+   "extra": "更多道中曲"
+  },
+  "hr08_10": {
+   "album": "伊弉諾物質 ～ Neo-traditionalism of Japan",
+   "title": "10. 素敵な墓場で暮しましょ",
+   "extra": "秘封曲"
+  },
+  "TFM-010a_06": {
+   "album": "強欲な獣のムジカ",
+   "title": "万年置き傘にご注意を",
+   "extra": "角色曲"
+  },
+  "th12_07": {
+   "album": "東方星蓮船 ～ Undefined Fantastic Object",
+   "title": "時代親父とハイカラ少女",
+   "extra": "角色曲"
+  },
+  "th12_06": {
+   "album": "東方星蓮船 ～ Undefined Fantastic Object",
+   "title": "スカイルーイン",
+   "extra": "道中曲"
+  },
+  "TFM-006a_05": {
+   "album": "暗黒能楽集・心綺楼",
+   "title": "時代親父とハイカラ少女",
+   "extra": "角色曲"
+  },
+  "TFM-007b_03": {
+   "album": "深秘的楽曲集",
+   "title": "時代親父とハイカラ少女",
+   "extra": "角色曲"
+  },
+  "TFM-009a_06": {
+   "album": "完全憑依ディスコグラフィ",
+   "title": "聖輦船空を往く",
+   "extra": "角色曲"
+  },
+  "th12_09": {
+   "album": "東方星蓮船 ～ Undefined Fantastic Object",
+   "title": "キャプテン・ムラサ",
+   "extra": "角色曲"
+  },
+  "TFM-010a_12": {
+   "album": "強欲な獣のムジカ",
+   "title": "キャプテンムラサ",
+   "extra": "角色曲"
+  },
+  "th12_11": {
+   "album": "東方星蓮船 ～ Undefined Fantastic Object",
+   "title": "虎柄の毘沙門天",
+   "extra": "角色曲"
+  },
+  "th12_13": {
+   "album": "東方星蓮船 ～ Undefined Fantastic Object",
+   "title": "感情の摩天楼　～ Cosmic Mind",
+   "extra": "角色曲"
+  },
+  "TFM-006a_06": {
+   "album": "暗黒能楽集・心綺楼",
+   "title": "感情の摩天楼　～ Cosmic Mind",
+   "extra": "角色曲"
+  },
+  "TFM-007b_04": {
+   "album": "深秘的楽曲集",
+   "title": "感情の摩天楼　～ Cosmic Mind",
+   "extra": "角色曲"
+  },
+  "TFM-009a_07": {
+   "album": "完全憑依ディスコグラフィ",
+   "title": "法力の下の平等",
+   "extra": "角色曲"
+  },
+  "hr07_09": {
+   "album": "鳥船遺跡 ～ Trojan Green Asteroid",
+   "title": "09. 感情の摩天楼 ～ Cosmic Mind",
+   "extra": "秘封曲"
+  },
+  "th12_15": {
+   "album": "東方星蓮船 ～ Undefined Fantastic Object",
+   "title": "平安のエイリアン",
+   "extra": "角色曲"
+  },
+  "th12_08": {
+   "album": "東方星蓮船 ～ Undefined Fantastic Object",
+   "title": "幽霊客船の時空を越えた旅",
+   "extra": "更多道中曲"
+  },
+  "th12_12": {
+   "album": "東方星蓮船 ～ Undefined Fantastic Object",
+   "title": "法界の火",
+   "extra": "道中曲"
+  },
+  "th13_14": {
+   "album": "東方神霊廟 ～ Ten Desires",
+   "title": "妖怪裏参道",
+   "extra": "更多道中曲"
+  },
+  "hr07_06": {
+   "album": "鳥船遺跡 ～ Trojan Green Asteroid",
+   "title": "06. 夜空のユーフォーロマンス",
+   "extra": "秘封曲"
+  },
+  "th13_05": {
+   "album": "東方神霊廟 ～ Ten Desires",
+   "title": "門前の妖怪小娘",
+   "extra": "角色曲"
+  },
+  "th13_04": {
+   "album": "東方神霊廟 ～ Ten Desires",
+   "title": "妖怪寺へようこそ",
+   "extra": "道中曲"
+  },
+  "th13_07": {
+   "album": "東方神霊廟 ～ Ten Desires",
+   "title": "リジッドパラダイス",
+   "extra": "角色曲"
+  },
+  "th13_09": {
+   "album": "東方神霊廟 ～ Ten Desires",
+   "title": "古きユアンシェン",
+   "extra": "角色曲"
+  },
+  "th13_08": {
+   "album": "東方神霊廟 ～ Ten Desires",
+   "title": "デザイアドライブ",
+   "extra": "道中曲"
+  },
+  "hr07_03": {
+   "album": "鳥船遺跡 ～ Trojan Green Asteroid",
+   "title": "03. デザイアドライブ",
+   "extra": "秘封曲"
+  },
+  "th13_10": {
+   "album": "東方神霊廟 ～ Ten Desires",
+   "title": "夢殿大祀廟",
+   "extra": "道中曲"
+  },
+  "th13_11": {
+   "album": "東方神霊廟 ～ Ten Desires",
+   "title": "大神神話伝",
+   "extra": "角色曲"
+  },
+  "TFM-006a_07": {
+   "album": "暗黒能楽集・心綺楼",
+   "title": "大神神話伝",
+   "extra": "角色曲"
+  },
+  "TFM-007b_05": {
+   "album": "深秘的楽曲集",
+   "title": "大神神話伝",
+   "extra": "角色曲"
+  },
+  "TFM-009a_10": {
+   "album": "完全憑依ディスコグラフィ",
+   "title": "恒常不変の参廟祀",
+   "extra": "角色曲"
+  },
+  "hr10_05": {
+   "album": "旧約酒場 ～ Dateless Bar Old Adam",
+   "title": "大神神話伝",
+   "extra": "秘封曲"
+  },
+  "th13_13": {
+   "album": "東方神霊廟 ～ Ten Desires",
+   "title": "聖徳伝説　～　True Administrator",
+   "extra": "角色曲"
+  },
+  "th13_12": {
+   "album": "東方神霊廟 ～ Ten Desires",
+   "title": "小さな欲望の星空",
+   "extra": "道中曲"
+  },
+  "TFM-006a_08": {
+   "album": "暗黒能楽集・心綺楼",
+   "title": "聖徳伝説　～ True Administrator",
+   "extra": "角色曲"
+  },
+  "TFM-007b_06": {
+   "album": "深秘的楽曲集",
+   "title": "聖徳伝説　～ True Administrator",
+   "extra": "角色曲"
+  },
+  "TFM-009a_11": {
+   "album": "完全憑依ディスコグラフィ",
+   "title": "光輝く天球儀",
+   "extra": "角色曲"
+  },
+  "th13_15": {
+   "album": "東方神霊廟 ～ Ten Desires",
+   "title": "佐渡のニッ岩",
+   "extra": "角色曲"
+  },
+  "TFM-006a_12": {
+   "album": "暗黒能楽集・心綺楼",
+   "title": "佐渡のニッ岩",
+   "extra": "角色曲"
+  },
+  "TFM-007b_09": {
+   "album": "深秘的楽曲集",
+   "title": "幻想郷の二ッ岩",
+   "extra": "角色曲"
+  },
+  "TFM-009a_15": {
+   "album": "完全憑依ディスコグラフィ",
+   "title": "深緑の狸森にて",
+   "extra": "角色曲"
+  },
+  "TFM-006a_14": {
+   "album": "暗黒能楽集・心綺楼",
+   "title": "幻想郷の二ッ岩",
+   "extra": "角色曲"
+  },
+  "th19_17": {
+   "album": "東方獣王園 ～ Unfinished Dream of All Living Ghost",
+   "title": "佐渡の二ッ岩",
+   "extra": "角色曲"
+  },
+  "th14_03": {
+   "album": "東方輝針城 ～ Double Dealing Character",
+   "title": "秘境のマーメイド",
+   "extra": "角色曲"
+  },
+  "th14_05": {
+   "album": "東方輝針城 ～ Double Dealing Character",
+   "title": "柳の下のデュラハン",
+   "extra": "角色曲"
+  },
+  "th14_04": {
+   "album": "東方輝針城 ～ Double Dealing Character",
+   "title": "運河を行き交う人妖",
+   "extra": "道中曲"
+  },
+  "th14_07": {
+   "album": "東方輝針城 ～ Double Dealing Character",
+   "title": "孤独なウェアウルフ",
+   "extra": "角色曲"
+  },
+  "th14_06": {
+   "album": "東方輝針城 ～ Double Dealing Character",
+   "title": "満月の竹林",
+   "extra": "道中曲"
+  },
+  "th14_09": {
+   "album": "東方輝針城 ～ Double Dealing Character",
+   "title": "幻想浄瑠璃",
+   "extra": "角色曲"
+  },
+  "th14_08": {
+   "album": "東方輝針城 ～ Double Dealing Character",
+   "title": "マジカルストーム",
+   "extra": "道中曲"
+  },
+  "th14_14": {
+   "album": "東方輝針城 ～ Double Dealing Character",
+   "title": "魔力の雷雲",
+   "extra": "更多道中曲"
+  },
+  "th14_11": {
+   "album": "東方輝針城 ～ Double Dealing Character",
+   "title": "リバースイデオロギー",
+   "extra": "角色曲"
+  },
+  "th14_10": {
+   "album": "東方輝針城 ～ Double Dealing Character",
+   "title": "空中に沈む輝針城",
+   "extra": "道中曲"
+  },
+  "th14_12": {
+   "album": "東方輝針城 ～ Double Dealing Character",
+   "title": "針小棒大の天守閣",
+   "extra": "更多道中曲"
+  },
+  "hr10_03": {
+   "album": "旧約酒場 ～ Dateless Bar Old Adam",
+   "title": "リバースイデオロギー",
+   "extra": "秘封曲"
+  },
+  "hr09_07": {
+   "album": "燕石博物誌 ～ Dr.Latency's Freak Report",
+   "title": "空中に沈む輝針城",
+   "extra": "秘封曲"
+  },
+  "th14_13": {
+   "album": "東方輝針城 ～ Double Dealing Character",
+   "title": "輝く針の小人族　～ Little Princess",
+   "extra": "角色曲"
+  },
+  "TFM-007b_12": {
+   "album": "深秘的楽曲集",
+   "title": "輝く針の小人族　～ Little Princess",
+   "extra": "角色曲"
+  },
+  "TFM-009b_05": {
+   "album": "完全憑依ディスコグラフィ",
+   "title": "落日に映える逆さ城",
+   "extra": "角色曲"
+  },
+  "TFM-009c_04": {
+   "album": "完全憑依ディスコグラフィ",
+   "title": "輝く針の小人族　～ Little Princess",
+   "extra": "角色曲"
+  },
+  "th14_15": {
+   "album": "東方輝針城 ～ Double Dealing Character",
+   "title": "始原のビート　～ Pristine Beat",
+   "extra": "角色曲"
+  },
+  "th15_04": {
+   "album": "東方紺珠伝 ～ Legacy of Lunatic Kingdom",
+   "title": "兎は舞い降りた",
+   "extra": "角色曲"
+  },
+  "th15_02": {
+   "album": "東方紺珠伝 ～ Legacy of Lunatic Kingdom",
+   "title": "忘れがたき、よすがの緑",
+   "extra": "道中曲"
+  },
+  "th19_14": {
+   "album": "東方獣王園 ～ Unfinished Dream of All Living Ghost",
+   "title": "忘れがたき、よすがの緑",
+   "extra": "更多道中曲"
+  },
+  "th15_05": {
+   "album": "東方紺珠伝 ～ Legacy of Lunatic Kingdom",
+   "title": "九月のパンプキン",
+   "extra": "角色曲"
+  },
+  "th15_03": {
+   "album": "東方紺珠伝 ～ Legacy of Lunatic Kingdom",
+   "title": "湖は浄めの月光を映して",
+   "extra": "道中曲"
+  },
+  "hr09_04": {
+   "album": "燕石博物誌 ～ Dr.Latency's Freak Report",
+   "title": "九月のパンプキン",
+   "extra": "秘封曲"
+  },
+  "th15_07": {
+   "album": "東方紺珠伝 ～ Legacy of Lunatic Kingdom",
+   "title": "永遠の春夢",
+   "extra": "角色曲"
+  },
+  "th15_06": {
+   "album": "東方紺珠伝 ～ Legacy of Lunatic Kingdom",
+   "title": "宇宙を飛ぶ不思議な巫女",
+   "extra": "道中曲"
+  },
+  "th15_16": {
+   "album": "東方紺珠伝 ～ Legacy of Lunatic Kingdom",
+   "title": "見た事も無い悪夢の世界",
+   "extra": "更多道中曲"
+  },
+  "TFM-009c_03": {
+   "album": "完全憑依ディスコグラフィ",
+   "title": "永遠の春夢",
+   "extra": "角色曲"
+  },
+  "TFM-009b_09": {
+   "album": "完全憑依ディスコグラフィ",
+   "title": "スリープシープ・パレード",
+   "extra": "角色曲"
+  },
+  "th15_09": {
+   "album": "東方紺珠伝 ～ Legacy of Lunatic Kingdom",
+   "title": "逆転するホイールオブフォーチュン",
+   "extra": "角色曲"
+  },
+  "th15_08": {
+   "album": "東方紺珠伝 ～ Legacy of Lunatic Kingdom",
+   "title": "凍り付いた永遠の都",
+   "extra": "道中曲"
+  },
+  "hr09_02": {
+   "album": "燕石博物誌 ～ Dr.Latency's Freak Report",
+   "title": "凍り付いた永遠の都",
+   "extra": "秘封曲"
+  },
+  "th15_11": {
+   "album": "東方紺珠伝 ～ Legacy of Lunatic Kingdom",
+   "title": "星条旗のピエロ",
+   "extra": "角色曲"
+  },
+  "th15_10": {
+   "album": "東方紺珠伝 ～ Legacy of Lunatic Kingdom",
+   "title": "遥か３８万キロのボヤージュ",
+   "extra": "道中曲"
+  },
+  "th15_13": {
+   "album": "東方紺珠伝 ～ Legacy of Lunatic Kingdom",
+   "title": "ピュアヒューリーズ　～ 心の在処",
+   "extra": "角色曲"
+  },
+  "th15_12": {
+   "album": "東方紺珠伝 ～ Legacy of Lunatic Kingdom",
+   "title": "故郷の星が映る海",
+   "extra": "道中曲"
+  },
+  "hr09_10": {
+   "album": "燕石博物誌 ～ Dr.Latency's Freak Report",
+   "title": "ピュアヒューリーズ　～ 心の在処",
+   "extra": "秘封曲"
+  },
+  "hr09_09": {
+   "album": "燕石博物誌 ～ Dr.Latency's Freak Report",
+   "title": "故郷の星が映る海",
+   "extra": "秘封曲"
+  },
+  "th15_17": {
+   "album": "東方紺珠伝 ～ Legacy of Lunatic Kingdom",
+   "title": "パンデモニックプラネット",
+   "extra": "角色曲"
+  },
+  "hr10_06": {
+   "album": "旧約酒場 ～ Dateless Bar Old Adam",
+   "title": "パンデモニックプラネット",
+   "extra": "秘封曲"
+  },
+  "th16_03": {
+   "album": "東方天空璋 ～ Hidden Star in Four Seasons",
+   "title": "真夏の妖精の夢",
+   "extra": "道中曲"
+  },
+  "th16_02": {
+   "album": "東方天空璋 ～ Hidden Star in Four Seasons",
+   "title": "希望の星は青霄に昇る",
+   "extra": "道中曲"
+  },
+  "th16_05": {
+   "album": "東方天空璋 ～ Hidden Star in Four Seasons",
+   "title": "山奥のエンカウンター",
+   "extra": "角色曲"
+  },
+  "th16_04": {
+   "album": "東方天空璋 ～ Hidden Star in Four Seasons",
+   "title": "色無き風は妖怪の山に",
+   "extra": "道中曲"
+  },
+  "th16_07": {
+   "album": "東方天空璋 ～ Hidden Star in Four Seasons",
+   "title": "一対の神獣",
+   "extra": "角色曲"
+  },
+  "th16_06": {
+   "album": "東方天空璋 ～ Hidden Star in Four Seasons",
+   "title": "桜色の海を泳いで",
+   "extra": "道中曲"
+  },
+  "th19_12": {
+   "album": "東方獣王園 ～ Unfinished Dream of All Living Ghost",
+   "title": "一対の神獣",
+   "extra": "角色曲"
+  },
+  "th16_09": {
+   "album": "東方天空璋 ～ Hidden Star in Four Seasons",
+   "title": "魔法の笠地蔵",
+   "extra": "角色曲"
+  },
+  "th16_08": {
+   "album": "東方天空璋 ～ Hidden Star in Four Seasons",
+   "title": "幻想のホワイトトラベラー",
+   "extra": "更多道中曲"
+  },
+  "th16_11": {
+   "album": "東方天空璋 ～ Hidden Star in Four Seasons",
+   "title": "クレイジーバックダンサーズ",
+   "extra": "角色曲"
+  },
+  "th16_10": {
+   "album": "東方天空璋 ～ Hidden Star in Four Seasons",
+   "title": "禁断の扉の向こうは、この世かあの世か",
+   "extra": "道中曲"
+  },
+  "th16_14": {
+   "album": "東方天空璋 ～ Hidden Star in Four Seasons",
+   "title": "もうドアには入れない",
+   "extra": "道中曲"
+  },
+  "hr12_03": {
+   "album": "七夕坂夢幻能 ~ Taboo Japan Disentanglement",
+   "title": "禁断の扉の向こうは、この世かあの世か",
+   "extra": "秘封曲"
+  },
+  "hr12_06": {
+   "album": "七夕坂夢幻能 ~ Taboo Japan Disentanglement",
+   "title": "クレイジーバックダンサーズ",
+   "extra": "秘封曲"
+  },
+  "th16_13": {
+   "album": "東方天空璋 ～ Hidden Star in Four Seasons",
+   "title": "秘匿されたフォーシーズンズ",
+   "extra": "角色曲"
+  },
+  "th16_12": {
+   "album": "東方天空璋 ～ Hidden Star in Four Seasons",
+   "title": "イントゥ・バックドア",
+   "extra": "道中曲"
+  },
+  "th16_15": {
+   "album": "東方天空璋 ～ Hidden Star in Four Seasons",
+   "title": "秘神マターラ　～ Hidden Star in All Seasons.",
+   "extra": "角色曲"
+  },
+  "hr12_10": {
+   "album": "七夕坂夢幻能 ~ Taboo Japan Disentanglement",
+   "title": "秘匿されたフォーシーズンズ",
+   "extra": "秘封曲"
+  },
+  "th17_03": {
+   "album": "東方鬼形獣 ～ Wily Beast and Weakest Creature",
+   "title": "ジェリーストーン",
+   "extra": "角色曲"
+  },
+  "th17_02": {
+   "album": "東方鬼形獣 ～ Wily Beast and Weakest Creature",
+   "title": "地蔵だけが知る哀嘆",
+   "extra": "道中曲"
+  },
+  "hr12_09": {
+   "album": "七夕坂夢幻能 ~ Taboo Japan Disentanglement",
+   "title": "地蔵だけが知る哀嘆",
+   "extra": "秘封曲"
+  },
+  "th17_05": {
+   "album": "東方鬼形獣 ～ Wily Beast and Weakest Creature",
+   "title": "石の赤子と水中の牛",
+   "extra": "角色曲"
+  },
+  "th17_04": {
+   "album": "東方鬼形獣 ～ Wily Beast and Weakest Creature",
+   "title": "ロストリバー",
+   "extra": "道中曲"
+  },
+  "th17_07": {
+   "album": "東方鬼形獣 ～ Wily Beast and Weakest Creature",
+   "title": "セラフィックチキン",
+   "extra": "角色曲"
+  },
+  "th17_06": {
+   "album": "東方鬼形獣 ～ Wily Beast and Weakest Creature",
+   "title": "不朽の曼珠沙華",
+   "extra": "道中曲"
+  },
+  "th17_14": {
+   "album": "東方鬼形獣 ～ Wily Beast and Weakest Creature",
+   "title": "輝かしき弱肉強食の掟",
+   "extra": "更多道中曲"
+  },
+  "TFM-010b_02": {
+   "album": "強欲な獣のムジカ",
+   "title": "セラフィックチキン",
+   "extra": "角色曲"
+  },
+  "th17_09": {
+   "album": "東方鬼形獣 ～ Wily Beast and Weakest Creature",
+   "title": "トータスドラゴン　～ 幸運と不運",
+   "extra": "角色曲"
+  },
+  "th17_08": {
+   "album": "東方鬼形獣 ～ Wily Beast and Weakest Creature",
+   "title": "アンロケイテッドヘル",
+   "extra": "道中曲"
+  },
+  "th19_18": {
+   "album": "東方獣王園 ～ Unfinished Dream of All Living Ghost",
+   "title": "トータスドラゴン　～ 幸運と不運",
+   "extra": "角色曲"
+  },
+  "th17_11": {
+   "album": "東方鬼形獣 ～ Wily Beast and Weakest Creature",
+   "title": "セラミックスの杖刀人",
+   "extra": "角色曲"
+  },
+  "th17_10": {
+   "album": "東方鬼形獣 ～ Wily Beast and Weakest Creature",
+   "title": "ビーストメトロポリス",
+   "extra": "道中曲"
+  },
+  "th17_12": {
+   "album": "東方鬼形獣 ～ Wily Beast and Weakest Creature",
+   "title": "エレクトリックヘリテージ",
+   "extra": "更多道中曲"
+  },
+  "th17_13": {
+   "album": "東方鬼形獣 ～ Wily Beast and Weakest Creature",
+   "title": "偶像に世界を委ねて　～ Idoratrize World",
+   "extra": "角色曲"
+  },
+  "th17_15": {
+   "album": "東方鬼形獣 ～ Wily Beast and Weakest Creature",
+   "title": "聖徳太子のペガサス　～ Dark Pegasus",
+   "extra": "角色曲"
+  },
+  "th19_19": {
+   "album": "東方獣王園 ～ Unfinished Dream of All Living Ghost",
+   "title": "聖徳太子のペガサス　～ Dark Pegasus",
+   "extra": "角色曲"
+  },
+  "th18_03": {
+   "album": "東方虹龍洞 ～ Unconnected Marketeers",
+   "title": "大吉キトゥン",
+   "extra": "角色曲"
+  },
+  "th18_02": {
+   "album": "東方虹龍洞 ～ Unconnected Marketeers",
+   "title": "妖異達の通り雨",
+   "extra": "道中曲"
+  },
+  "th18_05": {
+   "album": "東方虹龍洞 ～ Unconnected Marketeers",
+   "title": "バンデットリィテクノロジー",
+   "extra": "角色曲"
+  },
+  "th18_04": {
+   "album": "東方虹龍洞 ～ Unconnected Marketeers",
+   "title": "深緑に隠された断崖",
+   "extra": "道中曲"
+  },
+  "th18_07": {
+   "album": "東方虹龍洞 ～ Unconnected Marketeers",
+   "title": "スモーキングドラゴン",
+   "extra": "角色曲"
+  },
+  "th18_06": {
+   "album": "東方虹龍洞 ～ Unconnected Marketeers",
+   "title": "駒草咲くパーペチュアルスノー",
+   "extra": "道中曲"
+  },
+  "hr12_04": {
+   "album": "七夕坂夢幻能 ~ Taboo Japan Disentanglement",
+   "title": "スモーキングドラゴン",
+   "extra": "秘封曲"
+  },
+  "th18_09": {
+   "album": "東方虹龍洞 ～ Unconnected Marketeers",
+   "title": "神代鉱石",
+   "extra": "角色曲"
+  },
+  "th18_08": {
+   "album": "東方虹龍洞 ～ Unconnected Marketeers",
+   "title": "廃れゆく産業遺構",
+   "extra": "道中曲"
+  },
+  "th18_11": {
+   "album": "東方虹龍洞 ～ Unconnected Marketeers",
+   "title": "星降る天魔の山",
+   "extra": "角色曲"
+  },
+  "th18_13": {
+   "album": "東方虹龍洞 ～ Unconnected Marketeers",
+   "title": "あの賑やかな市場は今どこに　～ Immemorial Marketeers",
+   "extra": "角色曲"
+  },
+  "th18_12": {
+   "album": "東方虹龍洞 ～ Unconnected Marketeers",
+   "title": "ルナレインボー",
+   "extra": "更多道中曲"
+  },
+  "th18_15": {
+   "album": "東方虹龍洞 ～ Unconnected Marketeers",
+   "title": "龍王殺しのプリンセス",
+   "extra": "角色曲"
+  },
+  "th18_14": {
+   "album": "東方虹龍洞 ～ Unconnected Marketeers",
+   "title": "幻想の地下大線路網",
+   "extra": "道中曲"
+  },
+  "th19_16": {
+   "album": "東方獣王園 ～ Unfinished Dream of All Living Ghost",
+   "title": "待ちわびた逢魔が時",
+   "extra": "角色曲"
+  },
+  "th18_10": {
+   "album": "東方虹龍洞 ～ Unconnected Marketeers",
+   "title": "待ちわびた逢魔が時",
+   "extra": "道中曲"
+  },
+  "th19_05": {
+   "album": "東方獣王園 ～ Unfinished Dream of All Living Ghost",
+   "title": "タイニーシャングリラ",
+   "extra": "角色曲"
+  },
+  "th19_06": {
+   "album": "東方獣王園 ～ Unfinished Dream of All Living Ghost",
+   "title": "勇敢で有閑な妖獣",
+   "extra": "角色曲"
+  },
+  "th19_07": {
+   "album": "東方獣王園 ～ Unfinished Dream of All Living Ghost",
+   "title": "吸血怪獣チュパカブラ",
+   "extra": "角色曲"
+  },
+  "th19_08": {
+   "album": "東方獣王園 ～ Unfinished Dream of All Living Ghost",
+   "title": "振り向かない黄泉の道",
+   "extra": "角色曲"
+  },
+  "th19_09": {
+   "album": "東方獣王園 ～ Unfinished Dream of All Living Ghost",
+   "title": "逸脱者達の無礙光　～ Kingdam of Nothingness.",
+   "extra": "角色曲"
+  },
+  "th19_20": {
+   "album": "東方獣王園 ～ Unfinished Dream of All Living Ghost",
+   "title": "強欲な獣のメメント",
+   "extra": "角色曲"
+  },
+  "TFM-010b_07": {
+   "album": "強欲な獣のムジカ",
+   "title": "強欲な獣のメメント",
+   "extra": "角色曲"
+  },
+  "TFM-010b_08": {
+   "album": "強欲な獣のムジカ",
+   "title": "有機体全てのメメント　～ Memory of Fossil Energy",
+   "extra": "角色曲"
+  },
+  "TFM-001b_18": {
+   "album": "幻想曲抜萃 ～ 東方萃夢想 Night Disc",
+   "title": "18. 御伽の国の鬼が島",
+   "extra": "角色曲"
+  },
+  "TFM-001b_17": {
+   "album": "幻想曲抜萃 ～ 東方萃夢想 Night Disc",
+   "title": "17. 砕月",
+   "extra": "角色曲"
+  },
+  "TFM-003A_11": {
+   "album": "全人類ノ天楽録 ～ 東方緋想天 Arrange Disc",
+   "title": "11. 砕月",
+   "extra": "角色曲"
+  },
+  "th19_04": {
+   "album": "東方獣王園 ～ Unfinished Dream of All Living Ghost",
+   "title": "鬼は悠久の山に",
+   "extra": "角色曲"
+  },
+  "TFM-003O_13": {
+   "album": "全人類ノ天楽録 ～ 東方緋想天 Original Disc",
+   "title": "13. 黒い海に紅く ～ Legendary Fish",
+   "extra": "角色曲"
+  },
+  "TFM-003A_15": {
+   "album": "全人類ノ天楽録 ～ 東方緋想天 Arrange Disc",
+   "title": "15. 黒い海に紅く ～ Legendary Fish",
+   "extra": "角色曲"
+  },
+  "TFM-003O_15": {
+   "album": "全人類ノ天楽録 ～ 東方緋想天 Original Disc",
+   "title": "15. 有頂天変 ～ Wonderful Heaven",
+   "extra": "角色曲"
+  },
+  "TFM-003A_16": {
+   "album": "全人類ノ天楽録 ～ 東方緋想天 Arrange Disc",
+   "title": "16. 有頂天変 ～ Wonderful Heaven",
+   "extra": "角色曲"
+  },
+  "TFM-009c_05": {
+   "album": "完全憑依ディスコグラフィ",
+   "title": "有頂天変　～ Wonderful Heaven",
+   "extra": "角色曲"
+  },
+  "TFM-009b_11": {
+   "album": "完全憑依ディスコグラフィ",
+   "title": "至る有頂天",
+   "extra": "角色曲"
+  },
+  "TFM-006a_16": {
+   "album": "暗黒能楽集・心綺楼",
+   "title": "亡失のエモーション",
+   "extra": "角色曲"
+  },
+  "TFM-007b_10": {
+   "album": "深秘的楽曲集",
+   "title": "亡失のエモーション",
+   "extra": "角色曲"
+  },
+  "TFM-009b_06": {
+   "album": "完全憑依ディスコグラフィ",
+   "title": "心綺楼演舞",
+   "extra": "角色曲"
+  },
+  "hr10_09": {
+   "album": "旧約酒場 ～ Dateless Bar Old Adam",
+   "title": "亡失のエモーション",
+   "extra": "秘封曲"
+  },
+  "TFM-006a_15": {
+   "album": "暗黒能楽集・心綺楼",
+   "title": "丑三つ時の里",
+   "extra": "角色曲"
+  },
+  "TFM-007a_14": {
+   "album": "深秘的楽曲集",
+   "title": "華狭間のバトルフィールド",
+   "extra": "角色曲"
+  },
+  "TFM-009c_06": {
+   "album": "完全憑依ディスコグラフィ",
+   "title": "華狭間のバトルフィールド",
+   "extra": "角色曲"
+  },
+  "TFM-009b_12": {
+   "album": "完全憑依ディスコグラフィ",
+   "title": "千の試練を超えて",
+   "extra": "角色曲"
+  },
+  "TFM-007a_16": {
+   "album": "深秘的楽曲集",
+   "title": "ラストオカルティズム　～ 現し世の秘術師",
+   "extra": "角色曲"
+  },
+  "TFM-009c_02": {
+   "album": "完全憑依ディスコグラフィ",
+   "title": "ラストオカルティズム　～ 現し世の秘術師",
+   "extra": "角色曲"
+  },
+  "TFM-009b_08": {
+   "album": "完全憑依ディスコグラフィ",
+   "title": "夢世界フォークロア",
+   "extra": "角色曲"
+  },
+  "TFM-009b_14": {
+   "album": "完全憑依ディスコグラフィ",
+   "title": "今宵は飄逸なエゴイスト(Live ver)　～ Egoistic Flowers",
+   "extra": "角色曲"
+  },
+  "TFM-010b_03": {
+   "album": "強欲な獣のムジカ",
+   "title": "今宵は飄逸なエゴイスト　～ Egoistic Flowers",
+   "extra": "角色曲"
+  },
+  "th20_03": {
+   "album": "東方錦上京 ～ Fossilized Wonders",
+   "title": "例え世界から忘れられても",
+   "extra": "角色曲"
+  },
+  "th20_02": {
+   "album": "東方錦上京 ～ Fossilized Wonders",
+   "title": "愛おしき塵の住処",
+   "extra": "道中曲"
+  },
+  "th20_05": {
+   "album": "東方錦上京 ～ Fossilized Wonders",
+   "title": "森にはお化けがいるよ",
+   "extra": "角色曲"
+  },
+  "th20_04": {
+   "album": "東方錦上京 ～ Fossilized Wonders",
+   "title": "セイクリッドフォレスト",
+   "extra": "道中曲"
+  },
+  "th20_07": {
+   "album": "東方錦上京 ～ Fossilized Wonders",
+   "title": "どうせなら命を賭けて謎を解け",
+   "extra": "角色曲"
+  },
+  "th20_06": {
+   "album": "東方錦上京 ～ Fossilized Wonders",
+   "title": "プレステ・ジョアンの黄金境",
+   "extra": "道中曲"
+  },
+  "th20_09": {
+   "album": "東方錦上京 ～ Fossilized Wonders",
+   "title": "鹿狩りのレミニセンス",
+   "extra": "角色曲"
+  },
+  "th20_08": {
+   "album": "東方錦上京 ～ Fossilized Wonders",
+   "title": "フォーカラーラビリンス",
+   "extra": "道中曲"
+  },
+  "th20_17": {
+   "album": "東方錦上京 ～ Fossilized Wonders",
+   "title": "ファンタスティックドリフト",
+   "extra": "更多道中曲"
+  },
+  "th20_11": {
+   "album": "東方錦上京 ～ Fossilized Wonders",
+   "title": "綿月のスペルカード　〜 神海戦",
+   "extra": "角色曲"
+  },
+  "th20_10": {
+   "album": "東方錦上京 ～ Fossilized Wonders",
+   "title": "記憶の深海に沈む少女",
+   "extra": "道中曲"
+  },
+  "th20_12": {
+   "album": "東方錦上京 ～ Fossilized Wonders",
+   "title": "最後の一人は慣れてるから　〜 Stone Goddess",
+   "extra": "角色曲"
+  },
+  "th20_13": {
+   "album": "東方錦上京 ～ Fossilized Wonders",
+   "title": "ピラミッドの神域",
+   "extra": "道中曲"
+  },
+  "th20_18": {
+   "album": "東方錦上京 ～ Fossilized Wonders",
+   "title": "二枚貝の上のハルシネーション",
+   "extra": "角色曲"
+  },
+  "EaLND_01": {
+   "album": "東方三月精 ～ Eastern and Little Nature Deity",
+   "title": "サニールチルフレクション",
+   "extra": "角色曲"
+  },
+  "EaLND_02": {
+   "album": "東方三月精 ～ Eastern and Little Nature Deity",
+   "title": "夜だから眠れない",
+   "extra": "角色曲"
+  },
+  "EaLND_03": {
+   "album": "東方三月精 ～ Eastern and Little Nature Deity",
+   "title": "妖精燦々として",
+   "extra": "角色曲"
+  }
+ }
+}

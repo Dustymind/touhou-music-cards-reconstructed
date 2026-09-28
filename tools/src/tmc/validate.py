@@ -77,7 +77,8 @@ def load_characters(p: Problems) -> list[dict]:
         char["_path"] = path
         char["card"] = list(char.get("card_name", []))
         char["searchNames"] = list(char.get("search_names", []))
-        char["music"] = [[key_to_name[t["album_key"]], t["title"], t["extra"]] for t in char.get("track", [])]
+        char["music"] = [{"id": t["id"], "album": key_to_name[t["album_key"]], "title": t["title"],
+                          "extra": t["extra"]} for t in char.get("track", [])]
         if char["key"] != path.stem:
             p.error(f"{path.name}: key 与文件名不一致（{char['key']}）")
         if char["key"] in keys:
@@ -97,6 +98,11 @@ def load_characters(p: Problems) -> list[dict]:
     return chars
 
 
+def _triples(music: list[dict]) -> list[tuple[str, str, str]]:
+    """S2 起 music 条目是 dict（id/album/title/extra）；旧检查按三元组写，这里只做投影。"""
+    return [(e["album"], e["title"], e["extra"]) for e in music]
+
+
 def check_characters(chars: list[dict], albums: dict[str, dict], p: Problems):
     seen_pairs: dict[tuple[str, str], set[str]] = collections.defaultdict(set)
     referenced: set[tuple[str, str]] = set()
@@ -104,7 +110,7 @@ def check_characters(chars: list[dict], albums: dict[str, dict], p: Problems):
     hifuu_entries = 0
     for char in chars:
         local: set[tuple[str, str]] = set()
-        for album, title, extra, *_rest in char["music"]:
+        for album, title, extra, *_rest in _triples(char["music"]):
             entry_count += 1
             if extra not in EXTRAS:
                 p.error(f"{char['key']}: 附加信息非法「{extra}」（{album} / {title}）")
@@ -123,6 +129,14 @@ def check_characters(chars: list[dict], albums: dict[str, dict], p: Problems):
             seen_pairs[(album, title)].add(char["key"])
             referenced.add((album, title))
     shared = {k: v for k, v in seen_pairs.items() if len(v) > 1}
+    # S2：TrackIndex 按曲id 去重 ⇒ 同一个 id 被多个角色引用时，extra 必须一致
+    by_id: dict[str, tuple[str, str, str]] = {}
+    for char in chars:
+        for entry in char["music"]:
+            prev = by_id.setdefault(entry["id"], (entry["album"], entry["title"], entry["extra"]))
+            if prev[2] != entry["extra"]:
+                p.error(f"曲id {entry['id']} 被多处引用但附加信息不一致："
+                        f"{prev[0]} / {prev[1]}（{prev[2]}）vs {char['key']}（{entry['extra']}）")
     return {"entries": entry_count, "distinct_tracks": len(seen_pairs), "shared": shared,
             "referenced": referenced, "hifuu_entries": hifuu_entries}
 
@@ -335,7 +349,7 @@ def check_stage_attribution(chars: list[dict]) -> dict[str, list[str]]:
     rows: dict[str, list[str]] = {}
     for char in chars:
         names = [n for n in char["searchNames"] if n]
-        for album, title, extra, *_rest in char["music"]:
+        for album, title, extra, *_rest in _triples(char["music"]):
             if extra not in ("道中曲", "更多道中曲"):
                 continue
             work = next((w for k, _n, _kind, w, _o in repo.ALBUM_SEED
@@ -365,7 +379,7 @@ def check_overrides(chars: list[dict], p: Problems) -> int:
     table = load_overrides()
     seen: set[tuple[str, str]] = set()
     for char in chars:
-        for album, title, extra, *_rest in char["music"]:
+        for album, title, extra, *_rest in _triples(char["music"]):
             if (album, title) in table:
                 seen.add((album, title))
                 want, reason, source = table[(album, title)]
@@ -443,11 +457,11 @@ def check_track_additions(chars: list[dict], p: Problems) -> int:
         if char is None:
             p.error(f"补配表指向未知角色：{key}")
             continue
-        hit = [e for e in char["music"] if e[0] == album and e[1] == title]
+        hit = [e for e in char["music"] if e["album"] == album and e["title"] == title]
         if not hit:
             p.error(f"补配曲目没落进角色文件：{key} / {album} / {title}")
-        elif hit[0][2] != extra:
-            p.error(f"补配曲目的附加信息不符：{key} / {title}（文件 {hit[0][2]}，表 {extra}）")
+        elif hit[0]["extra"] != extra:
+            p.error(f"补配曲目的附加信息不符：{key} / {title}（文件 {hit[0]["extra"]}，表 {extra}）")
         if not reason or not source:
             p.error(f"补配表缺依据/来源：{key} / {title}")
         for source_id, table in tables.items():
@@ -468,7 +482,7 @@ def check_title_uniqueness(chars: list[dict], p: Problems) -> dict[str, object]:
     pairs: dict[tuple[str, str], set[str]] = {}
     by_album: dict[str, set[str]] = {}
     for char in chars:
-        for album, title, _extra, *_rest in char["music"]:
+        for album, title, _extra, *_rest in _triples(char["music"]):
             pairs.setdefault((album, title), set()).add(char["key"])
             by_album.setdefault(album, set()).add(title)
 
@@ -514,11 +528,11 @@ def check_pending(chars: list[dict], p: Problems):
         if char is None:
             p.error(f"extra-pending 指向未知角色：{key}")
             continue
-        hit = [e for e in char["music"] if e[0] == album and e[1] == title]
+        hit = [e for e in char["music"] if e["album"] == album and e["title"] == title]
         if not hit:
             p.error(f"extra-pending 条目不在角色文件里：{key} / {album} / {title}")
-        elif hit[0][2] != value:
-            p.error(f"extra-pending 占位值不符：{key} / {title}（文件 {hit[0][2]}，报告 {value}）")
+        elif hit[0]["extra"] != value:
+            p.error(f"extra-pending 占位值不符：{key} / {title}（文件 {hit[0]["extra"]}，报告 {value}）")
         if not reason:
             p.error(f"extra-pending 缺少原因：{key} / {title}")
     return len(rows)
@@ -558,7 +572,7 @@ def check_datasets(chars: list[dict], pack_tracks: list[dict], pack_albums: list
         seen: set[tuple[str, str, str]] = set()
         count = 0
         for char in entries:
-            for album, title, extra, *_rest in char["music"]:
+            for album, title, extra, *_rest in _triples(char["music"]):
                 count += 1
                 where = f"{char['key']} / {album} / {title}"
                 if extra not in EXTRAS:
@@ -573,7 +587,7 @@ def check_datasets(chars: list[dict], pack_tracks: list[dict], pack_albums: list
                 seen.add(key)
         stats[mode] = {
             "characters": len(entries), "entries": count,
-            "distinctTracks": len({(a, t) for c in entries for a, t, *_r in c["music"]}),
+            "distinctTracks": len({e["id"] for c in entries for e in c["music"]}),
         }
     # 跨模式身份/卡面的比较**只在原曲与音MAD 之间**做：模式 3 的自带数据集恒为空（0 角色，
     # 卡名/卡面都是使用者自己的），它没有"共享身份"这回事 —— 不是漏了它。

@@ -18,7 +18,7 @@
 import { stableHash } from "../rng";
 import { canonicalPathEncoding, sourceRelativeUrl, versionedUrl } from "../music/manifestUrl";
 import { isRecord } from "../persist";
-import type { AlbumRecord, CharacterRecord, DataBundle, DataIndex, Extra, ModeDataset, MusicEntry } from "./types";
+import type { AlbumRecord, CharacterRecord, DataBundle, DataIndex, Extra, ModeDataset, MusicEntry, TrackRecord } from "./types";
 import { bits, fingerprint } from "./packSnapshot";
 
 /** 模式 3 的专辑统一挂在这个 `pack` 上（`kind` 一律 `other`：这个模式的界面不出现类别开关） */
@@ -115,8 +115,11 @@ export function parseCustomManifest(payload: unknown, manifestUrl: string): Cust
       albumByName.set(card.album, album);
       albums.push(album);
     }
-    const entry: MusicEntry = [album.name, card.title, CUSTOM_EXTRA];
-    if (card.author !== undefined) entry.push(card.author);   // 空作者不入列表（Q7），非空才写第 4 位
+    // 曲id：自定义模式随意自定义（§11.1）—— 一张卡一首，直接用卡的 key（唯一且稳定）
+    const entry: MusicEntry = {
+      id: key, album: album.name, title: card.title, extra: CUSTOM_EXTRA,
+      ...(card.author !== undefined ? { author: card.author } : {}),  // 空作者不入列表（Q7）
+    };
 
     // 卡面与音频都在**校验阶段**解析成绝对地址：相对 ⇒ 按清单目录拼，绝对 ⇒ 原样（C3）。
     // 路径编码同时收敛到规范形式（D169）：音频要带 `Range` 取，非规范编码会被边缘节点 307 掉再 500
@@ -148,12 +151,19 @@ export function withCustomManifest(baked: DataBundle, manifest: CustomManifest |
   const base = baked.datasets.custom;
   const albums = manifest ? manifest.albums : base.albums;
   const characters = manifest ? manifest.characters : base.characters;
+  const tracks: Record<string, TrackRecord> = {};
+  for (const character of characters) {
+    for (const entry of character.music) {
+      tracks[entry.id] = { album: entry.album, title: entry.title, extra: entry.extra };
+    }
+  }
   const custom: ModeDataset = {
     mode: "custom",
     index: withContentHash(base.index, albums, characters),
     albums,
     characters,
     sources: base.sources,
+    tracks,
     characterByKey: new Map(characters.map((character) => [character.key, character])),
     albumByName: new Map(albums.map((album) => [album.name, album])),
   };
@@ -171,7 +181,7 @@ function withContentHash(
   let entries = 0;
   for (const character of characters) {
     entries += character.music.length;
-    for (const entry of character.music) distinct.add(`${entry[0]}\u0001${entry[1]}`);
+    for (const entry of character.music) distinct.add(entry.id);
   }
   return {
     ...baked,

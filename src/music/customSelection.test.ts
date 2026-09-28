@@ -17,7 +17,10 @@ function card(name: string, album: string, author?: string): CharacterRecord {
   return {
     key: `custom-${name}`, name, order: 0, card: [`https://x/${name}.jpg`],
     covers: [`https://x/${name}.jpg`], searchNames: [name],
-    music: [author === undefined ? [album, `曲 ${name}`, "角色曲"] : [album, `曲 ${name}`, "角色曲", author]],
+    music: [{
+      id: `custom-${name}`, album, title: `曲 ${name}`, extra: "角色曲",
+      ...(author === undefined ? {} : { author }),
+    }],
     audio: [`https://x/${name}.mp3`],
   };
 }

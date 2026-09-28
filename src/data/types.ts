@@ -5,16 +5,31 @@ import type { CardRatio } from "../theme/cardRatio";
 export const EXTRAS = ["角色曲", "道中曲", "更多道中曲", "秘封曲"] as const;
 export type Extra = (typeof EXTRAS)[number];
 
-/** `[专辑, 曲目, 附加信息]`——`曲目` 保留 `NN. ` 序号（见 docs/DECISIONS.md D6）。 */
-/** `[专辑, 曲名, extra]`；第 4 位是**可选**的作者（音MAD 这类有作者信息的曲目才有）。
+/** 运行时曲目（S2 起是**对象**；此前是 `[专辑, 曲名, extra, …]` 元组）。
  *
- * 第 5 位是**可选的多作者数组**（D135）：只有曲包写了 `authors = [...]` 时才有。
- * 它与第 4 位**同源** —— 第 4 位是 `" & ".join(authors)`，也就是磁盘上那个
- * `作者 - 曲名.mp3` 的 stem 写法（响度表与单曲存档都按它取，**不能排序、不能改连接符**）；
- * 第 5 位才是"给显示排序用"的数组。 */
-export type MusicEntry = [
-  album: string, title: string, extra: Extra, author?: string, authors?: string[],
-];
+ * `id` = 全局曲目身份（TOML `[[track]].id`）：原曲 = THBWiki 文件名 stem（`th08_10`）；
+ * 音MAD = `<角色id>_otomad_<序号>`。存档、单曲 pin、查表、去重一律用它，不再用
+ * (专辑, 曲名) 拼接 —— 那套键只保留为「旧清单行 ↔ 曲id」的桥接（见 `trackId`）。
+ *
+ * `author`（第 4 位语义）是 `" & ".join(authors)`，即磁盘上 `作者 - 曲名.mp3` 的 stem 写法
+ * （响度表与单曲存档都按它取，**不能排序、不能改连接符**）；`authors` 才是给显示排序用的数组。 */
+export interface MusicEntry {
+  id: string;
+  album: string;
+  title: string;
+  extra: Extra;
+  author?: string;
+  authors?: string[];
+}
+
+/** TrackIndex（`tracks.json`）里的曲目信息：`{曲id: TrackRecord}`。 */
+export interface TrackRecord {
+  album: string;
+  title: string;
+  extra: Extra;
+  author?: string;
+  authors?: string[];
+}
 
 export interface CharacterRecord {
   key: string;
@@ -106,8 +121,10 @@ export interface ModeDataset {
   index: DataIndex;
   characters: CharacterRecord[];
   albums: AlbumRecord[];
-  /** 本模式的音源注册表（原曲 = 三个远程镜像；音MAD = 本地曲库助手） */
+  /** 本模式的音源注册表（原曲 = 两个远程镜像；音MAD = 本地曲库助手） */
   sources: SourceRecord[];
+  /** TrackIndex：`tracks.json` 的 `{曲id: 曲目信息}`（load 时把 characters 的曲id[] 物化成 MusicEntry）。 */
+  tracks: Record<string, TrackRecord>;
   characterByKey: Map<string, CharacterRecord>;
   albumByName: Map<string, AlbumRecord>;
 }
@@ -117,7 +134,11 @@ interface SharedData {
   cardSets: CardSetRecord[];
 }
 
-/** 内部曲目身份：`专辑\u0001曲目`（同步、持久化、查表都用它）。 */
+/** 旧清单行 ↔ 曲id 的**桥接键**：`专辑\u0001曲目`。
+ *
+ * S2 起运行时曲目身份是 `MusicEntry.id`（曲id）；但**远程/本地清单行仍是 `[专辑, 曲名, URL]`
+ * 元组**（数据仓库的 wire 格式），它们没有曲id —— 源表解析用这个键把行收起来，
+ * 解析时再按 TrackIndex 换成曲id（`sources.ts`）。 */
 export function trackId(album: string, title: string): string {
   return `${album}\u0001${title}`;
 }
@@ -135,7 +156,7 @@ export function entryIndexOf(
   character: CharacterRecord | null | undefined, entry: MusicEntry | null | undefined,
 ): number {
   if (!character || !entry) return -1;
-  return character.music.findIndex((item) => item[0] === entry[0] && item[1] === entry[1]);
+  return character.music.findIndex((item) => item.id === entry.id);
 }
 
 /** 界面显示用的曲名：去掉 `NN. ` 序号（存档里保留原文）。 */

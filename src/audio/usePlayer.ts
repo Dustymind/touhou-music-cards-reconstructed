@@ -10,7 +10,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createBell, type BellHandle } from "./bell";
 import { FADE_STEP_MS, GAME_FADE_MS, rampGain } from "./fade";
 import type { CharacterRecord, ModeDataset, MusicEntry } from "../data/types";
-import { displayTitle, entryIndexOf, trackId } from "../data/types";
+import { displayTitle, entryIndexOf } from "../data/types";
 import { pickWithSeed, randomStartPosition } from "../rng";
 import { allowedTracks, defaultPreset, type PresetState } from "../music/selection";
 import { resolveTrack, type TableMap } from "../music/sources";
@@ -106,7 +106,7 @@ const BELL_TICK_MS = 320;
  *  拿它拼 key 会查不到响度表（而且换写法就会失配）。 */
 export function gainKeyOf(entry: MusicEntry | null): string | null {
   if (!entry) return null;
-  return entry[3] ? `${entry[3]} - ${entry[1]}` : entry[1];
+  return entry.author ? `${entry.author} - ${entry.title}` : entry.title;
 }
 
 export function usePlayer(inputs: PlayerInputs): PlayerApi {
@@ -216,7 +216,7 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
     if (entries.length === 1) return entries[0]!;
     // 已播过的不再选（全播过就允许重复，否则这个角色没得放 ✗）
     const played = new Set(inputs.played ?? []);
-    const fresh = entries.filter((entry) => !played.has(trackId(entry[0], entry[1])));
+    const fresh = entries.filter((entry) => !played.has(entry.id));
     const pool = fresh.length > 0 ? fresh : entries;
     // 由 (会话种子, 角色) 派生：不同角色落到不同曲目，而同一角色在两端的取舍完全一致（D104）
     return pickWithSeed(pool, inputs.seed, "track", character.key);
@@ -318,10 +318,9 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
       applyResolved({ url: own, sourceId: ownAudioSourceId }, null);
       return;
     }
-    const [album, title] = entry;
-    const found = resolveTrack(inputs.tables, inputs.sourceOrder, album, title, failedRef.current);
+    const found = resolveTrack(inputs.tables, inputs.sourceOrder, entry, failedRef.current);
     if (!found) {
-      applyResolved(null, `所有已启用的音源都取不到：${displayTitle(title)}`);
+      applyResolved(null, `所有已启用的音源都取不到：${displayTitle(entry.title)}`);
       return;
     }
     applyResolved(found, null);
@@ -334,7 +333,7 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
       return;
     }
     nowPlayingRef.current = entry
-      ? { sourceId: resolved.sourceId, trackKey: trackId(entry[0], entry[1]) }
+      ? { sourceId: resolved.sourceId, trackKey: entry.id }
       : null;
     audio.src = resolved.url;
     audio.load();
@@ -351,7 +350,7 @@ export function usePlayer(inputs: PlayerInputs): PlayerApi {
     }
     if (setting.randomStart) {
       // 起播位置由 (会话种子, 曲目) 派生：同一首歌每次都落在同一处，不同歌各自不同（D104）
-      const trackKey = entry ? trackId(entry[0], entry[1]) : "";
+      const trackKey = entry ? entry.id : "";
       const applyRandomStart = () => {
         audio.currentTime = randomStartPosition(audio.duration, inputs.seed, trackKey);
         audio.removeEventListener("loadedmetadata", applyRandomStart);
