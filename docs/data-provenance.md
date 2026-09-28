@@ -11,11 +11,14 @@
 |---|---|---|
 | `data/characters/*.toml` | 角色名 + 每首曲的 `[碟名, 曲名, 分类]` | 事实 + 本项目的汇编 |
 | `data/originals.toml`、`data/card-sets.toml` | 碟名、图集登记 | 事实 |
-| `data/meta/*.tsv` | 分类裁定表、别名表、面次参照表、不归属清单 | 本项目的汇编与裁定 |
-| `public/data/*.json` | 上表的构建产物，**随页面分发** | 同上 |
+| `data/public/data/*.json` | TOML 的构建产物，**随页面分发**（构建期生成） | 同上 |
 
-分类取值只有四个：`角色曲` / `道中曲` / `更多道中曲` / `秘封曲`，判定规则见
-[`rules-classification-v1.md`](rules-classification-v1.md)。
+> **S5 起**：分类派生链已整体删除（`.ref/thbwiki` 快照、`data/meta/*.tsv`、
+> `tmc.fetch_roles` / `tmc.roles` / `tmc.stages`、`docs/rules-classification-v1.md`）。
+> 下文 §2–§4 是当时推导过程的历史记录，口径仍有效；现状以 §5 为准。
+
+分类取值只有四个：`角色曲` / `道中曲` / `更多道中曲` / `秘封曲`，四值词汇的直接来源是
+THBWiki Music Room 类别标签的归类（见 §2 的历史推导），本仓库只保留其**结论**、不保留快照。
 
 ## 2. THBWiki 依赖落在两处 —— 比 D11 记的多一处
 
@@ -117,32 +120,27 @@ Music Room 只覆盖**游戏内**的曲目归属。官方音乐 CD 的曲目归�
 这 32 篇文档正是这 26 条手工记录的**权威来源**，所以它们的价值不是"补专辑"，
 而是让手工表有机会收缩 —— 以及给 `幺乐团` 那 5 张提供唯一的归属依据。
 
-## 5. 已采取的处理：保留提交，单独按 THBWiki 的许可分发（方案 B）
+## 5. S5 的处理：整条派生链删除，全仓库不再有 copyleft 文件
 
-`stage-cast.tsv` 只是**构建期的离线复核表**（R2/R3 用它确认"这一面是谁"），
-**不随产物分发**，而且**没有任何代码读它** —— `tools/` 里唯一的引用是
-`tmc.validate` 的写出；`tmc.build --check` 的漂移守卫只覆盖 `public/data/`。
+重构计划（REFACTOR-PLAN v2 §13.5）裁定分类派生链"只剩查证价值、没有运行价值"，予以删除：
 
-它是**唯一**一处按 THBWiki 许可分发的文件，处理方式是：
+- `.ref/thbwiki/`（THBWiki 快照）、`.ref/scripts/`（重推导脚本）、`.ref/upstream-v3/`（上游克隆）；
+- `data/meta/` 六张参照表（含 `stage-cast.tsv`）与 `docs/reports/extra-pending.tsv`、`stage-check.tsv`；
+- `tmc.fetch_roles` / `tmc.roles` / `tmc.stages` 与 `docs/rules-classification-v1.md`；
+- `tmc.validate` 里只依赖这条链的检查（面次核对、裁定/补配/别名表核对）。
 
-- **保留提交** —— 不破坏 D3「生成物提交进仓库」的惯例；
-- 在 `REUSE.toml` 里把它**单独标成 `CC-BY-NC-SA-3.0`**，版权行记 `THBWiki contributors`；
-- 许可原文放 `LICENSES/CC-BY-NC-SA-3.0.txt`。
+`extra` 仍保持四值词汇，但只剩"四选一"的结构校验；需要重新核对归属时，
+按 §2–§4 记录的口径重新抓取 THBWiki 即可（URL 都在 `.ref/notes/` 里）。
 
-于是许可边界是**逐文件精确**的（REUSE 的 `closest` 规则：精确路径胜过 `data/**`）：
-`data/**` 其余部分仍是 MIT，只有这一个文件是 CC-BY-NC-SA-3.0
-（**NC = 不可商用；SA = 其衍生须继续同协议**）。**这是全仓库唯一带 copyleft 的文件**，
-别再往它里面加内容。
-
-**代价**：与"整仓 MIT"的直觉不符 —— 只看根 `LICENSE` 的人会以为数据全是 MIT。
-所以根 `LICENSE` 与 `data/README.md` 都就地写明了这一条例外。
+此前"方案 B"（保留 `stage-cast.tsv` 并按 CC-BY-NC-SA-3.0 单独分发）随之**废弃**：
+该文件与其许可注解（`REUSE.toml`、根 `LICENSE`、`LICENSES/CC-BY-NC-SA-3.0.txt`）一并删除。
+**全仓库重新回到单一 MIT（另有字体 OFL-1.1 与授权凭据的 LicenseRef，见 REUSE.toml）。**
 
 ## 6. 当前许可结论
 
 | 范围 | 许可 | 依据 |
 |---|---|---|
-| `public/data/**`（**实际分发**的部分） | **MIT** | 只有 ZUN 原曲名、日文角色名与四个类别词 |
-| `data/**` 的其余部分 | **MIT** | 本项目的汇编 |
-| `data/meta/stage-cast.tsv` | **CC-BY-NC-SA-3.0** | 含 THBWiki 的中文译文（翻译是演绎行为），按他们的许可分发；见 §5 |
+| `data/public/data/**`（**实际分发**的部分，构建期生成） | **MIT** | 只有 ZUN 原曲名、日文角色名与四个类别词 |
+| `data/**` 的其余部分（TOML 真相源） | **MIT** | 本项目的汇编 |
 
 重推导（§3）依然值得做，但它不再是发布 MIT 的前提。

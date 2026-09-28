@@ -1,6 +1,6 @@
 /** 选曲解析：由「专辑勾选 + 秘封碟勾选 + 三个三态开关」推导出每个角色可用的曲目。
  *
- * 规则见 `docs/rules-classification-v1.md` 与方案 §6.1（优先级：单曲模式手选 > 三态显式 > 专辑/秘封碟勾选）。
+ * 规则见方案 §6.1（优先级：单曲模式手选 > 三态显式 > 专辑/秘封碟勾选）；`extra` 四值口径见 `docs/data-provenance.md`。
  * 这里是纯函数：M6 的配置页只负责把界面状态喂进来。
  */
 import type { AlbumRecord, CharacterRecord, Extra, MusicEntry } from "../data/types";

@@ -10,7 +10,7 @@
 |---|---:|---|
 | `.music/` | 780 MB | 音MAD 的本地源（gitignore）。**按"只能拷"处理** —— 虽然原理上可重抓，但依赖第三方投稿仍在线上，见 §1.4 |
 | `local-source.toml` | 4 KB | 本机助手配置（gitignore）。内容 20 行，也可照 `data/otomads/local-source.toml.example` 重建 |
-| `.ref/` | 359 MB | 上游只读副本 + THBWiki 快照。`tmc.fetch_roles` / `tmc.stages` 读 `.ref/thbwiki/`，缺了要重抓（要联网） |
+| `.ref/` | ~0.3 MB | 只剩 `notes/` 五份（S5 起 THBWiki 快照与上游克隆已删，有 URL 可随时重克隆） |
 | `touhou-music-cards-otomads-data/` | 2.1 GB | 数据仓库的独立克隆（改数据、打 tag 用）。**可重新 clone**，但省事就拷 |
 | `touhou-music-cards-custom-data/` | 42 MB | 同上（自定义数据） |
 | `HANDOVER.md` · `UPDATING.md` · `local-docs/` | 很小 | 工作区根的文档。`UPDATING.md` 是**现行操作手册**，不在任何仓库里 |
@@ -38,7 +38,7 @@
 
 - `.music/`（780 MB）—— 见 §1.4：**理论可重建，但没有把握**，所以留着。
 - `.ref/notes/`（332 KB）—— 被 `src/game/rules.ts`、`src/i18n/localization.ts` 当**出处的依据**引用。
-- `.ref/scripts/`（672 KB）—— 被 `docs/rules-classification-v1.md`、`docs/data-provenance.md` 引用。
+- （S5 起 `.ref/scripts/` 已删 —— 分析脚本与产物随分类链一起退场）
 - `.ref/thbwiki/`（2.4 MB）—— 重推导的原始证据（45 份 Music Room 快照），重抓要另花一轮。
 
 ### 1.4 `.music/` 为什么没删

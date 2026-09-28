@@ -18,7 +18,7 @@ def test_repo_skeleton_exists():
 
 
 def test_decision_records_present():
-    for rel in ("docs/DECISIONS.md", "docs/rules-classification-v1.md"):
+    for rel in ("docs/DECISIONS.md", "docs/data-provenance.md"):
         assert (ROOT / rel).stat().st_size > 1000, rel
 
 

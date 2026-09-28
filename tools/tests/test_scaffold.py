@@ -88,8 +88,14 @@ def test_missing_follows_the_true_source_order(tmp_path, monkeypatch):
 
 
 def test_example_keys_are_all_legal():
-    """注释里示例用的键必须都是 `TRACK_KEYS` 的成员：取消注释后写错键名是**直接报错**。"""
-    assert set(pack_mod.TRACK_KEYS) <= pack_mod.TRACK_KEYS
+    """骨架注释里的示例键必须都是 `TRACK_KEYS` 的成员：取消注释后写错键名是**直接报错**。"""
+    rendered = roster.scaffold_render("demo", "演示", 1)
+    import re
+    example = [line.strip() for line in rendered.splitlines()
+               if line.startswith("# ") and "=" in line and not line.startswith("# 角色")]
+    keys = {re.sub(r"^#\s*(authors|author|album|title|extra|source|start_time|stop_time)\s*=.*$", r"\1",
+                   line) for line in example}
+    assert keys <= set(pack_mod.TRACK_KEYS), keys
 
 
 def test_errors_when_the_submodule_is_not_initialised(tmp_path, monkeypatch):

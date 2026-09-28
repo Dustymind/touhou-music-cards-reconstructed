@@ -13,7 +13,6 @@ import hashlib
 import json
 import random
 import sys
-import re
 import tomllib
 import urllib.error
 import urllib.parse
@@ -336,144 +335,6 @@ def check_sources(referenced: set[tuple[str, str]], p: Problems):
     return stats
 
 
-STAGE_LABEL = re.compile(r"^(?:第?(\d+)面|(最终)面|(Extra)面|(Phantasm)面)主题曲$")
-
-
-def check_stage_attribution(chars: list[dict]) -> dict[str, list[str]]:
-    """逐条核对「道中曲/更多道中曲」的面次归属（依据 THBWiki 作品页的 BOSS 表）。
-
-    规则：该曲所属作品该面次的登场角色里必须出现本角色（E1：中 BOSS 与面 BOSS 同等）。
-    `alias-gap` 表示面次角色看起来就是本角色、但双方中文名用字不同 —— 需要补别名而不是改数据。
-    """
-    from .roles import RoleIndex
-    from .stages import StageCast
-
-    index = RoleIndex.load()
-    cast = StageCast.load()
-    rows: dict[str, list[str]] = {}
-    for char in chars:
-        names = [n for n in char["searchNames"] if n]
-        for album, title, extra, *_rest in _triples(char["music"]):
-            if extra not in ("道中曲", "更多道中曲"):
-                continue
-            work = next((w for k, _n, _kind, w, _o in repo.ALBUM_SEED
-                         if k and _n == album and w), "")
-            stage = next((next(g for g in m.groups() if g) for lab in index.labels(work, title)
-                          if (m := STAGE_LABEL.match(lab))), "") if work else ""
-            if not work or not stage:
-                verdict, who = "no-label", "-"
-            else:
-                who_list = cast.who(work, stage)
-                who = "、".join(sorted(set(who_list))) or "-"
-                verdict = "verified" if cast.has(work, stage, names) else (
-                    "alias-gap" if any(_loose(n, w) for n in names for w in who_list) else "REVIEW")
-            rows[f"{char['key']}\t{album}\t{title}"] = [f"{extra}\t{stage or '-'}\t{who}\t{verdict}"]
-    return rows
-
-
-def _loose(a: str, b: str) -> bool:
-    """只用于把"名字用字不同"与"角色不对"区分开：比较前两字。"""
-    return len(a) >= 2 and len(b) >= 2 and a[:2] == b[:2]
-
-
-def check_overrides(chars: list[dict], p: Problems) -> int:
-    """人工裁定表里的每条都必须真的落在某个角色文件里，且值一致。"""
-    from .roles import load_overrides
-
-    table = load_overrides()
-    seen: set[tuple[str, str]] = set()
-    for char in chars:
-        for album, title, extra, *_rest in _triples(char["music"]):
-            if (album, title) in table:
-                seen.add((album, title))
-                want, reason, source = table[(album, title)]
-                if extra != want:
-                    p.error(f"覆盖表与文件不一致：{album} / {title}（文件 {extra}，覆盖 {want}）")
-                if not reason or not source:
-                    p.error(f"覆盖表缺少依据/来源：{album} / {title}")
-    for key in table:
-        if key not in seen:
-            p.error(f"覆盖表条目不在任何角色文件里：{key[0]} / {key[1]}")
-    return len(table)
-
-
-def check_alias_tables(chars: list[dict], p: Problems) -> dict[str, int]:
-    """`character-aliases.tsv` 的别名必须真的写进了角色文件；合并条目表的成员名必须能在别名里找到。"""
-    meta = repo.DATA / "meta"
-    by_key = {c["key"]: c for c in chars}
-    added = 0
-    alias_file = meta / "character-aliases.tsv"
-    if alias_file.exists():
-        for line in alias_file.read_text(encoding="utf-8").splitlines()[1:]:
-            if not line.strip():
-                continue
-            key, alias, *_src = (line.split("\t") + ["", ""])
-            char = by_key.get(key)
-            if char is None:
-                p.error(f"别名表指向未知角色：{key}")
-                continue
-            if alias not in char["searchNames"]:
-                p.error(f"别名未落进角色文件：{key} / {alias}")
-            else:
-                added += 1
-
-    composites = 0
-    comp_file = meta / "composite-characters.tsv"
-    if comp_file.exists():
-        for line in comp_file.read_text(encoding="utf-8").splitlines()[1:]:
-            if not line.strip():
-                continue
-            cells = line.split("\t")
-            key, members = cells[0], cells[2]
-            char = by_key.get(key)
-            if char is None:
-                p.error(f"合并条目表指向未知角色：{key}")
-                continue
-            composites += 1
-            if len(char["card"]) < 2:
-                p.error(f"{key}: 合并条目应有多个卡面，实际 {char['card']}")
-            for member in members.split(" / "):
-                member = member.strip()
-                if member and not any(member in n or n in member for n in char["searchNames"]):
-                    p.error(f"{key}: 成员「{member}」不在 searchNames 里")
-    return {"aliases": added, "composites": composites}
-
-
-def check_track_additions(chars: list[dict], p: Problems) -> int:
-    """`data/meta/character-tracks.tsv`：每条都要真的在角色文件里，且 (专辑,曲目) 三表齐备。"""
-    path = repo.DATA / "meta" / "character-tracks.tsv"
-    if not path.exists():
-        return 0
-    tables = {}
-    for source_id in build_mod.mirror_source_ids():
-        entries = _read_mirror(source_id)
-        if entries is None:
-            continue
-        tables[source_id] = {(a, t) for a, t, _u in entries}
-    by_key = {c["key"]: c for c in chars}
-    count = 0
-    for line in path.read_text(encoding="utf-8").splitlines()[1:]:
-        if not line.strip():
-            continue
-        key, album, title, extra, reason, source = (line.split("\t") + [""] * 6)[:6]
-        count += 1
-        char = by_key.get(key)
-        if char is None:
-            p.error(f"补配表指向未知角色：{key}")
-            continue
-        hit = [e for e in char["music"] if e["album"] == album and e["title"] == title]
-        if not hit:
-            p.error(f"补配曲目没落进角色文件：{key} / {album} / {title}")
-        elif hit[0]["extra"] != extra:
-            p.error(f"补配曲目的附加信息不符：{key} / {title}（文件 {hit[0]["extra"]}，表 {extra}）")
-        if not reason or not source:
-            p.error(f"补配表缺依据/来源：{key} / {title}")
-        for source_id, table in tables.items():
-            if (album, title) not in table:
-                p.error(f"补配曲目在 {source_id} 里不存在：{album} / {title}")
-    return count
-
-
 def check_title_uniqueness(chars: list[dict], p: Problems) -> dict[str, object]:
     """同名 ≠ 同曲：确认"曲目身份必须带专辑"这条前提在数据里成立。
 
@@ -519,27 +380,6 @@ def check_title_uniqueness(chars: list[dict], p: Problems) -> dict[str, object]:
         "number_prefix_required": numbered,
     }
 
-
-def check_pending(chars: list[dict], p: Problems):
-    path = repo.REPORTS / "extra-pending.tsv"
-    if not path.exists():
-        p.error("缺少 docs/reports/extra-pending.tsv")
-        return 0
-    rows = [line.split("\t") for line in path.read_text(encoding="utf-8").splitlines()[1:] if line]
-    by_key = {c["key"]: c for c in chars}
-    for key, album, title, value, reason in rows:
-        char = by_key.get(key)
-        if char is None:
-            p.error(f"extra-pending 指向未知角色：{key}")
-            continue
-        hit = [e for e in char["music"] if e["album"] == album and e["title"] == title]
-        if not hit:
-            p.error(f"extra-pending 条目不在角色文件里：{key} / {album} / {title}")
-        elif hit[0]["extra"] != value:
-            p.error(f"extra-pending 占位值不符：{key} / {title}（文件 {hit[0]["extra"]}，报告 {value}）")
-        if not reason:
-            p.error(f"extra-pending 缺少原因：{key} / {title}")
-    return len(rows)
 
 def check_track_covers(covers: dict, problems: "Problems") -> None:
     """源封面（`covers`，D153/D167）：每条曲目的 `cover` 必须是一条 https 直链。
@@ -793,24 +633,18 @@ def run() -> tuple["Problems", dict]:
     # 生成物里的源表地址形态（D131）：前端读的是 JSON，注册表对了这里也不能漏
     source_registry["table_urls"] = check_source_table_urls(p)
     card_sets = check_card_sets(p)
-    pending = check_pending(chars, p)
-    overrides = check_overrides(chars, p)
-    alias_stats = check_alias_tables(chars, p)
-    additions = check_track_additions(chars, p)
     title_stats = check_title_uniqueness(chars, p)
     for album, notes in title_stats["number_prefix_required"].items():
         p.note(f"{album}：去掉曲目序号会撞名，故 `曲目` 保留 `NN. ` —— {'；'.join(notes)}")
-    stage_rows = check_stage_attribution(chars)
     digest = hashlib.sha256(
         json.dumps(sorted(char_stats["referenced"]), ensure_ascii=False).encode()).hexdigest()[:12]
     return p, {
-        "albums": len(albums), "characters": len(chars), "pending": pending,
-        "digest": digest, "sources": source_stats, "stage_rows": stage_rows,
-        "overrides": overrides, "source_registry": source_registry,
-        "card_sets": card_sets, "track_additions": additions, "packs": pack_stats,
+        "albums": len(albums), "characters": len(chars),
+        "digest": digest, "sources": source_stats, "source_registry": source_registry,
+        "card_sets": card_sets, "packs": pack_stats,
         "roster": roster_count,
         "modes": mode_stats, "pack_cards": len(pack_cards), "pack_covers": len(pack_covers),
-        "titles": title_stats, **alias_stats,
+        "titles": title_stats,
         **{k: v for k, v in char_stats.items() if k != "referenced"},
     }
 
@@ -825,27 +659,7 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
 
     p, stats = run()
-    char_stats, source_stats, pending = stats, stats["sources"], stats["pending"]
-
-    stage_rows = stats["stage_rows"]
-    out = repo.REPORTS / "stage-check.tsv"
-    out.write_text("角色key\t专辑\t曲目\t类别\t面次\t该面登场角色\t结论\n" +
-                   "\n".join(f"{k}\t{v[0]}" for k, v in sorted(stage_rows.items())) + "\n",
-                   encoding="utf-8")
-    counts = collections.Counter(v[0].rsplit("\t", 1)[-1] for v in stage_rows.values())
-    for verdict in ("REVIEW", "alias-gap", "no-label"):
-        if counts.get(verdict):
-            p.note(f"道中曲面次核对：{counts[verdict]} 条 {verdict}（见 docs/reports/stage-check.tsv）")
-    # 把用到的面次参照表固化成数据，便于离线复核
-    from .stages import StageCast
-
-    meta = repo.DATA / "meta"
-    meta.mkdir(parents=True, exist_ok=True)
-    lines = ["作品\t面次\t类型\t曲目\t登场角色"]
-    for work, entries in StageCast.load()._rows.items():  # noqa: SLF001 - 只读导出
-        for row in entries:
-            lines.append(f"{work}\t{row['stage']}\t{row['kind']}\t{row['title']}\t{row['cast']}")
-    (meta / "stage-cast.tsv").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    char_stats, source_stats = stats, stats["sources"]
 
     lines = ["# 校验报告", "",
              f"- 角色：{stats['characters']}", f"- 专辑：{stats['albums']}",
@@ -858,9 +672,6 @@ def main(argv: list[str] | None = None) -> int:
              f"自定义 {stats['modes']['custom']['characters']} 角色（**恒为空**，数据由使用者自己的源提供）",
              f"- 秘封曲条目：{char_stats['hifuu_entries']}",
              f"- 跨角色共用曲目：{len(char_stats['shared'])}",
-             f"- 待判定（占位）：{pending}", f"- 人工裁定条目：{stats['overrides']}",
-             f"- 人工补配曲目：{stats['track_additions']}，合并条目：{stats['composites']}，"
-             f"补充别名：{stats['aliases']}",
              f"- 曲目身份 `(专辑,曲目)`：{stats['titles']['pairs']} 条，其中被多个角色共用 "
              f"{stats['titles']['shared_pairs']} 条",
              f"- **同名但不同专辑**的曲名（不同曲子，禁止按曲名合并）："

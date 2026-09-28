@@ -7,8 +7,6 @@
 # 校验：uvx --from reuse reuse lint
 #
 # 优先级口径：**全部用默认的 `closest`**（路径最贴近文件的那条生效），不写 `precedence`。
-# 这是有意的：若给 `data/**` 与 `data/meta/stage-cast.tsv` 都标 `override`，两条互相
-# 冲突、结果不确定；靠"精确路径比 `**` 更近"来分胜负则是确定性的。
 # 别在这里加 `precedence`，除非你确定要叠加（aggregate）或强行覆盖（override）。
 
 version = 1
@@ -32,22 +30,12 @@ SPDX-FileCopyrightText = "2006 The Inconsolata Project Authors"
 SPDX-License-Identifier = "OFL-1.1"
 
 # ---- 数据：本仓库自己的汇编 --------------------------------------------------------
-# 曲名/角色名/碟名是事实；分类规则见 docs/rules-classification-v1.md，
-# 来源见 docs/data-provenance.md。**不复制 THBWiki 的任何正文**。
+# 曲名/角色名/碟名是事实；来源见 docs/data-provenance.md。**不复制 THBWiki 的任何正文**。
+# S5 起分类/面次派生链（.ref/thbwiki、data/meta 参照表）已删除 ⇒ 全仓库不再有 copyleft 文件。
 [[annotations]]
 path = ["data/**"]
 SPDX-FileCopyrightText = "2026 multimode_Liu"
 SPDX-License-Identifier = "MIT"
-
-# ---- 面次参照表：唯一一处**按 THBWiki 的许可**分发的文件（方案 B）------------------
-# `data/meta/stage-cast.tsv` 的曲名与角色名是 THBWiki 的**中文翻译**（翻译是演绎行为），
-# 所以它**不能**跟着 `data/**` 一起按 MIT 发。保留提交、单独标成 THBWiki 的许可。
-# 它只是 `tmc.validate` 导出的离线复核表，**没有任何代码读它**，也不进前端产物。
-# 背景与实测见 docs/data-provenance.md §5 与 docs/DECISIONS.md 的 D170。
-[[annotations]]
-path = "data/meta/stage-cast.tsv"
-SPDX-FileCopyrightText = "THBWiki contributors"
-SPDX-License-Identifier = "CC-BY-NC-SA-3.0"
 
 # ---- 授权凭据：截图里有他人（上游作者）的文字，不能按 MIT 再许可 --------------------
 # 这是"留档"性质的证据文件，不是本项目的作品，所以用一个自定义的 LicenseRef 标明，

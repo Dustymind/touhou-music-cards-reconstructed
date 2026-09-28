@@ -6,15 +6,7 @@
 - `card-sets.toml` 卡面图集登记（**8 套**：6 套上游走远程 origin、1 套音MAD 为 `local_only`（素材自己放进
   `cards-otomads/`（仓库根，gitignored））、1 套 `source_only` 的 B 站封面集（素材 = 源快照里的 `covers`，只在音MAD 模式列出，
   源没给就不显示 —— D153））
-- `meta/character-tracks.tsv` 角色 × 专辑 × 曲目覆盖表（人工补配，每行带依据与来源）
-- `meta/character-aliases.tsv` 人工补充的搜索别名（`key → 别名…`）
-- `meta/composite-characters.tsv` 合并（composite）角色条目表
-- `meta/extra-overrides.tsv` 人工裁定表：`(专辑, 曲目) → (附加信息, 依据, 来源)`
-- `meta/unowned-tracks.tsv` 显式"不归属任何角色"清单 + 理由
-- `meta/stage-cast.tsv` 作品 × 面次 × 登场角色参照表（`tmc.validate` 导出，供离线复核）。
-  **许可例外**：它的曲名与角色名是 THBWiki 的中文译文（翻译是演绎行为），按
-  **`CC-BY-NC-SA-3.0`** 分发，**不**随 `data/**` 的 MIT —— 见 `docs/data-provenance.md` §5
-  与 `docs/DECISIONS.md` 的 D170。这是全仓库唯一带 copyleft 的文件，别往它里面加内容。
+
 - `packs/` 附加曲包的**通用根目录**（当前只剩 `README.md`：未来的第二个包放这里，契约见它）；音MAD 的真源在
   **submodule** `otomads/` —— 清单 `otomads/packs/otomads.toml` + 一角色一份 `otomads/packs/otomads/*.toml`（**80** 份有曲目；
   本地专辑，**191 首 / 80 个角色**，见 `otomads/README.md`）。submodule **pin 在 commit 上**（tag 只是那个
@@ -31,5 +23,5 @@
   `touhou-music-cards-custom-data`（submodule `custom/`；本仓库的构建**不依赖**它 ——
   `data/custom` 初始化与否，`data:build` 的 custom 产物都逐字相同（实测））
 
-规则见 `docs/rules-classification-v1.md`。曲目归属的标签来源是 THBWiki 抓取快照
-`.ref/thbwiki/rows.json`（`tmc.fetch_roles` 产出，`tmc.roles` 读取），人工例外只写在 `extra-overrides.tsv`。
+`extra` 四值词汇（角色曲/道中曲/更多道中曲/秘封曲）的口径与来源见 `docs/data-provenance.md`；
+S5 起分类派生链（.ref/thbwiki 快照、data/meta 参照表）已删除，`extra` 只剩"四选一"校验。

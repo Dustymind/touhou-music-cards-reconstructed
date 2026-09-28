@@ -33,7 +33,7 @@
 |---|---|---|
 | [`rng-v1.md`](rng-v1.md) | 随机数实现、`draw` / `derive` 两条口径、种子由谁生成 | 联机两端分叉、存档与回放不可复现 |
 | [`protocol-v1.md`](protocol-v1.md) | 握手、消息表、顺序、会话配置下发、版本演进 | 两端状态分叉，或旧对端被静默接受 |
-| [`rules-classification-v1.md`](rules-classification-v1.md) | `music[].附加信息` 的判定规则（THBWiki 标签 → 四类） | 分类漂移、`tmc.validate` 报错 |
+| ~~`rules-classification-v1.md`~~ | （S5 已随分类派生链删除；`extra` 四值口径见 `data-provenance.md`） | 分类漂移、`tmc.validate` 报错 |
 | [`packs-audio-v1.md`](packs-audio-v1.md) | 曲包音频的 `source` / `start_time` / `stop_time`、抓取与裁剪流程 | 两端听到的音频不同却仍能握手 |
 | [`custom-mode-v1.md`](custom-mode-v1.md) | 自定义模式（`custom`）的源清单形状、卡面/音频地址、三元与逐卡禁用、哈希与联机采用 | "看得见点不响"、两端卡表不同却仍能握手 |
 | [`data-provenance.md`](data-provenance.md) | 数据从哪来、THBWiki 依赖落在哪两处、许可分层与重推导现状 | 把 THBWiki 的译文/正文再引进仓库，或把许可标错 |
@@ -55,8 +55,8 @@
 ## 阶段产物与历史快照
 
 见 [`reports/README.md`](reports/README.md)（**2026-09-28 从根目录 `reports/` 移进本目录**）：
-M1 / M2a / M2b / M9 是阶段报告（历史），`validation-report.md` 与 `stage-check.tsv` 由脚本生成（可重跑），
-`extra-pending.tsv` 是校验器的输入。写入路径由 `tmc.repo.REPORTS` 定义，只此一处。
+M1 / M2a / M2b / M9 是阶段报告（历史），`validation-report.md` 由脚本生成（可重跑）。
+S5 起 `docs/reports/` 移出 git（工作记录不随仓库分发）；写入路径由 `tmc.repo.REPORTS` 定义，只此一处。
 
 ## 工作区笔记（不进版本库）
 
