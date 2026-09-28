@@ -24,10 +24,17 @@
 | `.playwright-browsers/` | 964 MB | **Linux 二进制，Windows 上跑不起来** ⇒ 重装（见 §2.4） |
 | `node_modules/` | 572 MB | pnpm 的 symlink 布局跨平台不通用 ⇒ 重新 `pnpm install` |
 | `.uv/` · `tools/.venv/` · `data/*/tools/.venv/` | 23 MB | Linux venv ⇒ 重新 `uv sync` |
-| `dist/` | 1.5 MB | `pnpm build` |
-| `.pnpm-store/` | — | 重新 install 时自建 |
-| `otomads-media.tar.gz` | 328 MB | 可从数据仓库的**公开** Release 匿名重下：`gh release download media --pattern otomads-media.tar.gz -R Dustymind/touhou-music-cards-otomads-data` |
-| 13 张调试 PNG（`appearance-*` / `slot-*` / `opt-*` / `ratio-preview-*` / `otomads-cover-*` / `local-deploy*`） | ~2.9 MB | 一次性验证截图，无保留价值 |
+
+**下面这些已在 2026-09-28 就地删除，迁移时不必再考虑**（合计约 1.56 GB）：`dist/`、`.pnpm-store/`、
+两个 `otomads-media.tar.gz`（主仓库那份是 88 成员的**旧包**）、`test-results/`、各 `.pytest_cache/`，
+以及工作区根的 **13 张一次性验证截图**（`appearance-*` / `slot-*` / `opt-*` / `ratio-preview-*` /
+`otomads-cover-*` / `local-deploy*`，约 2.9 MB，无保留价值）。
+
+归档若要重取（数据仓库已公开，可匿名下）：
+
+```bash
+gh release download media --pattern otomads-media.tar.gz -R Dustymind/touhou-music-cards-otomads-data
+```
 
 ### 1.3 迁移前的安全检查（**已做过，结论：干净**）
 
