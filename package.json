@@ -22,7 +22,7 @@
     "gate": "node scripts/run.mjs uv run --project tools python -m tmc.build && node scripts/run.mjs uv run --project tools python -m tmc.validate --report && node scripts/gen-notices.mjs --check",
     "data:validate": "node scripts/run.mjs uv run --project tools python -m tmc.validate --report",
     "data:roster": "node scripts/run.mjs uv run --project tools python -m tmc.roster",
-    "data:scaffold": "node scripts/run.mjs uv run --project tools python -m tmc.scaffold",
+    "data:scaffold": "node scripts/run.mjs uv run --project tools python -m tmc.roster --scaffold",
     "audio:fetch": "node scripts/require-submodule.mjs data/otomads && node scripts/run.mjs uv run --project data/otomads/tools python -m otomads.fetch_audio --config local-source.toml",
     "audio:measure": "node scripts/require-submodule.mjs data/otomads && node scripts/run.mjs uv run --project data/otomads/tools python -m otomads.measure_loudness",
     "media:pack": "node scripts/require-submodule.mjs data/otomads && node scripts/run.mjs uv run --project data/otomads/tools python -m otomads.stage_media pack --library .music --cards cards-otomads --out otomads-media.tar.gz",

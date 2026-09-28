@@ -103,16 +103,112 @@ def write(roster: dict[str, dict] | None = None) -> pathlib.Path:
     return ROSTER
 
 
+# ---- 曲包骨架（S5 起并入 roster，原 tmc.scaffold，D137） ----
+#: 目标曲包：骨架写进 `<数据仓库 submodule>/packs/<PACK_ID>/`
+PACK_ID = "otomads"
+
+
+def scaffold_target_dir() -> pathlib.Path:
+    """骨架要写进的目录（submodule 未初始化时不存在）。"""
+    return repo.DATA / repo.OTOMADS_DATA / "packs" / PACK_ID
+
+
+def scaffold_toml_str(value: str) -> str:
+    """TOML 基本字符串（与数据仓库 `otomads.ingest_pack.toml_str` 同一套转义）。"""
+    escaped = value.replace("\\", "\\\\").replace(chr(34), "\\" + chr(34))
+    return chr(34) + escaped + chr(34)
+
+
+def scaffold_existing() -> set[str]:
+    """已经有角色文件的 key 集合（目录不存在时为空）。"""
+    directory = scaffold_target_dir()
+    if not directory.is_dir():
+        return set()
+    return {path.stem for path in directory.glob("*.toml")}
+
+
+def scaffold_missing() -> list[tuple[str, str, int]]:
+    """真源里有、曲包里还没有的角色 → `[(key, name, order)]`，按 `order` 排。"""
+    characters = load_characters()
+    have = scaffold_existing()
+    return [(key, entry["name"], int(entry["order"]))
+            for key, entry in sorted(characters.items(), key=lambda item: item[1]["order"])
+            if key not in have]
+
+
+def scaffold_render(key: str, name: str, order: int) -> str:
+    """一个骨架文件的内容（注释掉的 [[track]] 示例；**不覆盖已有文件**）。"""
+    from .validate import EXTRAS as VALIDATE_EXTRAS  # 懒导入：validate 也 import roster，避免环
+
+    extras = " / ".join(VALIDATE_EXTRAS)
+    lines = [
+        f"# 音MAD 曲包（{PACK_ID}）：`{key}` 的曲目。",
+        f"# 清单与口径见 `packs/{PACK_ID}.toml` 与 `README.ai.MD`。",
+        f"# 角色：{name}（主仓库真源 order = {order}）。`name` / `order` 属于主仓库真源（S1），",
+        f"#   而本文件顶层**只允许** `key` 与可选的 `card`（写别的键会直接报错），所以这两项只留注释；",
+        f"#   填了曲目后在主仓库跑 `pnpm data:roster`，这个角色就会自动进 `characters.toml`。",
+        f"# 骨架由主仓库 `pnpm data:scaffold` 生成（D137）；它**不覆盖已有文件**，填过就不用再理它。",
+        "",
+        f"key = {scaffold_toml_str(key)}",
+        "",
+        "# 下面是一份**占位**示例：填上真值再取消注释（`album` 固定；`extra` 见 " + extras + "）。",
+        "# 没有 source 的曲目只能手工把音频放进曲库（不写 source 时抓取会报「缺 source」）。",
+        "# [[track]]",
+        f'# album = "{PACK_ID}"',
+        '# author = "作者名"                                  # 或 authors = ["甲", "乙"]（只能写一个）',
+        '# title = "曲名"',
+        '# extra = "角色曲"',
+        '# source = "https://www.bilibili.com/video/BV……"     # 可选：抓取/裁剪用',
+        '# start_time = "00:00:00.000"                        # 可选：裁剪区间（只给一侧也合法）',
+        '# stop_time = "00:00:30.000"',
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def scaffold_write(dry_run: bool = False) -> list[str]:
+    """补齐缺失的骨架文件，返回新建（或 --dry-run 下将会新建）的 key 列表。"""
+    directory = scaffold_target_dir()
+    if not directory.is_dir():
+        raise SystemExit(f"{repo.shown(directory)} 不存在："
+                         f"先跑 `git submodule update --init data/otomads`")
+    created: list[str] = []
+    for key, name, order in scaffold_missing():
+        created.append(key)
+        if dry_run:
+            continue
+        path = directory / f"{key}.toml"
+        if path.exists():            # 绝不覆盖是硬规矩
+            created.pop()
+            continue
+        path.write_text(scaffold_render(key, name, order), encoding="utf-8")
+    return created
+
+
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="生成数据仓库的角色清单（characters.toml）")
+    parser = argparse.ArgumentParser(description="生成数据仓库的角色清单（characters.toml）与曲包骨架")
     parser.add_argument("--check", action="store_true", help="只检查是否与真源一致")
+    parser.add_argument("--scaffold", action="store_true",
+                        help="为缺失的角色预置曲包骨架文件（原 tmc.scaffold，不影响生成物）")
+    parser.add_argument("--dry-run", action="store_true", help="（--scaffold 用）只列出会新建哪些")
     args = parser.parse_args(argv)
+
+    if args.scaffold:
+        created = scaffold_write(dry_run=args.dry_run)
+        if not created:
+            print("[OK] 没有缺失的角色文件（真源里的角色都有了骨架）")
+            return 0
+        verb = "会新建" if args.dry_run else "已新建"
+        for key in created:
+            print(f"{verb} packs/{PACK_ID}/{key}.toml")
+        print(f"{verb} {len(created)} 个骨架文件（已有的一律不动）"
+              f"—— 填完曲目在主仓库跑 `pnpm data:roster`")
+        return 0
 
     if args.check:
         problems = diff()
         for problem in problems:
-            print(f"✗ {problem}")
-        print("✅ 清单与真源一致" if not problems else f"❌ {len(problems)} 处不一致")
+            print(f"[x] {problem}")
+        print("[OK] 清单与真源一致" if not problems else f"[FAIL] {len(problems)} 处不一致")
         return 1 if problems else 0
 
     path = write()
