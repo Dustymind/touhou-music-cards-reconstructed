@@ -62,23 +62,24 @@ def test_pack_tracks_land_only_in_the_otomads_set():
 
 
 def test_mirror_ids_come_from_the_registry(tmp_path, monkeypatch):
-    """镜像清单从 `data/sources/originals.toml` 的 `kind = "remote"` 派生（R7④）。
+    """镜像清单从「一源一文件」头部的 `kind = "remote"` 派生（S1c，继承 review R7④）。
 
-    真注册表：派生出来的每个 id 都得有表文件（构建要把它拷进 `public/data/sources/`）；
-    合成注册表：加一个 `kind = "remote"`，派生结果**跟着变** —— 写死的清单不会 ✓。
+    真数据：派生出来的每个 id 都得有自包含源文件（构建从它重排 `public/data/sources/`）；
+    合成数据：加一个 `kind = "remote"` 的单源文件，派生结果**跟着变** —— 写死的清单不会 ✓。
     """
     ids = build.mirror_source_ids()
     assert ids
     for source_id in ids:
-        assert (repo.DATA / "sources" / f"{source_id}.json").exists(), source_id
+        assert (repo.DATA / "sources" / f"{source_id}.toml").exists(), source_id
         assert source_id in {entry["id"] for entry in build.load_registry("originals")}
 
     (tmp_path / "sources").mkdir()
-    (tmp_path / "sources" / "originals.toml").write_text(
-        '[[source]]\nid = "m1"\nkind = "remote"\n\n'
-        '[[source]]\nid = "local"\nkind = "local"\n\n'
-        '[[source]]\nid = "m2"\nkind = "remote"\n',
-        encoding="utf-8")
+    (tmp_path / "sources" / "m1.toml").write_text(
+        'id = "m1"\nkind = "remote"\norder = 1\n', encoding="utf-8")
+    (tmp_path / "sources" / "local.toml").write_text(
+        'id = "local"\nkind = "local"\norder = 2\n', encoding="utf-8")
+    (tmp_path / "sources" / "m2.toml").write_text(
+        'id = "m2"\nkind = "remote"\norder = 3\n', encoding="utf-8")
     monkeypatch.setattr(repo, "DATA", tmp_path)
     assert build.mirror_source_ids() == ("m1", "m2")
 
@@ -102,8 +103,8 @@ def test_table_url_rejects_root_absolute_and_other_schemes(value):
 def test_build_sources_refuses_a_root_absolute_table_url(tmp_path, monkeypatch):
     """注册表里写错一个 `/`，`data:build` 当场炸 —— 而不是等用户在子目录部署上发现放不出声。"""
     (tmp_path / "sources").mkdir()
-    (tmp_path / "sources" / "originals.toml").write_text(
-        '[[source]]\nid = "m1"\nlabel_en = "m"\nlabel_zh = "m"\n'
+    (tmp_path / "sources" / "m1.toml").write_text(
+        'id = "m1"\nlabel_en = "m"\nlabel_zh = "m"\n'
         'table_url = "/data/sources/m1.json"\nkind = "remote"\norder = 1\nenabled = true\n',
         encoding="utf-8")
     monkeypatch.setattr(repo, "DATA", tmp_path)

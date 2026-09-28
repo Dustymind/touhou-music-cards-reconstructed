@@ -140,8 +140,44 @@ def build_albums(mode: str, pack_albums: list[dict]) -> dict:
     return {"schema": SCHEMA_VERSION, "albums": albums}
 
 
+def _single_source_files() -> list[pathlib.Path]:
+    """自包含的「一源一文件」（S1c）：顶层有 ``id``（注册表文件是 ``[[source]]`` 数组，没有顶层 ``id``）。"""
+    root = repo.DATA / "sources"
+    if not root.is_dir():
+        return []
+    out = []
+    for path in sorted(root.glob("*.toml")):
+        with open(path, "rb") as fh:
+            data = tomllib.load(fh)
+        if "id" in data:
+            out.append(path)
+    return out
+
+
+def load_mirror_tracks(source_id: str) -> list[list[str]]:
+    """读一张镜像源表（``data/sources/<id>.toml`` 的 ``[[track]]``）→ ``[[album, title, url], …]``。"""
+    with open(repo.DATA / "sources" / f"{source_id}.toml", "rb") as fh:
+        data = tomllib.load(fh)
+    return [[t["album"], t["title"], t["url"]] for t in data.get("track", [])]
+
+
 def load_registry(mode: str) -> list[dict]:
-    """读某个模式的音源注册表（主仓库 ``data/sources/<mode>.toml`` 或 submodule 里的同名文件）。"""
+    """读某个模式的音源注册表。
+
+    ``originals``（S1c 起）= 每源一个自包含 TOML 的**头部集合**（没有单独注册表文件）；
+    其余模式 = ``data/sources/<mode>.toml`` 或 submodule 里的同名注册表文件。
+    """
+    if mode == "originals":
+        entries = []
+        for path in _single_source_files():
+            with open(path, "rb") as fh:
+                data = tomllib.load(fh)
+            entries.append({k: data[k] for k in (
+                "id", "label_en", "label_zh", "table_url", "kind", "order",
+                "enabled", "proxyable", "description_en", "description_zh") if k in data})
+        if not entries:
+            raise SystemExit("找不到原曲音源文件（data/sources/*.toml 单源形状）")
+        return sorted(entries, key=lambda e: e["order"])
     path = repo.find_source_registry(mode)
     if path is None:
         searched = "、".join(repo.shown(root) for root in repo.source_roots())
@@ -347,8 +383,10 @@ def build_outputs() -> tuple[dict, dict[str, dict[str, str]]]:
     # 共享项：与模式无关，只写一份
     outputs[repo.PUBLIC_DATA / "cardsets.json"] = _dumps(build_card_sets())
     for source_id in mirror_source_ids():
-        outputs[repo.PUBLIC_DATA / "sources" / f"{source_id}.json"] = (
-            repo.DATA / "sources" / f"{source_id}.json").read_text(encoding="utf-8")
+        rows = load_mirror_tracks(source_id)
+        # 与旧 JSON 逐字节同形：indent=1 + ensure_ascii=False + 结尾换行（S1c 转换脚本逐字节校验过）
+        outputs[repo.PUBLIC_DATA / "sources" / f"{source_id}.json"] = \
+            json.dumps(rows, ensure_ascii=False, indent=1) + "\n"
     return indices, outputs
 
 

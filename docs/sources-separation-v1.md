@@ -8,6 +8,7 @@
 
 **用户已裁定**（2026-09）：
 1. 注册表拆成 `data/sources/originals.toml` + `data/otomads/sources/otomads.toml`（后者自 D128 起在数据 submodule 里）；
+   （**S1c 起原曲侧再进一步：每源一个自包含 TOML** `data/sources/{netease163,thbwiki}.toml`，注册表文件删除，见 REFACTOR-PLAN v2 §14.2）
 2. 用户的开关/顺序存档 `tmc.v1.sources` **按模式分键**（要迁移）；
 3. `effectiveSourceOverrides()` 的解释已给出 ⇒ 建议**删掉**，用构建期校验替代（见 §5）。
 
@@ -49,10 +50,10 @@
 ## 2. 真源与生成物
 
 ```
-data/sources/originals.toml        # 两个镜像（netease163 / thbwiki）
+data/sources/netease163.toml       # 原曲镜像源，**每源一个自包含文件**（S1c：头部 = 注册信息 + [[track]]）
+data/sources/thbwiki.toml
 data/otomads/sources/otomads.toml  # 只有 local 源，且 enabled = true（D128：在 submodule 里）
-data/sources/netease163.json       # 两份镜像表：**不拆**（内容是纯原曲，音MAD 一条都没有）
-data/sources/thbwiki.json
+# 旧布局：data/sources/originals.toml（注册表）+ 两份 *.json（镜像表）—— 2026-09 S1c 已拆进上面两个文件
 
 public/data/sources.json           # 原曲注册表（生成物）
 public/data/otomads/sources.json   # 音MAD 注册表（生成物）
@@ -143,7 +144,7 @@ public/data/sources/*.json         # 两份镜像表原样复制（它们本来�
 
 | 文件 | 内容 |
 |---|---|
-| `data/sources/originals.toml` | 两个远程镜像（netease163 / thbwiki），**不含**本地源 |
+| `data/sources/{netease163,thbwiki}.toml` | 两个远程镜像（每源一个自包含文件，S1c 起），**不含**本地源 |
 | `data/otomads/sources/otomads.toml` | 只有本地曲库源，`order = 1`、`enabled = true`（本模式唯一来源；D128 起在 submodule 里；**默认 `table_url` 是 CDN 的绝对地址**，D141） |
 | `public/data/sources.json` / `public/data/otomads/sources.json` | 各自的生成物（`build_sources(mode)`） |
 | `public/data/sources/{netease163,thbwiki}.json` | **不挪**（契约 §2） |

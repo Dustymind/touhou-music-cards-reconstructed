@@ -216,6 +216,10 @@ def check_source_registry(p: Problems) -> dict:
     """
     by_mode: dict[str, list[dict]] = {}
     for mode in build_mod.MODES:
+        if mode == "originals":
+            # S1c 起原曲没有单独注册表：注册信息在各源文件头部
+            by_mode[mode] = build_mod.load_registry("originals")
+            continue
         path = repo.find_source_registry(mode)
         if path is None:
             # 音MAD 的注册表在数据 submodule 里：没初始化就整个模式跳过（可选，见 D128）
@@ -242,9 +246,8 @@ def check_source_registry(p: Problems) -> dict:
                 p.error(f"[{mode}] 音源 {entry['id']} 的 table_url 不合法"
                         f"（{entry['table_url']}）：{problem}")
             if entry["kind"] == "remote":
-                rel = entry["table_url"].lstrip("/").replace("data/sources/", "")
-                if not (repo.DATA / "sources" / rel).exists():
-                    p.error(f"[{mode}] 音源 {entry['id']} 的表文件不存在：{entry['table_url']}")
+                if not (repo.DATA / "sources" / f"{entry['id']}.toml").exists():
+                    p.error(f"[{mode}] 音源 {entry['id']} 的表文件不存在：data/sources/{entry['id']}.toml")
             elif entry["kind"] not in ("local", "custom"):
                 p.error(f"[{mode}] 音源 {entry['id']} 的 kind 非法：{entry['kind']}")
         if not any(entry["enabled"] for entry in entries):
@@ -278,17 +281,18 @@ def check_source_registry(p: Problems) -> dict:
 
 
 def _read_mirror(source_id: str) -> list[list[str]] | None:
-    """读一张镜像表（``data/sources/<id>.json``）；**文件不存在**返回 None。
+    """读一张镜像源表（``data/sources/<id>.toml`` 的 ``[[track]]``）；**文件不存在**返回 None。
 
     缺表这件事由 `check_source_registry()` 报（它比这里更懂注册表）。这里不再抛：
     镜像 id 是派生出来的（`build.mirror_source_ids`），注册表里写错一个 `table_url`
     不该让整套校验以 traceback 收场。
     """
-    path = repo.DATA / "sources" / f"{source_id}.json"
+    path = repo.DATA / "sources" / f"{source_id}.toml"
     if not path.exists():
         return None
-    with open(path, encoding="utf-8") as fh:
-        return json.load(fh)
+    with open(path, "rb") as fh:
+        data = tomllib.load(fh)
+    return [[t["album"], t["title"], t["url"]] for t in data.get("track", [])]
 
 
 def check_sources(referenced: set[tuple[str, str]], p: Problems):

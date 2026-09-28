@@ -1,0 +1,3922 @@
+# 音乐源（自包含）：头部 = 原注册表条目（table_url 指向生成物里的表），下面是本源的曲目地址。
+# 曲id = THBWiki 文件名 stem（与 data/characters/*.toml 的 [[track]].id 同一命名空间，不拆、不重编）。
+# 表地址形态（D131）：相对路径 / http(s) 绝对 URL；根绝对路径（前导 /）在子目录部署下必 404。
+# 本文件**人工维护**：工具只校验（tmc.validate / tmc.check_urls），不生成。
+
+id = "netease163"
+label_en = "Netease 163"
+label_zh = "网易云音乐"
+table_url = "data/sources/netease163.json"
+kind = "remote"
+order = 1
+enabled = true
+proxyable = true
+description_en = "Music from NetEase Cloud Music (163.com). Some tracks may be region-locked outside China; URLs are https with an http CDN redirect that browsers upgrade automatically."
+description_zh = "网易云音乐。境外部分曲目可能不可用；外链已统一为 https，302 落点的 CDN 支持 https，浏览器会自动升级。"
+
+[[track]]
+id = "hr01_01"
+album = "蓬莱人形 ～ Dolls in Pseudo Paradise"
+title = "01. 蓬莱伝説"
+url = "https://music.163.com/song/media/outer/url?id=22766039.mp3"
+
+[[track]]
+id = "hr01_02"
+album = "蓬莱人形 ～ Dolls in Pseudo Paradise"
+title = "02. 二色蓮花蝶 ～ Red and White"
+url = "https://music.163.com/song/media/outer/url?id=22766042.mp3"
+
+[[track]]
+id = "hr01_03"
+album = "蓬莱人形 ～ Dolls in Pseudo Paradise"
+title = "03. 桜花之恋塚 ～ Japanese Flower"
+url = "https://music.163.com/song/media/outer/url?id=22766041.mp3"
+
+[[track]]
+id = "hr01_04"
+album = "蓬莱人形 ～ Dolls in Pseudo Paradise"
+title = "04. 明治十七年の上海アリス"
+url = "https://music.163.com/song/media/outer/url?id=22766031.mp3"
+
+[[track]]
+id = "hr01_05"
+album = "蓬莱人形 ～ Dolls in Pseudo Paradise"
+title = "05. 東方怪奇談"
+url = "https://music.163.com/song/media/outer/url?id=22766038.mp3"
+
+[[track]]
+id = "hr01_06"
+album = "蓬莱人形 ～ Dolls in Pseudo Paradise"
+title = "06. エニグマティクドール"
+url = "https://music.163.com/song/media/outer/url?id=22766030.mp3"
+
+[[track]]
+id = "hr01_07"
+album = "蓬莱人形 ～ Dolls in Pseudo Paradise"
+title = "07. サーカスレヴァリエ"
+url = "https://music.163.com/song/media/outer/url?id=22766034.mp3"
+
+[[track]]
+id = "hr01_08"
+album = "蓬莱人形 ～ Dolls in Pseudo Paradise"
+title = "08. 人形の森"
+url = "https://music.163.com/song/media/outer/url?id=22766035.mp3"
+
+[[track]]
+id = "hr01_09"
+album = "蓬莱人形 ～ Dolls in Pseudo Paradise"
+title = "09. Witch of Love Potion"
+url = "https://music.163.com/song/media/outer/url?id=22766036.mp3"
+
+[[track]]
+id = "hr01_10"
+album = "蓬莱人形 ～ Dolls in Pseudo Paradise"
+title = "10. リーインカーネイション"
+url = "https://music.163.com/song/media/outer/url?id=22766032.mp3"
+
+[[track]]
+id = "hr01_11"
+album = "蓬莱人形 ～ Dolls in Pseudo Paradise"
+title = "11. U.N.オーエンは彼女なのか？"
+url = "https://music.163.com/song/media/outer/url?id=22766033.mp3"
+
+[[track]]
+id = "hr01_12"
+album = "蓬莱人形 ～ Dolls in Pseudo Paradise"
+title = "12. 永遠の巫女"
+url = "https://music.163.com/song/media/outer/url?id=22766037.mp3"
+
+[[track]]
+id = "hr01_13"
+album = "蓬莱人形 ～ Dolls in Pseudo Paradise"
+title = "13. 空飛ぶ巫女の不思議な毎日"
+url = "https://music.163.com/song/media/outer/url?id=22766040.mp3"
+
+[[track]]
+id = "hr02_01"
+album = "蓮台野夜行 ～ Ghostly Field Club"
+title = "01. 夜のデンデラ野を逝く"
+url = "https://music.163.com/song/media/outer/url?id=22766020.mp3"
+
+[[track]]
+id = "hr02_02"
+album = "蓮台野夜行 ～ Ghostly Field Club"
+title = "02. 少女秘封倶楽部"
+url = "https://music.163.com/song/media/outer/url?id=22766028.mp3"
+
+[[track]]
+id = "hr02_03"
+album = "蓮台野夜行 ～ Ghostly Field Club"
+title = "03. 東方妖々夢 ～ Ancient Temple"
+url = "https://music.163.com/song/media/outer/url?id=22766021.mp3"
+
+[[track]]
+id = "hr02_04"
+album = "蓮台野夜行 ～ Ghostly Field Club"
+title = "04. 古の冥界寺"
+url = "https://music.163.com/song/media/outer/url?id=22766023.mp3"
+
+[[track]]
+id = "hr02_05"
+album = "蓮台野夜行 ～ Ghostly Field Club"
+title = "05. 幻視の夜 ～ Ghostly Eyes"
+url = "https://music.163.com/song/media/outer/url?id=22766022.mp3"
+
+[[track]]
+id = "hr02_06"
+album = "蓮台野夜行 ～ Ghostly Field Club"
+title = "06. 魔術師メリー"
+url = "https://music.163.com/song/media/outer/url?id=22766029.mp3"
+
+[[track]]
+id = "hr02_07"
+album = "蓮台野夜行 ～ Ghostly Field Club"
+title = "07. 月の妖鳥、化猫の幻"
+url = "https://music.163.com/song/media/outer/url?id=22766019.mp3"
+
+[[track]]
+id = "hr02_08"
+album = "蓮台野夜行 ～ Ghostly Field Club"
+title = "08. 過去の花 ～ Fairy of Flower"
+url = "https://music.163.com/song/media/outer/url?id=22766024.mp3"
+
+[[track]]
+id = "hr02_09"
+album = "蓮台野夜行 ～ Ghostly Field Club"
+title = "09. 魔法少女十字軍"
+url = "https://music.163.com/song/media/outer/url?id=22766026.mp3"
+
+[[track]]
+id = "hr02_10"
+album = "蓮台野夜行 ～ Ghostly Field Club"
+title = "10. 少女幻葬 ～ Necro-Fantasy"
+url = "https://music.163.com/song/media/outer/url?id=22766025.mp3"
+
+[[track]]
+id = "hr02_11"
+album = "蓮台野夜行 ～ Ghostly Field Club"
+title = "11. 幻想の永遠祭"
+url = "https://music.163.com/song/media/outer/url?id=22766027.mp3"
+
+[[track]]
+id = "hr03_01"
+album = "夢違科学世紀 ～ Changeability of Strange Dream"
+title = "01. 童祭 ～ Innocent Treasures"
+url = "https://music.163.com/song/media/outer/url?id=22766017.mp3"
+
+[[track]]
+id = "hr03_02"
+album = "夢違科学世紀 ～ Changeability of Strange Dream"
+title = "02. 華胥の夢"
+url = "https://music.163.com/song/media/outer/url?id=22766011.mp3"
+
+[[track]]
+id = "hr03_03"
+album = "夢違科学世紀 ～ Changeability of Strange Dream"
+title = "03. 上海紅茶館 ～ Chinese Tea"
+url = "https://music.163.com/song/media/outer/url?id=22766008.mp3"
+
+[[track]]
+id = "hr03_04"
+album = "夢違科学世紀 ～ Changeability of Strange Dream"
+title = "04. ヴォヤージュ1969"
+url = "https://music.163.com/song/media/outer/url?id=22766018.mp3"
+
+[[track]]
+id = "hr03_05"
+album = "夢違科学世紀 ～ Changeability of Strange Dream"
+title = "05. 科学世紀の少年少女"
+url = "https://music.163.com/song/media/outer/url?id=22766016.mp3"
+
+[[track]]
+id = "hr03_06"
+album = "夢違科学世紀 ～ Changeability of Strange Dream"
+title = "06. 永夜の報い ～ Imperishable Night"
+url = "https://music.163.com/song/media/outer/url?id=22766015.mp3"
+
+[[track]]
+id = "hr03_07"
+album = "夢違科学世紀 ～ Changeability of Strange Dream"
+title = "07. 夜が降りてくる ～ Evening Star"
+url = "https://music.163.com/song/media/outer/url?id=22766014.mp3"
+
+[[track]]
+id = "hr03_08"
+album = "夢違科学世紀 ～ Changeability of Strange Dream"
+title = "08. 人形裁判 ～ 人の形弄びし少女"
+url = "https://music.163.com/song/media/outer/url?id=22766009.mp3"
+
+[[track]]
+id = "hr03_09"
+album = "夢違科学世紀 ～ Changeability of Strange Dream"
+title = "09. 夢と現の境界"
+url = "https://music.163.com/song/media/outer/url?id=22766012.mp3"
+
+[[track]]
+id = "hr03_10"
+album = "夢違科学世紀 ～ Changeability of Strange Dream"
+title = "10. 幻想機械 ～ Phantom Factory"
+url = "https://music.163.com/song/media/outer/url?id=22766010.mp3"
+
+[[track]]
+id = "hr03_11"
+album = "夢違科学世紀 ～ Changeability of Strange Dream"
+title = "11. 幽玄の槭樹 ～ Eternal Dream"
+url = "https://music.163.com/song/media/outer/url?id=22766013.mp3"
+
+[[track]]
+id = "hr04_01"
+album = "卯酉東海道 ～ Retrospective 53 Minutes"
+title = "01. ヒロシゲ36号 ～ Neo Super-Express"
+url = "https://music.163.com/song/media/outer/url?id=22765958.mp3"
+
+[[track]]
+id = "hr04_02"
+album = "卯酉東海道 ～ Retrospective 53 Minutes"
+title = "02. 53ミニッツの青い海"
+url = "https://music.163.com/song/media/outer/url?id=22765954.mp3"
+
+[[track]]
+id = "hr04_03"
+album = "卯酉東海道 ～ Retrospective 53 Minutes"
+title = "03. 竹取飛翔 ～ Lunatic Princess"
+url = "https://music.163.com/song/media/outer/url?id=22765950.mp3"
+
+[[track]]
+id = "hr04_04"
+album = "卯酉東海道 ～ Retrospective 53 Minutes"
+title = "04. 彼岸帰航 ～ Riverside View"
+url = "https://music.163.com/song/media/outer/url?id=22765953.mp3"
+
+[[track]]
+id = "hr04_05"
+album = "卯酉東海道 ～ Retrospective 53 Minutes"
+title = "05. 青木ヶ原の伝説"
+url = "https://music.163.com/song/media/outer/url?id=22765959.mp3"
+
+[[track]]
+id = "hr04_06"
+album = "卯酉東海道 ～ Retrospective 53 Minutes"
+title = "06. お宇佐さまの素い幡"
+url = "https://music.163.com/song/media/outer/url?id=22765960.mp3"
+
+[[track]]
+id = "hr04_07"
+album = "卯酉東海道 ～ Retrospective 53 Minutes"
+title = "07. 月まで届け不死の煙"
+url = "https://music.163.com/song/media/outer/url?id=22765955.mp3"
+
+[[track]]
+id = "hr04_08"
+album = "卯酉東海道 ～ Retrospective 53 Minutes"
+title = "08. レトロスペクティブ京都"
+url = "https://music.163.com/song/media/outer/url?id=22765956.mp3"
+
+[[track]]
+id = "hr04_09"
+album = "卯酉東海道 ～ Retrospective 53 Minutes"
+title = "09. ラクトガール ～ 少女密室"
+url = "https://music.163.com/song/media/outer/url?id=22765952.mp3"
+
+[[track]]
+id = "hr04_10"
+album = "卯酉東海道 ～ Retrospective 53 Minutes"
+title = "10. 千年幻想郷 ～ History of the Moon"
+url = "https://music.163.com/song/media/outer/url?id=22765957.mp3"
+
+[[track]]
+id = "hr04_11"
+album = "卯酉東海道 ～ Retrospective 53 Minutes"
+title = "11. 最も澄みわたる空と海"
+url = "https://music.163.com/song/media/outer/url?id=22765951.mp3"
+
+[[track]]
+id = "hr05_01"
+album = "大空魔術 ～ Magical Astronomy"
+title = "01. 月面ツアーへようこそ"
+url = "https://music.163.com/song/media/outer/url?id=22765942.mp3"
+
+[[track]]
+id = "hr05_02"
+album = "大空魔術 ～ Magical Astronomy"
+title = "02. 天空のグリニッジ"
+url = "https://music.163.com/song/media/outer/url?id=22765949.mp3"
+
+[[track]]
+id = "hr05_03"
+album = "大空魔術 ～ Magical Astronomy"
+title = "03. 東の国の眠らない夜"
+url = "https://music.163.com/song/media/outer/url?id=22765946.mp3"
+
+[[track]]
+id = "hr05_04"
+album = "大空魔術 ～ Magical Astronomy"
+title = "04. 車椅子の未来宇宙"
+url = "https://music.163.com/song/media/outer/url?id=22765947.mp3"
+
+[[track]]
+id = "hr05_05"
+album = "大空魔術 ～ Magical Astronomy"
+title = "05. Demystify Feast"
+url = "https://music.163.com/song/media/outer/url?id=22765944.mp3"
+
+[[track]]
+id = "hr05_06"
+album = "大空魔術 ～ Magical Astronomy"
+title = "06. 衛星カフェテラス"
+url = "https://music.163.com/song/media/outer/url?id=22765948.mp3"
+
+[[track]]
+id = "hr05_07"
+album = "大空魔術 ～ Magical Astronomy"
+title = "07. G Free"
+url = "https://music.163.com/song/media/outer/url?id=22765945.mp3"
+
+[[track]]
+id = "hr05_08"
+album = "大空魔術 ～ Magical Astronomy"
+title = "08. 大空魔術 ～ Magical Astronomy"
+url = "https://music.163.com/song/media/outer/url?id=22765941.mp3"
+
+[[track]]
+id = "hr05_09"
+album = "大空魔術 ～ Magical Astronomy"
+title = "09. ネクロファンタジア"
+url = "https://music.163.com/song/media/outer/url?id=22765940.mp3"
+
+[[track]]
+id = "hr05_10"
+album = "大空魔術 ～ Magical Astronomy"
+title = "10. 向こう側の月"
+url = "https://music.163.com/song/media/outer/url?id=22765943.mp3"
+
+[[track]]
+id = "hr06_01"
+album = "未知の花 魅知の旅"
+title = "01. 未知の花 魅知の旅"
+url = "https://music.163.com/song/media/outer/url?id=509118.mp3"
+
+[[track]]
+id = "hr06_02"
+album = "未知の花 魅知の旅"
+title = "02. 無間の鐘 ～ Infinite Nightmare"
+url = "https://music.163.com/song/media/outer/url?id=509120.mp3"
+
+[[track]]
+id = "hr06_03"
+album = "未知の花 魅知の旅"
+title = "03. 明日ハレの日、ケの昨日"
+url = "https://music.163.com/song/media/outer/url?id=509122.mp3"
+
+[[track]]
+id = "hr07_01"
+album = "鳥船遺跡 ～ Trojan Green Asteroid"
+title = "01. 衛星トリフネ"
+url = "https://music.163.com/song/media/outer/url?id=508946.mp3"
+
+[[track]]
+id = "hr07_02"
+album = "鳥船遺跡 ～ Trojan Green Asteroid"
+title = "02. トロヤ群の密林"
+url = "https://music.163.com/song/media/outer/url?id=508950.mp3"
+
+[[track]]
+id = "hr07_03"
+album = "鳥船遺跡 ～ Trojan Green Asteroid"
+title = "03. デザイアドライブ"
+url = "https://music.163.com/song/media/outer/url?id=508954.mp3"
+
+[[track]]
+id = "hr07_04"
+album = "鳥船遺跡 ～ Trojan Green Asteroid"
+title = "04. フェアリー冒険譚"
+url = "https://music.163.com/song/media/outer/url?id=508958.mp3"
+
+[[track]]
+id = "hr07_05"
+album = "鳥船遺跡 ～ Trojan Green Asteroid"
+title = "05. 天鳥船神社"
+url = "https://music.163.com/song/media/outer/url?id=508962.mp3"
+
+[[track]]
+id = "hr07_06"
+album = "鳥船遺跡 ～ Trojan Green Asteroid"
+title = "06. 夜空のユーフォーロマンス"
+url = "https://music.163.com/song/media/outer/url?id=508966.mp3"
+
+[[track]]
+id = "hr07_07"
+album = "鳥船遺跡 ～ Trojan Green Asteroid"
+title = "07. ハルトマンの妖怪少女"
+url = "https://music.163.com/song/media/outer/url?id=508970.mp3"
+
+[[track]]
+id = "hr07_08"
+album = "鳥船遺跡 ～ Trojan Green Asteroid"
+title = "08. 天鳥船神社の結界"
+url = "https://music.163.com/song/media/outer/url?id=508973.mp3"
+
+[[track]]
+id = "hr07_09"
+album = "鳥船遺跡 ～ Trojan Green Asteroid"
+title = "09. 感情の摩天楼 ～ Cosmic Mind"
+url = "https://music.163.com/song/media/outer/url?id=508976.mp3"
+
+[[track]]
+id = "hr07_10"
+album = "鳥船遺跡 ～ Trojan Green Asteroid"
+title = "10. 宇宙に浮かぶ幻想郷"
+url = "https://music.163.com/song/media/outer/url?id=508979.mp3"
+
+[[track]]
+id = "hr08_01"
+album = "伊弉諾物質 ～ Neo-traditionalism of Japan"
+title = "01. 緑のサナトリウム"
+url = "https://music.163.com/song/media/outer/url?id=22765903.mp3"
+
+[[track]]
+id = "hr08_02"
+album = "伊弉諾物質 ～ Neo-traditionalism of Japan"
+title = "02. 牛に引かれて善光寺参り"
+url = "https://music.163.com/song/media/outer/url?id=22765901.mp3"
+
+[[track]]
+id = "hr08_03"
+album = "伊弉諾物質 ～ Neo-traditionalism of Japan"
+title = "03. ハートフェルトファンシー"
+url = "https://music.163.com/song/media/outer/url?id=22765899.mp3"
+
+[[track]]
+id = "hr08_04"
+album = "伊弉諾物質 ～ Neo-traditionalism of Japan"
+title = "04. 六十年目の東方裁判 ～ Fate of Sixty Years"
+url = "https://music.163.com/song/media/outer/url?id=22765895.mp3"
+
+[[track]]
+id = "hr08_05"
+album = "伊弉諾物質 ～ Neo-traditionalism of Japan"
+title = "05. アガルタの風"
+url = "https://music.163.com/song/media/outer/url?id=22765896.mp3"
+
+[[track]]
+id = "hr08_06"
+album = "伊弉諾物質 ～ Neo-traditionalism of Japan"
+title = "06. イザナギオブジェクト"
+url = "https://music.163.com/song/media/outer/url?id=22765897.mp3"
+
+[[track]]
+id = "hr08_07"
+album = "伊弉諾物質 ～ Neo-traditionalism of Japan"
+title = "07. 妖怪裏参道"
+url = "https://music.163.com/song/media/outer/url?id=22765900.mp3"
+
+[[track]]
+id = "hr08_08"
+album = "伊弉諾物質 ～ Neo-traditionalism of Japan"
+title = "08. アンノウンX ～ Unfound Adventure"
+url = "https://music.163.com/song/media/outer/url?id=22765902.mp3"
+
+[[track]]
+id = "hr08_09"
+album = "伊弉諾物質 ～ Neo-traditionalism of Japan"
+title = "09. 日本中の不思議を集めて"
+url = "https://music.163.com/song/media/outer/url?id=22765898.mp3"
+
+[[track]]
+id = "hr08_10"
+album = "伊弉諾物質 ～ Neo-traditionalism of Japan"
+title = "10. 素敵な墓場で暮しましょ"
+url = "https://music.163.com/song/media/outer/url?id=22765904.mp3"
+
+[[track]]
+id = "hr09_03"
+album = "燕石博物誌 ～ Dr.Latency's Freak Report"
+title = "Dr.レイテンシーの眠れなくなる瞳"
+url = "https://music.163.com/song/media/outer/url?id=412785470.mp3"
+
+[[track]]
+id = "hr09_06"
+album = "燕石博物誌 ～ Dr.Latency's Freak Report"
+title = "シュレディンガーの化猫"
+url = "https://music.163.com/song/media/outer/url?id=412785473.mp3"
+
+[[track]]
+id = "hr09_10"
+album = "燕石博物誌 ～ Dr.Latency's Freak Report"
+title = "ピュアヒューリーズ　～ 心の在処"
+url = "https://music.163.com/song/media/outer/url?id=412785477.mp3"
+
+[[track]]
+id = "hr09_04"
+album = "燕石博物誌 ～ Dr.Latency's Freak Report"
+title = "九月のパンプキン"
+url = "https://music.163.com/song/media/outer/url?id=412785471.mp3"
+
+[[track]]
+id = "hr09_01"
+album = "燕石博物誌 ～ Dr.Latency's Freak Report"
+title = "他愛も無い二人の博物誌"
+url = "https://music.163.com/song/media/outer/url?id=412785468.mp3"
+
+[[track]]
+id = "hr09_02"
+album = "燕石博物誌 ～ Dr.Latency's Freak Report"
+title = "凍り付いた永遠の都"
+url = "https://music.163.com/song/media/outer/url?id=412785469.mp3"
+
+[[track]]
+id = "hr09_09"
+album = "燕石博物誌 ～ Dr.Latency's Freak Report"
+title = "故郷の星が映る海"
+url = "https://music.163.com/song/media/outer/url?id=412785476.mp3"
+
+[[track]]
+id = "hr09_11"
+album = "燕石博物誌 ～ Dr.Latency's Freak Report"
+title = "永遠の三日天下"
+url = "https://music.163.com/song/media/outer/url?id=412785478.mp3"
+
+[[track]]
+id = "hr09_08"
+album = "燕石博物誌 ～ Dr.Latency's Freak Report"
+title = "禁忌の膜壁"
+url = "https://music.163.com/song/media/outer/url?id=412785475.mp3"
+
+[[track]]
+id = "hr09_07"
+album = "燕石博物誌 ～ Dr.Latency's Freak Report"
+title = "空中に沈む輝針城"
+url = "https://music.163.com/song/media/outer/url?id=412785474.mp3"
+
+[[track]]
+id = "hr09_05"
+album = "燕石博物誌 ～ Dr.Latency's Freak Report"
+title = "須臾はプランクを超えて"
+url = "https://music.163.com/song/media/outer/url?id=412785472.mp3"
+
+[[track]]
+id = "hr10_04"
+album = "旧約酒場 ～ Dateless Bar Old Adam"
+title = "アウトサイダーカクテル"
+url = "https://music.163.com/song/media/outer/url?id=425280131.mp3"
+
+[[track]]
+id = "hr10_01"
+album = "旧約酒場 ～ Dateless Bar Old Adam"
+title = "バー・オールドアダム"
+url = "https://music.163.com/song/media/outer/url?id=425280128.mp3"
+
+[[track]]
+id = "hr10_06"
+album = "旧約酒場 ～ Dateless Bar Old Adam"
+title = "パンデモニックプラネット"
+url = "https://music.163.com/song/media/outer/url?id=425280133.mp3"
+
+[[track]]
+id = "hr10_03"
+album = "旧約酒場 ～ Dateless Bar Old Adam"
+title = "リバースイデオロギー"
+url = "https://music.163.com/song/media/outer/url?id=425280130.mp3"
+
+[[track]]
+id = "hr10_10"
+album = "旧約酒場 ～ Dateless Bar Old Adam"
+title = "二日酔いの同床異夢"
+url = "https://music.163.com/song/media/outer/url?id=425280137.mp3"
+
+[[track]]
+id = "hr10_09"
+album = "旧約酒場 ～ Dateless Bar Old Adam"
+title = "亡失のエモーション"
+url = "https://music.163.com/song/media/outer/url?id=425280136.mp3"
+
+[[track]]
+id = "hr10_05"
+album = "旧約酒場 ～ Dateless Bar Old Adam"
+title = "大神神話伝"
+url = "https://music.163.com/song/media/outer/url?id=425280132.mp3"
+
+[[track]]
+id = "hr10_07"
+album = "旧約酒場 ～ Dateless Bar Old Adam"
+title = "旧世界の冒険酒場"
+url = "https://music.163.com/song/media/outer/url?id=425280134.mp3"
+
+[[track]]
+id = "hr10_02"
+album = "旧約酒場 ～ Dateless Bar Old Adam"
+title = "燕石博物誌が連れてきた闇"
+url = "https://music.163.com/song/media/outer/url?id=425280129.mp3"
+
+[[track]]
+id = "hr10_08"
+album = "旧約酒場 ～ Dateless Bar Old Adam"
+title = "魔界地方都市エソテリア"
+url = "https://music.163.com/song/media/outer/url?id=425280135.mp3"
+
+[[track]]
+id = "hr12_08"
+album = "七夕坂夢幻能 ~ Taboo Japan Disentanglement"
+title = "ひとりぼっちの常陸行路"
+url = "https://music.163.com/song/media/outer/url?id=2154797768.mp3"
+
+[[track]]
+id = "hr12_06"
+album = "七夕坂夢幻能 ~ Taboo Japan Disentanglement"
+title = "クレイジーバックダンサーズ"
+url = "https://music.163.com/song/media/outer/url?id=2154796505.mp3"
+
+[[track]]
+id = "hr12_04"
+album = "七夕坂夢幻能 ~ Taboo Japan Disentanglement"
+title = "スモーキングドラゴン"
+url = "https://music.163.com/song/media/outer/url?id=2154796503.mp3"
+
+[[track]]
+id = "hr12_01"
+album = "七夕坂夢幻能 ~ Taboo Japan Disentanglement"
+title = "七夕坂に朝が来る"
+url = "https://music.163.com/song/media/outer/url?id=2154797765.mp3"
+
+[[track]]
+id = "hr12_02"
+album = "七夕坂夢幻能 ~ Taboo Japan Disentanglement"
+title = "不等式のティンカーベル"
+url = "https://music.163.com/song/media/outer/url?id=2154796502.mp3"
+
+[[track]]
+id = "hr12_09"
+album = "七夕坂夢幻能 ~ Taboo Japan Disentanglement"
+title = "地蔵だけが知る哀嘆"
+url = "https://music.163.com/song/media/outer/url?id=2154797769.mp3"
+
+[[track]]
+id = "hr12_11"
+album = "七夕坂夢幻能 ~ Taboo Japan Disentanglement"
+title = "夜じゃなくてもお化けはいるから"
+url = "https://music.163.com/song/media/outer/url?id=2154797770.mp3"
+
+[[track]]
+id = "hr12_05"
+album = "七夕坂夢幻能 ~ Taboo Japan Disentanglement"
+title = "夢幻能 〜 Taboo Marionette"
+url = "https://music.163.com/song/media/outer/url?id=2154796504.mp3"
+
+[[track]]
+id = "hr12_07"
+album = "七夕坂夢幻能 ~ Taboo Japan Disentanglement"
+title = "憑坐は夢と現の間に 〜 Necro-Fantasia"
+url = "https://music.163.com/song/media/outer/url?id=2154797767.mp3"
+
+[[track]]
+id = "hr12_03"
+album = "七夕坂夢幻能 ~ Taboo Japan Disentanglement"
+title = "禁断の扉の向こうは、この世かあの世か"
+url = "https://music.163.com/song/media/outer/url?id=2154797766.mp3"
+
+[[track]]
+id = "hr12_10"
+album = "七夕坂夢幻能 ~ Taboo Japan Disentanglement"
+title = "秘匿されたフォーシーズンズ"
+url = "https://music.163.com/song/media/outer/url?id=2154796508.mp3"
+
+[[track]]
+id = "hr11_03"
+album = "虹色のセプテントリオン"
+title = "あの賑やかな市場は今どこに　～ Immemorial Marketeers"
+url = "https://music.163.com/song/media/outer/url?id=1912604159.mp3"
+
+[[track]]
+id = "hr11_01"
+album = "虹色のセプテントリオン"
+title = "七ツ石の狼、雲を取りに駆ける"
+url = "https://music.163.com/song/media/outer/url?id=1912604157.mp3"
+
+[[track]]
+id = "hr11_02"
+album = "虹色のセプテントリオン"
+title = "幻想のホワイトトラベラー"
+url = "https://music.163.com/song/media/outer/url?id=1912598547.mp3"
+
+[[track]]
+id = "TFM-001a_01"
+album = "幻想曲抜萃 ～ 東方萃夢想 Day Disc"
+title = "01. 遍参"
+url = "https://music.163.com/song/media/outer/url?id=22765961.mp3"
+
+[[track]]
+id = "TFM-001a_02"
+album = "幻想曲抜萃 ～ 東方萃夢想 Day Disc"
+title = "02. 東方妖恋談"
+url = "https://music.163.com/song/media/outer/url?id=22765972.mp3"
+
+[[track]]
+id = "TFM-001a_03"
+album = "幻想曲抜萃 ～ 東方萃夢想 Day Disc"
+title = "03. 月輪"
+url = "https://music.163.com/song/media/outer/url?id=22765965.mp3"
+
+[[track]]
+id = "TFM-001a_04"
+album = "幻想曲抜萃 ～ 東方萃夢想 Day Disc"
+title = "04. 恋色マジック"
+url = "https://music.163.com/song/media/outer/url?id=22765964.mp3"
+
+[[track]]
+id = "TFM-001a_05"
+album = "幻想曲抜萃 ～ 東方萃夢想 Day Disc"
+title = "05. あゆのかぜ"
+url = "https://music.163.com/song/media/outer/url?id=22765962.mp3"
+
+[[track]]
+id = "TFM-001a_06"
+album = "幻想曲抜萃 ～ 東方萃夢想 Day Disc"
+title = "06. メイドと血の懐中時計"
+url = "https://music.163.com/song/media/outer/url?id=22765976.mp3"
+
+[[track]]
+id = "TFM-001a_07"
+album = "幻想曲抜萃 ～ 東方萃夢想 Day Disc"
+title = "07. Intermezzo"
+url = "https://music.163.com/song/media/outer/url?id=22765968.mp3"
+
+[[track]]
+id = "TFM-001a_08"
+album = "幻想曲抜萃 ～ 東方萃夢想 Day Disc"
+title = "08. ブクレシュティの人形師"
+url = "https://music.163.com/song/media/outer/url?id=22765967.mp3"
+
+[[track]]
+id = "TFM-001a_09"
+album = "幻想曲抜萃 ～ 東方萃夢想 Day Disc"
+title = "09. 魔所"
+url = "https://music.163.com/song/media/outer/url?id=22765963.mp3"
+
+[[track]]
+id = "TFM-001a_10"
+album = "幻想曲抜萃 ～ 東方萃夢想 Day Disc"
+title = "10. ラクトガール ～ 少女密室"
+url = "https://music.163.com/song/media/outer/url?id=22765980.mp3"
+
+[[track]]
+id = "TFM-001a_11"
+album = "幻想曲抜萃 ～ 東方萃夢想 Day Disc"
+title = "11. 裏心"
+url = "https://music.163.com/song/media/outer/url?id=22765971.mp3"
+
+[[track]]
+id = "TFM-001a_12"
+album = "幻想曲抜萃 ～ 東方萃夢想 Day Disc"
+title = "12. 広有射怪鳥事 ～ Till When？"
+url = "https://music.163.com/song/media/outer/url?id=22765970.mp3"
+
+[[track]]
+id = "TFM-001a_13"
+album = "幻想曲抜萃 ～ 東方萃夢想 Day Disc"
+title = "13. 亡き王女の為のセプテット"
+url = "https://music.163.com/song/media/outer/url?id=22765966.mp3"
+
+[[track]]
+id = "TFM-001a_14"
+album = "幻想曲抜萃 ～ 東方萃夢想 Day Disc"
+title = "14. 幽雅に咲かせ 墨染の桜 ～ Border of Life."
+url = "https://music.163.com/song/media/outer/url?id=22765984.mp3"
+
+[[track]]
+id = "TFM-001a_15"
+album = "幻想曲抜萃 ～ 東方萃夢想 Day Disc"
+title = "15. 夏明き"
+url = "https://music.163.com/song/media/outer/url?id=22765975.mp3"
+
+[[track]]
+id = "TFM-001a_16"
+album = "幻想曲抜萃 ～ 東方萃夢想 Day Disc"
+title = "16. 恋色マジック 体験版Ver"
+url = "https://music.163.com/song/media/outer/url?id=22765974.mp3"
+
+[[track]]
+id = "TFM-001a_17"
+album = "幻想曲抜萃 ～ 東方萃夢想 Day Disc"
+title = "17. 広有射怪鳥事 体験版Ver"
+url = "https://music.163.com/song/media/outer/url?id=22765969.mp3"
+
+[[track]]
+id = "TFM-001a_18"
+album = "幻想曲抜萃 ～ 東方萃夢想 Day Disc"
+title = "18. 東方妖恋談 弐符アレンジ"
+url = "https://music.163.com/song/media/outer/url?id=22765988.mp3"
+
+[[track]]
+id = "TFM-001a_19"
+album = "幻想曲抜萃 ～ 東方萃夢想 Day Disc"
+title = "19. 恋色マジック 弐符アレンジ"
+url = "https://music.163.com/song/media/outer/url?id=22765979.mp3"
+
+[[track]]
+id = "TFM-001a_20"
+album = "幻想曲抜萃 ～ 東方萃夢想 Day Disc"
+title = "20. メイドと血の懐中時計 弐符アレンジ"
+url = "https://music.163.com/song/media/outer/url?id=22765978.mp3"
+
+[[track]]
+id = "TFM-001a_21"
+album = "幻想曲抜萃 ～ 東方萃夢想 Day Disc"
+title = "21. ブクレシュティの人形師 弐符アレンジ"
+url = "https://music.163.com/song/media/outer/url?id=22765973.mp3"
+
+[[track]]
+id = "TFM-001a_22"
+album = "幻想曲抜萃 ～ 東方萃夢想 Day Disc"
+title = "22. ラクトガール 弐符アレンジ"
+url = "https://music.163.com/song/media/outer/url?id=22765992.mp3"
+
+[[track]]
+id = "TFM-001a_23"
+album = "幻想曲抜萃 ～ 東方萃夢想 Day Disc"
+title = "23. 広有射怪鳥事 弐符アレンジ"
+url = "https://music.163.com/song/media/outer/url?id=22765983.mp3"
+
+[[track]]
+id = "TFM-001a_24"
+album = "幻想曲抜萃 ～ 東方萃夢想 Day Disc"
+title = "24. 亡き王女の為のセプテット 弐符アレンジ"
+url = "https://music.163.com/song/media/outer/url?id=22765982.mp3"
+
+[[track]]
+id = "TFM-001b_01"
+album = "幻想曲抜萃 ～ 東方萃夢想 Night Disc"
+title = "01. 萃夢想"
+url = "https://music.163.com/song/media/outer/url?id=22765977.mp3"
+
+[[track]]
+id = "TFM-001b_02"
+album = "幻想曲抜萃 ～ 東方萃夢想 Night Disc"
+title = "02. 少女綺想曲 ～ Capriccio"
+url = "https://music.163.com/song/media/outer/url?id=22765996.mp3"
+
+[[track]]
+id = "TFM-001b_03"
+album = "幻想曲抜萃 ～ 東方萃夢想 Night Disc"
+title = "03. 森閑"
+url = "https://music.163.com/song/media/outer/url?id=22765987.mp3"
+
+[[track]]
+id = "TFM-001b_04"
+album = "幻想曲抜萃 ～ 東方萃夢想 Night Disc"
+title = "04. 魔女達の舞踏会"
+url = "https://music.163.com/song/media/outer/url?id=22765986.mp3"
+
+[[track]]
+id = "TFM-001b_05"
+album = "幻想曲抜萃 ～ 東方萃夢想 Night Disc"
+title = "05. 紅夜"
+url = "https://music.163.com/song/media/outer/url?id=22765981.mp3"
+
+[[track]]
+id = "TFM-001b_06"
+album = "幻想曲抜萃 ～ 東方萃夢想 Night Disc"
+title = "06. 月時計 ～ ルナ・ダイアル"
+url = "https://music.163.com/song/media/outer/url?id=22766000.mp3"
+
+[[track]]
+id = "TFM-001b_07"
+album = "幻想曲抜萃 ～ 東方萃夢想 Night Disc"
+title = "07. 幽境"
+url = "https://music.163.com/song/media/outer/url?id=22765991.mp3"
+
+[[track]]
+id = "TFM-001b_08"
+album = "幻想曲抜萃 ～ 東方萃夢想 Night Disc"
+title = "08. 人形裁判"
+url = "https://music.163.com/song/media/outer/url?id=22765990.mp3"
+
+[[track]]
+id = "TFM-001b_09"
+album = "幻想曲抜萃 ～ 東方萃夢想 Night Disc"
+title = "09. 珍客"
+url = "https://music.163.com/song/media/outer/url?id=22765985.mp3"
+
+[[track]]
+id = "TFM-001b_10"
+album = "幻想曲抜萃 ～ 東方萃夢想 Night Disc"
+title = "10. ヴワル魔法図書館"
+url = "https://music.163.com/song/media/outer/url?id=22766003.mp3"
+
+[[track]]
+id = "TFM-001b_11"
+album = "幻想曲抜萃 ～ 東方萃夢想 Night Disc"
+title = "11. 禍機"
+url = "https://music.163.com/song/media/outer/url?id=22765995.mp3"
+
+[[track]]
+id = "TFM-001b_12"
+album = "幻想曲抜萃 ～ 東方萃夢想 Night Disc"
+title = "12. 東方妖々夢 ～ Ancient Temple"
+url = "https://music.163.com/song/media/outer/url?id=22765994.mp3"
+
+[[track]]
+id = "TFM-001b_13"
+album = "幻想曲抜萃 ～ 東方萃夢想 Night Disc"
+title = "13. 仰空"
+url = "https://music.163.com/song/media/outer/url?id=22765989.mp3"
+
+[[track]]
+id = "TFM-001b_14"
+album = "幻想曲抜萃 ～ 東方萃夢想 Night Disc"
+title = "14. Demystify Feast"
+url = "https://music.163.com/song/media/outer/url?id=22766005.mp3"
+
+[[track]]
+id = "TFM-001b_15"
+album = "幻想曲抜萃 ～ 東方萃夢想 Night Disc"
+title = "15. 戦迅"
+url = "https://music.163.com/song/media/outer/url?id=22765999.mp3"
+
+[[track]]
+id = "TFM-001b_16"
+album = "幻想曲抜萃 ～ 東方萃夢想 Night Disc"
+title = "16. 夜が降りてくる ～ Evening Star"
+url = "https://music.163.com/song/media/outer/url?id=22765998.mp3"
+
+[[track]]
+id = "TFM-001b_17"
+album = "幻想曲抜萃 ～ 東方萃夢想 Night Disc"
+title = "17. 砕月"
+url = "https://music.163.com/song/media/outer/url?id=22765993.mp3"
+
+[[track]]
+id = "TFM-001b_18"
+album = "幻想曲抜萃 ～ 東方萃夢想 Night Disc"
+title = "18. 御伽の国の鬼が島"
+url = "https://music.163.com/song/media/outer/url?id=22766006.mp3"
+
+[[track]]
+id = "TFM-001b_19"
+album = "幻想曲抜萃 ～ 東方萃夢想 Night Disc"
+title = "19. 東方萃夢想"
+url = "https://music.163.com/song/media/outer/url?id=22766002.mp3"
+
+[[track]]
+id = "TFM-001b_20"
+album = "幻想曲抜萃 ～ 東方萃夢想 Night Disc"
+title = "20. Demystify Feast(Arrange)"
+url = "https://music.163.com/song/media/outer/url?id=22766001.mp3"
+
+[[track]]
+id = "TFM-001b_21"
+album = "幻想曲抜萃 ～ 東方萃夢想 Night Disc"
+title = "21. 夜が降りてくる ～ Evening Star(Arrange)"
+url = "https://music.163.com/song/media/outer/url?id=22765997.mp3"
+
+[[track]]
+id = "TFM-001b_22"
+album = "幻想曲抜萃 ～ 東方萃夢想 Night Disc"
+title = "22. 御伽の国の鬼が島(Arrange)"
+url = "https://music.163.com/song/media/outer/url?id=22766007.mp3"
+
+[[track]]
+id = "TFM-001b_23"
+album = "幻想曲抜萃 ～ 東方萃夢想 Night Disc"
+title = "23. 東方萃夢想(Arrange)"
+url = "https://music.163.com/song/media/outer/url?id=22766004.mp3"
+
+[[track]]
+id = "TFM-003A_01"
+album = "全人類ノ天楽録 ～ 東方緋想天 Arrange Disc"
+title = "01. 緋想天"
+url = "https://music.163.com/song/media/outer/url?id=22765907.mp3"
+
+[[track]]
+id = "TFM-003A_02"
+album = "全人類ノ天楽録 ～ 東方緋想天 Arrange Disc"
+title = "02. 東方妖恋談"
+url = "https://music.163.com/song/media/outer/url?id=22765905.mp3"
+
+[[track]]
+id = "TFM-003A_03"
+album = "全人類ノ天楽録 ～ 東方緋想天 Arrange Disc"
+title = "03. 星の器 ～ Casket of Star"
+url = "https://music.163.com/song/media/outer/url?id=22765917.mp3"
+
+[[track]]
+id = "TFM-003A_04"
+album = "全人類ノ天楽録 ～ 東方緋想天 Arrange Disc"
+title = "04. フラワリングナイト"
+url = "https://music.163.com/song/media/outer/url?id=22765910.mp3"
+
+[[track]]
+id = "TFM-003A_05"
+album = "全人類ノ天楽録 ～ 東方緋想天 Arrange Disc"
+title = "05. ブクレシュティの人形師"
+url = "https://music.163.com/song/media/outer/url?id=22765909.mp3"
+
+[[track]]
+id = "TFM-003A_06"
+album = "全人類ノ天楽録 ～ 東方緋想天 Arrange Disc"
+title = "06. 広有射怪鳥事 ～ Till When？"
+url = "https://music.163.com/song/media/outer/url?id=22765906.mp3"
+
+[[track]]
+id = "TFM-003A_07"
+album = "全人類ノ天楽録 ～ 東方緋想天 Arrange Disc"
+title = "07. ラクトガール ～ 少女密室"
+url = "https://music.163.com/song/media/outer/url?id=22765921.mp3"
+
+[[track]]
+id = "TFM-003A_08"
+album = "全人類ノ天楽録 ～ 東方緋想天 Arrange Disc"
+title = "08. 幽雅に咲かせ、墨染の桜 ～ Border of Life"
+url = "https://music.163.com/song/media/outer/url?id=22765913.mp3"
+
+[[track]]
+id = "TFM-003A_09"
+album = "全人類ノ天楽録 ～ 東方緋想天 Arrange Disc"
+title = "09. 亡き王女の為のセプテット"
+url = "https://music.163.com/song/media/outer/url?id=22765912.mp3"
+
+[[track]]
+id = "TFM-003A_10"
+album = "全人類ノ天楽録 ～ 東方緋想天 Arrange Disc"
+title = "10. 夜が降りてくる"
+url = "https://music.163.com/song/media/outer/url?id=22765908.mp3"
+
+[[track]]
+id = "TFM-003A_11"
+album = "全人類ノ天楽録 ～ 東方緋想天 Arrange Disc"
+title = "11. 砕月"
+url = "https://music.163.com/song/media/outer/url?id=22765925.mp3"
+
+[[track]]
+id = "TFM-003A_12"
+album = "全人類ノ天楽録 ～ 東方緋想天 Arrange Disc"
+title = "12. 狂気の瞳 ～ Invisible Full Moon"
+url = "https://music.163.com/song/media/outer/url?id=22765916.mp3"
+
+[[track]]
+id = "TFM-003A_13"
+album = "全人類ノ天楽録 ～ 東方緋想天 Arrange Disc"
+title = "13. 風神少女"
+url = "https://music.163.com/song/media/outer/url?id=22765915.mp3"
+
+[[track]]
+id = "TFM-003A_14"
+album = "全人類ノ天楽録 ～ 東方緋想天 Arrange Disc"
+title = "14. 彼岸帰航 ～ Riverside View"
+url = "https://music.163.com/song/media/outer/url?id=22765911.mp3"
+
+[[track]]
+id = "TFM-003A_15"
+album = "全人類ノ天楽録 ～ 東方緋想天 Arrange Disc"
+title = "15. 黒い海に紅く ～ Legendary Fish"
+url = "https://music.163.com/song/media/outer/url?id=22765929.mp3"
+
+[[track]]
+id = "TFM-003A_16"
+album = "全人類ノ天楽録 ～ 東方緋想天 Arrange Disc"
+title = "16. 有頂天変 ～ Wonderful Heaven"
+url = "https://music.163.com/song/media/outer/url?id=22765920.mp3"
+
+[[track]]
+id = "TFM-003A_17"
+album = "全人類ノ天楽録 ～ 東方緋想天 Arrange Disc"
+title = "17. 東方緋想天"
+url = "https://music.163.com/song/media/outer/url?id=22765919.mp3"
+
+[[track]]
+id = "TFM-003O_01"
+album = "全人類ノ天楽録 ～ 東方緋想天 Original Disc"
+title = "01. 緋想天"
+url = "https://music.163.com/song/media/outer/url?id=22765914.mp3"
+
+[[track]]
+id = "TFM-003O_02"
+album = "全人類ノ天楽録 ～ 東方緋想天 Original Disc"
+title = "02. 日常坐臥"
+url = "https://music.163.com/song/media/outer/url?id=22765933.mp3"
+
+[[track]]
+id = "TFM-003O_03"
+album = "全人類ノ天楽録 ～ 東方緋想天 Original Disc"
+title = "03. 地の色は黄色"
+url = "https://music.163.com/song/media/outer/url?id=22765924.mp3"
+
+[[track]]
+id = "TFM-003O_04"
+album = "全人類ノ天楽録 ～ 東方緋想天 Original Disc"
+title = "04. 甲論乙駁"
+url = "https://music.163.com/song/media/outer/url?id=22765923.mp3"
+
+[[track]]
+id = "TFM-003O_05"
+album = "全人類ノ天楽録 ～ 東方緋想天 Original Disc"
+title = "05. 風光明媚"
+url = "https://music.163.com/song/media/outer/url?id=22765918.mp3"
+
+[[track]]
+id = "TFM-003O_06"
+album = "全人類ノ天楽録 ～ 東方緋想天 Original Disc"
+title = "06. 香る樹葉花"
+url = "https://music.163.com/song/media/outer/url?id=22765936.mp3"
+
+[[track]]
+id = "TFM-003O_07"
+album = "全人類ノ天楽録 ～ 東方緋想天 Original Disc"
+title = "07. 踊る水飛沫"
+url = "https://music.163.com/song/media/outer/url?id=22765928.mp3"
+
+[[track]]
+id = "TFM-003O_08"
+album = "全人類ノ天楽録 ～ 東方緋想天 Original Disc"
+title = "08. 以魚駆蠅"
+url = "https://music.163.com/song/media/outer/url?id=22765927.mp3"
+
+[[track]]
+id = "TFM-003O_09"
+album = "全人類ノ天楽録 ～ 東方緋想天 Original Disc"
+title = "09. 冷吟閑酔"
+url = "https://music.163.com/song/media/outer/url?id=22765922.mp3"
+
+[[track]]
+id = "TFM-003O_10"
+album = "全人類ノ天楽録 ～ 東方緋想天 Original Disc"
+title = "10. 嘲りの遊戯"
+url = "https://music.163.com/song/media/outer/url?id=22765937.mp3"
+
+[[track]]
+id = "TFM-003O_11"
+album = "全人類ノ天楽録 ～ 東方緋想天 Original Disc"
+title = "11. 放縦不羈"
+url = "https://music.163.com/song/media/outer/url?id=22765932.mp3"
+
+[[track]]
+id = "TFM-003O_12"
+album = "全人類ノ天楽録 ～ 東方緋想天 Original Disc"
+title = "12. 雲外蒼天"
+url = "https://music.163.com/song/media/outer/url?id=22765931.mp3"
+
+[[track]]
+id = "TFM-003O_13"
+album = "全人類ノ天楽録 ～ 東方緋想天 Original Disc"
+title = "13. 黒い海に紅く ～ Legendary Fish"
+url = "https://music.163.com/song/media/outer/url?id=22765926.mp3"
+
+[[track]]
+id = "TFM-003O_14"
+album = "全人類ノ天楽録 ～ 東方緋想天 Original Disc"
+title = "14. 天衣無縫"
+url = "https://music.163.com/song/media/outer/url?id=22765938.mp3"
+
+[[track]]
+id = "TFM-003O_15"
+album = "全人類ノ天楽録 ～ 東方緋想天 Original Disc"
+title = "15. 有頂天変 ～ Wonderful Heaven"
+url = "https://music.163.com/song/media/outer/url?id=22765935.mp3"
+
+[[track]]
+id = "TFM-003O_16"
+album = "全人類ノ天楽録 ～ 東方緋想天 Original Disc"
+title = "16. 幼心地の有頂天"
+url = "https://music.163.com/song/media/outer/url?id=22765934.mp3"
+
+[[track]]
+id = "TFM-003O_17"
+album = "全人類ノ天楽録 ～ 東方緋想天 Original Disc"
+title = "17. 暮色蒼然"
+url = "https://music.163.com/song/media/outer/url?id=22765930.mp3"
+
+[[track]]
+id = "TFM-003O_18"
+album = "全人類ノ天楽録 ～ 東方緋想天 Original Disc"
+title = "18. 東方緋想天"
+url = "https://music.163.com/song/media/outer/url?id=22765939.mp3"
+
+[[track]]
+id = "TFM-004_01"
+album = "核熱造神ヒソウテンソク ～ 東方非想天則"
+title = "01. 君はあの影を見たか"
+url = "https://music.163.com/song/media/outer/url?id=851003.mp3"
+
+[[track]]
+id = "TFM-004_02"
+album = "核熱造神ヒソウテンソク ～ 東方非想天則"
+title = "02. 萃夢想"
+url = "https://music.163.com/song/media/outer/url?id=851004.mp3"
+
+[[track]]
+id = "TFM-004_03"
+album = "核熱造神ヒソウテンソク ～ 東方非想天則"
+title = "03. 信仰は儚き人間の為に"
+url = "https://music.163.com/song/media/outer/url?id=851008.mp3"
+
+[[track]]
+id = "TFM-004_04"
+album = "核熱造神ヒソウテンソク ～ 東方非想天則"
+title = "04. おてんば恋娘"
+url = "https://music.163.com/song/media/outer/url?id=851012.mp3"
+
+[[track]]
+id = "TFM-004_05"
+album = "核熱造神ヒソウテンソク ～ 東方非想天則"
+title = "05. 上海紅茶館 ～ Chinese Tea"
+url = "https://music.163.com/song/media/outer/url?id=851016.mp3"
+
+[[track]]
+id = "TFM-004_06"
+album = "核熱造神ヒソウテンソク ～ 東方非想天則"
+title = "06. 霊知の太陽信仰 ～ Nuclear Fusion"
+url = "https://music.163.com/song/media/outer/url?id=851019.mp3"
+
+[[track]]
+id = "TFM-004_07"
+album = "核熱造神ヒソウテンソク ～ 東方非想天則"
+title = "07. 明日ハレの日、ケの昨日"
+url = "https://music.163.com/song/media/outer/url?id=851022.mp3"
+
+[[track]]
+id = "TFM-004_08"
+album = "核熱造神ヒソウテンソク ～ 東方非想天則"
+title = "08. アンノウンＸ ～ Unfound Adventure"
+url = "https://music.163.com/song/media/outer/url?id=851026.mp3"
+
+[[track]]
+id = "TFM-004_09"
+album = "核熱造神ヒソウテンソク ～ 東方非想天則"
+title = "09. 空に浮かぶ物体Ｘ"
+url = "https://music.163.com/song/media/outer/url?id=851030.mp3"
+
+[[track]]
+id = "TFM-004_10"
+album = "核熱造神ヒソウテンソク ～ 東方非想天則"
+title = "10. 二色蓮花蝶 ～ Ancients"
+url = "https://music.163.com/song/media/outer/url?id=851034.mp3"
+
+[[track]]
+id = "TFM-004_11"
+album = "核熱造神ヒソウテンソク ～ 東方非想天則"
+title = "11. 恋色マジック"
+url = "https://music.163.com/song/media/outer/url?id=851037.mp3"
+
+[[track]]
+id = "TFM-004_12"
+album = "核熱造神ヒソウテンソク ～ 東方非想天則"
+title = "12. the Grimoire of Alice"
+url = "https://music.163.com/song/media/outer/url?id=851041.mp3"
+
+[[track]]
+id = "TFM-004_13"
+album = "核熱造神ヒソウテンソク ～ 東方非想天則"
+title = "13. ヴワル魔法図書館"
+url = "https://music.163.com/song/media/outer/url?id=851044.mp3"
+
+[[track]]
+id = "TFM-004_14"
+album = "核熱造神ヒソウテンソク ～ 東方非想天則"
+title = "14. 伝説の巨神"
+url = "https://music.163.com/song/media/outer/url?id=851047.mp3"
+
+[[track]]
+id = "TFM-004_15"
+album = "核熱造神ヒソウテンソク ～ 東方非想天則"
+title = "15. ぼくらの非想天則"
+url = "https://music.163.com/song/media/outer/url?id=851052.mp3"
+
+[[track]]
+id = "TFM-004_16"
+album = "核熱造神ヒソウテンソク ～ 東方非想天則"
+title = "16. 人形のある風景"
+url = "https://music.163.com/song/media/outer/url?id=851057.mp3"
+
+[[track]]
+id = "TFM-004_17"
+album = "核熱造神ヒソウテンソク ～ 東方非想天則"
+title = "17. 悠久の蒸気機関"
+url = "https://music.163.com/song/media/outer/url?id=851062.mp3"
+
+[[track]]
+id = "TFM-004_18"
+album = "核熱造神ヒソウテンソク ～ 東方非想天則"
+title = "18. アンノウンＸ ～ Unfound Adventure"
+url = "https://music.163.com/song/media/outer/url?id=851067.mp3"
+
+[[track]]
+id = "TFM-004_19"
+album = "核熱造神ヒソウテンソク ～ 東方非想天則"
+title = "19. ぼくらの非想天則 (Full ver.)"
+url = "https://music.163.com/song/media/outer/url?id=851071.mp3"
+
+[[track]]
+id = "TFM-004_20"
+album = "核熱造神ヒソウテンソク ～ 東方非想天則"
+title = "20. 巨大な影と小さな結末"
+url = "https://music.163.com/song/media/outer/url?id=851074.mp3"
+
+[[track]]
+id = "TFM-004_21"
+album = "核熱造神ヒソウテンソク ～ 東方非想天則"
+title = "21. ぼくらの非想天則 (カラオケver.)"
+url = "https://music.163.com/song/media/outer/url?id=2122539774.mp3"
+
+[[track]]
+id = "TFM-006a_10"
+album = "暗黒能楽集・心綺楼"
+title = "ハルトマンの妖怪少女"
+url = "https://music.163.com/song/media/outer/url?id=27582784.mp3"
+
+[[track]]
+id = "TFM-006a_04"
+album = "暗黒能楽集・心綺楼"
+title = "メイガスナイト"
+url = "https://music.163.com/song/media/outer/url?id=27582772.mp3"
+
+[[track]]
+id = "TFM-006b_14"
+album = "暗黒能楽集・心綺楼"
+title = "ラストワード発動"
+url = "https://music.163.com/song/media/outer/url?id=27582793.mp3"
+
+[[track]]
+id = "TFM-006a_15"
+album = "暗黒能楽集・心綺楼"
+title = "丑三つ時の里"
+url = "https://music.163.com/song/media/outer/url?id=27582794.mp3"
+
+[[track]]
+id = "TFM-006a_16"
+album = "暗黒能楽集・心綺楼"
+title = "亡失のエモーション"
+url = "https://music.163.com/song/media/outer/url?id=27582796.mp3"
+
+[[track]]
+id = "TFM-006b_16"
+album = "暗黒能楽集・心綺楼"
+title = "亡失のエモーション (Arrange Version)"
+url = "https://music.163.com/song/media/outer/url?id=27582797.mp3"
+
+[[track]]
+id = "TFM-006a_02"
+album = "暗黒能楽集・心綺楼"
+title = "人気のある場所"
+url = "https://music.163.com/song/media/outer/url?id=27582768.mp3"
+
+[[track]]
+id = "TFM-006a_11"
+album = "暗黒能楽集・心綺楼"
+title = "人気のない場所"
+url = "https://music.163.com/song/media/outer/url?id=27582786.mp3"
+
+[[track]]
+id = "TFM-006b_12"
+album = "暗黒能楽集・心綺楼"
+title = "人気爆発／二ッ岩マミゾウ"
+url = "https://music.163.com/song/media/outer/url?id=27582789.mp3"
+
+[[track]]
+id = "TFM-006b_04"
+album = "暗黒能楽集・心綺楼"
+title = "人気爆発／博麗霊夢"
+url = "https://music.163.com/song/media/outer/url?id=27582773.mp3"
+
+[[track]]
+id = "TFM-006b_11"
+album = "暗黒能楽集・心綺楼"
+title = "人気爆発／古明地こいし"
+url = "https://music.163.com/song/media/outer/url?id=27582787.mp3"
+
+[[track]]
+id = "TFM-006b_10"
+album = "暗黒能楽集・心綺楼"
+title = "人気爆発／河城にとり"
+url = "https://music.163.com/song/media/outer/url?id=27582785.mp3"
+
+[[track]]
+id = "TFM-006b_08"
+album = "暗黒能楽集・心綺楼"
+title = "人気爆発／物部布都"
+url = "https://music.163.com/song/media/outer/url?id=27582781.mp3"
+
+[[track]]
+id = "TFM-006b_13"
+album = "暗黒能楽集・心綺楼"
+title = "人気爆発／秦こころ"
+url = "https://music.163.com/song/media/outer/url?id=27582791.mp3"
+
+[[track]]
+id = "TFM-006b_07"
+album = "暗黒能楽集・心綺楼"
+title = "人気爆発／聖白蓮"
+url = "https://music.163.com/song/media/outer/url?id=27582779.mp3"
+
+[[track]]
+id = "TFM-006b_09"
+album = "暗黒能楽集・心綺楼"
+title = "人気爆発／豊聡耳神子"
+url = "https://music.163.com/song/media/outer/url?id=27582783.mp3"
+
+[[track]]
+id = "TFM-006b_06"
+album = "暗黒能楽集・心綺楼"
+title = "人気爆発／雲居一輪＆雲山"
+url = "https://music.163.com/song/media/outer/url?id=27582777.mp3"
+
+[[track]]
+id = "TFM-006b_05"
+album = "暗黒能楽集・心綺楼"
+title = "人気爆発／霧雨魔理沙"
+url = "https://music.163.com/song/media/outer/url?id=27582775.mp3"
+
+[[track]]
+id = "TFM-006a_12"
+album = "暗黒能楽集・心綺楼"
+title = "佐渡のニッ岩"
+url = "https://music.163.com/song/media/outer/url?id=27582788.mp3"
+
+[[track]]
+id = "TFM-006b_03"
+album = "暗黒能楽集・心綺楼"
+title = "使われなかった場所"
+url = "https://music.163.com/song/media/outer/url?id=27582771.mp3"
+
+[[track]]
+id = "TFM-006a_01"
+album = "暗黒能楽集・心綺楼"
+title = "塵界不変のペシミズム～心綺楼囃子"
+url = "https://music.163.com/song/media/outer/url?id=27582766.mp3"
+
+[[track]]
+id = "TFM-006a_07"
+album = "暗黒能楽集・心綺楼"
+title = "大神神話伝"
+url = "https://music.163.com/song/media/outer/url?id=27582778.mp3"
+
+[[track]]
+id = "TFM-006b_15"
+album = "暗黒能楽集・心綺楼"
+title = "官板黄昏新聞"
+url = "https://music.163.com/song/media/outer/url?id=27582795.mp3"
+
+[[track]]
+id = "TFM-006a_18"
+album = "暗黒能楽集・心綺楼"
+title = "官板黄昏新聞 (Short Version)"
+url = "https://music.163.com/song/media/outer/url?id=27582800.mp3"
+
+[[track]]
+id = "TFM-006a_14"
+album = "暗黒能楽集・心綺楼"
+title = "幻想郷の二ッ岩"
+url = "https://music.163.com/song/media/outer/url?id=27582792.mp3"
+
+[[track]]
+id = "TFM-006a_19"
+album = "暗黒能楽集・心綺楼"
+title = "心綺楼囃子 (Short Version)"
+url = "https://music.163.com/song/media/outer/url?id=27582801.mp3"
+
+[[track]]
+id = "TFM-006b_01"
+album = "暗黒能楽集・心綺楼"
+title = "心綺楼祭囃子"
+url = "https://music.163.com/song/media/outer/url?id=27582767.mp3"
+
+[[track]]
+id = "TFM-006a_06"
+album = "暗黒能楽集・心綺楼"
+title = "感情の摩天楼　～ Cosmic Mind"
+url = "https://music.163.com/song/media/outer/url?id=27582776.mp3"
+
+[[track]]
+id = "TFM-006a_03"
+album = "暗黒能楽集・心綺楼"
+title = "春色小径　～ Colorful Path"
+url = "https://music.163.com/song/media/outer/url?id=27582770.mp3"
+
+[[track]]
+id = "TFM-006a_05"
+album = "暗黒能楽集・心綺楼"
+title = "時代親父とハイカラ少女"
+url = "https://music.163.com/song/media/outer/url?id=27582774.mp3"
+
+[[track]]
+id = "TFM-006a_17"
+album = "暗黒能楽集・心綺楼"
+title = "暁雲"
+url = "https://music.163.com/song/media/outer/url?id=27582798.mp3"
+
+[[track]]
+id = "TFM-006a_13"
+album = "暗黒能楽集・心綺楼"
+title = "本日の一面記事"
+url = "https://music.163.com/song/media/outer/url?id=27582790.mp3"
+
+[[track]]
+id = "TFM-006b_02"
+album = "暗黒能楽集・心綺楼"
+title = "演者選択"
+url = "https://music.163.com/song/media/outer/url?id=27582769.mp3"
+
+[[track]]
+id = "TFM-006a_08"
+album = "暗黒能楽集・心綺楼"
+title = "聖徳伝説　～ True Administrator"
+url = "https://music.163.com/song/media/outer/url?id=27582780.mp3"
+
+[[track]]
+id = "TFM-006a_09"
+album = "暗黒能楽集・心綺楼"
+title = "芥川龍之介の河童　～ Candid Friend"
+url = "https://music.163.com/song/media/outer/url?id=27582782.mp3"
+
+[[track]]
+id = "TFM-006b_17"
+album = "暗黒能楽集・心綺楼"
+title = "芥川龍之介の河童　～ Candid Friend (8bit)"
+url = "https://music.163.com/song/media/outer/url?id=27582799.mp3"
+
+[[track]]
+id = "TFM-007a_04"
+album = "深秘的楽曲集"
+title = "オカルトアラカルト"
+url = "https://music.163.com/song/media/outer/url?id=34002861.mp3"
+
+[[track]]
+id = "TFM-007b_08"
+album = "深秘的楽曲集"
+title = "ハルトマンの妖怪少女"
+url = "https://music.163.com/song/media/outer/url?id=34002883.mp3"
+
+[[track]]
+id = "TFM-007a_03"
+album = "深秘的楽曲集"
+title = "ボールのある日常"
+url = "https://music.163.com/song/media/outer/url?id=34002860.mp3"
+
+[[track]]
+id = "TFM-007a_16"
+album = "深秘的楽曲集"
+title = "ラストオカルティズム　～ 現し世の秘術師"
+url = "https://music.163.com/song/media/outer/url?id=34002873.mp3"
+
+[[track]]
+id = "TFM-007b_14"
+album = "深秘的楽曲集"
+title = "ラストオカルティズム　～ 現し世の秘術師 (Arrange Version)"
+url = "https://music.163.com/song/media/outer/url?id=34002889.mp3"
+
+[[track]]
+id = "TFM-007a_06"
+album = "深秘的楽曲集"
+title = "七玉蒐集ショウダウン"
+url = "https://music.163.com/song/media/outer/url?id=34002863.mp3"
+
+[[track]]
+id = "TFM-007b_01"
+album = "深秘的楽曲集"
+title = "二色蓮花蝶 ～ Red and White"
+url = "https://music.163.com/song/media/outer/url?id=34002876.mp3"
+
+[[track]]
+id = "TFM-007b_10"
+album = "深秘的楽曲集"
+title = "亡失のエモーション"
+url = "https://music.163.com/song/media/outer/url?id=34002885.mp3"
+
+[[track]]
+id = "TFM-007a_09"
+album = "深秘的楽曲集"
+title = "価値がわからない"
+url = "https://music.163.com/song/media/outer/url?id=34002866.mp3"
+
+[[track]]
+id = "TFM-007a_08"
+album = "深秘的楽曲集"
+title = "公正なる奪い合い"
+url = "https://music.163.com/song/media/outer/url?id=34002865.mp3"
+
+[[track]]
+id = "TFM-007a_11"
+album = "深秘的楽曲集"
+title = "可能性を信じて"
+url = "https://music.163.com/song/media/outer/url?id=34002868.mp3"
+
+[[track]]
+id = "TFM-007a_17"
+album = "深秘的楽曲集"
+title = "各々の結末"
+url = "https://music.163.com/song/media/outer/url?id=34002874.mp3"
+
+[[track]]
+id = "TFM-007a_15"
+album = "深秘的楽曲集"
+title = "外界フォークロア"
+url = "https://music.163.com/song/media/outer/url?id=34002872.mp3"
+
+[[track]]
+id = "TFM-007b_05"
+album = "深秘的楽曲集"
+title = "大神神話伝"
+url = "https://music.163.com/song/media/outer/url?id=34002880.mp3"
+
+[[track]]
+id = "TFM-007a_10"
+album = "深秘的楽曲集"
+title = "対蹠地の鐘"
+url = "https://music.163.com/song/media/outer/url?id=34002867.mp3"
+
+[[track]]
+id = "TFM-007b_09"
+album = "深秘的楽曲集"
+title = "幻想郷の二ッ岩"
+url = "https://music.163.com/song/media/outer/url?id=34002884.mp3"
+
+[[track]]
+id = "TFM-007a_02"
+album = "深秘的楽曲集"
+title = "幻想郷ふしぎ発見"
+url = "https://music.163.com/song/media/outer/url?id=34002859.mp3"
+
+[[track]]
+id = "TFM-007a_01"
+album = "深秘的楽曲集"
+title = "心揺さぶる都市伝説"
+url = "https://music.163.com/song/media/outer/url?id=34002858.mp3"
+
+[[track]]
+id = "TFM-007b_02"
+album = "深秘的楽曲集"
+title = "恋色マスタースパーク"
+url = "https://music.163.com/song/media/outer/url?id=34002877.mp3"
+
+[[track]]
+id = "TFM-007b_04"
+album = "深秘的楽曲集"
+title = "感情の摩天楼　～ Cosmic Mind"
+url = "https://music.163.com/song/media/outer/url?id=34002879.mp3"
+
+[[track]]
+id = "TFM-007b_15"
+album = "深秘的楽曲集"
+title = "明かされる深秘"
+url = "https://music.163.com/song/media/outer/url?id=34002890.mp3"
+
+[[track]]
+id = "TFM-007a_18"
+album = "深秘的楽曲集"
+title = "明かされる深秘 (Short Version)"
+url = "https://music.163.com/song/media/outer/url?id=34002875.mp3"
+
+[[track]]
+id = "TFM-007a_07"
+album = "深秘的楽曲集"
+title = "時代の風の訪れ"
+url = "https://music.163.com/song/media/outer/url?id=34002864.mp3"
+
+[[track]]
+id = "TFM-007b_03"
+album = "深秘的楽曲集"
+title = "時代親父とハイカラ少女"
+url = "https://music.163.com/song/media/outer/url?id=34002878.mp3"
+
+[[track]]
+id = "TFM-007b_11"
+album = "深秘的楽曲集"
+title = "月まで届け、不死の煙"
+url = "https://music.163.com/song/media/outer/url?id=34002886.mp3"
+
+[[track]]
+id = "TFM-007a_13"
+album = "深秘的楽曲集"
+title = "真実を知る者"
+url = "https://music.163.com/song/media/outer/url?id=34002870.mp3"
+
+[[track]]
+id = "TFM-007a_12"
+album = "深秘的楽曲集"
+title = "竹林インフレイム"
+url = "https://music.163.com/song/media/outer/url?id=34002869.mp3"
+
+[[track]]
+id = "TFM-007b_06"
+album = "深秘的楽曲集"
+title = "聖徳伝説　～ True Administrator"
+url = "https://music.163.com/song/media/outer/url?id=34002881.mp3"
+
+[[track]]
+id = "TFM-007b_07"
+album = "深秘的楽曲集"
+title = "芥川龍之介の河童 ～ Candid Friend"
+url = "https://music.163.com/song/media/outer/url?id=34002882.mp3"
+
+[[track]]
+id = "TFM-007a_14"
+album = "深秘的楽曲集"
+title = "華狭間のバトルフィールド"
+url = "https://music.163.com/song/media/outer/url?id=34002871.mp3"
+
+[[track]]
+id = "TFM-007b_13"
+album = "深秘的楽曲集"
+title = "華狭間のバトルフィールド (Arrange Version)"
+url = "https://music.163.com/song/media/outer/url?id=34002888.mp3"
+
+[[track]]
+id = "TFM-007b_12"
+album = "深秘的楽曲集"
+title = "輝く針の小人族　～ Little Princess"
+url = "https://music.163.com/song/media/outer/url?id=34002887.mp3"
+
+[[track]]
+id = "TFM-007a_05"
+album = "深秘的楽曲集"
+title = "顕現した伝承の形"
+url = "https://music.163.com/song/media/outer/url?id=34002862.mp3"
+
+[[track]]
+id = "TFM-008_01"
+album = "深秘的楽曲集·補 東方深秘録初回特典CD"
+title = "狂気の瞳～ Invisible Full Moon"
+url = "https://music.163.com/song/media/outer/url?id=468490630.mp3"
+
+[[track]]
+id = "TFM-009b_09"
+album = "完全憑依ディスコグラフィ"
+title = "スリープシープ・パレード"
+url = "https://music.163.com/song/media/outer/url?id=561307032.mp3"
+
+[[track]]
+id = "TFM-009a_04"
+album = "完全憑依ディスコグラフィ"
+title = "マッシュルーム・ワルツ"
+url = "https://music.163.com/song/media/outer/url?id=559736008.mp3"
+
+[[track]]
+id = "TFM-009c_02"
+album = "完全憑依ディスコグラフィ"
+title = "ラストオカルティズム　～ 現し世の秘術師"
+url = "https://music.163.com/song/media/outer/url?id=561307042.mp3"
+
+[[track]]
+id = "TFM-009b_02"
+album = "完全憑依ディスコグラフィ"
+title = "不滅のレッドソウル"
+url = "https://music.163.com/song/media/outer/url?id=561307025.mp3"
+
+[[track]]
+id = "TFM-009c_09"
+album = "完全憑依ディスコグラフィ"
+title = "今宵は飄逸なエゴイスト(Arrange ver)　～ Egoistic Flowers"
+url = "https://music.163.com/song/media/outer/url?id=561307049.mp3"
+
+[[track]]
+id = "TFM-009b_14"
+album = "完全憑依ディスコグラフィ"
+title = "今宵は飄逸なエゴイスト(Live ver)　～ Egoistic Flowers"
+url = "https://music.163.com/song/media/outer/url?id=561307037.mp3"
+
+[[track]]
+id = "TFM-009a_11"
+album = "完全憑依ディスコグラフィ"
+title = "光輝く天球儀"
+url = "https://music.163.com/song/media/outer/url?id=561307015.mp3"
+
+[[track]]
+id = "TFM-009b_12"
+album = "完全憑依ディスコグラフィ"
+title = "千の試練を超えて"
+url = "https://music.163.com/song/media/outer/url?id=561307035.mp3"
+
+[[track]]
+id = "TFM-009a_09"
+album = "完全憑依ディスコグラフィ"
+title = "合縁奇縁"
+url = "https://music.163.com/song/media/outer/url?id=561307013.mp3"
+
+[[track]]
+id = "TFM-009b_15"
+album = "完全憑依ディスコグラフィ"
+title = "咲き誇る憑依華"
+url = "https://music.163.com/song/media/outer/url?id=561307038.mp3"
+
+[[track]]
+id = "TFM-009a_03"
+album = "完全憑依ディスコグラフィ"
+title = "地の色は黄色　～ Primrose"
+url = "https://music.163.com/song/media/outer/url?id=559736007.mp3"
+
+[[track]]
+id = "TFM-009a_14"
+album = "完全憑依ディスコグラフィ"
+title = "地底に咲く薔薇"
+url = "https://music.163.com/song/media/outer/url?id=561307018.mp3"
+
+[[track]]
+id = "TFM-009b_04"
+album = "完全憑依ディスコグラフィ"
+title = "壮言大語"
+url = "https://music.163.com/song/media/outer/url?id=561307027.mp3"
+
+[[track]]
+id = "TFM-009c_07"
+album = "完全憑依ディスコグラフィ"
+title = "夜が降りてくる　～ Evening Star"
+url = "https://music.163.com/song/media/outer/url?id=561307047.mp3"
+
+[[track]]
+id = "TFM-009b_08"
+album = "完全憑依ディスコグラフィ"
+title = "夢世界フォークロア"
+url = "https://music.163.com/song/media/outer/url?id=561307031.mp3"
+
+[[track]]
+id = "TFM-009b_10"
+album = "完全憑依ディスコグラフィ"
+title = "天衣無縫　～ Yellow Lily"
+url = "https://music.163.com/song/media/outer/url?id=561307033.mp3"
+
+[[track]]
+id = "TFM-009b_06"
+album = "完全憑依ディスコグラフィ"
+title = "心綺楼演舞"
+url = "https://music.163.com/song/media/outer/url?id=561307029.mp3"
+
+[[track]]
+id = "TFM-009a_10"
+album = "完全憑依ディスコグラフィ"
+title = "恒常不変の参廟祀"
+url = "https://music.163.com/song/media/outer/url?id=561307014.mp3"
+
+[[track]]
+id = "TFM-009b_17"
+album = "完全憑依ディスコグラフィ"
+title = "悠久の蒸気機関"
+url = "https://music.163.com/song/media/outer/url?id=561307040.mp3"
+
+[[track]]
+id = "TFM-009b_07"
+album = "完全憑依ディスコグラフィ"
+title = "意気揚々"
+url = "https://music.163.com/song/media/outer/url?id=561307030.mp3"
+
+[[track]]
+id = "TFM-009a_02"
+album = "完全憑依ディスコグラフィ"
+title = "憑依投合"
+url = "https://music.163.com/song/media/outer/url?id=559736006.mp3"
+
+[[track]]
+id = "TFM-009c_01"
+album = "完全憑依ディスコグラフィ"
+title = "憑依華"
+url = "https://music.163.com/song/media/outer/url?id=561307041.mp3"
+
+[[track]]
+id = "TFM-009a_17"
+album = "完全憑依ディスコグラフィ"
+title = "憑坐は夢と現の間に　～ Necro-Fantasia"
+url = "https://music.163.com/song/media/outer/url?id=561307021.mp3"
+
+[[track]]
+id = "TFM-009c_08"
+album = "完全憑依ディスコグラフィ"
+title = "憑坐は夢と現の間に　～ Necro-Fantasia (Arrange ver)"
+url = "https://music.163.com/song/media/outer/url?id=561307048.mp3"
+
+[[track]]
+id = "TFM-009c_05"
+album = "完全憑依ディスコグラフィ"
+title = "有頂天変　～ Wonderful Heaven"
+url = "https://music.163.com/song/media/outer/url?id=561307045.mp3"
+
+[[track]]
+id = "TFM-009a_19"
+album = "完全憑依ディスコグラフィ"
+title = "未だ蕾む憑依華"
+url = "https://music.163.com/song/media/outer/url?id=561307023.mp3"
+
+[[track]]
+id = "TFM-009b_03"
+album = "完全憑依ディスコグラフィ"
+title = "永遠に続く回廊"
+url = "https://music.163.com/song/media/outer/url?id=561307026.mp3"
+
+[[track]]
+id = "TFM-009c_03"
+album = "完全憑依ディスコグラフィ"
+title = "永遠の春夢"
+url = "https://music.163.com/song/media/outer/url?id=561307043.mp3"
+
+[[track]]
+id = "TFM-009a_13"
+album = "完全憑依ディスコグラフィ"
+title = "沢の河童の技術力"
+url = "https://music.163.com/song/media/outer/url?id=561307017.mp3"
+
+[[track]]
+id = "TFM-009a_07"
+album = "完全憑依ディスコグラフィ"
+title = "法力の下の平等"
+url = "https://music.163.com/song/media/outer/url?id=561307011.mp3"
+
+[[track]]
+id = "TFM-009a_15"
+album = "完全憑依ディスコグラフィ"
+title = "深緑の狸森にて"
+url = "https://music.163.com/song/media/outer/url?id=561307019.mp3"
+
+[[track]]
+id = "TFM-009a_01"
+album = "完全憑依ディスコグラフィ"
+title = "異変の種子"
+url = "https://music.163.com/song/media/outer/url?id=559736005.mp3"
+
+[[track]]
+id = "TFM-009a_12"
+album = "完全憑依ディスコグラフィ"
+title = "異心同体"
+url = "https://music.163.com/song/media/outer/url?id=561307016.mp3"
+
+[[track]]
+id = "TFM-009a_08"
+album = "完全憑依ディスコグラフィ"
+title = "疑惑の芽生え"
+url = "https://music.163.com/song/media/outer/url?id=561307012.mp3"
+
+[[track]]
+id = "TFM-009b_01"
+album = "完全憑依ディスコグラフィ"
+title = "真相へ繋がる枝葉"
+url = "https://music.163.com/song/media/outer/url?id=561307024.mp3"
+
+[[track]]
+id = "TFM-009a_16"
+album = "完全憑依ディスコグラフィ"
+title = "知略縦横"
+url = "https://music.163.com/song/media/outer/url?id=561307020.mp3"
+
+[[track]]
+id = "TFM-009a_06"
+album = "完全憑依ディスコグラフィ"
+title = "聖輦船空を往く"
+url = "https://music.163.com/song/media/outer/url?id=561307010.mp3"
+
+[[track]]
+id = "TFM-009b_11"
+album = "完全憑依ディスコグラフィ"
+title = "至る有頂天"
+url = "https://music.163.com/song/media/outer/url?id=561307034.mp3"
+
+[[track]]
+id = "TFM-009b_16"
+album = "完全憑依ディスコグラフィ"
+title = "舞い散る憑依華吹雪"
+url = "https://music.163.com/song/media/outer/url?id=561307039.mp3"
+
+[[track]]
+id = "TFM-009c_06"
+album = "完全憑依ディスコグラフィ"
+title = "華狭間のバトルフィールド"
+url = "https://music.163.com/song/media/outer/url?id=561307046.mp3"
+
+[[track]]
+id = "TFM-009b_05"
+album = "完全憑依ディスコグラフィ"
+title = "落日に映える逆さ城"
+url = "https://music.163.com/song/media/outer/url?id=561307028.mp3"
+
+[[track]]
+id = "TFM-009a_18"
+album = "完全憑依ディスコグラフィ"
+title = "行雲流水"
+url = "https://music.163.com/song/media/outer/url?id=561307022.mp3"
+
+[[track]]
+id = "TFM-009c_04"
+album = "完全憑依ディスコグラフィ"
+title = "輝く針の小人族　～ Little Princess"
+url = "https://music.163.com/song/media/outer/url?id=561307044.mp3"
+
+[[track]]
+id = "TFM-009a_05"
+album = "完全憑依ディスコグラフィ"
+title = "連帯責人"
+url = "https://music.163.com/song/media/outer/url?id=559736009.mp3"
+
+[[track]]
+id = "TFM-009b_13"
+album = "完全憑依ディスコグラフィ"
+title = "開演間近"
+url = "https://music.163.com/song/media/outer/url?id=561307036.mp3"
+
+[[track]]
+id = "TFM-010b_05"
+album = "強欲な獣のムジカ"
+title = "U.N.オーエンは彼女なのか？"
+url = "https://music.163.com/song/media/outer/url?id=1915651038.mp3"
+
+[[track]]
+id = "TFM-010a_12"
+album = "強欲な獣のムジカ"
+title = "キャプテンムラサ"
+url = "https://music.163.com/song/media/outer/url?id=1915651729.mp3"
+
+[[track]]
+id = "TFM-010b_02"
+album = "強欲な獣のムジカ"
+title = "セラフィックチキン"
+url = "https://music.163.com/song/media/outer/url?id=1915651020.mp3"
+
+[[track]]
+id = "TFM-010a_06"
+album = "強欲な獣のムジカ"
+title = "万年置き傘にご注意を"
+url = "https://music.163.com/song/media/outer/url?id=1915651689.mp3"
+
+[[track]]
+id = "TFM-010b_01"
+album = "強欲な獣のムジカ"
+title = "不朽の曼殊沙華"
+url = "https://music.163.com/song/media/outer/url?id=1915651744.mp3"
+
+[[track]]
+id = "TFM-010b_03"
+album = "強欲な獣のムジカ"
+title = "今宵は飄逸なエゴイスト　～ Egoistic Flowers"
+url = "https://music.163.com/song/media/outer/url?id=1915651757.mp3"
+
+[[track]]
+id = "TFM-010b_06"
+album = "強欲な獣のムジカ"
+title = "大地の底、剛欲の海"
+url = "https://music.163.com/song/media/outer/url?id=1915651043.mp3"
+
+[[track]]
+id = "TFM-010b_09"
+album = "強欲な獣のムジカ"
+title = "天理人欲"
+url = "https://music.163.com/song/media/outer/url?id=1915651071.mp3"
+
+[[track]]
+id = "TFM-010a_07"
+album = "強欲な獣のムジカ"
+title = "封じられた妖怪"
+url = "https://music.163.com/song/media/outer/url?id=1915650957.mp3"
+
+[[track]]
+id = "TFM-010a_04"
+album = "強欲な獣のムジカ"
+title = "少女綺想曲"
+url = "https://music.163.com/song/media/outer/url?id=1915650945.mp3"
+
+[[track]]
+id = "TFM-010b_07"
+album = "強欲な獣のムジカ"
+title = "強欲な獣のメメント"
+url = "https://music.163.com/song/media/outer/url?id=1915651048.mp3"
+
+[[track]]
+id = "TFM-010b_11"
+album = "強欲な獣のムジカ"
+title = "強欲な獣のメメント (Arrange Version)"
+url = "https://music.163.com/song/media/outer/url?id=1915651803.mp3"
+
+[[track]]
+id = "TFM-010a_10"
+album = "強欲な獣のムジカ"
+title = "御柱の墓場"
+url = "https://music.163.com/song/media/outer/url?id=1915650986.mp3"
+
+[[track]]
+id = "TFM-010a_03"
+album = "強欲な獣のムジカ"
+title = "恋色マスタースパーク"
+url = "https://music.163.com/song/media/outer/url?id=1915651678.mp3"
+
+[[track]]
+id = "TFM-010a_08"
+album = "強欲な獣のムジカ"
+title = "旧地獄街道を行く"
+url = "https://music.163.com/song/media/outer/url?id=1915650966.mp3"
+
+[[track]]
+id = "TFM-010a_05"
+album = "強欲な獣のムジカ"
+title = "暗闇の風穴"
+url = "https://music.163.com/song/media/outer/url?id=1915650951.mp3"
+
+[[track]]
+id = "TFM-010b_08"
+album = "強欲な獣のムジカ"
+title = "有機体全てのメメント　～ Memory of Fossil Energy"
+url = "https://music.163.com/song/media/outer/url?id=1915651788.mp3"
+
+[[track]]
+id = "TFM-010b_10"
+album = "強欲な獣のムジカ"
+title = "東方剛欲異聞"
+url = "https://music.163.com/song/media/outer/url?id=1915651799.mp3"
+
+[[track]]
+id = "TFM-010a_13"
+album = "強欲な獣のムジカ"
+title = "業火マントル"
+url = "https://music.163.com/song/media/outer/url?id=1915651002.mp3"
+
+[[track]]
+id = "TFM-010a_01"
+album = "強欲な獣のムジカ"
+title = "水没した沈愁地獄"
+url = "https://music.163.com/song/media/outer/url?id=1915650939.mp3"
+
+[[track]]
+id = "TFM-010b_12"
+album = "強欲な獣のムジカ"
+title = "水没した沈愁地獄 (Arrange Version)"
+url = "https://music.163.com/song/media/outer/url?id=1915651083.mp3"
+
+[[track]]
+id = "TFM-010a_11"
+album = "強欲な獣のムジカ"
+title = "神さびた古戦場"
+url = "https://music.163.com/song/media/outer/url?id=1915651716.mp3"
+
+[[track]]
+id = "TFM-010a_09"
+album = "強欲な獣のムジカ"
+title = "華のさかづき大江山"
+url = "https://music.163.com/song/media/outer/url?id=1915650974.mp3"
+
+[[track]]
+id = "TFM-010a_14"
+album = "強欲な獣のムジカ"
+title = "霊知の太陽信仰"
+url = "https://music.163.com/song/media/outer/url?id=1915651005.mp3"
+
+[[track]]
+id = "TFM-010a_02"
+album = "強欲な獣のムジカ"
+title = "魔法使いの憂鬱"
+url = "https://music.163.com/song/media/outer/url?id=1915650940.mp3"
+
+[[track]]
+id = "TFM-010b_04"
+album = "強欲な獣のムジカ"
+title = "魔法少女達の百年祭"
+url = "https://music.163.com/song/media/outer/url?id=1915651772.mp3"
+
+[[track]]
+id = "th06_15"
+album = "東方紅魔郷 ～ the Embodiment of Scarlet Devil"
+title = "U.N.オーエンは彼女なのか？"
+url = "https://music.163.com/song/media/outer/url?id=22636729.mp3"
+
+[[track]]
+id = "th06_05"
+album = "東方紅魔郷 ～ the Embodiment of Scarlet Devil"
+title = "おてんば恋娘"
+url = "https://music.163.com/song/media/outer/url?id=22636718.mp3"
+
+[[track]]
+id = "th06_02"
+album = "東方紅魔郷 ～ the Embodiment of Scarlet Devil"
+title = "ほおずきみたいに紅い魂"
+url = "https://music.163.com/song/media/outer/url?id=22636726.mp3"
+
+[[track]]
+id = "th06_12"
+album = "東方紅魔郷 ～ the Embodiment of Scarlet Devil"
+title = "ツェペシュの幼き末裔"
+url = "https://music.163.com/song/media/outer/url?id=22636728.mp3"
+
+[[track]]
+id = "th06_10"
+album = "東方紅魔郷 ～ the Embodiment of Scarlet Devil"
+title = "メイドと血の懐中時計"
+url = "https://music.163.com/song/media/outer/url?id=22636732.mp3"
+
+[[track]]
+id = "th06_09"
+album = "東方紅魔郷 ～ the Embodiment of Scarlet Devil"
+title = "ラクトガール　～ 少女密室"
+url = "https://music.163.com/song/media/outer/url?id=22636720.mp3"
+
+[[track]]
+id = "th06_04"
+album = "東方紅魔郷 ～ the Embodiment of Scarlet Devil"
+title = "ルーネイトエルフ"
+url = "https://music.163.com/song/media/outer/url?id=22636721.mp3"
+
+[[track]]
+id = "th06_08"
+album = "東方紅魔郷 ～ the Embodiment of Scarlet Devil"
+title = "ヴワル魔法図書館"
+url = "https://music.163.com/song/media/outer/url?id=22636724.mp3"
+
+[[track]]
+id = "th06_06"
+album = "東方紅魔郷 ～ the Embodiment of Scarlet Devil"
+title = "上海紅茶館　～ Chinese Tea"
+url = "https://music.163.com/song/media/outer/url?id=22636730.mp3"
+
+[[track]]
+id = "th06_13"
+album = "東方紅魔郷 ～ the Embodiment of Scarlet Devil"
+title = "亡き王女の為のセプテット"
+url = "https://music.163.com/song/media/outer/url?id=22636723.mp3"
+
+[[track]]
+id = "th06_03"
+album = "東方紅魔郷 ～ the Embodiment of Scarlet Devil"
+title = "妖魔夜行"
+url = "https://music.163.com/song/media/outer/url?id=22636719.mp3"
+
+[[track]]
+id = "th06_07"
+album = "東方紅魔郷 ～ the Embodiment of Scarlet Devil"
+title = "明治十七年の上海アリス"
+url = "https://music.163.com/song/media/outer/url?id=22636722.mp3"
+
+[[track]]
+id = "th06_11"
+album = "東方紅魔郷 ～ the Embodiment of Scarlet Devil"
+title = "月時計　～ ルナ・ダイアル"
+url = "https://music.163.com/song/media/outer/url?id=22636725.mp3"
+
+[[track]]
+id = "th06_16"
+album = "東方紅魔郷 ～ the Embodiment of Scarlet Devil"
+title = "紅より儚い永遠"
+url = "https://music.163.com/song/media/outer/url?id=22636731.mp3"
+
+[[track]]
+id = "th06_17"
+album = "東方紅魔郷 ～ the Embodiment of Scarlet Devil"
+title = "紅楼　～ Eastern Dream..."
+url = "https://music.163.com/song/media/outer/url?id=22636727.mp3"
+
+[[track]]
+id = "th06_01"
+album = "東方紅魔郷 ～ the Embodiment of Scarlet Devil"
+title = "赤より紅い夢"
+url = "https://music.163.com/song/media/outer/url?id=22636717.mp3"
+
+[[track]]
+id = "th06_14"
+album = "東方紅魔郷 ～ the Embodiment of Scarlet Devil"
+title = "魔法少女達の百年祭"
+url = "https://music.163.com/song/media/outer/url?id=22636733.mp3"
+
+[[track]]
+id = "th07_20"
+album = "東方妖々夢 ～ Perfect Cherry Blossom"
+title = "さくらさくら　～ Japanize Dream..."
+url = "https://music.163.com/song/media/outer/url?id=22636713.mp3"
+
+[[track]]
+id = "th07_12"
+album = "東方妖々夢 ～ Perfect Cherry Blossom"
+title = "アルティメットトゥルース"
+url = "https://music.163.com/song/media/outer/url?id=22636706.mp3"
+
+[[track]]
+id = "th07_03"
+album = "東方妖々夢 ～ Perfect Cherry Blossom"
+title = "クリスタライズシルバー"
+url = "https://music.163.com/song/media/outer/url?id=22636707.mp3"
+
+[[track]]
+id = "th07_05"
+album = "東方妖々夢 ～ Perfect Cherry Blossom"
+title = "ティアオイエツォン(withered leaf)"
+url = "https://music.163.com/song/media/outer/url?id=22636702.mp3"
+
+[[track]]
+id = "th07_18"
+album = "東方妖々夢 ～ Perfect Cherry Blossom"
+title = "ネクロファンタジア"
+url = "https://music.163.com/song/media/outer/url?id=22636708.mp3"
+
+[[track]]
+id = "th07_06"
+album = "東方妖々夢 ～ Perfect Cherry Blossom"
+title = "ブクレシュティの人形師"
+url = "https://music.163.com/song/media/outer/url?id=22636698.mp3"
+
+[[track]]
+id = "th07_14"
+album = "東方妖々夢 ～ Perfect Cherry Blossom"
+title = "ボーダーオブライフ"
+url = "https://music.163.com/song/media/outer/url?id=22636704.mp3"
+
+[[track]]
+id = "th07_07"
+album = "東方妖々夢 ～ Perfect Cherry Blossom"
+title = "人形裁判　～ 人の形弄びし少女"
+url = "https://music.163.com/song/media/outer/url?id=22636711.mp3"
+
+[[track]]
+id = "th07_08"
+album = "東方妖々夢 ～ Perfect Cherry Blossom"
+title = "天空の花の都"
+url = "https://music.163.com/song/media/outer/url?id=22636703.mp3"
+
+[[track]]
+id = "th07_01"
+album = "東方妖々夢 ～ Perfect Cherry Blossom"
+title = "妖々夢　～ Snow or Cherry Petal"
+url = "https://music.163.com/song/media/outer/url?id=22636699.mp3"
+
+[[track]]
+id = "th07_15"
+album = "東方妖々夢 ～ Perfect Cherry Blossom"
+title = "妖々跋扈"
+url = "https://music.163.com/song/media/outer/url?id=22636715.mp3"
+
+[[track]]
+id = "th07_17"
+album = "東方妖々夢 ～ Perfect Cherry Blossom"
+title = "妖々跋扈　～ Who done it!"
+url = "https://music.163.com/song/media/outer/url?id=22636712.mp3"
+
+[[track]]
+id = "th07_16"
+album = "東方妖々夢 ～ Perfect Cherry Blossom"
+title = "少女幻葬　～ Necro-Fantasy"
+url = "https://music.163.com/song/media/outer/url?id=22636710.mp3"
+
+[[track]]
+id = "th07_13"
+album = "東方妖々夢 ～ Perfect Cherry Blossom"
+title = "幽雅に咲かせ、墨染の桜　～ Border of Life"
+url = "https://music.163.com/song/media/outer/url?id=22636709.mp3"
+
+[[track]]
+id = "th07_09"
+album = "東方妖々夢 ～ Perfect Cherry Blossom"
+title = "幽霊楽団　～ Phantom Ensemble"
+url = "https://music.163.com/song/media/outer/url?id=22636705.mp3"
+
+[[track]]
+id = "th07_11"
+album = "東方妖々夢 ～ Perfect Cherry Blossom"
+title = "広有射怪鳥事　～ Till When？"
+url = "https://music.163.com/song/media/outer/url?id=22636714.mp3"
+
+[[track]]
+id = "th07_19"
+album = "東方妖々夢 ～ Perfect Cherry Blossom"
+title = "春風の夢"
+url = "https://music.163.com/song/media/outer/url?id=22636716.mp3"
+
+[[track]]
+id = "th07_10"
+album = "東方妖々夢 ～ Perfect Cherry Blossom"
+title = "東方妖々夢　～ Ancient Temple"
+url = "https://music.163.com/song/media/outer/url?id=22636701.mp3"
+
+[[track]]
+id = "th07_02"
+album = "東方妖々夢 ～ Perfect Cherry Blossom"
+title = "無何有の郷　～ Deep Mountain"
+url = "https://music.163.com/song/media/outer/url?id=22636697.mp3"
+
+[[track]]
+id = "th07_04"
+album = "東方妖々夢 ～ Perfect Cherry Blossom"
+title = "遠野幻想物語"
+url = "https://music.163.com/song/media/outer/url?id=22636700.mp3"
+
+[[track]]
+id = "th08_20"
+album = "東方永夜抄 ～ Imperishable Night"
+title = "Eternal Dream　～ 幽玄の槭樹"
+url = "https://music.163.com/song/media/outer/url?id=22636692.mp3"
+
+[[track]]
+id = "th08_05"
+album = "東方永夜抄 ～ Imperishable Night"
+title = "もう歌しか聞こえない"
+url = "https://music.163.com/song/media/outer/url?id=22636681.mp3"
+
+[[track]]
+id = "th08_17"
+album = "東方永夜抄 ～ Imperishable Night"
+title = "エクステンドアッシュ　～ 蓬莱人"
+url = "https://music.163.com/song/media/outer/url?id=22636691.mp3"
+
+[[track]]
+id = "th08_11"
+album = "東方永夜抄 ～ Imperishable Night"
+title = "シンデレラケージ　～ Kagome-Kagome"
+url = "https://music.163.com/song/media/outer/url?id=22636693.mp3"
+
+[[track]]
+id = "th08_07"
+album = "東方永夜抄 ～ Imperishable Night"
+title = "プレインエイジア"
+url = "https://music.163.com/song/media/outer/url?id=22636690.mp3"
+
+[[track]]
+id = "th08_13"
+album = "東方永夜抄 ～ Imperishable Night"
+title = "ヴォヤージュ1969"
+url = "https://music.163.com/song/media/outer/url?id=22636688.mp3"
+
+[[track]]
+id = "th08_16"
+album = "東方永夜抄 ～ Imperishable Night"
+title = "ヴォヤージュ1970"
+url = "https://music.163.com/song/media/outer/url?id=22636689.mp3"
+
+[[track]]
+id = "th08_14"
+album = "東方永夜抄 ～ Imperishable Night"
+title = "千年幻想郷　～ History of the Moon"
+url = "https://music.163.com/song/media/outer/url?id=22636683.mp3"
+
+[[track]]
+id = "th08_04"
+album = "東方永夜抄 ～ Imperishable Night"
+title = "夜雀の歌声　～ Night Bird"
+url = "https://music.163.com/song/media/outer/url?id=22636679.mp3"
+
+[[track]]
+id = "th08_09"
+album = "東方永夜抄 ～ Imperishable Night"
+title = "少女綺想曲　～ Dream Battle"
+url = "https://music.163.com/song/media/outer/url?id=22636684.mp3"
+
+[[track]]
+id = "th08_02"
+album = "東方永夜抄 ～ Imperishable Night"
+title = "幻視の夜　～ Ghostly Eyes"
+url = "https://music.163.com/song/media/outer/url?id=22636676.mp3"
+
+[[track]]
+id = "th08_10"
+album = "東方永夜抄 ～ Imperishable Night"
+title = "恋色マスタースパーク"
+url = "https://music.163.com/song/media/outer/url?id=22636680.mp3"
+
+[[track]]
+id = "th08_06"
+album = "東方永夜抄 ～ Imperishable Night"
+title = "懐かしき東方の血　～ Old World"
+url = "https://music.163.com/song/media/outer/url?id=22636677.mp3"
+
+[[track]]
+id = "th08_18"
+album = "東方永夜抄 ～ Imperishable Night"
+title = "月まで届け、不死の煙"
+url = "https://music.163.com/song/media/outer/url?id=22636687.mp3"
+
+[[track]]
+id = "th08_19"
+album = "東方永夜抄 ～ Imperishable Night"
+title = "月見草"
+url = "https://music.163.com/song/media/outer/url?id=22636696.mp3"
+
+[[track]]
+id = "th08_21"
+album = "東方永夜抄 ～ Imperishable Night"
+title = "東方妖怪小町"
+url = "https://music.163.com/song/media/outer/url?id=22636694.mp3"
+
+[[track]]
+id = "th08_08"
+album = "東方永夜抄 ～ Imperishable Night"
+title = "永夜の報い　～ Imperishable Night."
+url = "https://music.163.com/song/media/outer/url?id=22636682.mp3"
+
+[[track]]
+id = "th08_01"
+album = "東方永夜抄 ～ Imperishable Night"
+title = "永夜抄　～ Eastern Night."
+url = "https://music.163.com/song/media/outer/url?id=22636678.mp3"
+
+[[track]]
+id = "th08_12"
+album = "東方永夜抄 ～ Imperishable Night"
+title = "狂気の瞳　～ Invisible Full Moon"
+url = "https://music.163.com/song/media/outer/url?id=22636685.mp3"
+
+[[track]]
+id = "th08_15"
+album = "東方永夜抄 ～ Imperishable Night"
+title = "竹取飛翔　～ Lunatic Princess"
+url = "https://music.163.com/song/media/outer/url?id=22636695.mp3"
+
+[[track]]
+id = "th08_03"
+album = "東方永夜抄 ～ Imperishable Night"
+title = "蠢々秋月　～ Mooned Insect"
+url = "https://music.163.com/song/media/outer/url?id=22636686.mp3"
+
+[[track]]
+id = "th09_07"
+album = "東方花映塚 ～ Phantasmagoria of Flower View"
+title = "おてんば恋娘の冒険"
+url = "https://music.163.com/song/media/outer/url?id=510185.mp3"
+
+[[track]]
+id = "th09_10"
+album = "東方花映塚 ～ Phantasmagoria of Flower View"
+title = "お宇佐さまの素い幡"
+url = "https://music.163.com/song/media/outer/url?id=510196.mp3"
+
+[[track]]
+id = "th09_09"
+album = "東方花映塚 ～ Phantasmagoria of Flower View"
+title = "もう歌しか聞こえない　～ Flower Mix"
+url = "https://music.163.com/song/media/outer/url?id=510192.mp3"
+
+[[track]]
+id = "th09_03"
+album = "東方花映塚 ～ Phantasmagoria of Flower View"
+title = "オリエンタルダークフライト"
+url = "https://music.163.com/song/media/outer/url?id=510174.mp3"
+
+[[track]]
+id = "th09_04"
+album = "東方花映塚 ～ Phantasmagoria of Flower View"
+title = "フラワリングナイト"
+url = "https://music.163.com/song/media/outer/url?id=510177.mp3"
+
+[[track]]
+id = "th09_12"
+album = "東方花映塚 ～ Phantasmagoria of Flower View"
+title = "ポイズンボディ　～ Forsaken Doll"
+url = "https://music.163.com/song/media/outer/url?id=510204.mp3"
+
+[[track]]
+id = "th09_13"
+album = "東方花映塚 ～ Phantasmagoria of Flower View"
+title = "今昔幻想郷　～ Flower Land"
+url = "https://music.163.com/song/media/outer/url?id=510208.mp3"
+
+[[track]]
+id = "th09_15"
+album = "東方花映塚 ～ Phantasmagoria of Flower View"
+title = "六十年目の東方裁判　～ Fate of Sixty Years"
+url = "https://music.163.com/song/media/outer/url?id=510216.mp3"
+
+[[track]]
+id = "th09_08"
+album = "東方花映塚 ～ Phantasmagoria of Flower View"
+title = "幽霊楽団　～ Phantom Ensemble"
+url = "https://music.163.com/song/media/outer/url?id=510188.mp3"
+
+[[track]]
+id = "th09_14"
+album = "東方花映塚 ～ Phantasmagoria of Flower View"
+title = "彼岸帰航　～ Riverside View"
+url = "https://music.163.com/song/media/outer/url?id=510212.mp3"
+
+[[track]]
+id = "th09_02"
+album = "東方花映塚 ～ Phantasmagoria of Flower View"
+title = "春色小径　～ Colorful Path"
+url = "https://music.163.com/song/media/outer/url?id=510172.mp3"
+
+[[track]]
+id = "th09_05"
+album = "東方花映塚 ～ Phantasmagoria of Flower View"
+title = "東方妖々夢　～ Ancient Temple"
+url = "https://music.163.com/song/media/outer/url?id=510179.mp3"
+
+[[track]]
+id = "th09_17"
+album = "東方花映塚 ～ Phantasmagoria of Flower View"
+title = "此岸の塚"
+url = "https://music.163.com/song/media/outer/url?id=510224.mp3"
+
+[[track]]
+id = "th09_06"
+album = "東方花映塚 ～ Phantasmagoria of Flower View"
+title = "狂気の瞳　～ Invisible Full Moon"
+url = "https://music.163.com/song/media/outer/url?id=510182.mp3"
+
+[[track]]
+id = "th09_16"
+album = "東方花映塚 ～ Phantasmagoria of Flower View"
+title = "花の映る塚"
+url = "https://music.163.com/song/media/outer/url?id=510220.mp3"
+
+[[track]]
+id = "th09_18"
+album = "東方花映塚 ～ Phantasmagoria of Flower View"
+title = "花は幻想のままに"
+url = "https://music.163.com/song/media/outer/url?id=510228.mp3"
+
+[[track]]
+id = "th09_01"
+album = "東方花映塚 ～ Phantasmagoria of Flower View"
+title = "花映塚　～ Higan Retour"
+url = "https://music.163.com/song/media/outer/url?id=510170.mp3"
+
+[[track]]
+id = "th09_11"
+album = "東方花映塚 ～ Phantasmagoria of Flower View"
+title = "風神少女　 (Short Version)"
+url = "https://music.163.com/song/media/outer/url?id=510200.mp3"
+
+[[track]]
+id = "th09_19"
+album = "東方花映塚 ～ Phantasmagoria of Flower View"
+title = "魂の花　～ Another Dream"
+url = "https://music.163.com/song/media/outer/url?id=510231.mp3"
+
+[[track]]
+id = "th10_15"
+album = "東方風神録 ～ Mountain of Faith"
+title = "ネイティブフェイス"
+url = "https://music.163.com/song/media/outer/url?id=22636656.mp3"
+
+[[track]]
+id = "th10_08"
+album = "東方風神録 ～ Mountain of Faith"
+title = "フォールオブフォール　～ 秋めく滝"
+url = "https://music.163.com/song/media/outer/url?id=22636645.mp3"
+
+[[track]]
+id = "th10_18"
+album = "東方風神録 ～ Mountain of Faith"
+title = "プレイヤーズスコア"
+url = "https://music.163.com/song/media/outer/url?id=22636650.mp3"
+
+[[track]]
+id = "th10_02"
+album = "東方風神録 ～ Mountain of Faith"
+title = "人恋し神様　～ Romantic Fall"
+url = "https://music.163.com/song/media/outer/url?id=22636639.mp3"
+
+[[track]]
+id = "th10_11"
+album = "東方風神録 ～ Mountain of Faith"
+title = "信仰は儚き人間の為に"
+url = "https://music.163.com/song/media/outer/url?id=22636655.mp3"
+
+[[track]]
+id = "th10_04"
+album = "東方風神録 ～ Mountain of Faith"
+title = "厄神様の通り道　～ Dark Road"
+url = "https://music.163.com/song/media/outer/url?id=22636642.mp3"
+
+[[track]]
+id = "th10_09"
+album = "東方風神録 ～ Mountain of Faith"
+title = "妖怪の山　～ Mysterious Mountain"
+url = "https://music.163.com/song/media/outer/url?id=22636647.mp3"
+
+[[track]]
+id = "th10_01"
+album = "東方風神録 ～ Mountain of Faith"
+title = "封印されし神々"
+url = "https://music.163.com/song/media/outer/url?id=22636641.mp3"
+
+[[track]]
+id = "th10_10"
+album = "東方風神録 ～ Mountain of Faith"
+title = "少女が見た日本の原風景"
+url = "https://music.163.com/song/media/outer/url?id=22636643.mp3"
+
+[[track]]
+id = "th10_12"
+album = "東方風神録 ～ Mountain of Faith"
+title = "御柱の墓場　～ Grave of Being"
+url = "https://music.163.com/song/media/outer/url?id=22636648.mp3"
+
+[[track]]
+id = "th10_14"
+album = "東方風神録 ～ Mountain of Faith"
+title = "明日ハレの日、ケの昨日"
+url = "https://music.163.com/song/media/outer/url?id=22636646.mp3"
+
+[[track]]
+id = "th10_06"
+album = "東方風神録 ～ Mountain of Faith"
+title = "神々が恋した幻想郷"
+url = "https://music.163.com/song/media/outer/url?id=22636640.mp3"
+
+[[track]]
+id = "th10_13"
+album = "東方風神録 ～ Mountain of Faith"
+title = "神さびた古戦場　～ Suwa Foughten Field"
+url = "https://music.163.com/song/media/outer/url?id=22636651.mp3"
+
+[[track]]
+id = "th10_17"
+album = "東方風神録 ～ Mountain of Faith"
+title = "神は恵みの雨を降らす　～ Sylphid Dream"
+url = "https://music.163.com/song/media/outer/url?id=22636654.mp3"
+
+[[track]]
+id = "th10_03"
+album = "東方風神録 ～ Mountain of Faith"
+title = "稲田姫様に叱られるから"
+url = "https://music.163.com/song/media/outer/url?id=22636649.mp3"
+
+[[track]]
+id = "th10_07"
+album = "東方風神録 ～ Mountain of Faith"
+title = "芥川龍之介の河童　～ Candid Friend"
+url = "https://music.163.com/song/media/outer/url?id=22636653.mp3"
+
+[[track]]
+id = "th10_05"
+album = "東方風神録 ～ Mountain of Faith"
+title = "運命のダークサイド"
+url = "https://music.163.com/song/media/outer/url?id=22636644.mp3"
+
+[[track]]
+id = "th10_16"
+album = "東方風神録 ～ Mountain of Faith"
+title = "麓の神社"
+url = "https://music.163.com/song/media/outer/url?id=22636652.mp3"
+
+[[track]]
+id = "th11_17"
+album = "東方地霊殿 ～ Subterranean Animism"
+title = "エネルギー黎明 ～ Future Dream..."
+url = "https://music.163.com/song/media/outer/url?id=22636638.mp3"
+
+[[track]]
+id = "th11_15"
+album = "東方地霊殿 ～ Subterranean Animism"
+title = "ハルトマンの妖怪少女"
+url = "https://music.163.com/song/media/outer/url?id=22636634.mp3"
+
+[[track]]
+id = "th11_08"
+album = "東方地霊殿 ～ Subterranean Animism"
+title = "ハートフェルトファンシー"
+url = "https://music.163.com/song/media/outer/url?id=22636623.mp3"
+
+[[track]]
+id = "th11_18"
+album = "東方地霊殿 ～ Subterranean Animism"
+title = "プレイヤーズスコア"
+url = "https://music.163.com/song/media/outer/url?id=22636635.mp3"
+
+[[track]]
+id = "th11_14"
+album = "東方地霊殿 ～ Subterranean Animism"
+title = "ラストリモート"
+url = "https://music.163.com/song/media/outer/url?id=22636632.mp3"
+
+[[track]]
+id = "th11_16"
+album = "東方地霊殿 ～ Subterranean Animism"
+title = "地霊達の帰宅"
+url = "https://music.163.com/song/media/outer/url?id=22636630.mp3"
+
+[[track]]
+id = "th11_01"
+album = "東方地霊殿 ～ Subterranean Animism"
+title = "地霊達の起床"
+url = "https://music.163.com/song/media/outer/url?id=22636629.mp3"
+
+[[track]]
+id = "th11_03"
+album = "東方地霊殿 ～ Subterranean Animism"
+title = "封じられた妖怪　～ Lost Place"
+url = "https://music.163.com/song/media/outer/url?id=22636624.mp3"
+
+[[track]]
+id = "th11_09"
+album = "東方地霊殿 ～ Subterranean Animism"
+title = "少女さとり　～ 3rd eye"
+url = "https://music.163.com/song/media/outer/url?id=22636636.mp3"
+
+[[track]]
+id = "th11_10"
+album = "東方地霊殿 ～ Subterranean Animism"
+title = "廃獄ララバイ"
+url = "https://music.163.com/song/media/outer/url?id=22636628.mp3"
+
+[[track]]
+id = "th11_06"
+album = "東方地霊殿 ～ Subterranean Animism"
+title = "旧地獄街道を行く"
+url = "https://music.163.com/song/media/outer/url?id=22636625.mp3"
+
+[[track]]
+id = "th11_02"
+album = "東方地霊殿 ～ Subterranean Animism"
+title = "暗闇の風穴"
+url = "https://music.163.com/song/media/outer/url?id=22636622.mp3"
+
+[[track]]
+id = "th11_12"
+album = "東方地霊殿 ～ Subterranean Animism"
+title = "業火マントル"
+url = "https://music.163.com/song/media/outer/url?id=22636626.mp3"
+
+[[track]]
+id = "th11_11"
+album = "東方地霊殿 ～ Subterranean Animism"
+title = "死体旅行　～ Be of good cheer!"
+url = "https://music.163.com/song/media/outer/url?id=22636631.mp3"
+
+[[track]]
+id = "th11_04"
+album = "東方地霊殿 ～ Subterranean Animism"
+title = "渡る者の途絶えた橋"
+url = "https://music.163.com/song/media/outer/url?id=22636621.mp3"
+
+[[track]]
+id = "th11_05"
+album = "東方地霊殿 ～ Subterranean Animism"
+title = "緑眼のジェラシー"
+url = "https://music.163.com/song/media/outer/url?id=22636633.mp3"
+
+[[track]]
+id = "th11_07"
+album = "東方地霊殿 ～ Subterranean Animism"
+title = "華のさかづき大江山"
+url = "https://music.163.com/song/media/outer/url?id=22636627.mp3"
+
+[[track]]
+id = "th11_13"
+album = "東方地霊殿 ～ Subterranean Animism"
+title = "霊知の太陽信仰　～ Nuclear Fusion"
+url = "https://music.163.com/song/media/outer/url?id=22636637.mp3"
+
+[[track]]
+id = "th12_09"
+album = "東方星蓮船 ～ Undefined Fantastic Object"
+title = "キャプテン・ムラサ"
+url = "https://music.163.com/song/media/outer/url?id=22636611.mp3"
+
+[[track]]
+id = "th12_06"
+album = "東方星蓮船 ～ Undefined Fantastic Object"
+title = "スカイルーイン"
+url = "https://music.163.com/song/media/outer/url?id=22636604.mp3"
+
+[[track]]
+id = "th12_18"
+album = "東方星蓮船 ～ Undefined Fantastic Object"
+title = "プレイヤーズスコア"
+url = "https://music.163.com/song/media/outer/url?id=22636614.mp3"
+
+[[track]]
+id = "th12_05"
+album = "東方星蓮船 ～ Undefined Fantastic Object"
+title = "万年置き傘にご注意を"
+url = "https://music.163.com/song/media/outer/url?id=22636608.mp3"
+
+[[track]]
+id = "th12_14"
+album = "東方星蓮船 ～ Undefined Fantastic Object"
+title = "夜空のユーフォーロマンス"
+url = "https://music.163.com/song/media/outer/url?id=22636610.mp3"
+
+[[track]]
+id = "th12_16"
+album = "東方星蓮船 ～ Undefined Fantastic Object"
+title = "妖怪寺"
+url = "https://music.163.com/song/media/outer/url?id=22636616.mp3"
+
+[[track]]
+id = "th12_03"
+album = "東方星蓮船 ～ Undefined Fantastic Object"
+title = "小さな小さな賢将"
+url = "https://music.163.com/song/media/outer/url?id=22636613.mp3"
+
+[[track]]
+id = "th12_15"
+album = "東方星蓮船 ～ Undefined Fantastic Object"
+title = "平安のエイリアン"
+url = "https://music.163.com/song/media/outer/url?id=22636620.mp3"
+
+[[track]]
+id = "th12_08"
+album = "東方星蓮船 ～ Undefined Fantastic Object"
+title = "幽霊客船の時空を越えた旅"
+url = "https://music.163.com/song/media/outer/url?id=22636609.mp3"
+
+[[track]]
+id = "th12_13"
+album = "東方星蓮船 ～ Undefined Fantastic Object"
+title = "感情の摩天楼　～ Cosmic Mind"
+url = "https://music.163.com/song/media/outer/url?id=22636615.mp3"
+
+[[track]]
+id = "th12_02"
+album = "東方星蓮船 ～ Undefined Fantastic Object"
+title = "春の湊に"
+url = "https://music.163.com/song/media/outer/url?id=22636603.mp3"
+
+[[track]]
+id = "th12_07"
+album = "東方星蓮船 ～ Undefined Fantastic Object"
+title = "時代親父とハイカラ少女"
+url = "https://music.163.com/song/media/outer/url?id=22636617.mp3"
+
+[[track]]
+id = "th12_12"
+album = "東方星蓮船 ～ Undefined Fantastic Object"
+title = "法界の火"
+url = "https://music.163.com/song/media/outer/url?id=22636612.mp3"
+
+[[track]]
+id = "th12_17"
+album = "東方星蓮船 ～ Undefined Fantastic Object"
+title = "空の帰り道　～ Sky Dream"
+url = "https://music.163.com/song/media/outer/url?id=22636618.mp3"
+
+[[track]]
+id = "th12_11"
+album = "東方星蓮船 ～ Undefined Fantastic Object"
+title = "虎柄の毘沙門天"
+url = "https://music.163.com/song/media/outer/url?id=22636619.mp3"
+
+[[track]]
+id = "th12_04"
+album = "東方星蓮船 ～ Undefined Fantastic Object"
+title = "閉ざせし雲の通い路"
+url = "https://music.163.com/song/media/outer/url?id=22636606.mp3"
+
+[[track]]
+id = "th12_01"
+album = "東方星蓮船 ～ Undefined Fantastic Object"
+title = "青空の影"
+url = "https://music.163.com/song/media/outer/url?id=22636605.mp3"
+
+[[track]]
+id = "th12_10"
+album = "東方星蓮船 ～ Undefined Fantastic Object"
+title = "魔界地方都市エソテリア"
+url = "https://music.163.com/song/media/outer/url?id=22636607.mp3"
+
+[[track]]
+id = "th13_03"
+album = "東方神霊廟 ～ Ten Desires"
+title = "ゴーストリード"
+url = "https://music.163.com/song/media/outer/url?id=509005.mp3"
+
+[[track]]
+id = "th13_08"
+album = "東方神霊廟 ～ Ten Desires"
+title = "デザイアドライブ"
+url = "https://music.163.com/song/media/outer/url?id=509022.mp3"
+
+[[track]]
+id = "th13_17"
+album = "東方神霊廟 ～ Ten Desires"
+title = "デザイアドリーム"
+url = "https://music.163.com/song/media/outer/url?id=509059.mp3"
+
+[[track]]
+id = "th13_18"
+album = "東方神霊廟 ～ Ten Desires"
+title = "プレイヤーズスコア"
+url = "https://music.163.com/song/media/outer/url?id=29984368.mp3"
+
+[[track]]
+id = "th13_07"
+album = "東方神霊廟 ～ Ten Desires"
+title = "リジッドパラダイス"
+url = "https://music.163.com/song/media/outer/url?id=509019.mp3"
+
+[[track]]
+id = "th13_15"
+album = "東方神霊廟 ～ Ten Desires"
+title = "佐渡のニッ岩"
+url = "https://music.163.com/song/media/outer/url?id=509053.mp3"
+
+[[track]]
+id = "th13_09"
+album = "東方神霊廟 ～ Ten Desires"
+title = "古きユアンシェン"
+url = "https://music.163.com/song/media/outer/url?id=509030.mp3"
+
+[[track]]
+id = "th13_10"
+album = "東方神霊廟 ～ Ten Desires"
+title = "夢殿大祀廟"
+url = "https://music.163.com/song/media/outer/url?id=509034.mp3"
+
+[[track]]
+id = "th13_11"
+album = "東方神霊廟 ～ Ten Desires"
+title = "大神神話伝"
+url = "https://music.163.com/song/media/outer/url?id=509040.mp3"
+
+[[track]]
+id = "th13_04"
+album = "東方神霊廟 ～ Ten Desires"
+title = "妖怪寺へようこそ"
+url = "https://music.163.com/song/media/outer/url?id=509008.mp3"
+
+[[track]]
+id = "th13_14"
+album = "東方神霊廟 ～ Ten Desires"
+title = "妖怪裏参道"
+url = "https://music.163.com/song/media/outer/url?id=509050.mp3"
+
+[[track]]
+id = "th13_12"
+album = "東方神霊廟 ～ Ten Desires"
+title = "小さな欲望の星空"
+url = "https://music.163.com/song/media/outer/url?id=509044.mp3"
+
+[[track]]
+id = "th13_01"
+album = "東方神霊廟 ～ Ten Desires"
+title = "欲深き霊魂"
+url = "https://music.163.com/song/media/outer/url?id=508991.mp3"
+
+[[track]]
+id = "th13_02"
+album = "東方神霊廟 ～ Ten Desires"
+title = "死霊の夜桜"
+url = "https://music.163.com/song/media/outer/url?id=509002.mp3"
+
+[[track]]
+id = "th13_16"
+album = "東方神霊廟 ～ Ten Desires"
+title = "神社の新しい風"
+url = "https://music.163.com/song/media/outer/url?id=509056.mp3"
+
+[[track]]
+id = "th13_06"
+album = "東方神霊廟 ～ Ten Desires"
+title = "素敵な墓場で暮しましょ"
+url = "https://music.163.com/song/media/outer/url?id=509016.mp3"
+
+[[track]]
+id = "th13_13"
+album = "東方神霊廟 ～ Ten Desires"
+title = "聖徳伝説　～　True Administrator"
+url = "https://music.163.com/song/media/outer/url?id=509047.mp3"
+
+[[track]]
+id = "th13_05"
+album = "東方神霊廟 ～ Ten Desires"
+title = "門前の妖怪小娘"
+url = "https://music.163.com/song/media/outer/url?id=509011.mp3"
+
+[[track]]
+id = "th13l_03"
+album = "東方神霊廟 ～ Ten Desires Trance Disc"
+title = "ゴーストリード（霊界トランス）"
+url = "https://music.163.com/song/media/outer/url?id=509066.mp3"
+
+[[track]]
+id = "th13l_08"
+album = "東方神霊廟 ～ Ten Desires Trance Disc"
+title = "デザイアドライブ（霊界トランス）"
+url = "https://music.163.com/song/media/outer/url?id=509083.mp3"
+
+[[track]]
+id = "th13l_07"
+album = "東方神霊廟 ～ Ten Desires Trance Disc"
+title = "リジッドパラダイス（霊界トランス）"
+url = "https://music.163.com/song/media/outer/url?id=509080.mp3"
+
+[[track]]
+id = "th13l_15"
+album = "東方神霊廟 ～ Ten Desires Trance Disc"
+title = "佐渡のニッ岩（霊界トランス）"
+url = "https://music.163.com/song/media/outer/url?id=509105.mp3"
+
+[[track]]
+id = "th13l_09"
+album = "東方神霊廟 ～ Ten Desires Trance Disc"
+title = "古きユアンシェン（霊界トランス）"
+url = "https://music.163.com/song/media/outer/url?id=509087.mp3"
+
+[[track]]
+id = "th13l_10"
+album = "東方神霊廟 ～ Ten Desires Trance Disc"
+title = "夢殿大祀廟（霊界トランス）"
+url = "https://music.163.com/song/media/outer/url?id=509091.mp3"
+
+[[track]]
+id = "th13l_11"
+album = "東方神霊廟 ～ Ten Desires Trance Disc"
+title = "大神神話伝（霊界トランス）"
+url = "https://music.163.com/song/media/outer/url?id=509095.mp3"
+
+[[track]]
+id = "th13l_04"
+album = "東方神霊廟 ～ Ten Desires Trance Disc"
+title = "妖怪寺へようこそ（霊界トランス）"
+url = "https://music.163.com/song/media/outer/url?id=509070.mp3"
+
+[[track]]
+id = "th13l_14"
+album = "東方神霊廟 ～ Ten Desires Trance Disc"
+title = "妖怪裏参道（霊界トランス）"
+url = "https://music.163.com/song/media/outer/url?id=509102.mp3"
+
+[[track]]
+id = "th13l_12"
+album = "東方神霊廟 ～ Ten Desires Trance Disc"
+title = "小さな欲望の星空（霊界トランス）"
+url = "https://music.163.com/song/media/outer/url?id=509099.mp3"
+
+[[track]]
+id = "th13l_02"
+album = "東方神霊廟 ～ Ten Desires Trance Disc"
+title = "死霊の夜桜（霊界トランス）"
+url = "https://music.163.com/song/media/outer/url?id=509062.mp3"
+
+[[track]]
+id = "th13l_06"
+album = "東方神霊廟 ～ Ten Desires Trance Disc"
+title = "素敵な墓場で暮しましょ（霊界トランス）"
+url = "https://music.163.com/song/media/outer/url?id=509077.mp3"
+
+[[track]]
+id = "th13l_05"
+album = "東方神霊廟 ～ Ten Desires Trance Disc"
+title = "門前の妖怪小娘（霊界トランス）"
+url = "https://music.163.com/song/media/outer/url?id=509074.mp3"
+
+[[track]]
+id = "th14_18"
+album = "東方輝針城 ～ Double Dealing Character"
+title = "プレイヤーズスコア"
+url = "https://music.163.com/song/media/outer/url?id=1846025446.mp3"
+
+[[track]]
+id = "th14_08"
+album = "東方輝針城 ～ Double Dealing Character"
+title = "マジカルストーム"
+url = "https://music.163.com/song/media/outer/url?id=28219115.mp3"
+
+[[track]]
+id = "th14_02"
+album = "東方輝針城 ～ Double Dealing Character"
+title = "ミストレイク"
+url = "https://music.163.com/song/media/outer/url?id=28219109.mp3"
+
+[[track]]
+id = "th14_11"
+album = "東方輝針城 ～ Double Dealing Character"
+title = "リバースイデオロギー"
+url = "https://music.163.com/song/media/outer/url?id=28219118.mp3"
+
+[[track]]
+id = "th14_01"
+album = "東方輝針城 ～ Double Dealing Character"
+title = "不思議なお祓い棒"
+url = "https://music.163.com/song/media/outer/url?id=28219108.mp3"
+
+[[track]]
+id = "th14_17"
+album = "東方輝針城 ～ Double Dealing Character"
+title = "不思議な不思議な道具達"
+url = "https://music.163.com/song/media/outer/url?id=28219124.mp3"
+
+[[track]]
+id = "th14_15"
+album = "東方輝針城 ～ Double Dealing Character"
+title = "始原のビート　～ Pristine Beat"
+url = "https://music.163.com/song/media/outer/url?id=28219122.mp3"
+
+[[track]]
+id = "th14_07"
+album = "東方輝針城 ～ Double Dealing Character"
+title = "孤独なウェアウルフ"
+url = "https://music.163.com/song/media/outer/url?id=28219114.mp3"
+
+[[track]]
+id = "th14_16"
+album = "東方輝針城 ～ Double Dealing Character"
+title = "小槌の魔力"
+url = "https://music.163.com/song/media/outer/url?id=28219123.mp3"
+
+[[track]]
+id = "th14_09"
+album = "東方輝針城 ～ Double Dealing Character"
+title = "幻想浄瑠璃"
+url = "https://music.163.com/song/media/outer/url?id=28219116.mp3"
+
+[[track]]
+id = "th14_05"
+album = "東方輝針城 ～ Double Dealing Character"
+title = "柳の下のデュラハン"
+url = "https://music.163.com/song/media/outer/url?id=28219112.mp3"
+
+[[track]]
+id = "th14_06"
+album = "東方輝針城 ～ Double Dealing Character"
+title = "満月の竹林"
+url = "https://music.163.com/song/media/outer/url?id=28219113.mp3"
+
+[[track]]
+id = "th14_03"
+album = "東方輝針城 ～ Double Dealing Character"
+title = "秘境のマーメイド"
+url = "https://music.163.com/song/media/outer/url?id=28219110.mp3"
+
+[[track]]
+id = "th14_10"
+album = "東方輝針城 ～ Double Dealing Character"
+title = "空中に沈む輝針城"
+url = "https://music.163.com/song/media/outer/url?id=28219117.mp3"
+
+[[track]]
+id = "th14_13"
+album = "東方輝針城 ～ Double Dealing Character"
+title = "輝く針の小人族　～ Little Princess"
+url = "https://music.163.com/song/media/outer/url?id=28219120.mp3"
+
+[[track]]
+id = "th14_04"
+album = "東方輝針城 ～ Double Dealing Character"
+title = "運河を行き交う人妖"
+url = "https://music.163.com/song/media/outer/url?id=28219111.mp3"
+
+[[track]]
+id = "th14_12"
+album = "東方輝針城 ～ Double Dealing Character"
+title = "針小棒大の天守閣"
+url = "https://music.163.com/song/media/outer/url?id=28219119.mp3"
+
+[[track]]
+id = "th14_14"
+album = "東方輝針城 ～ Double Dealing Character"
+title = "魔力の雷雲"
+url = "https://music.163.com/song/media/outer/url?id=28219121.mp3"
+
+[[track]]
+id = "th15_17"
+album = "東方紺珠伝 ～ Legacy of Lunatic Kingdom"
+title = "パンデモニックプラネット"
+url = "https://music.163.com/song/media/outer/url?id=34003794.mp3"
+
+[[track]]
+id = "th15_13"
+album = "東方紺珠伝 ～ Legacy of Lunatic Kingdom"
+title = "ピュアヒューリーズ　～ 心の在処"
+url = "https://music.163.com/song/media/outer/url?id=34003791.mp3"
+
+[[track]]
+id = "th15_18"
+album = "東方紺珠伝 ～ Legacy of Lunatic Kingdom"
+title = "プレイヤーズスコア"
+url = "https://music.163.com/song/media/outer/url?id=34003798.mp3"
+
+[[track]]
+id = "th15_05"
+album = "東方紺珠伝 ～ Legacy of Lunatic Kingdom"
+title = "九月のパンプキン"
+url = "https://music.163.com/song/media/outer/url?id=33991807.mp3"
+
+[[track]]
+id = "th15_04"
+album = "東方紺珠伝 ～ Legacy of Lunatic Kingdom"
+title = "兎は舞い降りた"
+url = "https://music.163.com/song/media/outer/url?id=33991784.mp3"
+
+[[track]]
+id = "th15_08"
+album = "東方紺珠伝 ～ Legacy of Lunatic Kingdom"
+title = "凍り付いた永遠の都"
+url = "https://music.163.com/song/media/outer/url?id=33991811.mp3"
+
+[[track]]
+id = "th15_06"
+album = "東方紺珠伝 ～ Legacy of Lunatic Kingdom"
+title = "宇宙を飛ぶ不思議な巫女"
+url = "https://music.163.com/song/media/outer/url?id=33991809.mp3"
+
+[[track]]
+id = "th15_15"
+album = "東方紺珠伝 ～ Legacy of Lunatic Kingdom"
+title = "宇宙巫女帰還する"
+url = "https://music.163.com/song/media/outer/url?id=34003796.mp3"
+
+[[track]]
+id = "th15_01"
+album = "東方紺珠伝 ～ Legacy of Lunatic Kingdom"
+title = "宇宙巫女現る"
+url = "https://music.163.com/song/media/outer/url?id=33991740.mp3"
+
+[[track]]
+id = "th15_02"
+album = "東方紺珠伝 ～ Legacy of Lunatic Kingdom"
+title = "忘れがたき、よすがの緑"
+url = "https://music.163.com/song/media/outer/url?id=33991780.mp3"
+
+[[track]]
+id = "th15_12"
+album = "東方紺珠伝 ～ Legacy of Lunatic Kingdom"
+title = "故郷の星が映る海"
+url = "https://music.163.com/song/media/outer/url?id=34003790.mp3"
+
+[[track]]
+id = "th15_11"
+album = "東方紺珠伝 ～ Legacy of Lunatic Kingdom"
+title = "星条旗のピエロ"
+url = "https://music.163.com/song/media/outer/url?id=34003789.mp3"
+
+[[track]]
+id = "th15_07"
+album = "東方紺珠伝 ～ Legacy of Lunatic Kingdom"
+title = "永遠の春夢"
+url = "https://music.163.com/song/media/outer/url?id=33991810.mp3"
+
+[[track]]
+id = "th15_03"
+album = "東方紺珠伝 ～ Legacy of Lunatic Kingdom"
+title = "湖は浄めの月光を映して"
+url = "https://music.163.com/song/media/outer/url?id=33991806.mp3"
+
+[[track]]
+id = "th15_14"
+album = "東方紺珠伝 ～ Legacy of Lunatic Kingdom"
+title = "神社から見える月"
+url = "https://music.163.com/song/media/outer/url?id=34003795.mp3"
+
+[[track]]
+id = "th15_16"
+album = "東方紺珠伝 ～ Legacy of Lunatic Kingdom"
+title = "見た事も無い悪夢の世界"
+url = "https://music.163.com/song/media/outer/url?id=34003792.mp3"
+
+[[track]]
+id = "th15_09"
+album = "東方紺珠伝 ～ Legacy of Lunatic Kingdom"
+title = "逆転するホイールオブフォーチュン"
+url = "https://music.163.com/song/media/outer/url?id=33991812.mp3"
+
+[[track]]
+id = "th15_10"
+album = "東方紺珠伝 ～ Legacy of Lunatic Kingdom"
+title = "遥か３８万キロのボヤージュ"
+url = "https://music.163.com/song/media/outer/url?id=34003788.mp3"
+
+[[track]]
+id = "th16_14"
+album = "東方天空璋 ～ Hidden Star in Four Seasons"
+title = "もうドアには入れない"
+url = "https://music.163.com/song/media/outer/url?id=497463995.mp3"
+
+[[track]]
+id = "th16_12"
+album = "東方天空璋 ～ Hidden Star in Four Seasons"
+title = "イントゥ・バックドア"
+url = "https://music.163.com/song/media/outer/url?id=497463993.mp3"
+
+[[track]]
+id = "th16_11"
+album = "東方天空璋 ～ Hidden Star in Four Seasons"
+title = "クレイジーバックダンサーズ"
+url = "https://music.163.com/song/media/outer/url?id=497463992.mp3"
+
+[[track]]
+id = "th16_18"
+album = "東方天空璋 ～ Hidden Star in Four Seasons"
+title = "プレイヤーズスコア"
+url = "https://music.163.com/song/media/outer/url?id=497463999.mp3"
+
+[[track]]
+id = "th16_07"
+album = "東方天空璋 ～ Hidden Star in Four Seasons"
+title = "一対の神獣"
+url = "https://music.163.com/song/media/outer/url?id=477215250.mp3"
+
+[[track]]
+id = "th16_16"
+album = "東方天空璋 ～ Hidden Star in Four Seasons"
+title = "不自然な自然"
+url = "https://music.163.com/song/media/outer/url?id=497463997.mp3"
+
+[[track]]
+id = "th16_05"
+album = "東方天空璋 ～ Hidden Star in Four Seasons"
+title = "山奥のエンカウンター"
+url = "https://music.163.com/song/media/outer/url?id=477215248.mp3"
+
+[[track]]
+id = "th16_02"
+album = "東方天空璋 ～ Hidden Star in Four Seasons"
+title = "希望の星は青霄に昇る"
+url = "https://music.163.com/song/media/outer/url?id=477215245.mp3"
+
+[[track]]
+id = "th16_08"
+album = "東方天空璋 ～ Hidden Star in Four Seasons"
+title = "幻想のホワイトトラベラー"
+url = "https://music.163.com/song/media/outer/url?id=497463989.mp3"
+
+[[track]]
+id = "th16_01"
+album = "東方天空璋 ～ Hidden Star in Four Seasons"
+title = "桜舞い散る天空"
+url = "https://music.163.com/song/media/outer/url?id=477215244.mp3"
+
+[[track]]
+id = "th16_06"
+album = "東方天空璋 ～ Hidden Star in Four Seasons"
+title = "桜色の海を泳いで"
+url = "https://music.163.com/song/media/outer/url?id=477215249.mp3"
+
+[[track]]
+id = "th16_17"
+album = "東方天空璋 ～ Hidden Star in Four Seasons"
+title = "白い旅人"
+url = "https://music.163.com/song/media/outer/url?id=497463998.mp3"
+
+[[track]]
+id = "th16_03"
+album = "東方天空璋 ～ Hidden Star in Four Seasons"
+title = "真夏の妖精の夢"
+url = "https://music.163.com/song/media/outer/url?id=477215246.mp3"
+
+[[track]]
+id = "th16_10"
+album = "東方天空璋 ～ Hidden Star in Four Seasons"
+title = "禁断の扉の向こうは、この世かあの世か"
+url = "https://music.163.com/song/media/outer/url?id=497463991.mp3"
+
+[[track]]
+id = "th16_13"
+album = "東方天空璋 ～ Hidden Star in Four Seasons"
+title = "秘匿されたフォーシーズンズ"
+url = "https://music.163.com/song/media/outer/url?id=497463994.mp3"
+
+[[track]]
+id = "th16_15"
+album = "東方天空璋 ～ Hidden Star in Four Seasons"
+title = "秘神マターラ　～ Hidden Star in All Seasons."
+url = "https://music.163.com/song/media/outer/url?id=497463996.mp3"
+
+[[track]]
+id = "th16_04"
+album = "東方天空璋 ～ Hidden Star in Four Seasons"
+title = "色無き風は妖怪の山に"
+url = "https://music.163.com/song/media/outer/url?id=477215247.mp3"
+
+[[track]]
+id = "th16_09"
+album = "東方天空璋 ～ Hidden Star in Four Seasons"
+title = "魔法の笠地蔵"
+url = "https://music.163.com/song/media/outer/url?id=497463990.mp3"
+
+[[track]]
+id = "th17_08"
+album = "東方鬼形獣 ～ Wily Beast and Weakest Creature"
+title = "アンロケイテッドヘル"
+url = "https://music.163.com/song/media/outer/url?id=1384324160.mp3"
+
+[[track]]
+id = "th17_12"
+album = "東方鬼形獣 ～ Wily Beast and Weakest Creature"
+title = "エレクトリックヘリテージ"
+url = "https://music.163.com/song/media/outer/url?id=1384324157.mp3"
+
+[[track]]
+id = "th17_03"
+album = "東方鬼形獣 ～ Wily Beast and Weakest Creature"
+title = "ジェリーストーン"
+url = "https://music.163.com/song/media/outer/url?id=1381562764.mp3"
+
+[[track]]
+id = "th17_07"
+album = "東方鬼形獣 ～ Wily Beast and Weakest Creature"
+title = "セラフィックチキン"
+url = "https://music.163.com/song/media/outer/url?id=1381562765.mp3"
+
+[[track]]
+id = "th17_11"
+album = "東方鬼形獣 ～ Wily Beast and Weakest Creature"
+title = "セラミックスの杖刀人"
+url = "https://music.163.com/song/media/outer/url?id=1384324156.mp3"
+
+[[track]]
+id = "th17_09"
+album = "東方鬼形獣 ～ Wily Beast and Weakest Creature"
+title = "トータスドラゴン　～ 幸運と不運"
+url = "https://music.163.com/song/media/outer/url?id=1384324154.mp3"
+
+[[track]]
+id = "th17_10"
+album = "東方鬼形獣 ～ Wily Beast and Weakest Creature"
+title = "ビーストメトロポリス"
+url = "https://music.163.com/song/media/outer/url?id=1384324155.mp3"
+
+[[track]]
+id = "th17_18"
+album = "東方鬼形獣 ～ Wily Beast and Weakest Creature"
+title = "プレイヤーズスコア"
+url = "https://music.163.com/song/media/outer/url?id=1384324232.mp3"
+
+[[track]]
+id = "th17_04"
+album = "東方鬼形獣 ～ Wily Beast and Weakest Creature"
+title = "ロストリバー"
+url = "https://music.163.com/song/media/outer/url?id=1381562763.mp3"
+
+[[track]]
+id = "th17_06"
+album = "東方鬼形獣 ～ Wily Beast and Weakest Creature"
+title = "不朽の曼珠沙華"
+url = "https://music.163.com/song/media/outer/url?id=1381564338.mp3"
+
+[[track]]
+id = "th17_13"
+album = "東方鬼形獣 ～ Wily Beast and Weakest Creature"
+title = "偶像に世界を委ねて　～ Idoratrize World"
+url = "https://music.163.com/song/media/outer/url?id=1384318412.mp3"
+
+[[track]]
+id = "th17_17"
+album = "東方鬼形獣 ～ Wily Beast and Weakest Creature"
+title = "地下からの帰還"
+url = "https://music.163.com/song/media/outer/url?id=1384324241.mp3"
+
+[[track]]
+id = "th17_02"
+album = "東方鬼形獣 ～ Wily Beast and Weakest Creature"
+title = "地蔵だけが知る哀嘆"
+url = "https://music.163.com/song/media/outer/url?id=1381562762.mp3"
+
+[[track]]
+id = "th17_01"
+album = "東方鬼形獣 ～ Wily Beast and Weakest Creature"
+title = "物言わぬ獣の霊"
+url = "https://music.163.com/song/media/outer/url?id=1381562766.mp3"
+
+[[track]]
+id = "th17_16"
+album = "東方鬼形獣 ～ Wily Beast and Weakest Creature"
+title = "畜生達の休息"
+url = "https://music.163.com/song/media/outer/url?id=1384324231.mp3"
+
+[[track]]
+id = "th17_05"
+album = "東方鬼形獣 ～ Wily Beast and Weakest Creature"
+title = "石の赤子と水中の牛"
+url = "https://music.163.com/song/media/outer/url?id=1381564337.mp3"
+
+[[track]]
+id = "th17_15"
+album = "東方鬼形獣 ～ Wily Beast and Weakest Creature"
+title = "聖徳太子のペガサス　～ Dark Pegasus"
+url = "https://music.163.com/song/media/outer/url?id=1384324244.mp3"
+
+[[track]]
+id = "th17_14"
+album = "東方鬼形獣 ～ Wily Beast and Weakest Creature"
+title = "輝かしき弱肉強食の掟"
+url = "https://music.163.com/song/media/outer/url?id=1384324243.mp3"
+
+[[track]]
+id = "th18_13"
+album = "東方虹龍洞 ～ Unconnected Marketeers"
+title = "あの賑やかな市場は今どこに　～ Immemorial Marketeers"
+url = "https://music.163.com/song/media/outer/url?id=1843965688.mp3"
+
+[[track]]
+id = "th18_07"
+album = "東方虹龍洞 ～ Unconnected Marketeers"
+title = "スモーキングドラゴン"
+url = "https://music.163.com/song/media/outer/url?id=1834325746.mp3"
+
+[[track]]
+id = "th18_05"
+album = "東方虹龍洞 ～ Unconnected Marketeers"
+title = "バンデットリィテクノロジー"
+url = "https://music.163.com/song/media/outer/url?id=1834325745.mp3"
+
+[[track]]
+id = "th18_18"
+album = "東方虹龍洞 ～ Unconnected Marketeers"
+title = "プレイヤーズスコア"
+url = "https://music.163.com/song/media/outer/url?id=1846026251.mp3"
+
+[[track]]
+id = "th18_12"
+album = "東方虹龍洞 ～ Unconnected Marketeers"
+title = "ルナレインボー"
+url = "https://music.163.com/song/media/outer/url?id=1843965687.mp3"
+
+[[track]]
+id = "th18_03"
+album = "東方虹龍洞 ～ Unconnected Marketeers"
+title = "大吉キトゥン"
+url = "https://music.163.com/song/media/outer/url?id=1834325747.mp3"
+
+[[track]]
+id = "th18_02"
+album = "東方虹龍洞 ～ Unconnected Marketeers"
+title = "妖異達の通り雨"
+url = "https://music.163.com/song/media/outer/url?id=1834324215.mp3"
+
+[[track]]
+id = "th18_16"
+album = "東方虹龍洞 ～ Unconnected Marketeers"
+title = "嵐の後の日曜日"
+url = "https://music.163.com/song/media/outer/url?id=1843965691.mp3"
+
+[[track]]
+id = "th18_14"
+album = "東方虹龍洞 ～ Unconnected Marketeers"
+title = "幻想の地下大線路網"
+url = "https://music.163.com/song/media/outer/url?id=1843965689.mp3"
+
+[[track]]
+id = "th18_08"
+album = "東方虹龍洞 ～ Unconnected Marketeers"
+title = "廃れゆく産業遺構"
+url = "https://music.163.com/song/media/outer/url?id=1843961276.mp3"
+
+[[track]]
+id = "th18_10"
+album = "東方虹龍洞 ～ Unconnected Marketeers"
+title = "待ちわびた逢魔が時"
+url = "https://music.163.com/song/media/outer/url?id=1843965685.mp3"
+
+[[track]]
+id = "th18_11"
+album = "東方虹龍洞 ～ Unconnected Marketeers"
+title = "星降る天魔の山"
+url = "https://music.163.com/song/media/outer/url?id=1843965686.mp3"
+
+[[track]]
+id = "th18_04"
+album = "東方虹龍洞 ～ Unconnected Marketeers"
+title = "深緑に隠された断崖"
+url = "https://music.163.com/song/media/outer/url?id=1834324213.mp3"
+
+[[track]]
+id = "th18_09"
+album = "東方虹龍洞 ～ Unconnected Marketeers"
+title = "神代鉱石"
+url = "https://music.163.com/song/media/outer/url?id=1843965684.mp3"
+
+[[track]]
+id = "th18_01"
+album = "東方虹龍洞 ～ Unconnected Marketeers"
+title = "虹の架かる幻想郷"
+url = "https://music.163.com/song/media/outer/url?id=1834325744.mp3"
+
+[[track]]
+id = "th18_17"
+album = "東方虹龍洞 ～ Unconnected Marketeers"
+title = "虹色の世界"
+url = "https://music.163.com/song/media/outer/url?id=1843965692.mp3"
+
+[[track]]
+id = "th18_06"
+album = "東方虹龍洞 ～ Unconnected Marketeers"
+title = "駒草咲くパーペチュアルスノー"
+url = "https://music.163.com/song/media/outer/url?id=1834324214.mp3"
+
+[[track]]
+id = "th18_15"
+album = "東方虹龍洞 ～ Unconnected Marketeers"
+title = "龍王殺しのプリンセス"
+url = "https://music.163.com/song/media/outer/url?id=1843965690.mp3"
+
+[[track]]
+id = "th19_05"
+album = "東方獣王園 ～ Unfinished Dream of All Living Ghost"
+title = "タイニーシャングリラ"
+url = "https://music.163.com/song/media/outer/url?id=2075565713.mp3"
+
+[[track]]
+id = "th19_18"
+album = "東方獣王園 ～ Unfinished Dream of All Living Ghost"
+title = "トータスドラゴン　～ 幸運と不運"
+url = "https://music.163.com/song/media/outer/url?id=2075565172.mp3"
+
+[[track]]
+id = "th19_12"
+album = "東方獣王園 ～ Unfinished Dream of All Living Ghost"
+title = "一対の神獣"
+url = "https://music.163.com/song/media/outer/url?id=2075565716.mp3"
+
+[[track]]
+id = "th19_02"
+album = "東方獣王園 ～ Unfinished Dream of All Living Ghost"
+title = "世界は可愛く出来ている"
+url = "https://music.163.com/song/media/outer/url?id=2075565711.mp3"
+
+[[track]]
+id = "th19_17"
+album = "東方獣王園 ～ Unfinished Dream of All Living Ghost"
+title = "佐渡の二ッ岩"
+url = "https://music.163.com/song/media/outer/url?id=2075565719.mp3"
+
+[[track]]
+id = "th19_10"
+album = "東方獣王園 ～ Unfinished Dream of All Living Ghost"
+title = "信仰は儚き人間の為に"
+url = "https://music.163.com/song/media/outer/url?id=2075565168.mp3"
+
+[[track]]
+id = "th19_06"
+album = "東方獣王園 ～ Unfinished Dream of All Living Ghost"
+title = "勇敢で有閑な妖獣"
+url = "https://music.163.com/song/media/outer/url?id=2075565714.mp3"
+
+[[track]]
+id = "th19_07"
+album = "東方獣王園 ～ Unfinished Dream of All Living Ghost"
+title = "吸血怪獣チュパカブラ"
+url = "https://music.163.com/song/media/outer/url?id=2075565715.mp3"
+
+[[track]]
+id = "th19_11"
+album = "東方獣王園 ～ Unfinished Dream of All Living Ghost"
+title = "妖々跋扈　～ Who done it!"
+url = "https://music.163.com/song/media/outer/url?id=2075565169.mp3"
+
+[[track]]
+id = "th19_20"
+album = "東方獣王園 ～ Unfinished Dream of All Living Ghost"
+title = "強欲な獣のメメント"
+url = "https://music.163.com/song/media/outer/url?id=2075565720.mp3"
+
+[[track]]
+id = "th19_16"
+album = "東方獣王園 ～ Unfinished Dream of All Living Ghost"
+title = "待ちわびた逢魔が時"
+url = "https://music.163.com/song/media/outer/url?id=2075565171.mp3"
+
+[[track]]
+id = "th19_14"
+album = "東方獣王園 ～ Unfinished Dream of All Living Ghost"
+title = "忘れがたき、よすがの緑"
+url = "https://music.163.com/song/media/outer/url?id=2075565170.mp3"
+
+[[track]]
+id = "th19_08"
+album = "東方獣王園 ～ Unfinished Dream of All Living Ghost"
+title = "振り向かない黄泉の道"
+url = "https://music.163.com/song/media/outer/url?id=2075565166.mp3"
+
+[[track]]
+id = "th19_13"
+album = "東方獣王園 ～ Unfinished Dream of All Living Ghost"
+title = "春の湊に"
+url = "https://music.163.com/song/media/outer/url?id=2075565717.mp3"
+
+[[track]]
+id = "th19_23"
+album = "東方獣王園 ～ Unfinished Dream of All Living Ghost"
+title = "曲名不明1"
+url = "https://music.163.com/song/media/outer/url?id=2078345310.mp3"
+
+[[track]]
+id = "th19_24"
+album = "東方獣王園 ～ Unfinished Dream of All Living Ghost"
+title = "曲名不明2"
+url = "https://music.163.com/song/media/outer/url?id=2078344369.mp3"
+
+[[track]]
+id = "th19_15"
+album = "東方獣王園 ～ Unfinished Dream of All Living Ghost"
+title = "死体旅行　～ Be of good cheer!"
+url = "https://music.163.com/song/media/outer/url?id=2075565718.mp3"
+
+[[track]]
+id = "th19_22"
+album = "東方獣王園 ～ Unfinished Dream of All Living Ghost"
+title = "獣に知性はあるか"
+url = "https://music.163.com/song/media/outer/url?id=2075565174.mp3"
+
+[[track]]
+id = "th19_01"
+album = "東方獣王園 ～ Unfinished Dream of All Living Ghost"
+title = "獣の知性"
+url = "https://upload.thwiki.cc/a/ae/th19_01.mp3"
+
+[[track]]
+id = "th19_21"
+album = "東方獣王園 ～ Unfinished Dream of All Living Ghost"
+title = "獣王達の休息"
+url = "https://music.163.com/song/media/outer/url?id=2075565721.mp3"
+
+[[track]]
+id = "th19_19"
+album = "東方獣王園 ～ Unfinished Dream of All Living Ghost"
+title = "聖徳太子のペガサス　～ Dark Pegasus"
+url = "https://music.163.com/song/media/outer/url?id=2075565173.mp3"
+
+[[track]]
+id = "th19_09"
+album = "東方獣王園 ～ Unfinished Dream of All Living Ghost"
+title = "逸脱者達の無礙光　～ Kingdam of Nothingness."
+url = "https://music.163.com/song/media/outer/url?id=2075565167.mp3"
+
+[[track]]
+id = "th19_04"
+album = "東方獣王園 ～ Unfinished Dream of All Living Ghost"
+title = "鬼は悠久の山に"
+url = "https://music.163.com/song/media/outer/url?id=2075565712.mp3"
+
+[[track]]
+id = "th19_03"
+album = "東方獣王園 ～ Unfinished Dream of All Living Ghost"
+title = "魔獣スクランブル"
+url = "https://music.163.com/song/media/outer/url?id=2075565165.mp3"
+
+[[track]]
+id = "th20_07"
+album = "東方錦上京 ～ Fossilized Wonders"
+title = "どうせなら命を賭けて謎を解け"
+url = "https://music.163.com/song/media/outer/url?id=2703923217.mp3"
+
+[[track]]
+id = "th20_04"
+album = "東方錦上京 ～ Fossilized Wonders"
+title = "セイクリッドフォレスト"
+url = "https://music.163.com/song/media/outer/url?id=2703923215.mp3"
+
+[[track]]
+id = "th20_13"
+album = "東方錦上京 ～ Fossilized Wonders"
+title = "ピラミッドの神域"
+url = "https://music.163.com/song/media/outer/url?id=2737497810.mp3"
+
+[[track]]
+id = "th20_17"
+album = "東方錦上京 ～ Fossilized Wonders"
+title = "ファンタスティックドリフト"
+url = "https://music.163.com/song/media/outer/url?id=2737497811.mp3"
+
+[[track]]
+id = "th20_08"
+album = "東方錦上京 ～ Fossilized Wonders"
+title = "フォーカラーラビリンス"
+url = "https://music.163.com/song/media/outer/url?id=2737494978.mp3"
+
+[[track]]
+id = "th20_06"
+album = "東方錦上京 ～ Fossilized Wonders"
+title = "プレステ・ジョアンの黄金境"
+url = "https://music.163.com/song/media/outer/url?id=2703923216.mp3"
+
+[[track]]
+id = "th20_18"
+album = "東方錦上京 ～ Fossilized Wonders"
+title = "二枚貝の上のハルシネーション"
+url = "https://music.163.com/song/media/outer/url?id=2737497812.mp3"
+
+[[track]]
+id = "th20_03"
+album = "東方錦上京 ～ Fossilized Wonders"
+title = "例え世界から忘れられても"
+url = "https://music.163.com/song/media/outer/url?id=2703923214.mp3"
+
+[[track]]
+id = "th20_02"
+album = "東方錦上京 ～ Fossilized Wonders"
+title = "愛おしき塵の住処"
+url = "https://music.163.com/song/media/outer/url?id=2703922308.mp3"
+
+[[track]]
+id = "th20_12"
+album = "東方錦上京 ～ Fossilized Wonders"
+title = "最後の一人は慣れてるから　〜 Stone Goddess"
+url = "https://music.163.com/song/media/outer/url?id=2737494980.mp3"
+
+[[track]]
+id = "th20_05"
+album = "東方錦上京 ～ Fossilized Wonders"
+title = "森にはお化けがいるよ"
+url = "https://music.163.com/song/media/outer/url?id=2703922309.mp3"
+
+[[track]]
+id = "th20_11"
+album = "東方錦上京 ～ Fossilized Wonders"
+title = "綿月のスペルカード　〜 神海戦"
+url = "https://music.163.com/song/media/outer/url?id=2737497809.mp3"
+
+[[track]]
+id = "th20_10"
+album = "東方錦上京 ～ Fossilized Wonders"
+title = "記憶の深海に沈む少女"
+url = "https://music.163.com/song/media/outer/url?id=2737494979.mp3"
+
+[[track]]
+id = "th20_09"
+album = "東方錦上京 ～ Fossilized Wonders"
+title = "鹿狩りのレミニセンス"
+url = "https://music.163.com/song/media/outer/url?id=2737497808.mp3"
+
+[[track]]
+id = "EaLND_01"
+album = "東方三月精 ～ Eastern and Little Nature Deity"
+title = "サニールチルフレクション"
+url = "https://music.163.com/song/media/outer/url?id=29710940.mp3"
+
+[[track]]
+id = "EaLND_02"
+album = "東方三月精 ～ Eastern and Little Nature Deity"
+title = "夜だから眠れない"
+url = "https://music.163.com/song/media/outer/url?id=29710941.mp3"
+
+[[track]]
+id = "EaLND_03"
+album = "東方三月精 ～ Eastern and Little Nature Deity"
+title = "妖精燦々として"
+url = "https://music.163.com/song/media/outer/url?id=29710942.mp3"
+

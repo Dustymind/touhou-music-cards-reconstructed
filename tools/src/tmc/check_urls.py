@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import argparse
 import collections
-import json
 import random
 import urllib.error
 import urllib.parse
@@ -29,7 +28,7 @@ from . import repo
 
 UA = ("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) "
       "Chrome/126.0.0.0 Safari/537.36")
-#: 镜像清单从注册表派生（review R7④）：加一个镜像只改 data/sources/originals.toml
+#: 镜像清单从「一源一文件」的头部派生（S1c，继承 review R7④）：加一个镜像只加一个 data/sources/<id>.toml
 SOURCES = build.mirror_source_ids()
 CHUNK = 4096
 
@@ -83,7 +82,7 @@ def main(argv: list[str] | None = None) -> int:
     failures: list[tuple[str, str, str, str]] = []
     summary: dict[str, collections.Counter] = {}
     for source_id in (args.source or list(SOURCES)):
-        entries = json.loads((repo.DATA / "sources" / f"{source_id}.json").read_text(encoding="utf-8"))
+        entries = build.load_mirror_tracks(source_id)
         sample = entries if args.all else rng.sample(entries, min(args.per_source, len(entries)))
         counter: collections.Counter = collections.Counter()
         for album, title, url in sample:

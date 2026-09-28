@@ -1,7 +1,7 @@
 数据目录（真相源）。`public/data/*.json` 是它的**生成物**：由 `tmc.build` 生成，`pnpm data:check` 守漂移
 （生成物进仓库 ⇒ 只跑前端不需要 Python）。
 
-- `characters/` 一角色一 TOML（**121** 个；`music` 条目的第三项 `附加信息` 由 THBWiki 标签判定）
+- `characters/` 一角色一 TOML（**121** 个；`[[track]]` 带 `id` / `album_key` / `title` / `extra` / `sources`，`extra` 的取值由 THBWiki 标签判定）
 - `originals.toml` 专辑注册表（显示名 / 类别 / pack / 顺序 / 是否秘封；**39** 张）
 - `card-sets.toml` 卡面图集登记（**8 套**：6 套上游走远程 origin、1 套音MAD 为 `local_only`（素材自己放进
   `public/cards-otomads/`）、1 套 `source_only` 的 B 站封面集（素材 = 源快照里的 `covers`，只在音MAD 模式列出，
@@ -21,8 +21,9 @@
   commit 的名字）：换数据 = `git -C data/otomads fetch` → `checkout <commit>` → `pnpm data:build`。另有角色清单 `otomads/characters.toml`
   （`pnpm data:roster` 生成）、本源响度表 `otomads/loudness/otomads.json` 与自带工具 `otomads/tools/`（D130）。
   submodule 未初始化时它整个不存在，构建会跳过音MAD 数据集
-- `sources/*.json` 音乐源表，数组形式 `[[专辑, 曲目, URL], …]`（两份镜像：netease163 / thbwiki）
-- `sources/originals.toml` **原曲**的源注册表（三个远程镜像）；音MAD 那份在 submodule 里
+- `sources/netease163.toml` / `sources/thbwiki.toml` **原曲**的两个镜像源（**每源一个自包含文件**：
+  头部 = 注册信息，`[[track]]` = `id / album / title / url` 各 651 条；构建把它重排成
+  `public/data/sources/*.json` 的 `[[专辑, 曲目, URL], …]`）；音MAD 那份在 submodule 里
   （`otomads/sources/otomads.toml` = 本地曲库助手，其同源路径 `/manifest.json`）
 - `sources/custom.toml` **自定义模式**的源注册表：只有一条 `kind = "custom"` 的源，**`table_url` 是空串**
   （合法形态，见 `tmc.build.source_table_url_problem`）—— 地址由使用者在应用里填。
