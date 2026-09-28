@@ -8,7 +8,7 @@
 
 | 路径 | 体积 | 为什么 |
 |---|---:|---|
-| `.music/` | 780 MB | 你自己的音频曲库（音MAD 的本地源）。**gitignore，只能拷** |
+| `.music/` | 780 MB | 音MAD 的本地源（gitignore）。**按"只能拷"处理** —— 虽然原理上可重抓，但依赖第三方投稿仍在线上，见 §1.4 |
 | `local-source.toml` | 4 KB | 本机助手配置（gitignore）。内容 20 行，也可照 `data/otomads/local-source.toml.example` 重建 |
 | `.ref/` | 359 MB | 上游只读副本 + THBWiki 快照。`tmc.fetch_roles` / `tmc.stages` 读 `.ref/thbwiki/`，缺了要重抓（要联网） |
 | `touhou-music-cards-otomads-data/` | 2.1 GB | 数据仓库的独立克隆（改数据、打 tag 用）。**可重新 clone**，但省事就拷 |
@@ -47,7 +47,10 @@
 `otomads/` 下抓取与裁剪的成品（191 个 mp3 + 8 个 1 MB 的 REAPER `peaks/` 缓存）。
 
 它**在原理上完全可重建**：191 条曲目**每条都带 `source`**（36 条另带 `start_time`），
-`pnpm audio:fetch` 能重新下载并按区间重裁；数据仓库里还有**第二份拷贝**（898 MB）。
+在主仓库根跑 `pnpm audio:fetch` 就能重新下载并按区间重裁 —— 这条命令用的
+`--config local-source.toml` 里 `library.root = ".music"` 是**相对配置文件所在目录**解析的，
+所以在主仓库根跑写的就是主仓库这份（在数据仓库里跑则写数据仓库那份，两份互相独立）。
+数据仓库里还有**第二份拷贝**（898 MB，同样 191 个 mp3）。
 
 但不删的理由是**重建依赖第三方**：源是 bilibili / YouTube 上的音MAD 投稿，被删除或设为私有的概率
 不低，而且失效时**不会有任何提示**——重抓才发现少了。相比之下它只占 780 MB，
