@@ -3,7 +3,7 @@
 用法::
 
     uv run python -m tmc.validate          # 校验，失败返回 1
-    uv run python -m tmc.validate --report # 额外写出 reports/validation-report.md
+    uv run python -m tmc.validate --report # 额外写出 docs/reports/validation-report.md
 """
 from __future__ import annotations
 
@@ -494,9 +494,9 @@ def check_title_uniqueness(chars: list[dict], p: Problems) -> dict[str, object]:
 
 
 def check_pending(chars: list[dict], p: Problems):
-    path = repo.ROOT / "reports" / "extra-pending.tsv"
+    path = repo.REPORTS / "extra-pending.tsv"
     if not path.exists():
-        p.error("缺少 reports/extra-pending.tsv")
+        p.error("缺少 docs/reports/extra-pending.tsv")
         return 0
     rows = [line.split("\t") for line in path.read_text(encoding="utf-8").splitlines()[1:] if line]
     by_key = {c["key"]: c for c in chars}
@@ -731,21 +731,21 @@ def run() -> tuple["Problems", dict]:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--report", action="store_true", help="写出 reports/validation-report.md")
+    ap.add_argument("--report", action="store_true", help="写出 docs/reports/validation-report.md")
     args = ap.parse_args(argv)
 
     p, stats = run()
     char_stats, source_stats, pending = stats, stats["sources"], stats["pending"]
 
     stage_rows = stats["stage_rows"]
-    out = repo.ROOT / "reports" / "stage-check.tsv"
+    out = repo.REPORTS / "stage-check.tsv"
     out.write_text("角色key\t专辑\t曲目\t类别\t面次\t该面登场角色\t结论\n" +
                    "\n".join(f"{k}\t{v[0]}" for k, v in sorted(stage_rows.items())) + "\n",
                    encoding="utf-8")
     counts = collections.Counter(v[0].rsplit("\t", 1)[-1] for v in stage_rows.values())
     for verdict in ("REVIEW", "alias-gap", "no-label"):
         if counts.get(verdict):
-            p.note(f"道中曲面次核对：{counts[verdict]} 条 {verdict}（见 reports/stage-check.tsv）")
+            p.note(f"道中曲面次核对：{counts[verdict]} 条 {verdict}（见 docs/reports/stage-check.tsv）")
     # 把用到的面次参照表固化成数据，便于离线复核
     from .stages import StageCast
 
@@ -800,8 +800,8 @@ def main(argv: list[str] | None = None) -> int:
         lines += ["", f"## 错误（{len(p.errors)}）", ""] + [f"- {e}" for e in p.errors]
     text = "\n".join(lines) + "\n"
     if args.report:
-        (repo.ROOT / "reports").mkdir(exist_ok=True)
-        (repo.ROOT / "reports" / "validation-report.md").write_text(text, encoding="utf-8")
+        repo.REPORTS.mkdir(exist_ok=True)
+        (repo.REPORTS / "validation-report.md").write_text(text, encoding="utf-8")
     print(text if p.errors else text.split("## 源表")[0].strip())
 
     if p.errors:

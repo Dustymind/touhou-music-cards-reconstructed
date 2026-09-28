@@ -129,7 +129,7 @@ THBWiki 标签 → 期望结果：
 - **源表拼写统一**：源表若用了旧写法（U+FF5E `～` 与 U+301C `〜`），迁移时**统一回角色数据的拼写**
   （等价键折叠后取角色数据那一边）。"两张表差一个字符"的失配因此在结构上不会出现。
 - **R2/R3 的面次尚未校验**：当前口径是"标签为面主题曲 + 作品 == 首发作品"，**没有**核对这一面是否真的
-  属于该角色（中 BOSS 没有主题曲标签）。逐条对拍结果写在 `reports/stage-check.tsv`（**看文件本身**，
+  属于该角色（中 BOSS 没有主题曲标签）。逐条对拍结果写在 `docs/reports/stage-check.tsv`（**看文件本身**，
   条数与结论会随数据变：当前 103 条 = 99 `verified` + 4 `no-label`），M2a/M2b 已逐条裁决完毕。
 - **两类标签缺口**（M2 处理）：
   1. ~~TH20（東方錦上京）没有 Music Room 页~~ → **已复核**（2026-09-16，14/14 命中，见 `reports/M2b-th20-review.md`）；
@@ -144,7 +144,7 @@ THBWiki 标签 → 期望结果：
 2. `秘封曲` ⇔ 专辑 `kind == "hifuu"`（双向）。任何 `hifuu` 专辑上的曲目不得是其它三类。
 3. 同一 `(角色, 专辑, 曲目)` 不重复。
 4. 每条非 `秘封曲` 的 `附加信息` 必须能追溯到 THBWiki 标签索引（`tmc.roles` 读 `.ref/thbwiki/rows.json`
-   快照）的一行标签，或 `data/meta/extra-overrides.tsv` / `reports/` 里的例外登记（含理由）。
+   快照）的一行标签，或 `data/meta/extra-overrides.tsv` / `docs/reports/` 里的例外登记（含理由）。
 5. 同一 `(专辑, 曲目)` 若出现在多个角色名下，其 `附加信息` 可以不同（合法），但必须在报告里列出以便复核。
 6. 不归属曲目不得出现在任何角色文件里，且必须出现在 `unowned-tracks.tsv`。
 7. TH20（東方錦上京）的条目必须带 `待复核` 标记。
@@ -152,7 +152,7 @@ THBWiki 标签 → 期望结果：
 ## 6. 未决事项
 
 - ~~**TH20**：暂无 Music Room 页~~ → **已复核**（2026-09-16）：线上 Music Room 页已存在，18 行与我们的 14 条
-  **逐条对应、14/14 命中**，用户整表认可；详见 [`reports/M2b-th20-review.md`](../reports/M2b-th20-review.md)。
+  **逐条对应、14/14 命中**，用户整表认可；详见 [`docs/reports/M2b-th20-review.md`](reports/M2b-th20-review.md)。
 - **未归属曲目**：源表里存在、但没有任何角色引用的曲目登记在 `data/meta/unowned-tracks.tsv`（当前 283 条），
   分三类：`系统曲` 138（标签不含角色，保持不归属）、`无标签` 144（秘封 CD / OST 未使用曲）、
   `含角色标签` 1（`永夜の報い`，经复核决定不补）。
@@ -161,4 +161,4 @@ THBWiki 标签 → 期望结果：
 - 8 条"曲名自带尾句号"的曲目（如 `紅楼 ～ Eastern Dream...`）：官方标题保留尾句号，R2 上的文件名被截短，
   二者不一致；M1 复核表里逐条给证据，必要时登记白名单。
 - ~~1 组 thbwiki URL 被两条键共用（`b/bf/th18_18.mp3`）~~ → **已修正**（`東方獣王園 / 獣の知性` 换回自己的 URL；
-  依据与来源见 `reports/M2a-proposal.md` 的执行结果与 `tools/src/tmc/migrate.py` 的 `URL_FIXES`）。
+  依据与来源见 `docs/reports/M2a-proposal.md` 的执行结果与 `tools/src/tmc/migrate.py` 的 `URL_FIXES`）。

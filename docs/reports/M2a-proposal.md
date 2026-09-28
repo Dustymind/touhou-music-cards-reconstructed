@@ -2,7 +2,7 @@
 
 > **历史快照**（M2a，2026-09-16）：提案语气与数字都是当时的。其中 TH20 那节前半段"页面还不存在"已被
 > 同一文件末尾的"执行结果"取代；面次对拍的 90 条现在也是 103 条（看 `reports/stage-check.tsv` 本身）。
-> 现状见 [`../docs/README.md`](../docs/README.md)。
+> 现状见 [`../README.md`](../README.md)。
 
 对象：`reports/extra-pending.tsv` 的 19 条 + `reports/stage-check.tsv` 的 90 条面次核对。
 每条都给了可复核的证据；**未经你确认前不改动数据**。

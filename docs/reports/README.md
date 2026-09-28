@@ -1,6 +1,6 @@
 # 阶段产物与报告
 
-这个目录放**过程产物**，不是现状入口 —— 现状看 [`../docs/README.md`](../docs/README.md)。
+这个目录放**过程产物**，不是现状入口 —— 现状看 [`../README.md`](../README.md)。
 
 ## 脚本生成（别手改；重跑命令在表里）
 
@@ -24,7 +24,7 @@
 
 > 这些报告里的数字是**当时**的（例如 `migration-report.md` 的"曲目条目 378"、`validation-report.md` 未重跑前的 368）。
 > 看现在的数字用：`pnpm data:check`（生成物计数）、`pnpm data:validate`（校验）、
-> [`../docs/README.md`](../docs/README.md)（现状表）。
+> [`../README.md`](../README.md)（现状表）。
 
 ## 归类依据
 

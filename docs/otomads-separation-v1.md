@@ -72,7 +72,7 @@ public/data/
 | `validate.py` | 按模式跑现有检查（角色存在、专辑注册、重复、`附加信息` 合法）；新增**跨模式**一致性检查：同一个角色 key 在两份里的身份字段必须一致（`name`/`order`/`card`/`searchNames`），否则界面会出现"同一个角色两个名字" |
 | `packages/packs.py` | **不改**（D109 的读法照旧：清单 + 一角色一份曲目文件） |
 | `pnpm data:check` | 按模式逐份比对（含 `index.json` 的哈希） |
-| `reports/validation-report.md` | 统计分两段（每模式一段 + 共享项） |
+| `docs/reports/validation-report.md` | 统计分两段（每模式一段 + 共享项） |
 
 ---
 

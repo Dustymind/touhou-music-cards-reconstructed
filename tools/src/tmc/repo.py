@@ -10,6 +10,10 @@ UPSTREAM_PUBLIC = ROOT / ".ref" / "upstream-v3" / "public"
 THBWIKI_DIR = ROOT / ".ref" / "thbwiki"
 DATA = ROOT / "data"
 PUBLIC_DATA = ROOT / "public" / "data"
+#: 阶段产物与历史快照。**定义只此一处** —— 2026-09-28 从根目录 `reports/` 移进 `docs/`，
+#: 别再各处写 `ROOT / "reports"`（`tmc.validate` / `tmc.migrate` 都从这里取）。
+DOCS = ROOT / "docs"
+REPORTS = DOCS / "reports"
 
 
 def shown(path: pathlib.Path) -> str:

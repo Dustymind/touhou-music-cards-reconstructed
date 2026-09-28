@@ -5,8 +5,8 @@
 * ``data/characters/<slug>.toml``  一角色一文件（真相源）
 * ``data/albums.toml``             专辑注册表
 * ``data/sources/*.json``          三份音乐源表（数组形式）
-* ``reports/migration-report.md``  迁移报告
-* ``reports/extra-pending.tsv``    未能由 THBWiki 标签判定的条目（M2 处理）
+* ``docs/reports/migration-report.md``  迁移报告
+* ``docs/reports/extra-pending.tsv``    未能由 THBWiki 标签判定的条目（M2 处理）
 
 用法::
 
@@ -327,7 +327,7 @@ def write_unowned(index, referenced: set[tuple[str, str]], report: Migration) ->
 
 
 def write_reports(report: Migration) -> None:
-    reports = repo.ROOT / "reports"
+    reports = repo.REPORTS
     reports.mkdir(exist_ok=True)
     with open(reports / "extra-pending.tsv", "w", encoding="utf-8") as fh:
         fh.write("角色key\t专辑\t曲目\t占位值\t原因\n")

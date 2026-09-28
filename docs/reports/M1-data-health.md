@@ -1,7 +1,7 @@
 # M1 数据体检报告
 
 > **历史快照**（M1，2026-09-16）：下面的数字与待办都是**当时**的；数据后来涨过（音MAD 曲包 86 条等），
-> 待办也已在 M2a/M2b 闭环。现状见 [`../docs/README.md`](../docs/README.md)，本报告保留原样不再更新。
+> 待办也已在 M2a/M2b 闭环。现状见 [`../README.md`](../README.md)，本报告保留原样不再更新。
 
 生成方式：`tools/` 的 Python 管线（`uv run python -m tmc.migrate` → `tmc.validate --report` → `tmc.build`）。
 所有数字都由脚本实测，可复现；原始清单见 `.ref/notes/C-data-inventory.md`。

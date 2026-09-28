@@ -1,8 +1,13 @@
 # 文档全景
 
-一句话：**现状看本页，规则看契约，来龙去脉看 DECISIONS，阶段产物看 reports。**
+一句话：**现状看本页，规则看契约，来龙去脉看 DECISIONS，怎么改看 DEVELOPMENT，过程产物看 reports。**
 
-## 现状（最近一次实测）
+用户向的内容（怎么跑起来 / 怎么玩 / 联机 / 许可）在主 [`README.md`](../README.md)，不在本目录。
+
+## 现状（最近一次实测：2026-09-28）
+
+> **各套测试的条数以本表为唯一维护点** —— 主 README 与 DEVELOPMENT 都只写"跑什么、怎么跑"，
+> 不抄数字（抄过，然后就过期了）。
 
 | 项 | 值 | 从哪来 / 怎么复现 |
 |---|---|---|
@@ -32,10 +37,6 @@
 | [`rules-classification-v1.md`](rules-classification-v1.md) | `music[].附加信息` 的判定规则（THBWiki 标签 → 四类） | 分类漂移、`tmc.validate` 报错 |
 | [`packs-audio-v1.md`](packs-audio-v1.md) | 曲包音频的 `source` / `start_time` / `stop_time`、抓取与裁剪流程 | 两端听到的音频不同却仍能握手 |
 | [`custom-mode-v1.md`](custom-mode-v1.md) | 自定义模式（`custom`）的源清单形状、卡面/音频地址、三元与逐卡禁用、哈希与联机采用 | "看得见点不响"、两端卡表不同却仍能握手 |
-
-## 决策日志
-
-[`DECISIONS.md`](DECISIONS.md)：一个决定一条（D1–D169），写**为什么**、实测数字与踩过的坑。
 | [`data-provenance.md`](data-provenance.md) | 数据从哪来、THBWiki 依赖落在哪两处、许可分层与重推导现状 | 把 THBWiki 的译文/正文再引进仓库，或把许可标错 |
 
 另有 [`otomads-separation-v1.md`](otomads-separation-v1.md)（音MAD 与原曲的数据/运行时分离）与
@@ -43,14 +44,19 @@
 
 ## 开发
 
-[`DEVELOPMENT.md`](DEVELOPMENT.md)：日常命令、迭代时怎么快跑、改「关于」弹窗、技术栈。
 环境搭建与部署在主 [`README.md`](../README.md)。
+[`DEVELOPMENT.md`](DEVELOPMENT.md)：日常命令、迭代时怎么快跑、改「关于」弹窗、技术栈。
+
+## 决策日志
+
+[`DECISIONS.md`](DECISIONS.md)：一个决定一条（D1–D172），写**为什么**、实测数字与踩过的坑。
 同一轮工作的最新条目会就地补全，更早的条目不再改 —— 要查"这个功能怎么来的、这个数字怎么量的"，grep 它。
 
 ## 阶段产物与历史快照
 
-见 [`../reports/README.md`](../reports/README.md)：M1 / M2a / M2b / M9 是阶段报告（历史），
-`validation-report.md` 与 `stage-check.tsv` 由脚本生成（可重跑），`extra-pending.tsv` 是校验器的输入。
+见 [`reports/README.md`](reports/README.md)（**2026-09-28 从根目录 `reports/` 移进本目录**）：
+M1 / M2a / M2b / M9 是阶段报告（历史），`validation-report.md` 与 `stage-check.tsv` 由脚本生成（可重跑），
+`extra-pending.tsv` 是校验器的输入。写入路径由 `tmc.repo.REPORTS` 定义，只此一处。
 
 ## 工作区笔记（不进版本库）
 
@@ -60,10 +66,8 @@
 
 ## 其他入口
 
-根 [`README.md`](../README.md)（怎么跑 / 怎么玩 / 联机 / 部署）、
-[`otomads-separation-v1.md`](otomads-separation-v1.md)（音MAD 与原曲的数据/运行时分离契约，已实现）、
-[`sources-separation-v1.md`](sources-separation-v1.md)（音源层按模式拆的契约，已实现）、
-[`custom-mode-v1.md`](custom-mode-v1.md)（自定义模式的契约，已实现）、
+根 [`README.md`](../README.md)（快速开始 / 本地部署 / 怎么玩 / 联机 / 许可）、
+[`permissions/upstream-authorization.md`](permissions/upstream-authorization.md)（上游授权凭据）、
 [`../tools/README.md`](../tools/README.md)（数据管线模块）、
 [`../data/README.md`](../data/README.md)（真相源目录）、
 [`../data/packs/README.md`](../data/packs/README.md)（曲包形状）、

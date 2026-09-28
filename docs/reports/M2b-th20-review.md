@@ -1,7 +1,7 @@
 # TH20（東方錦上京 ～ Fossilized Wonders）逐条复核
 
 > **历史快照**（M2b，2026-09-16）：结论仍然有效（14/14 命中，用户整表认可）；文中"该清单尚未生成"
-> 指的是当时 —— `data/meta/unowned-tracks.tsv` 随后已生成。现状见 [`../docs/README.md`](../docs/README.md)。
+> 指的是当时 —— `data/meta/unowned-tracks.tsv` 随后已生成。现状见 [`../README.md`](../README.md)。
 
 来源：THBWiki 线上 Music Room 页 `https://thbwiki.cc/东方锦上京/Music`（简体标题；已抓取为
 `.ref/thbwiki/东方锦上京.md`，解析结果在 `.ref/thbwiki/rows.json`）。

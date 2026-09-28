@@ -1,7 +1,7 @@
 # 原版 ↔ 本项目 曲目差异对比
 
 > **历史快照**（数据对账，2026-09-19）：这次对账**不含**音MAD 曲包（当天 04:47 才并入 86 条），
-> 所以"① 299 / ② 0"都是当时的数。现状见 [`../docs/README.md`](../docs/README.md)。
+> 所以"① 299 / ② 0"都是当时的数。现状见 [`../README.md`](../README.md)。
 
 来源：`.ref/upstream-v3/public/character.json`（原版） / `public/data/sources/*.json`（三份镜像表） /
 `public/data/characters.json`（本项目）
