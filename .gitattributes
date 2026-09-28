@@ -5,7 +5,9 @@
 #
 #   1. `pnpm data:check` 把 `public/data/*.json` 的**生成结果**与**已提交内容**逐字节比对 ——
 #      检出时若被转成 CRLF，这个守卫会立刻报"生成物与 data/ 不一致"，而数据其实没问题；
-#   2. `package.json` 里的脚本是 POSIX sh 写法（见 `docs/WINDOWS.md`），CRLF 会让 shebang 之类失效。
+#   2. 脚本（shebang / `node scripts/*.mjs`）与 `.tsv` 一类被当字面读的文件：CRLF 会让
+#      shebang 行带上尾随 `\r` 而失效。npm 脚本本身已跨平台（见 `docs/WINDOWS.md`），
+#      但行尾仍然是硬约束。
 #
 # Windows 上 `git config core.autocrlf` 的默认值在安装时可能被选成 true（= 检出转 CRLF），
 # 光靠 `.editorconfig` 拦不住它（那只管编辑器）。所以在这里钉死。
