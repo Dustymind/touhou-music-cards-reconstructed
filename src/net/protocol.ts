@@ -17,8 +17,9 @@ import type { Seed } from "../rng";
  *  5：多了第三个模式（自定义）⇒ 握手要交换**三个**数据哈希，且主机把**自定义源链接**一起下发
  *     （契约 `docs/custom-mode-v1.md` C6：这个模式的数据由使用者自己托管，两端必须同一个源）。
  *  4：数据按音乐模式分成两份数据集 ⇒ 握手交换两个哈希（契约 `docs/otomads-separation-v1.md` §6 C3）。
- *  3：`SessionConfig`（音乐模式 + 会话种子）替代原来的 `musicMode` 字段；新增 `rerollQueue` 意图。 */
-export const PROTOCOL_VERSION = 6;
+ *  3：`SessionConfig`（音乐模式 + 会话种子）替代原来的 `musicMode` 字段；新增 `rerollQueue` 意图。
+ *  7：曲目身份换成曲id（S2：MusicEntry 对象 + TrackIndex）⇒ 两端哈希口径随之变，硬切（S4）。 */
+export const PROTOCOL_VERSION = 7;
 
 /** 三个模式各自的数据哈希：任一不同都拒绝，且都在**握手期**拒（D107 §6 的初衷）。 */
 export interface DataHashes {

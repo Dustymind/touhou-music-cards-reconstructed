@@ -26,7 +26,7 @@ import tomllib
 from . import packs as pack_mod
 from . import repo
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 #: 三个音乐模式（与前端 `src/music/mode.ts` 的 `MusicMode` 一致）。
 #: 第三个 `custom`（自定义）**自带数据集恒为空**：卡名/卡面/曲目全部来自使用者自己填的源清单，

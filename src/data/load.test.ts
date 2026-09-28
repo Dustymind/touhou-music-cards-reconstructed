@@ -19,16 +19,16 @@ const character = (overrides: Partial<CharacterRecord> = {}): CharacterRecord =>
 
 describe("data validators", () => {
   it("index 必须带 schema 与 contentHash", () => {
-    expect(() => validateIndex({ schema: 2, mode: "originals", contentHash: "abcdefghij", counts: { characters: 1 } }, "originals"))
-      .toThrow(DataLoadError);
+    expect(() => validateIndex({ schema: 1, mode: "originals", contentHash: "abcdefghij", counts: { characters: 1 } }, "originals"))
+      .toThrow(/schema 版本不支持/);
     // 数据集自带 mode：与调用方期望不符就是坏数据（C：一模式一份）
-    expect(() => validateIndex({ schema: 1, mode: "otomads", contentHash: "abcdefghij", counts: { characters: 1 } }, "originals"))
+    expect(() => validateIndex({ schema: 2, mode: "otomads", contentHash: "abcdefghij", counts: { characters: 1 } }, "originals"))
       .toThrow(DataLoadError);
     const index = validateIndex({
-      schema: 1, mode: "originals", contentHash: "abcdefghij",
+      schema: 2, mode: "originals", contentHash: "abcdefghij",
       counts: { characters: 1, albums: 1, trackEntries: 1, distinctTracks: 1 },
     }, "originals");
-    expect(index.schema).toBe(1);
+    expect(index.schema).toBe(2);
   });
 
   it("curves: 记录数、重复 key、空曲目、非法附加信息都要报错", () => {

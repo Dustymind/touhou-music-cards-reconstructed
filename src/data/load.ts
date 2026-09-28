@@ -11,10 +11,12 @@ import {
   type DataIndex,
   EXTRAS,
   type ModeDataset,
+  type MusicEntry,
   type SourceRecord,
   type TrackRecord,
 } from "./types";
 import { MUSIC_MODES, type MusicMode } from "../music/mode";
+import { installPinIndex } from "../store/single";
 import { isCardRatio } from "../theme/cardRatio";
 
 export class DataLoadError extends Error {
@@ -43,7 +45,7 @@ function assert(condition: unknown, message: string): asserts condition {
 export function validateIndex(raw: unknown, expected: MusicMode): DataIndex {
   assert(raw && typeof raw === "object", `${expected}/index.json 结构不对`);
   const index = raw as DataIndex;
-  assert(index.schema === 1, `数据 schema 版本不支持：${String(index.schema)}`);
+  assert(index.schema === 2, `数据 schema 版本不支持：${String(index.schema)}（S4 起 = 2）`);
   assert(index.mode === expected, `index.json 的 mode 不对：${String(index.mode)} ≠ ${expected}`);
   assert(typeof index.contentHash === "string" && index.contentHash.length > 8, "index.json 缺 contentHash");
   assert(index.counts && typeof index.counts.characters === "number", "index.json 缺 counts");
@@ -218,6 +220,12 @@ export async function loadDataBundle(base = "./data"): Promise<DataBundle> {
     fetchJson(url("cardsets.json")),
   ]);
   const cardSets = validateCardSets(rawCardSets);
+  // S4：single-track 存档的 v1 → v2 迁移要靠 TrackIndex 查表 ⇒ 数据一就位就把索引装进 store 层
+  const entries: MusicEntry[] = [];
+  for (const dataset of [originals, otomads, custom]) {
+    for (const character of dataset.characters) entries.push(...character.music);
+  }
+  installPinIndex(entries);
   return { shared: { cardSets }, datasets: { originals, otomads, custom } };
 }
 
