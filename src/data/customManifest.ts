@@ -18,7 +18,7 @@
 import { stableHash } from "../rng";
 import { canonicalPathEncoding, sourceRelativeUrl, versionedUrl } from "../music/manifestUrl";
 import { isRecord } from "../persist";
-import type { AlbumRecord, CharacterRecord, DataBundle, DataIndex, Extra, ModeDataset, MusicEntry, TrackRecord } from "./types";
+import { trackId, type AlbumRecord, type CharacterRecord, type DataBundle, type DataIndex, type Extra, type ModeDataset, type MusicEntry, type TrackRecord } from "./types";
 import { bits, fingerprint } from "./packSnapshot";
 
 /** 模式 3 的专辑统一挂在这个 `pack` 上（`kind` 一律 `other`：这个模式的界面不出现类别开关） */
@@ -115,9 +115,12 @@ export function parseCustomManifest(payload: unknown, manifestUrl: string): Cust
       albumByName.set(card.album, album);
       albums.push(album);
     }
-    // 曲id：自定义模式随意自定义（§11.1）—— 一张卡一首，直接用卡的 key（唯一且稳定）
+    // 曲id：**按歌取**（S2 前的身份就是 `trackId(专辑, 曲名)`，这里逐字接上）。
+    // 不能用卡的 key：两张卡共用一首歌时 id 必须相同，否则 `distinctTracks` 会多算一首、
+    // `songConflicts` 的"同一首歌一局只上一张"也会失效（契约 custom-mode-v1.md C2 §4）。
+    // 卡的唯一性由 `key`（角色 key）自己守，与曲目身份是两件事。
     const entry: MusicEntry = {
-      id: key, album: album.name, title: card.title, extra: CUSTOM_EXTRA,
+      id: trackId(album.name, card.title), album: album.name, title: card.title, extra: CUSTOM_EXTRA,
       ...(card.author !== undefined ? { author: card.author } : {}),  // 空作者不入列表（Q7）
     };
 

@@ -12,7 +12,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { loadRealBundle } from "../test-utils";
 import { customHash, parseCustomManifest, withCustomManifest } from "./customManifest";
 import { packHash } from "./packSnapshot";
-import type { AlbumRecord, CharacterRecord, DataBundle } from "./types";
+import { trackId, type AlbumRecord, type CharacterRecord, type DataBundle } from "./types";
 
 let bundle: DataBundle;
 
@@ -46,7 +46,10 @@ describe("parseCustomManifest：合法清单 → 数据集（1 卡 = 1 名 + 1 �
     // 相对路径按**清单目录**解析成绝对地址（D141 的口径）
     expect(character.card).toEqual(["https://cards.example.com/music/cover/01.jpg"]);
     expect(character.covers).toEqual(character.card);             // 1:1 ⇒ 卡池与卡面都只有这一张
-    expect(character.music).toEqual([["旧作", "第一首", "角色曲", "甲"]]);
+    // 曲id 按**歌**取（S2 前的身份就是 (专辑, 曲名)），作者跟在对象里
+    expect(character.music).toEqual([
+      { id: trackId("旧作", "第一首"), album: "旧作", title: "第一首", extra: "角色曲", author: "甲" },
+    ]);
     expect(character.audio).toEqual(["https://cards.example.com/music/media/01.mp3"]);
   });
 
@@ -99,12 +102,15 @@ describe("parseCustomManifest：合法清单 → 数据集（1 卡 = 1 名 + 1 �
       ],
     }), MANIFEST_URL)!;
     expect(manifest.characters.map((character) => character.key)).toEqual(["alice-01", "alice-02"]);
+    // 共用一首 ⇒ 同一条曲目（同 id）：`distinctTracks` 与 `songConflicts` 都按它算
     expect(manifest.characters[0]!.music).toEqual(manifest.characters[1]!.music);
   });
 
   it("空作者不入第 4 位（Q7：空作者不进作者开关列表）", () => {
     const manifest = parseCustomManifest(payload({ cards: [card({ author: undefined })] }), MANIFEST_URL)!;
-    expect(manifest.characters[0]!.music).toEqual([["旧作", "第一首", "角色曲"]]);
+    expect(manifest.characters[0]!.music).toEqual([
+      { id: trackId("旧作", "第一首"), album: "旧作", title: "第一首", extra: "角色曲" },
+    ]);
   });
 });
 
