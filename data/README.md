@@ -2,7 +2,7 @@
 （生成物进仓库 ⇒ 只跑前端不需要 Python）。
 
 - `characters/` 一角色一 TOML（**121** 个；`music` 条目的第三项 `附加信息` 由 THBWiki 标签判定）
-- `albums.toml` 专辑注册表（显示名 / 类别 / pack / 顺序 / 是否秘封；**39** 张）
+- `originals.toml` 专辑注册表（显示名 / 类别 / pack / 顺序 / 是否秘封；**39** 张）
 - `card-sets.toml` 卡面图集登记（**8 套**：6 套上游走远程 origin、1 套音MAD 为 `local_only`（素材自己放进
   `public/cards-otomads/`）、1 套 `source_only` 的 B 站封面集（素材 = 源快照里的 `covers`，只在音MAD 模式列出，
   源没给就不显示 —— D153））

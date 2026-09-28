@@ -54,8 +54,8 @@ def load_characters() -> list[dict]:
 
 
 def load_albums() -> list[dict]:
-    """真相源：``data/albums.toml``（原曲侧专辑注册表）。"""
-    with open(repo.DATA / "albums.toml", "rb") as fh:
+    """真相源：``data/originals.toml``（原曲侧专辑注册表）。"""
+    with open(repo.DATA / "originals.toml", "rb") as fh:
         data = tomllib.load(fh)
     albums = []
     for entry in data["album"]:
@@ -121,7 +121,7 @@ def _pack_music(pack_tracks: list[dict]) -> dict[str, list[list]]:
 
 
 def build_albums(mode: str, pack_albums: list[dict]) -> dict:
-    """某模式的专辑注册表：``originals`` = ``albums.toml``；``otomads`` = 曲包自带的专辑；
+    """某模式的专辑注册表：``originals`` = ``originals.toml``；``otomads`` = 曲包自带的专辑；
     ``custom`` = 空表（专辑跟着使用者的源清单走，运行时才有）。"""
     albums: list[dict] = []
     for entry in pack_albums if mode == "otomads" else []:

@@ -11,7 +11,7 @@
 
 | 部分 | 位置 | 规模 |
 |---|---|---|
-| 数据真相源 | `data/characters/*.toml`（121）、`data/albums.toml`（39）、`data/sources/*.json`（3）、`data/meta/*`（参照表/裁定表/别名表/合并条目） | 121 角色 / 378 条曲目 / 368 首去重 |
+| 数据真相源 | `data/characters/*.toml`（121）、`data/originals.toml`（39）、`data/sources/*.json`（3）、`data/meta/*`（参照表/裁定表/别名表/合并条目） | 121 角色 / 378 条曲目 / 368 首去重 |
 | 数据管线 | `tools/src/tmc/`：`repo` `fetch_roles` `stages` `roles` `migrate` `validate` `build` `local_source` `check_urls` | 9 个模块 + 33 个测试 |
 | 运行时数据 | `public/data/`：`characters.json` `albums.json` `sources.json` `cardsets.json` `index.json` `sources/*.json` | 8 个文件，含 `contentHash` |
 | 前端 | `src/`：数据层、持久化、主题、本地化、音乐源与选曲、播放层、对战规则/CPU/联机、四个页面 | 141 个测试 |

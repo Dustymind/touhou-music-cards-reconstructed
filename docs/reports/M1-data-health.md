@@ -13,7 +13,7 @@
 | 文件 | 内容 |
 |---|---|
 | `data/characters/*.toml` | **121** 个角色，一角色一文件（`key` / `name` / `order` / `card` / `searchNames` / `music`） |
-| `data/albums.toml` | **39** 个专辑（`key` / `name` / `kind` / `pack` / `order` / `work`） |
+| `data/originals.toml` | **39** 个专辑（`key` / `name` / `kind` / `pack` / `order` / `work`） |
 | `data/sources/*.json` | 三份源表，数组形式 `[[专辑, 曲目, URL], …]` |
 | `data/meta/` | 预留：`roles.tsv` 与 `unowned-tracks.tsv`（M2 产出）—— `roles.tsv` **后未采用**，实际落成 `stage-cast.tsv` + `extra-overrides.tsv` |
 | `public/data/*.json` | 运行时产物：`characters.json` / `albums.json` / `index.json`（含 `contentHash` 供联机握手） |

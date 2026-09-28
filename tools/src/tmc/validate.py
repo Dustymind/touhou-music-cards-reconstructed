@@ -41,7 +41,7 @@ class Problems:
 
 
 def load_albums(p: Problems) -> dict[str, dict]:
-    with open(repo.DATA / "albums.toml", "rb") as fh:
+    with open(repo.DATA / "originals.toml", "rb") as fh:
         data = tomllib.load(fh)
     albums = {}
     orders = collections.Counter()
@@ -690,7 +690,7 @@ def run() -> tuple["Problems", dict]:
     albums = load_albums(p)
     for entry in pack_albums:
         if entry["name"] in albums:
-            p.error(f"曲包专辑与 albums.toml 重名：{entry['name']}")
+            p.error(f"曲包专辑与 originals.toml 重名：{entry['name']}")
         albums[entry["name"]] = entry
     chars = load_characters(p)
     pack_album_names = {entry["name"] for entry in pack_albums}
