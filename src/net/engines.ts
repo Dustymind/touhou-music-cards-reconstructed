@@ -196,7 +196,7 @@ export function createClientEngine(transport: Transport, deps: EngineDeps): Clie
       }
       case "reject": {
         deps.onError?.(host.reason === "data"
-          ? `静态数据不一致：${host.detail}（两端的 public/data 或自定义源必须相同）`
+          ? `静态数据不一致：${host.detail}（两端的数据或自定义源必须相同）`
           : host.reason === "protocol" ? `协议版本不一致：${host.detail}` : `无法加入：${host.detail}`);
         // 主机给了它自己的自定义源 ⇒ 交给调用方决定"自动采用"还是"问用户"（F3）
         if (host.reason === "data" && host.customSourceUrl) {

@@ -33,7 +33,6 @@
 *.7z    -text
 
 # 生成物：`pnpm data:check` 逐字节比对，钉死成 LF
-public/data/**  text eol=lf
 data/**/*.json  text eol=lf
 
 # 给 diff / GitHub 看的语言标注（顺带让 `.tsv` 在网页上按表格渲染）

@@ -68,10 +68,10 @@ test("关于弹窗：应用栏入口打开、每行内容都在、「关闭」�
 
 test("关于弹窗：外置曲库（音MAD）署名自动列出，且在「原作」上方", async ({ page }) => {
   // 名单直接从**真源生成物**取（曲包长什么样，这里就比什么），并挑三个真实署名来验
-  const data = JSON.parse(readFileSync("public/data/otomads/characters.json", "utf8")) as {
+  const data = JSON.parse(readFileSync("data/public/data/otomads/characters.json", "utf8")) as {
     characters: { music: string[] }[];
   };
-  const tracks = JSON.parse(readFileSync("public/data/otomads/tracks.json", "utf8")) as {
+  const tracks = JSON.parse(readFileSync("data/public/data/otomads/tracks.json", "utf8")) as {
     tracks: Record<string, { author?: string; authors?: string[] }>;
   };
   // 与 `collectPackAuthors` 同一口径：写了 `authors` 就用数组，否则用整串 `author`（S2 起按曲id 取 TrackIndex）

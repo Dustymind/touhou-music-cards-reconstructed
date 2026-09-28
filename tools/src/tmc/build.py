@@ -1,21 +1,21 @@
-"""把 ``data/``（TOML 真相源）生成为运行时直接 fetch 的 JSON，写到 ``public/data/``。
+"""把 ``data/``（TOML 真相源）生成为运行时直接 fetch 的 JSON，写到 ``data/public/data/``。
 
 布局（音MAD 与原曲分离契约 v1，见 ``docs/otomads-separation-v1.md``）：
 
 * **共享项**（与模式无关）写一份：``cardsets.json`` / ``sources/*.json``；
-* **每模式一份数据集**：``index.json`` / ``characters.json`` / ``albums.json``，
-  音MAD 那套在 ``public/data/otomads/`` —— 各自只含本模式的曲目、各自一个 ``contentHash``。
+* **每模式一份数据集**：``index.json`` / ``characters.json`` / ``albums.json`` /
+  ``tracks.json``，音MAD 那套在 ``data/public/data/otomads/`` —— 各自只含本模式的曲目、
+  各自一个 ``contentHash``。
 
-生成物随源码提交；``--check`` 用于 CI 漂移守卫：重新生成后必须与已提交内容一致。
+S3 起生成物**不进仓库**（``data/public/`` 是 gitignored 生成目录，Vite 的 publicDir 指过去）；
+可复现性由 ``pnpm gate`` 的两次构建比对承担。
 
 用法::
 
     uv run python -m tmc.build          # 生成
-    uv run python -m tmc.build --check  # 只检查是否有漂移（有漂移返回 1）
 """
 from __future__ import annotations
 
-import argparse
 import hashlib
 import pathlib
 import json
@@ -207,7 +207,7 @@ def load_registry(mode: str) -> list[dict]:
 def mirror_source_ids() -> tuple[str, ...]:
     """**镜像表**的音源 id = 原曲注册表里 ``kind = "remote"`` 的那些。
 
-    镜像清单只有注册表一处真源（review R7④）：构建（把表拷进 ``public/data/sources/``）、
+    镜像清单只有注册表一处真源（review R7④）：构建（把表写进 ``data/public/data/sources/``）、
     `tmc.validate` 的三处检查、`tmc.check_urls` 的抽查都从这里取 —— 加一个镜像只改 TOML。
     远程镜像全在原曲注册表里（音MAD 侧只有一个本地源，契约 `docs/sources-separation-v1.md`）。
     """
@@ -299,7 +299,7 @@ def build_card_sets() -> dict:
             "localPrefix": entry.get("local_prefix", "./"),
             "origins": list(entry.get("origins", [])),
         }
-        # 本地图集（素材由用户自己放进 public/<dir>/）：没有远程 origin，前端只用 localPrefix
+        # 本地图集（素材由用户自己放进仓库根 gitignored 目录，如 cards-otomads/）：没有远程 origin，前端只用 localPrefix
         if entry.get("local_only"):
             record["localOnly"] = True
         # 源封面图集（D153）：素材 = 源快照里的 `covers` 绝对 URL ⇒ 没目录、没 origin；
@@ -342,7 +342,7 @@ def build_index(mode: str, characters: dict, albums: dict, digest: str) -> dict:
 
 
 def dataset_dir(mode: str):
-    """某模式数据集的目录：原曲在 ``public/data/``，音MAD 在 ``public/data/otomads/``。"""
+    """某模式数据集的目录：原曲在 ``data/public/data/``，音MAD 在 ``data/public/data/otomads/``。"""
     return repo.PUBLIC_DATA if mode == "originals" else repo.PUBLIC_DATA / mode
 
 
@@ -350,7 +350,7 @@ def loudness_tables(mode: str) -> list[tuple[pathlib.Path, pathlib.Path]]:
     """某模式各源声明的响度表 → ``[(源文件, 目标文件)]``（D130）。
 
     ``loudness`` 路径写在各源的注册表里、相对**注册表所在仓库的根**；表由源的所有者生成
-    （音MAD 的表在数据仓库），主仓库只负责把它拷进 ``public/data/<mode>/``（生成物随仓库提交）。
+    （音MAD 的表在数据仓库），主仓库只负责把它拷进 ``data/public/data/<mode>/``。
     """
     path = repo.find_source_registry(mode)
     if path is None:
@@ -366,7 +366,7 @@ def build_outputs() -> tuple[dict, dict[str, dict[str, str]]]:
     音MAD 数据集依赖曲包真源（submodule）：**没初始化就跳过它**，不拿空数据覆盖已提交的生成物
     （submodule 在开发时可选，见 ``data/README.md``）。
     **自定义那个模式不依赖任何真源**（它恒为空）⇒ 跳过的只有 otomads：submodule 初始化与否，
-    `public/data/custom/*` 与 `public/data/<原曲那几份>` 都**逐字相同**（Q2 的"构建不依赖 submodule"）。
+    `data/public/data/custom/*` 与 `data/public/data/<原曲那几份>` 都**逐字相同**（Q2 的"构建不依赖 submodule"）。
     """
     _packs, pack_albums, pack_tracks, pack_cards, pack_covers = pack_mod.load_packs()
     chars = load_characters()
@@ -417,23 +417,12 @@ def build_outputs() -> tuple[dict, dict[str, dict[str, str]]]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--check", action="store_true", help="只检查漂移，不写文件")
-    args = ap.parse_args(argv)
-
+    # S3 起没有 --check：生成物不进仓库，漂移守卫由 pnpm gate 的可复现性比对承担（REFACTOR-PLAN v2 §7.5）
+    del argv
     indices, outputs = build_outputs()
     if "otomads" not in indices:
-        print("⚠️  跳过音MAD 数据集（曲包真源 submodule 未初始化）："
-              "保留已提交的 public/data/otomads/*.json", file=sys.stderr)
-
-    if args.check:
-        drift = [str(p.relative_to(repo.ROOT)) for p, text in outputs.items()
-                 if not p.exists() or p.read_text(encoding="utf-8") != text]
-        if drift:
-            print("❌ 生成物与 data/ 不一致：\n  " + "\n  ".join(drift), file=sys.stderr)
-            return 1
-        print("✅ 生成物无漂移")
-        return 0
+        print("[!] 跳过音MAD 数据集（曲包真源 submodule 未初始化）："
+              "不写 data/public/otomads/*.json", file=sys.stderr)
 
     for path, text in outputs.items():
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -442,7 +431,7 @@ def main(argv: list[str] | None = None) -> int:
         f"{mode} {indices[mode]['counts']['characters']} 角色 "
         f"{indices[mode]['counts']['distinctTracks']} 曲（{indices[mode]['contentHash'][:12]}）"
         for mode in MODES if mode in indices)
-    print(f"写出 {len(outputs)} 个文件 → public/data/：{summary}")
+    print(f"写出 {len(outputs)} 个文件 → data/public/data/：{summary}")
     return 0
 
 

@@ -146,7 +146,7 @@ def check_card_sets(p: Problems) -> int:
 
     三类图集的"素材从哪来"互不相同，检查也要分开（D153）：
     * 普通远程图集：必须有 origins；
-    * `local_only`：素材由用户自己放进 `public/<dir>/`，**不能**有 origins；
+    * `local_only`：素材由用户自己放进仓库根 gitignored 目录，**不能**有 origins；
     * `source_only`：素材 = **源**给的绝对 URL（音MAD 封面）⇒ **没有目录、没有 origin**，
       并且必须显式写 `mode`（不写就会在原曲模式里也列出来，而那边根本没有封面）。
     """
@@ -177,7 +177,7 @@ def check_card_sets(p: Problems) -> int:
         elif not entry.get("dir"):
             p.error(f"图集 {entry['id']} 缺 dir")
         if entry.get("local_only"):
-            # 本地图集：素材由用户自己放进 public/<dir>/（不随仓库分发），所以没有远程 origin
+            # 本地图集：素材由用户自己放进仓库根 gitignored 目录（不随仓库分发），所以没有远程 origin
             if origins:
                 p.error(f"图集 {entry['id']} 标了 local_only 却还写了 origins")
         elif not entry.get("source_only") and not origins:
@@ -828,9 +828,9 @@ def main(argv: list[str] | None = None) -> int:
     print(text if p.errors else text.split("## 源表")[0].strip())
 
     if p.errors:
-        print(f"\n❌ 校验失败：{len(p.errors)} 个错误", file=sys.stderr)
+        print(f"\n[FAIL] 校验失败：{len(p.errors)} 个错误", file=sys.stderr)
         return 1
-    print(f"✅ 校验通过（引用集合指纹 {stats['digest']}）")
+    print(f"[OK] 校验通过（引用集合指纹 {stats['digest']}）")
     return 0
 
 

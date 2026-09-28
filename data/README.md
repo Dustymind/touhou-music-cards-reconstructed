@@ -1,10 +1,10 @@
-数据目录（真相源）。`public/data/*.json` 是它的**生成物**：由 `tmc.build` 生成，`pnpm data:check` 守漂移
-（生成物进仓库 ⇒ 只跑前端不需要 Python）。
+数据目录（真相源）。`data/public/data/*.json` 是它的**生成物**（gitignored，别手改）：由 `tmc.build` 生成，
+`pnpm dev` / `pnpm build` 会自动跑（dev 走 `gen-data.mjs` 的哈希缓存，真源没变就不重跑）。
 
 - `characters/` 一角色一 TOML（**121** 个；`[[track]]` 带 `id` / `album_key` / `title` / `extra` / `sources`，`extra` 的取值由 THBWiki 标签判定）
 - `originals.toml` 专辑注册表（显示名 / 类别 / pack / 顺序 / 是否秘封；**39** 张）
 - `card-sets.toml` 卡面图集登记（**8 套**：6 套上游走远程 origin、1 套音MAD 为 `local_only`（素材自己放进
-  `public/cards-otomads/`）、1 套 `source_only` 的 B 站封面集（素材 = 源快照里的 `covers`，只在音MAD 模式列出，
+  `cards-otomads/`（仓库根，gitignored））、1 套 `source_only` 的 B 站封面集（素材 = 源快照里的 `covers`，只在音MAD 模式列出，
   源没给就不显示 —— D153））
 - `meta/character-tracks.tsv` 角色 × 专辑 × 曲目覆盖表（人工补配，每行带依据与来源）
 - `meta/character-aliases.tsv` 人工补充的搜索别名（`key → 别名…`）
@@ -23,13 +23,13 @@
   submodule 未初始化时它整个不存在，构建会跳过音MAD 数据集
 - `sources/netease163.toml` / `sources/thbwiki.toml` **原曲**的两个镜像源（**每源一个自包含文件**：
   头部 = 注册信息，`[[track]]` = `id / album / title / url` 各 651 条；构建把它重排成
-  `public/data/sources/*.json` 的 `[[专辑, 曲目, URL], …]`）；音MAD 那份在 submodule 里
+  `data/public/data/sources/*.json` 的 `{entries: {曲id: {url}}}`）；音MAD 那份在 submodule 里
   （`otomads/sources/otomads.toml` = 本地曲库助手，其同源路径 `/manifest.json`）
 - `sources/custom.toml` **自定义模式**的源注册表：只有一条 `kind = "custom"` 的源，**`table_url` 是空串**
   （合法形态，见 `tmc.build.source_table_url_problem`）—— 地址由使用者在应用里填。
   这个模式的数据**不在本仓库**：契约见 `docs/custom-mode-v1.md`，工具在独立仓库
   `touhou-music-cards-custom-data`（submodule `custom/`；本仓库的构建**不依赖**它 ——
-  `data/custom` 初始化与否，`data:build` / `data:check` 都逐字相同，两条守卫都实测过）
+  `data/custom` 初始化与否，`data:build` 的 custom 产物都逐字相同（实测））
 
 规则见 `docs/rules-classification-v1.md`。曲目归属的标签来源是 THBWiki 抓取快照
 `.ref/thbwiki/rows.json`（`tmc.fetch_roles` 产出，`tmc.roles` 读取），人工例外只写在 `extra-overrides.tsv`。

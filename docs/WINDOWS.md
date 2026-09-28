@@ -112,7 +112,7 @@ git config --global core.longpaths true
 
 仓库根的 `.gitattributes` 已把整仓钉成 LF（`* text=auto eol=lf`）。
 
-为什么这条是硬的：`pnpm data:check` 把 `public/data/*.json` 的**生成结果**与**已提交内容逐字节比对**。
+为什么这条是硬的：生成物与真源要逐字节可复现（`pnpm gate` 在 CI 里做两次构建比对）。
 检出时被转成 CRLF，这个守卫会立刻报"生成物与 data/ 不一致"，而数据其实没有任何问题 ——
 那种假警报很难查。`.gitattributes` 就是为了在克隆时就杜绝它。
 
@@ -171,7 +171,7 @@ node --version                           # → 24.x（fnm use 24；仓库没有�
 pnpm install
 pnpm typecheck
 pnpm test:chromium                       # 先跑单引擎
-pnpm data:check                          # 逐字节守卫 —— 行尾问题在这里暴露
+pnpm gate                               # build + validate + notices 守卫 —— 行尾问题在这里暴露
 pnpm exec playwright install             # 见 §2.4
 ```
 

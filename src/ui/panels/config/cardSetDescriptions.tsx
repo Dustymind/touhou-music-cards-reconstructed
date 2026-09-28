@@ -42,11 +42,11 @@ const CARD_SET_DESCRIPTIONS: Record<string, ReactNode> = {
       I don&apos;t have the copyright and should not have used these here, but let&apos;s pray no one cares.
     </>
   ),
-  // 本项目自己的图集：素材不随仓库分发（版权与体积），由用户自己放进 public/cards-otomads/。
+  // 本项目自己的图集：素材不随仓库分发（版权与体积），由用户自己放进仓库根 cards-otomads/。
   // 曲包角色文件里的 `card = [...]` 写的就是这套目录里的文件名（写法同 data/characters/*.toml）。
   "otomads": (
     <>
-      Local art for the otomad pack: drop your files into <code>public/cards-otomads/</code>, named as the
+      Local art for the otomad pack: drop your files into <code>cards-otomads/</code>, named as the
       <code>card = […]</code> lists in <code>data/otomads/packs/otomads/*.toml</code> say.
     </>
   ),

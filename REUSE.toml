@@ -35,7 +35,7 @@ SPDX-License-Identifier = "OFL-1.1"
 # 曲名/角色名/碟名是事实；分类规则见 docs/rules-classification-v1.md，
 # 来源见 docs/data-provenance.md。**不复制 THBWiki 的任何正文**。
 [[annotations]]
-path = ["data/**", "public/data/**"]
+path = ["data/**"]
 SPDX-FileCopyrightText = "2026 multimode_Liu"
 SPDX-License-Identifier = "MIT"
 

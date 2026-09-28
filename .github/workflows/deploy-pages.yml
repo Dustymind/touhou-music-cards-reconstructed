@@ -9,7 +9,7 @@
 #      2. 仓库 Settings → Pages → Build and deployment → Source 选 **GitHub Actions**。
 #
 # 为什么能这么简单：
-#   - `public/data/**`（13 个生成物，含三份镜像表与音MAD 数据集）**随仓库提交**，
+#   - 数据集在构建期由 `pnpm build` 生成到 `data/public/data/**`（gitignored，S3 起不随仓库提交），
 #     所以 CI 不需要 Python / uv，也不需要初始化 `data/otomads` submodule；
 #   - `vite.config.ts` 的 `base` 是 `./`，子目录项目页（`user.github.io/<repo>/`）不用改配置。
 name: deploy-pages

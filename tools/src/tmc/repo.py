@@ -9,7 +9,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[3]
 UPSTREAM_PUBLIC = ROOT / ".ref" / "upstream-v3" / "public"
 THBWIKI_DIR = ROOT / ".ref" / "thbwiki"
 DATA = ROOT / "data"
-PUBLIC_DATA = ROOT / "public" / "data"
+PUBLIC_DATA = ROOT / "data" / "public" / "data"
 #: 阶段产物与历史快照。**定义只此一处** —— 2026-09-28 从根目录 `reports/` 移进 `docs/`，
 #: 别再各处写 `ROOT / "reports"`（`tmc.validate` 从这里取）。
 DOCS = ROOT / "docs"
@@ -25,7 +25,7 @@ def shown(path: pathlib.Path) -> str:
 
 #: 音MAD 曲包真源 submodule 的目录名（挂在 `data/` 下）。**开发时可选**：没初始化时
 #: 下面的查找函数找不到东西，`tmc.packs` 会跳过、`tmc.build` 不重新生成音MAD 数据集
-#: （用主仓库里已提交的 `public/data/otomads/*.json`）。
+#: （用 `data/public/data/otomads/*.json`，S3 起是本地生成物）。
 OTOMADS_DATA = "otomads"
 
 

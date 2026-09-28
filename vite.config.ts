@@ -6,6 +6,8 @@ export default defineConfig(({ mode }) => ({
   // GitHub Pages 项目页（`user.github.io/<repo>/`）、Cloudflare Pages / Vercel 的域名根、
   // 单端口反代都在这一种形态下工作，所以**不需要**按平台改 base。
   base: "./",
+  // S3：生成物在 gitignored 的 data/public/（内容拷到 dist/ 根 ⇒ 站点内仍是 /data/**）
+  publicDir: "data/public",
   plugins: [react()],
   // 本地曲库（音MAD）助手：开发时也和**单端口部署**一样把 /manifest.json 与 /media 转到 8011。
   // 否则 Vite 会把这两个路径当成未知路由、回退成 index.html ✗ —— 本地源拿到的是 HTML 而不是

@@ -25,7 +25,7 @@
 > 已在 D150 并入数据仓库的 publish 流程，**本仓库现存的工作流只有 `deploy-pages.yml`**。
 
 三家的构建命令都是 `pnpm build`（= `tsc --noEmit && vite build`，类型检查也是这一关的一部分），
-**不需要 Python / uv / submodule**：`public/data/**` 的 17 个生成物随仓库提交。
+构建期需要 **Python（uv）**：数据集由 `pnpm build` 现生成（Vercel 的 `installCommand` 装 uv）；submodule 仍不需要。
 
 ### 部署形态对数据的要求（D131）
 
@@ -40,7 +40,7 @@
 
 ### 缓存
 
-平台默认按文件类型缓存，够用。要显式控制就按平台加：CF Pages 用 `public/_headers`（已在仓库里）；
+平台默认按文件类型缓存，够用。要显式控制就按平台加：响应头统一写在 `vercel.json` 的 `headers`（S3 起）；
 Vercel 用 `vercel.json` 的 `headers`；GitHub Pages **不认** `_headers`（会被当普通文件发出去，无害）。
 原则：带指纹的 `/assets/*` 可长缓存；`/index.html` 与 `/data/**` 要短缓存 ——
 数据 JSON 里的 `contentHash` 是联机握手要比的，压住旧数据会让两端哈希不一致（协议 v4 会拒）。

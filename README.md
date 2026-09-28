@@ -45,8 +45,8 @@ pnpm data:sync                                        # 数据管线（建 tools
 pnpm exec playwright install chromium firefox   # 装进仓库内 .playwright-browsers/（脚本会指过去）
 ```
 
-`public/data/*.json` 是**提交进仓库**的生成物，所以起开发服务器**不需要**先跑数据管线；
-只有改了 `data/`（真相源）才需要 `pnpm data:build` 重新生成并提交。
+数据集是**构建期生成**的（`data/public/data/*.json`，gitignored），`pnpm dev` 会自动懒生成（内容哈希缓存，命中即零等待）—— 起开发服务器**不需要**手动先跑数据管线；
+只有改了 `data/`（真相源）才需要 `pnpm data:build` 重新生成。
 
 ### 2. 起开发服务器
 
@@ -159,7 +159,7 @@ pnpm audio:fetch --track 岁月 --dry-run              # 只看计划：标题�
 > 但真正跑起来是**重下重裁**。想看"哪些命中"，用 `--track <子串> --dry-run` 筛就够了。
 
 `--force` 会重下全部命中项，跑完还会**重量一遍响度表**（数据仓库的 `loudness/otomads.json`，在那边提交；
-主仓库 `pnpm data:build` 会把它拷成 `public/data/otomads/loudness/otomads.json`）—— 两边记得一起提交。
+主仓库 `pnpm data:build` 会把它拷成 `data/public/data/otomads/loudness/otomads.json`）。
 **源部署时它还会跟着归档走**：`pnpm media:pack` 把表打进归档并在 manifest 里声明 `loudness`，
 前端优先取源侧那份（D139）。
 
@@ -175,7 +175,7 @@ pnpm preview    # 本地预览 dist/
   「音MAD 素材」把素材铺进 `dist/`，并把数据里的 `table_url` 改回相对路径 `manifest.json` 再 `pnpm data:build`
   （也可以让访客在设置页「本地曲库地址」里填本站地址，例如 `cards.example.com` —— 会自动补 `/manifest.json`）。
   三家的开箱配置都在仓库里：GitHub Pages（`.github/workflows/deploy-pages.yml`）、
-  Cloudflare Pages（设置见 `deploy/README.md`，响应头在 `public/_headers`）、Vercel（`vercel.json`）。
+  Cloudflare Pages（设置见 `deploy/README.md`）、Vercel（`vercel.json`，响应头 S3 起统一放在它的 `headers` 里）。
 - **单端口透传**（应用 + 曲库 + 信令同端口）：见下面小节。
 - **联机**：信令默认走本机 PeerJS（`*:9100`）；音视频是 WebRTC P2P（UDP），跨 NAT 需要 STUN/TURN。
   页面参数 `?peerhost=<域名>&peerport=<端口>&peerpath=/peerjs&peersecure=`（`peersecure` 省略时跟页面协议走）。
@@ -199,7 +199,7 @@ pnpm preview    # 本地预览 dist/
 ```bash
 pnpm build                                    # 先构建（vite 会清空 dist）
 pnpm media:pack                               # 打归档 → otomads-media.tar.gz（已 gitignore）→ 发布成 Release 资产
-pnpm media:stage                              # 从本机 .music + public/cards-otomads 铺进 dist
+pnpm media:stage                              # 从本机 .music + cards-otomads 铺进 dist
 OTOMADS_MEDIA_URL=<归档 URL> pnpm media:pull  # 构建时从归档拉（CI 用的就是这条思路）
 ```
 
@@ -263,9 +263,9 @@ manifest 所在那一层解析 ⇒ 换域名/端口/协议、换宿主与子路�
 | `pnpm e2e` | 端到端：chromium + firefox + 移动端（Pixel 7）；会自己起 dev（5190）与信令（9100） |
 | `pnpm e2e:perf` | 「点击长任务」性能守卫（对机器负载敏感，单独跑） |
 | `pnpm data:test` | 数据管线测试（音频/本地源那些在数据仓库里，各有自己的 `pnpm` 脚本） |
-| `pnpm data:check` | `public/data` 与 `data/` 是否漂移（提交前必跑） |
+| `pnpm gate` | build + validate + notices --check（提交前必跑；CI 再加两次构建比对） |
 | `pnpm data:validate` | 数据不变量校验（分类、面次、覆盖表、曲包） |
-| `pnpm data:build` | 改了 `data/` 之后重新生成 `public/data/*.json` |
+| `pnpm data:build` | 改了 `data/` 之后重新生成 `data/public/data/*.json` |
 | `pnpm data:scaffold` | 给「真源里有、音MAD 曲包里还没有」的角色预置骨架文件（幂等、**不覆盖**手写内容、不影响生成物；D137） |
 
 > **各套测试当前的实测条数以 [`docs/README.md`](docs/README.md) 的现状表为准** —— 那里是唯一维护点。
@@ -325,7 +325,7 @@ manifest 所在那一层解析 ⇒ 换域名/端口/协议、换宿主与子路�
 | 路径 | 许可 |
 |---|---|
 | `src/` `tools/` `e2e/` `deploy/` `tests/` `docs/`，以及根目录的配置文件 | **MIT**，见 [`LICENSE`](LICENSE) |
-| `data/**`、`public/data/**` | **MIT**（本仓库自己的汇编；来源见 [`docs/data-provenance.md`](docs/data-provenance.md)） |
+| `data/**` | **MIT**（本仓库自己的汇编；来源见 [`docs/data-provenance.md`](docs/data-provenance.md)） |
 | `src/assets/Inconsolata-Medium.ttf` | **SIL OFL-1.1** —— 原样分发，**不可**按 MIT 再许可 |
 | 打包进 `dist/` 的第三方 npm 包 | MIT 与 BSD-3-Clause；另有 Google Material Icons 的 Apache-2.0 |
 | `data/otomads/`、`data/custom/` | 独立仓库（submodule），许可在各自仓库里声明 |
@@ -337,8 +337,8 @@ uvx --from reuse reuse lint
 ```
 
 随产物分发的第三方署名在 [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md)；同一份内容
-也以纯文本放在 [`public/THIRD-PARTY-NOTICES.txt`](public/THIRD-PARTY-NOTICES.txt) ——
-`public/` 下的文件会原样进 `dist/`，**署名必须跟着分发副本走**，页面「关于」弹窗里有入口。
+也以纯文本放在 `pnpm notices` 产出的 `dist/THIRD-PARTY-NOTICES.txt`（构建期生成）——
+**署名必须跟着分发副本走**，页面「关于」弹窗里有入口。
 
 上游授权记录见 [`docs/permissions/upstream-authorization.md`](docs/permissions/upstream-authorization.md)。
 

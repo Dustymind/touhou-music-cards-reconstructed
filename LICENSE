@@ -29,7 +29,7 @@ SOFTWARE.
 | 路径 | 许可 |
 |---|---|
 | `src/` `tools/` `e2e/` `deploy/` `tests/` `docs/`，以及根目录的配置文件 | MIT |
-| `data/**`、`public/data/**` | MIT（本仓库自己的汇编；来源见 `docs/data-provenance.md`） |
+| `data/**` | MIT（本仓库自己的汇编；来源见 `docs/data-provenance.md`；生成物在 gitignored 的 `data/public/`，不随仓库分发） |
 | `data/meta/stage-cast.tsv` | **CC-BY-NC-SA-3.0** —— 唯一的例外：它含 THBWiki 的中文译文，按他们的许可分发（见 `docs/data-provenance.md` §5） |
 | `src/assets/Inconsolata-Medium.ttf` | **SIL OFL-1.1** —— 原样分发，不可按 MIT 再许可 |
 | 打包进 `dist/` 的第三方 npm 包 | MIT 与 BSD-3-Clause，见 `THIRD-PARTY-NOTICES.md` |
