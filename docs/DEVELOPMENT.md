@@ -79,7 +79,7 @@ MD2 规格（280/560 宽、4dp 圆角、elevation 24、32% 黑遮罩、150/75ms 
 | 想找什么 | 去哪 |
 |---|---|
 | 文档全景（哪份是契约、哪份是历史） | [`README.md`](README.md) |
-| 决策与来龙去脉（**为什么**、实测数字、踩过的坑） | [`DECISIONS.md`](DECISIONS.md)（D1–D170） |
+| 决策与来龙去脉（**为什么**、实测数字、踩过的坑） | [`DECISIONS.md`](DECISIONS.md)（D1–D178） |
 | 契约（改实现前先读，改了要同步） | [`README.md`](README.md) 的契约表 |
 | 数据从哪来、许可边界在哪 | [`data-provenance.md`](data-provenance.md) |
-| 阶段产物与历史快照 | [`reports/README.md`](reports/README.md) |
+| 阶段产物与历史快照 | `docs/reports/`（不进 git；里面只有 `pnpm data:validate` 现写的 `validation-report.md`，阶段报告已在 S5 删除） |

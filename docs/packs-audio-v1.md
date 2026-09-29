@@ -105,7 +105,7 @@ pnpm audio:fetch          # = uv run --project $OTOMADS_DATA_DIR/tools python -m
 `YoutubeDL` 处理一条 URL），而 `--concurrent-fragments` 只并行 HLS/DASH 的**分片**流 —— bilibili 的音频
 是**单个文件**直链，没有分片可并行。可测的账：`import yt_dlp` + `YoutubeDL()` ≈ 0.13 秒/首、
 4 分钟 m4a 全量重编码 ≈ 1.0 秒/首、裁剪（解码后精确切 + V0 重编码，D142）≈ 0.4–0.6 秒/首
-且**只有 16 首**带区间 ⇒ 86 首的**本地**开销合计约 30 秒（比 `-c copy` 多约 7 秒，就是那 16 首的差价），
+且**只有 36 首**带区间 ⇒ **191 首**的**本地**开销合计约 50 秒（同口径外推；比全用 `-c copy` 多约 16 秒，就是那 36 首的差价），
 其余全是网络（playurl 往返 + 音频本体），
 而那段时间 CPU 空闲。所以重叠网络等待即收益；上限由带宽与 bilibili 的 412 风控决定（默认 4，先用它试）。
 
@@ -158,7 +158,7 @@ ffmpeg -y -ss <start-BACK> -i <原件> -ss <BACK> -t <stop-start> -c:a libmp3lam
 3. `-t <时长>` —— 截时长（`duration is None` 时不给，交给 ffmpeg 读到尾）；
 4. `-c:a libmp3lame -q:a 0` —— LAME **V0**（≈245 kbps VBR）重编码。
 
-**修完的实测**（16 首真曲目全部重裁）：
+**修完的实测**（当轮 16 首真曲目全部重裁）：
 
 - 起点偏差 **0.000 ms**；解码时长**恰等于** `stop − start`（16 首误差 ≤ 0.007 ms）；
 - 首帧 RMS 与真值一致（冷启动那一帧回来了）；逐样本残差**比 `-c copy` 还小**；
@@ -171,9 +171,9 @@ ffmpeg -y -ss <start-BACK> -i <原件> -ss <BACK> -t <stop-start> -c:a libmp3lam
 再插一道 SRC 只会白添失真（ffmpeg 在编码器不支持某个采样率时会自动插重采样，这里用不上）。
 
 **渲染口径进状态签名**（`RENDER_VERSION = "encode-v1"`）：换了裁剪实现，旧状态里的 `outHash`
-仍然对得上，幂等检查会把 16 首全部跳过 ✗ ⇒ 必须让口径参与 `fresh` 判定，改一次实现就自动重裁一遍。
+仍然对得上，幂等检查会把带区间的曲目全部跳过 ✗ ⇒ 必须让口径参与 `fresh` 判定，改一次实现就自动重裁一遍。
 不裁剪的曲目是"与原件同一 inode 的硬链接"，字节与口径无关 ⇒ 它的签名位留空（否则改裁剪会连带
-70 首未裁剪的曲目全部重链 + 重量响度）。
+未裁剪的曲目全部重链 + 重量响度）。
 
 - 成品**统一 mp3**：`yt-dlp -x --audio-format mp3 --audio-quality 0`。原因是现有的三处都写死了 `.mp3` ——
   `local_source.media_path()` 拼的是 `/media/<专辑>/<曲名>.mp3`、manifest 里的 URL 也来自它、
@@ -247,7 +247,7 @@ ffmpeg -y -ss <start-BACK> -i <原件> -ss <BACK> -t <stop-start> -c:a libmp3lam
   （FAT/exFAT、部分网络盘）回落成复制，并**打印一行提示**（不静默）。
 - 量响度按文件名 stem 缓存，硬链接的重复曲目内容相同 ⇒ 各算一次即可（结果必然一致）；重裁 A 只失效 A 的键，B 的键仍然有效。
 
-## 9. 迁移：86 条现有音MAD 的 `source`（已完成 84/86）
+## 9. 迁移：86 条现有音MAD 的 `source`（当轮完成 84/86；现已 191/191）
 
 BV 号原先散在三处：`tools/ingest_otomads.py` 的 `ROWS`（61 条）、`tools/ingest_rows_*.json`（30 条）、
 以及**音频文件自己的 ID3 标签**（`purl` / `comment`，24 条）—— 三处并集、按
@@ -304,7 +304,7 @@ BV 号原先散在三处：`tools/ingest_otomads.py` 的 `ROWS`（61 条）、`t
 | `tools/pyproject.toml` + `uv.lock` | 加 `yt-dlp` 依赖（uv 管理；升级会改 lock，属预期） |
 | `data/packs/otomads.toml` | 84 条回填 `source`（见 §9；当时还是单文件 —— D109 之后曲目在 `data/otomads/packs/otomads/*.toml` 一角色一份，见 `data/packs/README.md`） |
 | `public/data/index.json` | `contentHash` 从 `d5fd15d4…` 变成 `93bdb1a9…` —— 这正是"音频口径进握手"的效果 |
-| 测试 | `tools/tests/test_pack_audio.py`；Python 测试 33 → **71** |
+| 测试 | `data/otomads/tools/tests/test_pack_audio.py`；Python 测试 33 → **71** |
 
 **实测**（真抓一首 `thwy - 岁月`，`BV18t411F71d`）：
 
@@ -318,7 +318,7 @@ BV 号原先散在三处：`tools/ingest_otomads.py` 的 `ROWS`（61 条）、`t
 ```
 
 **与设计稿的偏差**：`--only <pack>` 按 §11 不做；除 `--track` 外没有别的筛选；
-`source` 覆盖 84/86（两条见 §9，其中一条本来就是本地文件）。
+`source` 覆盖当轮的 84/86（现在 191/191，见 §9；当时那两条里有一条本来就是本地文件）。
 
 ## 13. D142：裁剪改成"解码后精确切 + 重编码"（2026-09-25）
 
@@ -329,7 +329,7 @@ BV 号原先散在三处：`tools/ingest_otomads.py` 的 `ROWS`（61 条）、`t
 |---|---|
 | `data/otomads/tools/src/otomads/fetch_audio.py` | `render()` 改成三段式（`-ss <start−0.5>` 粗定位 → 输出侧 `-ss 0.5` 丢预热段 → `-t` → `libmp3lame -q:a 0`）；新增常量 `TRIM_ENCODER` / `TRIM_WARMUP` / `RENDER_VERSION` / `LINK_RENDER`；状态签名加 `render` 字段 |
 | 同上（幂等） | **渲染口径进 `fresh` 判定** —— 否则旧 `outHash` 仍然匹配，16 首会被全部跳过（"改了代码但音频没变"）。未裁剪的曲目签名位留空，不被连累 |
-| `tools/tests/test_pack_audio.py` | **+5**（100 → 105）：命令形状（不许 `-c copy`、两次 `-ss` 的位置与数值、`-t`、编码器）、回退在文件头截断、只给 start 时不给 `-t`、渲染口径作废旧裁剪而不作废硬链接、**真跑 ffmpeg 的白噪精度用例**（时长恰为请求值 + 首帧不许是坏的） |
+| `data/otomads/tools/tests/test_pack_audio.py` | **+5**（100 → 105）：命令形状（不许 `-c copy`、两次 `-ss` 的位置与数值、`-t`、编码器）、回退在文件头截断、只给 start 时不给 `-t`、渲染口径作废旧裁剪而不作废硬链接、**真跑 ffmpeg 的白噪精度用例**（时长恰为请求值 + 首帧不许是坏的） |
 | `.music/` 本地曲库 | 16 首带区间的成品**全部重裁**（从各自的 `.raw/` 离线重裁，不重新下载）；状态里全部记成 `render = "encode-v1"` |
 | `loudness/otomads.json`（数据仓库） | 重裁触发的那 2 首重量后差 0.1 dB ⇒ 表改动 4 行；其余 14 首量出来一模一样 ⇒ 表不动 |
 | `contentHash` | **不变**（`start_time`/`stop_time`/`source` 一个字没动 —— 改的是"怎么裁"，不是"裁哪里"）⇒ 联机两端不用一起更新 ✓ |
@@ -349,7 +349,7 @@ BV 号原先散在三处：`tools/ingest_otomads.py` 的 `ROWS`（61 条）、`t
 | 旧 | 336,835,277 B | `74e096756c5e9989dcfa7644acae9fe3463a7a9118b89456cba1cd7018c78e02` |
 | 新 | **336,719,238 B** | **`f80fa36fbcf31196df24484e0577dbe615e21e8f85e16ce686dae4e7421cf57c`** |
 
-换之前把归档解出来与 `.music/otomads/` 做了**全量逐字节比对**（86 首全等，不是抽样），
+换之前把归档解出来与 `.music/otomads/` 做了**全量逐字节比对**（当轮 86 首全等，不是抽样），
 且上传后 GitHub 报的 digest 与本地算的一致 ✓。**主仓库的 `th09.5-260925` tag 没动**
 （它仍是 `gh release create` 建的那个轻量 tag `295a3fc`；换的只是资产）。
 
@@ -408,7 +408,7 @@ if is_anthology:
 ### 5. 数据修复与实测
 
 - 先定向修 4 首（原件全部变成 p1：`117.141 / 144.299 / 178.261 / 78.848` s），
-  再按用户裁定**全量重抓 86 首**：`fetched 69 / trimmed 13 / skip 4`（skip 的就是刚修的那 4 首），
+  再按用户裁定**全量重抓当轮的 86 首**：`fetched 69 / trimmed 13 / skip 4`（skip 的就是刚修的那 4 首），
   **退出码 0**（无失败、无缺失）。
 - **全量重抓只改了 2 个文件**：`对了 向北邮出发吧`、`最终鬼畜蓝蓝路 (2023 Remix)`（它们原本连原件都没有）。
   其余 84 首重下得到**逐字节相同**的音频 ⇒ 反过来证明"只有多 P 源会受这个 bug 影响"。
@@ -462,8 +462,8 @@ if is_anthology:
 
 ### 3. 为什么是**逐曲**版本而不是整表一个
 
-整表一个版本也能修好"拿旧的"，但**任何一次变动都会让整包 86 首（321 MB）全部换 URL** ⇒ 所有客户端
-重下一遍。逐曲之后只有真正变过的那几首换 URL。实测（86 首的真曲库）：只动一个文件的 mtime ⇒
+整表一个版本也能修好"拿旧的"，但**任何一次变动都会让整包（现在 191 首）全部换 URL** ⇒ 所有客户端
+重下一遍。逐曲之后只有真正变过的那几首换 URL。实测（当轮 86 首的真曲库）：只动一个文件的 mtime ⇒
 **只有 1 行**的版本号变，其余 85 行逐字不变 ✓；文件没动时重算两次版本号完全相同 ✓（可复现，
 不会平白让客户端重下）。
 

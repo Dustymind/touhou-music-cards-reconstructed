@@ -83,6 +83,10 @@
 
 ### 素材站（默认 CDN）的部署（D150：**数据仓库的 `publish.yml` 构建并部署**）
 
+> 本节（到「面板那套已经退役」为止）的命令与路径都跑在**音MAD 数据仓库**里 —— 默认 clone 在
+> `data/otomads/`，所以下文的 `tools/build_cdn_site.py`、`tools/tests/*`、`wrangler.jsonc` 都是那份
+> 仓库里的（主仓库 `tools/` 是 Python 数据管线，没有这些文件）。
+
 默认音源指的 `otomads-cdn.tsukinomiyako-mangesui.top` 是 Cloudflare 上**独立于应用**的一个站点，
 内容就是素材归档解出来的那一份。**当前由数据仓库的 `.github/workflows/publish.yml` 一条链跑完**
 （D150，2026-09-25）：测试 → 重打归档并换 Release 资产 → `python3 tools/build_cdn_site.py` 构建站点

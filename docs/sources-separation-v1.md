@@ -2,6 +2,13 @@
 
 **状态：已实现**（D113）。§8 的 6 条按推荐全部采纳（用户裁定）；实现结果见 §9。
 
+> **现状指针（S1c / D174 之后）**：原曲注册表已按 S1c 再切成**每源一个自包含 TOML**
+> （`data/sources/{netease163,thbwiki}.toml`；旧的 `sources.toml` / `originals.toml` 已删），
+> 生成物在 gitignored 的 `data/public/**`（`sources/*.json` 的 manifest + 索引），由 `pnpm gate` 现生成；
+> 音MAD 那份在数据仓库（env `OTOMADS_DATA_DIR`，**不再是 submodule、也没有 pin**）。本文 §1 的表格与
+> §9 的文件表是 **D113 落地当时**的记录 —— 路径（`public/data/…`）、数字与协议版本都已过期，
+> 现状见 [`README.md`](README.md) 的现状表。
+
 对象：`data/sources/*.toml`（原曲音源注册表；S1c 起每源一个自包含文件）、`data/public/data/{,otomads/}sources.json`（生成物）、
 `tmc.v1.sources`（用户的开关/顺序存档），以及 `effectiveSourceOverrides()` 这个运行期补丁（已删，见 §5）。
 目的：**音源层也跟数据层一个口径** —— 每个模式用自己那份源表，不需要"切模式时偷偷把某个源打开"。
