@@ -17,7 +17,7 @@
 |---|---|---|
 | **应用**（本仓库） | 读取、校验、渲染、联机；**一套空兜底数据集**（`data/public/data/custom/`，0 角色 0 专辑） | 任何卡名 / 卡面 / 曲目 / 音频地址 |
 | **使用者的源**（`manifest.json` + 素材） | 卡表（一张卡 = 一个卡名 + 一张卡面 + 一首曲目）、素材地址、可选的响度表 | 任何应用逻辑 |
-| **数据仓库**（独立仓库，`touhou-music-cards-custom-data`；位置 = env `CUSTOM_DATA_DIR`，默认 `data/custom`，**不是 submodule**） | **提供工具 + 作者自己的源**：把手写的卡表抓成素材并生成清单；**仓库里不放文档**（无 `.md` 被跟踪）。它**含作者自己那张卡的源数据**（`cards.toml` / `manifest.json` / `covers.json` / `loudness/custom.json`），以及它自己生成的数据集（`python -m custom.dataset` → `<data_dir>/dataset/`） | 卡数据本身；应用运行时不 import 它（主仓库构建只取用它那份数据集，见下） |
+| **数据仓库**（独立仓库，`touhou-music-cards-custom-data`；位置 = env `CUSTOM_DATA_DIR`，默认 `data/custom`，**不是 submodule**） | **提供工具 + 作者自己的源**：把手写的卡表抓成素材并生成清单；**仓库里不放文档**（无 `.md` 被跟踪）。它**含作者自己那张卡的源数据**（`cards.toml` / `loudness/custom.json`），以及它自己生成的数据集（`python -m custom.dataset` → `<data_dir>/dataset/`）；`manifest.json` / `covers.json` 是**派生物**（前者纯组装、后者联网解析直链）⇒ 不进提交，由它的 CI 现生成后随快照发布（§7.2） | 卡数据本身；应用运行时不 import 它（主仓库构建只取用它那份数据集，见下） |
 
 **不拖累主仓库构建**（Q2）：`CUSTOM_DATA_DIR`（默认 `data/custom`）在场与否，`pnpm data:build`
 的输出**逐字相同**（在场时取它那份恒为空的数据集 + 空源注册表，不在场时写空兜底 + 默认源记录，§7.2 ③；

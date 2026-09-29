@@ -41,8 +41,8 @@
 
 - `.music/`（780 MB）—— 见 §1.4：**理论可重建，但没有把握**，所以留着。
 - `.ref/notes/`（332 KB）—— 被 `src/game/rules.ts`、`src/i18n/localization.ts` 当**出处的依据**引用。
-- （S5 起 `.ref/scripts/` 已删 —— 分析脚本与产物随分类链一起退场）
-- `.ref/thbwiki/`（2.4 MB）—— 重推导的原始证据（45 份 Music Room 快照），重抓要另花一轮。
+- （S5 起 `.ref/scripts/` 与 `.ref/thbwiki/`（45 份 Music Room 快照）都已删 —— 分类派生链整体退场；
+  真要重推导就照 `docs/data-provenance.md` §3 重抓一轮）
 
 ### 1.4 `.music/` 为什么没删
 

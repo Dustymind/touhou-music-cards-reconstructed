@@ -149,7 +149,7 @@ data/public/data/sources/*.json       # 两份镜像表：**manifest 形状**（
 | 文件 | 内容 |
 |---|---|
 | `data/sources/{netease163,thbwiki}.toml` | 两个远程镜像（每源一个自包含文件，S1c 起），**不含**本地源 |
-| `data/otomads/sources/otomads.toml` | 只有本地曲库源，`order = 1`、`enabled = true`（本模式唯一来源；D128 起在 submodule 里；**默认 `table_url` 是 CDN 的绝对地址**，D141） |
+| `<OTOMADS_DATA_DIR>/sources/otomads.toml`（默认 `data/otomads/sources/`） | 只有本地曲库源，`order = 1`、`enabled = true`（本模式唯一来源；D128 拆出，**D174 起是 env 落点、不再是 submodule**；**默认 `table_url` 是 CDN 的绝对地址**，D141） |
 | `public/data/sources.json` / `public/data/otomads/sources.json` | 各自的生成物（`build_sources(mode)`） |
 | `public/data/sources/{netease163,thbwiki}.json` | **不挪**（契约 §2） |
 

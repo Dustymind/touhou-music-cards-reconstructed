@@ -17,12 +17,12 @@
 | 卡面集 / 注册音源 | 8 / 4（含 1 套音MAD **本地图集**：素材用户自己放进仓库根 `cards-otomads/`；1 套音MAD 封面集 `source_only`；自定义模式用代码里的合成图集 + 用户在「卡面设置」里选的**常规 / 16:9 / 4:3** 档位 —— D167 起画幅纯前端裁、数据侧只有一条链接，都不进这张表） | 同上 |
 | 音MAD 曲包 | 1 包：191 首 / 80 个角色；**191 条带 `source`**（可自动抓取）、**36 条带裁剪区间**（前导静音已裁） | 真源在数据仓库（`OTOMADS_DATA_DIR`，默认 `data/otomads/`）：清单 `<OTOMADS_DATA_DIR>/packs/otomads.toml` + 一角色一份 `<OTOMADS_DATA_DIR>/packs/otomads/*.toml`（D128；不再是 submodule）；`pnpm audio:fetch --dry-run`（数据仓库的 `otomads.fetch_audio`，D130） |
 | 前端单测 | **1270 passed**（chromium 与 firefox **各 635**；真实浏览器，vitest 浏览器模式；双引擎同跑偶发一条 flaky，稳跑法见 `DEVELOPMENT.md`） | `pnpm test:chromium` / `pnpm test:firefox` |
-| 数据管线测试 | **71 passed**（主仓库）+ **211 passed**（音MAD 数据仓库 `tools/`）+ **368 passed**（自定义数据仓库 `tools/`） | `cd tools && uv run pytest` / `uv run --project tools pytest`（在各自的数据仓库）。音MAD 那套 222 → 211 是随录入链删除的 13 条（另 +2 条 `packformat.character_keys`） |
+| 数据管线测试 | **82 passed**（主仓库）+ **238 passed**（音MAD 数据仓库 `tools/`）+ **386 passed**（自定义数据仓库 `tools/`） | `cd tools && uv run pytest` / `uv run --project tools pytest`（在各自的数据仓库）。音MAD 那套 222 → 211 是随录入链删除的 13 条，211 → 238 与主仓库 71 → 82 是 D175 的收尾用例（共享向量、内容哈希、响度表只从数据集取） |
 | 端到端 | **115 passed + 1 skipped**（chromium 52 + firefox 51，mobile 12；含模式 3 的 **8** 条 × 两个桌面引擎；skip 的那条是联机用例只在 chromium 跑）。整跑负载下 firefox 偶发一条超时（`pack-snapshot`，单跑 ✓）。**前置：先 `pnpm local` 起本地曲库助手** | `pnpm e2e` |
 | 数据漂移 | 无（S3 起生成物不进仓库） | `pnpm gate`（先跑 `pnpm data:datasets`，再 build + validate + notices；可复现性由 CI 的两次构建比对承担） |
 | 数据校验 | 通过 | `pnpm data:validate` |
 | 联机协议版本 | **7** | `src/net/protocol.ts`（D168 起 `GameState` 带 `perTrackFaces` / `currentCardIndex` —— "这一回合放哪一首"由答案卡决定；`SessionConfigWire` = 音乐模式 + 会话种子 + 自定义源链接；`dataHash` = 三个模式各一个；**7** = 曲id 身份 + 生成物 schema 2，硬切，见 `protocol-v1.md` / D173） |
-| 决策日志 | 编号 D1–D173 中**实有 172 条**（**D165 未使用**，是编号空洞，见该处的编号说明）；D173 是最近一条：曲目身份换成曲id（生成物 `schema` 2、协议 v7、单曲存档 v2 一次性迁移）。带 `⚠️` 的 16 条是「已被取代」/「前提已变」标记，**不是待办** | [`DECISIONS.md`](DECISIONS.md) |
+| 决策日志 | 编号 D1–D176 中**实有 175 条**（**D165 未使用**，是编号空洞，见该处的编号说明）；D175 是收尾六项（镜像 manifest 同形 / revision 一律内容哈希 / index 的 `source` / 前缀断言 / 共享向量 / dist 复现），D176 是复核后的三处落地（响度表只从数据集取、计划三处写法的取代、文档漂移清扫）。带 `⚠️` 的 19 条是「已被取代」/「前提已变」标记，**不是待办** | [`DECISIONS.md`](DECISIONS.md) |
 
 > **e2e 的前置条件**：音MAD 相关用例会取同源的 `/manifest.json`（开发服务器代理到本地曲库助手），
 > 必须先起助手再跑，否则那几条会红 —— 这是环境问题，不是代码问题（D105 记过这个坑）。
@@ -49,7 +49,7 @@
 
 ## 决策日志
 
-[`DECISIONS.md`](DECISIONS.md)：一个决定一条（D1–D172），写**为什么**、实测数字与踩过的坑。
+[`DECISIONS.md`](DECISIONS.md)：一个决定一条（D1–D176），写**为什么**、实测数字与踩过的坑。
 同一轮工作的最新条目会就地补全，更早的条目不再改 —— 要查"这个功能怎么来的、这个数字怎么量的"，grep 它。
 
 ## 阶段产物与历史快照
@@ -60,8 +60,8 @@ S5 起 `docs/reports/` 移出 git（工作记录不随仓库分发）；写入�
 
 ## 工作区笔记（不进版本库）
 
-`.ref/` 整体 gitignore：`notes/`（开工前的规格与盘点）、`upstream-v3/`（上游只读副本）、
-`thbwiki/`（Music Room 抓取快照）、`scripts/`（一次性脚本）。
+`.ref/` 整体 gitignore：**S5 起只剩 `notes/`**（开工前的规格与盘点，332 KB）——
+`scripts/`、`thbwiki/`、`upstream-v3/` 已随 §13.5/§13.6 删除（上游要重克隆，快照要重抓）。
 **只有吃进本仓库文档的结论才算数**，`notes/` 里的内容随时可能过期。
 
 ## 其他入口

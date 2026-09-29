@@ -514,7 +514,7 @@ if is_anthology:
 
 | 层 | 今天从哪来 | 数据一变要做什么 |
 |---|---|---|
-| **音MAD 曲目表**（`data/public/data/otomads/characters.json`） | **构建期**（`pnpm data:build` 读 submodule 的 `packs/`） | 重跑 → 提交 → **重新部署前端** |
+| **音MAD 曲目表**（`data/public/data/otomads/characters.json`） | **构建期**（`pnpm data:build` 读数据仓库的 `packs/`） | 重跑 → 重新部署前端（产物不提交，S3 起） |
 | 音MAD 媒体地址（manifest） | **运行时**从源取（CDN / 本机助手） | 铺源 |
 | 音MAD 音频 / 响度表 | 运行时 | 铺源 |
 | 原曲那 368 首 | 构建期 | 重跑 + 重新部署前端（**C 不管这个**） |
@@ -618,6 +618,10 @@ if is_anthology:
   所以"铺没铺上"不靠人肉核对。（早先的 CF Git 集成与数据仓库那条 `deploy-cdn` 都已退场，不再是回滚手段。）
 
 ### 7. 要接受的代价（用户已认）
+
+> ⚠️ 本节是 **D145 落地当时**的记录：里面的 `public/data/**` 路径与 `data:check` 命令都是那时的样子
+> （S3 起产物在 gitignored 的 `data/public/**`、`data:check` 已删）；结论（fail-closed 的握手语义）仍成立，
+> 现状数字见 `docs/README.md` 的现状表。
 
 1. **兜底那份快照从此冻结**：`public/data/otomads/*.json` 停在某个时间点。影响有限 —— 源不可达时音频
    本来就一首也放不出来（源表全 error），旧曲目表只是个"能显示、点不动"的壳。

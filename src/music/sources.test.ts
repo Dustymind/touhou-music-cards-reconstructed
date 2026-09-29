@@ -351,7 +351,7 @@ describe("源表地址：部署形态无关（D131）", () => {
       .toBe(new URL("/data/sources/netease163.json", root).href);
   });
 
-  it("已提交的生成物里不许有根绝对路径的 tableUrl", async () => {
+  it("生成物里不许有根绝对路径的 tableUrl（S3 起产物不进仓库，跑的是构建产物）", async () => {
     const datasets = ["data", "data/otomads"];
     for (const base of datasets) {
       const payload = (await (await fetch(`${base}/sources.json`)).json()) as {

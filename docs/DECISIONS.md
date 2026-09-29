@@ -6999,3 +6999,34 @@ firefox **635**；e2e **115 passed + 1 skipped**。S2 的数据等价性由 `bac
 **仍然保留的两条 D174 口径**（不在本轮范围内，都是"当前数据下等价"的显式选择）：① 逐曲 `[[track]].sources`
 只校验、运行时不据它排序（按注册表 `order` 全局兜底，378 条声明的都是同一对源）；② `loudness/*.json` 仍随
 数据仓库提交。
+
+
+---
+
+## D176 复核后的三处落地：响度表只从数据集取 / 计划里三处写法与实现不符 / 文档漂移清扫（2026-09-29）
+
+**触发**：对 REFACTOR-PLAN v2 再做一次只读复核（"计划是否完成"），查出 4 处"计划写法 ≠ 实现"与 9 处仓库文档漂移。
+
+1. **响度表只从数据集取**（`tools/src/tmc/build.py`）：`loudness_tables` 原先在数据集里那份不存在时，会用
+   `path.parent.parent` 反推数据仓库的目录布局 —— 那是那个仓库的内部约定（§11.3 明确要求去掉）。现在只取
+   `<data_dir>/dataset/<rel>`（数据仓库的 dataset.py 负责拷贝；Release 快照也只有这一份）；原曲没有数据仓库
+   ⇒ 注册表里声明 `loudness` 会当场报错；数据集不在场仍然跳过（§7.2 ③，构建不失败）。新增 2 条用例：
+   只取 dataset 那份（clone 里同名的不看）、数据集里缺拷贝时点名报错。
+2. **计划里三处"写法与实现不符"记为取代**（不是把实现改成计划的字面，也不是悄悄改计划）：
+   - §2.3/§2.4 的"`manifest.json` 是 TOML 的唯一中间产物"——落地后那份唯一派生物就是**数据集**
+     （`<data_dir>/dataset/` → `data/public/data/**`），`manifest` 只是源清单的线上形状（§6）；按 §13 的
+     "谁在用"判据，不另造一个没有消费者的中间文件。
+   - §14.4 ③ 的 `ignoreCommand` 口径改成实际规则（只有 `docs/**` 变了才跳过构建）：产物不提交后
+     `data/public/**` 永远不在 `git diff` 里，原写法不可实现；而 `data/**` 是真源、一变就必须重建。
+   - §11.3 的"custom 空串特例归位自定义那套"按 §7.2 保留在共享函数里（主仓库仍要写自定义的空兜底 + 源注册表），
+     计划里已注明两条冲突、以 §7.2 为准。
+3. **文档漂移清扫**：`docs/README.md`（测试条数、决策日志范围、`.ref/` 现状）、`docs/WINDOWS.md`（保留清单里的
+   `.ref/thbwiki/` 其实 S5 已删）、`tools/README.md`（条数与 clone 路径）、`docs/custom-mode-v1.md`（custom 的
+   `manifest.json` / `covers.json` 是派生物、不进提交）、`docs/sources-separation-v1.md`（不再是 submodule）、
+   `docs/packs-audio-v1.md`（submodule 字样 + 给 D145 那节加历史标记）、`src/music/sources.test.ts` 一条用例名。
+
+**验证**：`pnpm gate` 仍是 19 个文件、三个 contentHash（`f24566164f7e` / `d675c854bcf9` / `fe0bccdf9c80`）与
+引用指纹 `9eecf074138b` 未变；主仓库 pytest **82**（+2）；vitest chromium + firefox **1270**；`pnpm typecheck` 0。
+
+**没动的**：D175 里那两条 D174 口径（逐曲 `sources` 只校验不排序、`loudness/*.json` 随数据仓库提交）不变 ——
+本轮动的只是"主仓库从哪儿读那张表"。
