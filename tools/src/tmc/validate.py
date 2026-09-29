@@ -297,21 +297,6 @@ def check_source_registry(p: Problems) -> dict:
     }
 
 
-def _read_mirror(source_id: str) -> list[list[str]] | None:
-    """读一张镜像源表（``data/sources/<id>.toml`` 的 ``[[track]]``）；**文件不存在**返回 None。
-
-    缺表这件事由 `check_source_registry()` 报（它比这里更懂注册表）。这里不再抛：
-    镜像 id 是派生出来的（`build.mirror_source_ids`），注册表里写错一个 `table_url`
-    不该让整套校验以 traceback 收场。
-    """
-    path = repo.DATA / "sources" / f"{source_id}.toml"
-    if not path.exists():
-        return None
-    with open(path, "rb") as fh:
-        data = tomllib.load(fh)
-    return [[t["album"], t["title"], t["url"]] for t in data.get("track", [])]
-
-
 def check_album_prefixes(albums: dict[str, dict], p: "Problems") -> dict:
     """专辑码对照不落盘（§10）：从镜像表**现推**「THBWiki 前缀 ↔ albumKey」并断言一一对应。
 
@@ -373,7 +358,7 @@ def check_declared_sources(p: "Problems") -> int:
 def check_sources(referenced: set[tuple[str, str]], p: Problems):
     stats = {}
     for source_id in build_mod.mirror_source_ids():
-        entries = _read_mirror(source_id)
+        entries = build_mod.load_mirror_tracks(source_id, missing_ok=True)
         if entries is None:
             continue
         table = {(a, t): url for a, t, url in entries}
@@ -418,7 +403,7 @@ def check_title_uniqueness(chars: list[dict], p: Problems) -> dict[str, object]:
     # 依据来自**源表全集**（不只是被引用的那部分）：同名同专辑的两首曲子只有靠序号区分
     all_titles: dict[str, set[str]] = {}
     for source_id in build_mod.mirror_source_ids():
-        for album, title, _url in _read_mirror(source_id) or []:
+        for album, title, _url in build_mod.load_mirror_tracks(source_id, missing_ok=True) or []:
             all_titles.setdefault(album, set()).add(title)
 
     numbered: dict[str, list[str]] = {}

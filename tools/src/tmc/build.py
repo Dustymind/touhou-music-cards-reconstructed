@@ -211,9 +211,17 @@ def _single_source_files() -> list[pathlib.Path]:
     return out
 
 
-def load_mirror_tracks(source_id: str) -> list[list[str]]:
-    """读一张镜像源表（``data/sources/<id>.toml`` 的 ``[[track]]``）→ ``[[album, title, url], …]``。"""
-    with open(repo.DATA / "sources" / f"{source_id}.toml", "rb") as fh:
+def load_mirror_tracks(source_id: str, missing_ok: bool = False) -> list[list[str]] | None:
+    """读一张镜像源表（``data/sources/<id>.toml`` 的 ``[[track]]``）→ ``[[album, title, url], …]``。
+
+    ``missing_ok=True`` 时表不存在返回 ``None``（``tmc.validate`` 的引用/标题统计要这个语义：
+    缺表由 ``check_source_registry()`` 另报 —— 镜像 id 是派生的，注册表里写错一个 ``table_url``
+    不该让整套校验以 traceback 收场）。镜像表只有这一个读取器（S1c 起）。
+    """
+    path = repo.DATA / "sources" / f"{source_id}.toml"
+    if missing_ok and not path.exists():
+        return None
+    with open(path, "rb") as fh:
         data = tomllib.load(fh)
     return [[t["album"], t["title"], t["url"]] for t in data.get("track", [])]
 
