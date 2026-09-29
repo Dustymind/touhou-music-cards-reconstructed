@@ -45,9 +45,20 @@ path = "docs/permissions/**"
 SPDX-FileCopyrightText = "2025 电球 魔爱天下第一，multimode_Liu"
 SPDX-License-Identifier = "LicenseRef-Permission-Evidence"
 
-# ---- 数据子模块：独立仓库，许可应在各自仓库里声明 ----------------------------------
-# 这里只是让 lint 有个交代；真正的 LICENSE 要加到那两个仓库里（见 THIRD-PARTY-NOTICES.md 第 6.3 节）。
+# ---- 数据仓库落点：独立仓库，许可应在各自仓库里声明 --------------------------------
+# 这里只是让 lint 有个交代（落点是 gitignored 的，lint 其实看不到）；真正的 LICENSE 要加到
+# 那两个仓库里（见 THIRD-PARTY-NOTICES.md §5.3）。
 [[annotations]]
 path = ["data/otomads/**", "data/custom/**"]
 SPDX-FileCopyrightText = "2026 multimode_Liu"
 SPDX-License-Identifier = "MIT"
+
+# ---- 第三方许可正文：`LICENSES/` 里的单份存放，由声明文件点名 ----------------------
+# `LICENSES/{BSD-3-Clause,ISC,Apache-2.0}.txt` 是**随产物分发的第三方许可正文**（包不在仓库里，
+# 没法逐文件标）。REUSE 只认"被某个文件的 SPDX 标识符引用"，而 `LICENSES/` 自己不算引用方
+# （试过：给正文文件自身加注解仍报 Unused licenses）⇒ 在这里由它们所属的声明文件代言。
+# `MIT` 要留着：这条比上面 `**` 更贴近，会把那条覆盖掉。
+[[annotations]]
+path = "THIRD-PARTY-NOTICES.md"
+SPDX-FileCopyrightText = "2026 multimode_Liu"
+SPDX-License-Identifier = "MIT AND BSD-3-Clause AND ISC AND Apache-2.0"

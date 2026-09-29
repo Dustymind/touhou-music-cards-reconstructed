@@ -46,6 +46,10 @@ env.PLAYWRIGHT_BROWSERS_PATH ??= path.join(ROOT, ".playwright-browsers");
 // uv 的缓存也放仓库内：有些环境（沙箱、只读 $HOME）写不了默认位置。
 // 一个仓库一个缓存，不按子项目分。
 env.UV_CACHE_DIR ??= path.join(ROOT, ".uv", "cache");
+// `uvx`（`pnpm license:lint` 的 reuse）还要两个位置：默认在 `~/.local/share/uv/…`，
+// 只读 $HOME 时直接报 "failed to create directory"。仍是谁设过听谁的。
+env.UV_TOOL_DIR ??= path.join(ROOT, ".uv", "tools");
+env.UV_TOOL_BIN_DIR ??= path.join(ROOT, ".uv", "bin");
 // 两个数据仓库的位置（REFACTOR-PLAN v2 §7.2/§11.4：不再是 submodule）：
 // env 可覆盖，默认 data/<mode>；npm script 里写 $OTOMADS_DATA_DIR/tools，由下面的展开处理。
 // 空串也算没设：调用方（pnpm / CI）常常导出空值占位，`??=` 会把空串当成有效值。

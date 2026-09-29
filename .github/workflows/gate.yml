@@ -3,6 +3,8 @@
 #
 # 三条边界：① 产物**不提交**（§7.1 默认链路）；② 本工作流**不部署**（部署是 Vercel 的事，
 # 保住 Git 集成与预览）；③ 谁的 CI 生成谁的产物 —— 数据集快照由两个数据仓库各自的 CI 发布
+#
+# 另外跑 `pnpm license:lint`（REUSE 3.3）：许可映射是"文档说能校验"没人跑过的典型，接上才算数。
 # （otomads: publish.yml 的 dataset 段；custom: tests.yml 的 dataset 段）。
 name: gate
 
@@ -37,6 +39,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: 门禁（build + validate + notices --check）
         run: pnpm gate
+      - name: 许可层（REUSE 3.3：REUSE.toml 的逐路径映射 + LICENSES/ 有没有人用）
+        run: pnpm license:lint
       - name: 可复现性（同输入构建两次，逐字比对）
         run: |
           set -euo pipefail
