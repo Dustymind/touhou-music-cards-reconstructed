@@ -241,3 +241,28 @@ def test_old_top_level_cover_array_is_rejected_with_a_migration_hint(tmp_path, m
         pack_mod.load_packs()
 
 
+# ---------------------------------- §7.2 来源版本：外部模式的 index.json 必须带 source
+
+def test_external_index_must_carry_the_dataset_source(monkeypatch):
+    """外部模式（数据集在场）的产物 index.json 必须带 source；缺了就是追不到"哪次提交生成"。
+
+    反证：把 otomads 那份的 source 摘掉，同一次校验必须报错。
+    """
+    problems = validate.Problems()
+    validate.check_datasets({}, {}, {}, problems)
+    assert not any("source" in e for e in problems.errors), problems.errors
+
+    real = validate._load_generated
+
+    def without_source(mode):
+        data = real(mode)
+        if mode == "otomads" and data is not None:
+            data = {**data, "index": {k: v for k, v in data["index"].items() if k != "source"}}
+        return data
+
+    monkeypatch.setattr(validate, "_load_generated", without_source)
+    problems = validate.Problems()
+    validate.check_datasets({}, {}, {}, problems)
+    assert any("source.repo/commit" in e for e in problems.errors), problems.errors
+
+

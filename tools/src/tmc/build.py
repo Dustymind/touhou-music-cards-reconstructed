@@ -76,10 +76,10 @@ def load_albums() -> list[dict]:
 
 
 #: 数据集目录里必须齐的几件（缺任何一件 ⇒ 这个模式没有数据集）。形状见 REFACTOR-PLAN v2 §13.4：
-#: characters.json（**无身份**：key + 曲id[] + 可选 card/covers）、albums.json、
-#: tracks.json（TrackIndex）、sources.json 五件；pack-audio.json（contentHash 的音频口径输入）
-#: 是**可选**的（自定义模式没有音频口径，那份数据集不写它）。
-DATASET_FILES = ("characters.json", "albums.json", "tracks.json", "sources.json")
+#: index.json（带**来源版本** source，§7.2）、characters.json（**无身份**：key + 曲id[] +
+#: 可选 card/covers）、albums.json、tracks.json（TrackIndex）、sources.json 六件；
+#: pack-audio.json（contentHash 的音频口径输入）是**可选**的（自定义模式没有音频口径）。
+DATASET_FILES = ("index.json", "characters.json", "albums.json", "tracks.json", "sources.json")
 
 #: 数据仓库不在场、也没有 Release 快照时的**降级兜底**（§7.2 ③）：应用仍要启动、设置页仍要能填源。
 #: 真源是各自数据仓库的 sources/<mode>.toml（在场时以它为准）；这里只是那份记录的副本。
@@ -378,19 +378,26 @@ def content_hash(characters: dict, albums: dict, pack_audio: list[list[str]]) ->
     return hashlib.sha256(blob.encode("utf-8")).hexdigest()
 
 
-def build_index(mode: str, characters: dict, albums: dict, digest: str) -> dict:
+def build_index(mode: str, characters: dict, albums: dict, digest: str,
+                source: dict | None = None) -> dict:
+    """生成 index.json（§7.2）。
+
+    source = {repo, commit, dirty?} 是**数据集的来源版本**：数据仓库的 dataset.py 把它写进
+    自己的 dataset/index.json，主仓库只搬运。**原曲不记** source —— 自指（产物里写不出包含
+    它的那次提交，硬记只会指向父提交、反而误导）。它不参与 contentHash（index.json 不参与指纹）。
+    """
     chars = characters["characters"]
-    return {
-        "schema": SCHEMA_VERSION,
-        "mode": mode,
-        "contentHash": digest,
-        "counts": {
-            "characters": len(chars),
-            "albums": len(albums["albums"]),
-            "trackEntries": sum(len(c["music"]) for c in chars),
-            "distinctTracks": len({e["id"] for c in chars for e in c["music"]}),
-        },
+    index = {"schema": SCHEMA_VERSION, "mode": mode}
+    if source:
+        index["source"] = source
+    index["contentHash"] = digest
+    index["counts"] = {
+        "characters": len(chars),
+        "albums": len(albums["albums"]),
+        "trackEntries": sum(len(c["music"]) for c in chars),
+        "distinctTracks": len({e["id"] for c in chars for e in c["music"]}),
     }
+    return index
 
 
 def dataset_dir(mode: str):
@@ -439,7 +446,9 @@ def build_outputs() -> tuple[dict, dict[str, dict[str, str]]]:
         # contentHash 的音频口径（source / 裁剪区间）由数据仓库给 —— 它知道音频是怎么来的
         pack_audio = dataset["pack-audio.json"]["entries"] if dataset else []
         digest = content_hash(characters, albums, pack_audio)
-        index = build_index(mode, characters, albums, digest)
+        # 来源版本（§7.2）：数据集里那份 {repo, commit, dirty?} 原样搬进产物
+        index = build_index(mode, characters, albums, digest,
+                            (dataset or {}).get("index.json", {}).get("source"))
         indices[mode] = index
         base = dataset_dir(mode)
         # 契约 §6：characters.json 的 music 只留曲id[]，曲目信息在 tracks.json（TrackIndex）

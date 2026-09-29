@@ -452,6 +452,13 @@ def check_datasets(albums: dict[str, dict], pack_cards: dict[str, list[str]],
         entries, tracks, index = data['characters'], data['tracks'], data['index']
         if index.get('schema') != 2 or index.get('mode') != mode:
             p.error(f'[{mode}] index.json 的形状不对：schema={index.get("schema")!r} mode={index.get("mode")!r}')
+        # 来源版本（§7.2）：外部模式的数据集在场 ⇒ 产物必须能追到数据仓库的那次提交；原曲不记（自指）
+        if mode != 'originals':
+            source = index.get('source')
+            if (not isinstance(source, dict) or not isinstance(source.get('repo'), str)
+                    or not isinstance(source.get('commit'), str)):
+                p.error(f'[{mode}] index.json 缺 source.repo/commit'
+                        f'（数据集在场时来源版本必须有，§7.2）')
         seen: set[tuple[str, str, str]] = set()
         ids: set[str] = set()
         count = 0

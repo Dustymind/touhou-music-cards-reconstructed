@@ -44,13 +44,18 @@ def test_generated_outputs_are_exactly_the_contract():
 # ---------------------------------------- 数据集合并：无身份数据集 + 原曲身份（§7.2/§13.4）
 
 def make_dataset(*, characters: list[dict], tracks: dict, albums: list[dict] | None = None,
-                 sources: list[dict] | None = None, pack_audio: list | None = None) -> dict:
-    """一份**最小数据集**：形状照 ``data/otomads/dataset/*.json``（§13.4 的五件）。
+                 sources: list[dict] | None = None, pack_audio: list | None = None,
+                 source: dict | None = None) -> dict:
+    """一份**最小数据集**：形状照 ``data/otomads/dataset/*.json``（§13.4 的六件）。
 
     ``characters.json`` **没有身份**（只有 key + 曲id[] + 可选 card/covers），身份由
-    :func:`tmc.build.merge_characters` 从原曲真源接上。
+    :func:`tmc.build.merge_characters` 从原曲真源接上。``index.json`` 带**来源版本** ``source``
+    （§7.2：各数据仓库自己的 dataset.py 写它，主仓库只搬运）。
     """
     return {
+        "index.json": {"schema": build.SCHEMA_VERSION, "mode": "otomads",
+                       "source": source or {"repo": "demo-data", "commit": "0" * 40, "dirty": False},
+                       "counts": {}},
         "characters.json": {"schema": build.SCHEMA_VERSION, "characters": characters},
         "tracks.json": {"schema": build.SCHEMA_VERSION, "tracks": tracks},
         "albums.json": {"schema": build.SCHEMA_VERSION, "albums": albums or []},
@@ -75,6 +80,35 @@ def original_character(key: str, name: str, order: int, card: str,
             "searchNames": list(search_names),
             "music": [{"id": f"{key}_orig_001", "album": "原曲盘", "title": "原曲",
                        "extra": "角色曲"}]}
+
+
+def test_load_dataset_requires_every_file_including_index(tmp_path, monkeypatch):
+    """数据集"不齐 ⇒ None"（§7.2 ③的降级前提）：少 index.json 也算不齐 —— 来源版本不是可选装饰。
+
+    ``index.json`` 由数据仓库的 dataset.py 写（``source = {repo, commit, dirty?}``），
+    没有它就追不到"这套数据是哪次提交生成的"，宁可当数据集不在场、走空兜底。
+    """
+    monkeypatch.setattr(repo, "data_dir", lambda mode: tmp_path / mode)
+    root = write_dataset(tmp_path / "otomads" / "dataset", make_dataset(characters=[], tracks={}))
+    assert build.load_dataset("otomads") is not None
+    (root / "index.json").unlink()
+    assert build.load_dataset("otomads") is None
+
+
+def test_built_index_carries_the_dataset_source(tmp_path, monkeypatch):
+    """产物 index.json 的 source（§7.2）：外部模式原样搬数据仓库那份；原曲**不记**（自指）。
+
+    数据集不在场的模式同样不记 —— 记不出"那次提交"时不许硬编（降级兜底那条路）。
+    """
+    monkeypatch.setattr(repo, "data_dir", lambda mode: tmp_path / mode)
+    source = {"repo": "touhou-music-cards-otomads-data", "commit": "a" * 40, "dirty": False}
+    write_dataset(tmp_path / "otomads" / "dataset",
+                  make_dataset(characters=[], tracks={}, source=source))
+    _indices, outputs = build.build_outputs()
+    read = lambda *parts: json.loads(outputs[repo.PUBLIC_DATA.joinpath(*parts)])
+    assert read("otomads", "index.json")["source"] == source
+    assert "source" not in read("index.json")                  # 原曲：自指，不记
+    assert "source" not in read("custom", "index.json")         # 数据集不在场：记不出就不记
 
 
 def test_dataset_is_merged_onto_the_originals_identity():
