@@ -72,7 +72,6 @@ RUNTIME_CHARACTER = {"required": ["key", "name", "order", "card", "searchNames",
                      "optional": ["covers"]}
 RUNTIME_ALBUMS = DATASET_ALBUMS
 RUNTIME_ALBUM = DATASET_ALBUM
-RUNTIME_TRACKS = DATASET_TRACKS
 RUNTIME_TRACK = DATASET_TRACK
 RUNTIME_SOURCES = DATASET_SOURCES
 RUNTIME_SOURCE_RECORD = DATASET_SOURCE_RECORD
@@ -88,8 +87,6 @@ RUNTIME_CARDSET = {"required": ["id", "dir", "label", "localPrefix", "origins"],
 #: 镜像 manifest 与音MAD / 本机助手清单**同一个形状**（§2.1）。
 MIRROR_MANIFEST = {"required": ["schema", "mode", "pack", "tracks"]}
 MIRROR_ROW = 3                    # [专辑, 曲名, 地址]；镜像地址不改，没有第 4 位版本号（D144）
-ASSISTANT_MANIFEST = {"required": ["schema", "pack", "revision", "tracks"]}
-ASSISTANT_ROW = 4                 # [专辑, 曲名, 地址, 版本]；版本一律内容哈希（§2.6）
 
 
 def spec_problem(where: str, payload, spec: dict) -> list[str]:

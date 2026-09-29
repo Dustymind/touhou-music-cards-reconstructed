@@ -7,8 +7,6 @@ import re
 import unicodedata
 
 ROOT = pathlib.Path(__file__).resolve().parents[3]
-UPSTREAM_PUBLIC = ROOT / ".ref" / "upstream-v3" / "public"
-THBWIKI_DIR = ROOT / ".ref" / "thbwiki"
 DATA = ROOT / "data"
 PUBLIC_DATA = ROOT / "data" / "public" / "data"
 #: 阶段产物与历史快照。**定义只此一处** —— 2026-09-28 从根目录 `reports/` 移进 `docs/`，

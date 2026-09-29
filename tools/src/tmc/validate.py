@@ -439,17 +439,6 @@ def check_title_uniqueness(chars: list[dict], p: Problems) -> dict[str, object]:
     }
 
 
-def check_track_covers(covers: dict, problems: "Problems") -> None:
-    """源封面（`covers`，D153/D167）：每条曲目的 `cover` 必须是一条 https 直链。
-
-    逐档表那种写法（D164）已经取消：一个链接画所有画幅，裁切由前端做。
-    """
-    for key, values in sorted(covers.items()):
-        for index, cover in enumerate(values, start=1):
-            if not isinstance(cover, str) or not cover.startswith("https://"):
-                problems.error(f"音MAD 封面不是一条 https 直链：{key} 第 {index} 首（{cover!r}）")
-
-
 def _load_generated(mode: str) -> dict | None:
     """读生成物（data/public/data/<mode>/）；缺 index.json 就当这个模式没有数据集。"""
     base = build_mod.dataset_dir(mode)
