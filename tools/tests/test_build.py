@@ -497,6 +497,23 @@ def _data_repo_file():
     return helper
 
 
+#: 与数据仓库 `packformat.BITRATE_RANGE` 共享的向量（Q1 口径：两侧各存一份字面量）。
+BITRATE_RANGE_VECTOR = (32, 320)
+
+
+def test_bitrate_range_matches_the_data_repo_vector():
+    """`[[track]].bitrate` 的取值范围两边必须一致 —— 这是唯一一处只靠注释对齐的数值常量。
+
+    一边放宽而另一边没跟上，表现是"本地 `pnpm gate` 过、CI / 对面仓库拒收"（或反过来）。
+    """
+    assert pack_mod.BITRATE_RANGE == BITRATE_RANGE_VECTOR
+    helper = _data_repo_file()
+    match = re.search(r"^BITRATE_RANGE\s*=\s*\((\d+),\s*(\d+)\)",
+                      helper.read_text(encoding="utf-8"), re.MULTILINE)
+    assert match, "数据仓库的 BITRATE_RANGE 不见了？同步这条向量"
+    assert (int(match.group(1)), int(match.group(2))) == BITRATE_RANGE_VECTOR
+
+
 def test_key_sets_match_the_data_repo_literals():
     """四组键集合与数据仓库那份**逐字相同**（上面的共享向量只钉了"我们这边"的值）。
 
