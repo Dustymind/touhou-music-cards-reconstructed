@@ -312,6 +312,38 @@ def _read_mirror(source_id: str) -> list[list[str]] | None:
     return [[t["album"], t["title"], t["url"]] for t in data.get("track", [])]
 
 
+def check_album_prefixes(albums: dict[str, dict], p: "Problems") -> dict:
+    """专辑码对照不落盘（§10）：从镜像表**现推**「THBWiki 前缀 ↔ albumKey」并断言一一对应。
+
+    曲目文件引专辑用**名字**、THBWiki 文件名用**前缀**；两者之间不落一份对照表（会漂），
+    需要时从 data/sources/thbwiki.toml 现推：曲id = <前缀>_<序号>，albumKey 由镜像表里的
+    专辑名回查 originals.toml。实测 44 前缀 / 39 albumKey —— 一个 albumKey 对多个前缀**合法**
+    （子碟：th07.5-day/b、TFM-003A/O、th10.5-arrange/original、th14.5-bonus），反过来不合法。
+    """
+    entries = build_mod.load_mirror_entries("thbwiki")
+    by_name = {entry["name"]: entry.get("key") for entry in albums.values()}
+    prefixes: dict[str, set[str]] = collections.defaultdict(set)
+    for entry in entries:
+        track_id, album = entry["id"], entry["album"]
+        if "_" not in track_id:
+            p.error(f"thbwiki：曲id 不是 <前缀>_<序号> 形态 → {track_id}")
+            continue
+        key = by_name.get(album)
+        if key is None:
+            p.error(f"thbwiki：专辑未注册 → {album}（{track_id}）")
+            continue
+        prefixes[track_id.rsplit("_", 1)[0]].add(key)
+    for prefix, keys in sorted(prefixes.items()):
+        if len(keys) > 1:
+            p.error(f"thbwiki：前缀 {prefix} 属于多个 albumKey → {sorted(keys)}")
+    per_key: dict[str, list[str]] = collections.defaultdict(list)
+    for prefix, keys in prefixes.items():
+        for key in keys:
+            per_key[key].append(prefix)
+    multi = {key: sorted(v) for key, v in per_key.items() if len(v) > 1}
+    return {"prefixes": len(prefixes), "album_keys": len(per_key), "multi_prefix_keys": multi}
+
+
 def check_declared_sources(p: "Problems") -> int:
     """逐曲 ``[[track]].sources``（REFACTOR-PLAN v2 §4/§6）必须真的能在那些源里解析到。
 
@@ -687,6 +719,7 @@ def run() -> tuple["Problems", dict]:
     source_registry["table_urls"] = check_source_table_urls(p)
     card_sets = check_card_sets(p)
     title_stats = check_title_uniqueness(chars, p)
+    prefix_stats = check_album_prefixes(albums, p)
     for album, notes in title_stats["number_prefix_required"].items():
         p.note(f"{album}：去掉曲目序号会撞名，故 `曲目` 保留 `NN. ` —— {'；'.join(notes)}")
     digest = hashlib.sha256(
@@ -697,7 +730,7 @@ def run() -> tuple["Problems", dict]:
         "card_sets": card_sets, "packs": pack_stats, "declared_sources": declared_sources,
         "roster": roster_count,
         "modes": mode_stats, "pack_cards": len(pack_cards), "pack_covers": len(pack_covers),
-        "titles": title_stats,
+        "titles": title_stats, "album_prefixes": prefix_stats,
         **{k: v for k, v in char_stats.items() if k != "referenced"},
     }
 
@@ -740,6 +773,10 @@ def main(argv: list[str] | None = None) -> int:
              f"（原曲 {stats['source_registry']['by_mode'].get('originals', 0)} / "
              f"音MAD {stats['source_registry']['by_mode'].get('otomads', 0)} / "
              f"自定义 {stats['source_registry']['by_mode'].get('custom', 0)}）",
+             # §10：对照不落盘，构建期现推；一个 albumKey 对多个前缀（子碟）合法
+             f"- THBWiki 前缀 ↔ albumKey（现推，不落盘）：{stats['album_prefixes']['prefixes']} 前缀 / "
+             f"{stats['album_prefixes']['album_keys']} albumKey，其中一码多前缀 "
+             f"{len(stats['album_prefixes']['multi_prefix_keys'])} 个",
              f"- 曲包：{stats['packs']['packs']} 个 / {stats['packs']['tracks']} 条，"
              f"带 source（可自动抓取）{stats['packs']['with_source']} 条，"
              f"带裁剪区间 {stats['packs']['trimmed']} 条", "",

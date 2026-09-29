@@ -241,6 +241,34 @@ def test_old_top_level_cover_array_is_rejected_with_a_migration_hint(tmp_path, m
         pack_mod.load_packs()
 
 
+# ---------------------------------- §10 专辑码对照：现推 + 断言，不落盘
+
+def test_album_prefix_maps_to_exactly_one_album_key():
+    """§10：前缀 ↔ albumKey **不落盘**，构建期从镜像表现推；实测 44 前缀 / 39 albumKey。
+
+    一个 albumKey 对多个前缀是合法的（子碟），反过来不是 —— 这条断言守的是后者。
+    """
+    albums = validate.load_albums(validate.Problems())
+    problems = validate.Problems()
+    stats = validate.check_album_prefixes(albums, problems)
+    assert problems.errors == [], problems.errors
+    assert (stats["prefixes"], stats["album_keys"]) == (44, 39)
+    assert len(stats["multi_prefix_keys"]) == 4, stats["multi_prefix_keys"]
+
+
+def test_a_prefix_spanning_two_albums_is_rejected(monkeypatch):
+    """反证：同一个前缀挂到两张专辑 ⇒ 必须报错（否则"曲id 前缀 = 专辑"这条推导会静默错位）。"""
+    real = validate.build_mod.load_mirror_entries("thbwiki")
+    albums = validate.load_albums(validate.Problems())
+    other = next(entry["album"] for entry in real if entry["album"] != real[0]["album"])
+    broken = real + [{"id": real[0]["id"], "album": other, "title": "99. 撞前缀",
+                      "url": "https://example.com/x.mp3"}]
+    monkeypatch.setattr(validate.build_mod, "load_mirror_entries", lambda source_id: broken)
+    problems = validate.Problems()
+    validate.check_album_prefixes(albums, problems)
+    assert any("属于多个 albumKey" in e for e in problems.errors), problems.errors
+
+
 # ---------------------------------- §7.2 来源版本：外部模式的 index.json 必须带 source
 
 def test_external_index_must_carry_the_dataset_source(monkeypatch):
