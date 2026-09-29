@@ -41,25 +41,28 @@ card = ["チルノ-mad.png"]        # 可选：这套图集目录里的文件名
 提供 `/manifest.json`，主仓库用 `pnpm local` 起）。音MAD 的**录入/抓取/量响度全在数据仓库的工具里**
 （`<OTOMADS_DATA_DIR>/tools/`，见它的 `README.md`；主仓库只留 `pnpm` 路径包装 + `scripts/require-data.mjs` 在场检查，D130）。
 
-## 录一条新曲目
+## 加一首曲目
+
+真源是**数据仓库**里的一角色一份文件（`<OTOMADS_DATA_DIR>/packs/otomads/<角色 key>.toml`）。**手改**，
+没有导入工具 —— S5/§13.2 把原来那套 `parse_ingest_rows` / `ingest_pack` 脚本连同录入链一起删了：
 
 ```bash
 cd "${OTOMADS_DATA_DIR:-data/otomads}"      # 数据仓库（默认位置；env 指到别处就跟着变）
-uv run --project tools python -m otomads.parse_ingest_rows rows.txt   # ① 解析 → tools/ingest_rows_<日期>.json
-uv run --project tools python -m otomads.ingest_pack \
-    --pack otomads --rows tools/ingest_rows_<日期>.json               # ② 按角色追加（校验 characters.toml）
-uv run --project tools python -m otomads.fetch_audio                  # ③ 抓取/裁剪 + 刷新 loudness/otomads.json
-# ④ 回到主仓库根：拷响度表 + 生成 + 校验
+$EDITOR packs/otomads/<角色 key>.toml       # ① 在文件里加一个 [[track]]（键见下）
+uv run --project tools python -m otomads.fetch_audio --track <子串>   # ② 抓取 + 按 start/stop 裁剪，顺带刷新 loudness/otomads.json
+uv run --project tools python -m otomads.dataset                      # ③ 生成 dataset/（或回主仓库跑 pnpm data:datasets）
+# ④ 回到主仓库根：重新生成产物 + 校验
 pnpm data:build && pnpm data:validate
 ```
 
-③ 按行的 `character` 分组落文件（文件不存在就新建，带 `key = "…"` 与两行说明），
-**只追加、不改写已有内容**（人工注释与顺序都保住），同 `(专辑, 曲名)` **幂等跳过**，
-`--dry-run` 只打印不落盘；角色 key 不在 `data/characters/*.toml` 里直接报错
-（写错一个 key 会让曲目被静默错挂）。
-
-> ②③ 写进的是**数据仓库**的工作区：在那边提交即可（主仓库不再 pin commit，按 env 指向的克隆 / CI 快照取用），
-> 然后回主仓库跑 ④（见数据仓库的 `README.ai.MD`）。
+- ① 一个 `[[track]]` = 一首：`album` / `title` / `extra` 必填；`author`（或 `authors`，二者只写一个）、
+  `source` / `start_time` / `stop_time` / `bitrate` / `cover` 可选（三个音频键见下节）。角色还没有文件时
+  先 `pnpm data:scaffold`（幂等、不覆盖已有文件）。
+- ② 只抓 `source` 那一首（`--dry-run` 先看计划）；原件落曲库 `.raw/`、成品落 `<曲库>/<专辑>/…`，
+  `loudness/otomads.json` 跟着更新。
+- ③ 数据集（`dataset/`，gitignored）由数据仓库自己的 `dataset.py` 生成；主仓库只取用它。
+- 在**数据仓库**提交即可：主仓库不再 pin commit（不再是 submodule，按 env 指向的克隆 / CI 快照取用）。
+  回读的顺序与命令见数据仓库的 `README.ai.MD`。
 
 ## `[[track]]` 的三个音频键（可选）
 

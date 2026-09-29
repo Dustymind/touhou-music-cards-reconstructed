@@ -144,6 +144,9 @@ data/public/data/sources/*.json       # 两份镜像表：**manifest 形状**（
 
 ## 9. 实现记录（D113）
 
+> 注（现状）：下表里的**产物路径**是 S3 之前的 `public/data/…`；现在是 gitignored 的
+> `data/public/data/…`（§2 已按现状写）。
+
 **真源与生成物**：
 
 | 文件 | 内容 |

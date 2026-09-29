@@ -1,7 +1,7 @@
 # 音乐源（自包含）：头部 = 原注册表条目（table_url 指向生成物里的表），下面是本源的曲目地址。
 # 曲id = THBWiki 文件名 stem（与 data/characters/*.toml 的 [[track]].id 同一命名空间，不拆、不重编）。
 # 表地址形态（D131）：相对路径 / http(s) 绝对 URL；根绝对路径（前导 /）在子目录部署下必 404。
-# 本文件**人工维护**：工具只校验（tmc.validate / tmc.check_urls），不生成。
+# 本文件**人工维护**：工具只校验（tmc.validate；联网抽查实链用 --urls），不生成。
 
 id = "thbwiki"
 label_en = "THBWiki"

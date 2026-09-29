@@ -9,8 +9,9 @@
  * 1. **身份不搬进数据仓库**（契约 `docs/otomads-separation-v1.md` §5 S1）：应用启动时本来就把原曲
  *    数据集取全了（121 个角色的 name/order/card/searchNames），所以快照只需要给"角色 → 曲目"；
  *    真要"音MAD 自有身份"（S2）时，快照的角色条目可以**可选**地自带 `name`/`order`/`searchNames`。
- * 2. **形状必须与主仓库构建出来的自带数据逐字同形**（`music` 条目 = `tmc.build._pack_music`）：
- *    两边形状一旦漂移，就表现成"看得见、点不响"。数据仓库那边有同一份测试向量盯着（D145）。
+ * 2. **形状必须与主仓库构建出来的自带数据逐字同形**（曲目条目 = 数据仓库 `dataset.build_tracks` 的
+ *    `{album, title, extra, author?}` + 主仓库 `tmc.build.merge_characters` 接上的 `id`）：
+ *    两边形状一旦漂移，就表现成"看得见、点不响"。两个仓库各有同一份测试向量盯着（D145/D175）。
  * 3. **不额外发请求**：快照就在源清单**同一个 payload** 里（和 D139 的 `loudness` 一个套路）。
  *
  * `contentHash` 由**应用**按"生效的数据集"算（`packHash`），不由源声明：这样"有源的一边"与

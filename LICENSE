@@ -32,7 +32,7 @@ SOFTWARE.
 | `data/**` | MIT（本仓库自己的汇编；来源见 `docs/data-provenance.md`；生成物在 gitignored 的 `data/public/`，不随仓库分发） |
 | `src/assets/Inconsolata-Medium.ttf` | **SIL OFL-1.1** —— 原样分发，不可按 MIT 再许可 |
 | 打包进 `dist/` 的第三方 npm 包 | MIT 与 BSD-3-Clause，见 `THIRD-PARTY-NOTICES.md` |
-| `data/otomads/`、`data/custom/` | 独立仓库（submodule），许可在各自仓库里 |
+| `data/otomads/`、`data/custom/` | 独立仓库（D174 起是 env 落点，**不再是 submodule**），许可在各自仓库里 |
 
 另外，`dist/` 在运行时会从第三方地址加载卡面与音频，并显示东方 Project 的角色名与曲名；
 那些内容**不在 MIT 的授权范围内**，权利归各自原作者。详见 `THIRD-PARTY-NOTICES.md` 第 3、4 节。

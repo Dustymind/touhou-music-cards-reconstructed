@@ -17,7 +17,7 @@ git clone https://github.com/Dustymind/touhou-music-cards-custom-data.git data/c
 | `tmc.packs` | 曲包的**只读**加载与校验：清单 `<根>/<id>.toml` + 角色文件 `<根>/<id>/<角色 key>.toml`（根 = 主仓库 `data/packs/` + 数据仓库 `<OTOMADS_DATA_DIR>/packs/`，默认 `data/otomads/packs/`；写入侧已搬去数据仓库） |
 | `tmc.roster` | 从 `data/characters/*.toml` 生成数据仓库的角色清单 `characters.toml`（`pnpm data:roster`）。S5 起 `--scaffold` 也在这里：为「真源里有、曲包里还没有」的角色预置骨架文件 `packs/otomads/<角色 key>.toml`（`pnpm data:scaffold`）—— 幂等、**不覆盖**已有文件、不含 `[[track]]` 所以对生成物与 `contentHash` 完全惰性（D137） |
 | `tmc.validate` | 不变量校验（角色/专辑/曲目引用、同名曲、图集、按源注册与引用指纹）、`--report` 写出报告、`--urls` 抽查远程实链 |
-| `tmc.build` | 生成 `data/public/data/*.json`（可复现性由 `pnpm gate` 的两次构建比对承担；`contentHash` 含曲包音频口径；按源注册表的 `loudness` 把响度表拷进数据集目录 —— 源还可以在**自己的 manifest** 里声明表，前端优先按它取 ⇒ 表跟着源走，D139） |
+| `tmc.build` | 生成 `data/public/data/*.json`（可复现性由 `pnpm gate` 的两次构建比对承担；`contentHash` 含曲包音频口径；按源注册表声明的 `loudness`，把数据仓库放进 `<data_dir>/dataset/` 的那份表拷进 `data/public/data/<模式>/` —— 源还可以在**自己的 manifest** 里声明表，前端优先按它取 ⇒ 表跟着源走，D139） |
 | （`--urls`） | `tmc.validate --urls` 附带远程音源实链抽查（Range 请求 + 音频嗅探，S5 起并入 validate） |
 
 **不在这里**（数据仓库 `<OTOMADS_DATA_DIR>/tools/`，默认 `data/otomads/tools/`，自带 uv 工程、与主仓库零 import / 零 path 依赖）：

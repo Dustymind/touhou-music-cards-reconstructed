@@ -296,7 +296,7 @@ def test_build_albums_projects_the_dataset_registry():
 def test_mirror_ids_come_from_the_registry(tmp_path, monkeypatch):
     """镜像清单从「一源一文件」头部的 `kind = "remote"` 派生（S1c，继承 review R7④）。
 
-    真数据：派生出来的每个 id 都得有自包含源文件（构建从它重排 `public/data/sources/`）；
+    真数据：派生出来的每个 id 都得有自包含源文件（构建从它重排 `data/public/data/sources/`）；
     合成数据：加一个 `kind = "remote"` 的单源文件，派生结果**跟着变** —— 写死的清单不会 ✓。
     """
     ids = build.mirror_source_ids()
@@ -345,10 +345,10 @@ def test_build_sources_refuses_a_root_absolute_table_url(tmp_path, monkeypatch):
 
 
 def test_shipped_table_urls_are_deployment_shaped():
-    """**已提交的**生成物（前端真正 fetch 的那两个 JSON）不许出现根绝对路径。
+    """**构建出来的**生成物（前端真正 fetch 的那两个 JSON）不许出现根绝对路径。
 
-    这条盯的是产物而不是注册表：音MAD 的注册表在数据 submodule 里，
-    只读主仓库的 TOML 会漏掉它（`data/otomads/sources/otomads.toml`）。
+    这条盯的是产物而不是注册表：音MAD 的注册表在**数据仓库**里，
+    只读主仓库的 TOML 会漏掉它（`data/otomads/sources/otomads.toml`，默认落点）。
     """
     for mode in build.MODES:
         path = build.dataset_dir(mode) / "sources.json"
@@ -373,11 +373,11 @@ def test_author_join_matches_the_data_repo_helper():
     （两个仓库互相看不见对方的代码），所以只能这样按文本对一下字面量：
 
     - 数据仓库那份改了而主仓库没改（或反过来）⇒ 多作者曲目的音频**一声不响地找不到**；
-    - 没初始化 submodule 时跳过（与其它依赖曲包的用例同口径）。
+    - 数据仓库不在场时跳过（与其它依赖曲包的用例同口径）。
     """
     helper = repo.ROOT / "data" / "otomads" / "tools" / "src" / "otomads" / "packformat.py"
     if not helper.is_file():
-        pytest.skip("数据 submodule 未初始化：跳过跨仓库口径检查")
+        pytest.skip(SKIP_NO_DATA_REPO)
 
     def literal(path, name):
         match = re.search(rf'^{name}\s*=\s*"([^"]*)"', path.read_text(encoding="utf-8"), re.MULTILINE)
@@ -400,11 +400,11 @@ def test_normalize_title_matches_the_data_repo_helper():
     独立字段 —— 两边要比就得先按同一条规则归一化。第三份实现还出现在**铺 CDN 之前的自检**里
     （数据仓库 `stage_media.review` 用 `packformat` 那两个函数），所以它错一点，CI 立刻开始误报。
     两个仓库零 import 依赖，只能按文本对字面量（与 `AUTHOR_JOIN` 那条同一个套路）；
-    没初始化 submodule 时跳过（与其它依赖曲包的用例同口径）。
+    数据仓库不在场时跳过（与其它依赖曲包的用例同口径）。
     """
     helper = repo.ROOT / "data" / "otomads" / "tools" / "src" / "otomads" / "packformat.py"
     if not helper.is_file():
-        pytest.skip("数据 submodule 未初始化：跳过跨仓库口径检查")
+        pytest.skip(SKIP_NO_DATA_REPO)
 
     frontend = (repo.ROOT / "src" / "music" / "sources.ts").read_text(encoding="utf-8")
     # 前缀剥离那条正则：`^[^-]{1,60}?\s+-\s+`（JS 与 Python 写法一致，字面量对得上）
@@ -485,11 +485,15 @@ def test_key_sets_match_the_shared_vector():
     assert pack_mod.CHARACTER_KEYS == PACK_KEYS_VECTOR["character"]
 
 
+#: 跨仓库口径检查的跳过原因（数据仓库是 env 落点，不再是 submodule）。
+SKIP_NO_DATA_REPO = "数据仓库不在场（OTOMADS_DATA_DIR 没指到 clone）：跳过跨仓库口径检查"
+
+
 def _data_repo_file():
-    """数据仓库的 `packformat.py`（submodule 未初始化时跳过）。"""
+    """数据仓库的 `packformat.py`（数据仓库不在场时跳过）。"""
     helper = repo.ROOT / "data" / "otomads" / "tools" / "src" / "otomads" / "packformat.py"
     if not helper.is_file():
-        pytest.skip("数据 submodule 未初始化：跳过跨仓库口径检查")
+        pytest.skip(SKIP_NO_DATA_REPO)
     return helper
 
 

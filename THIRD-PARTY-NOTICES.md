@@ -186,9 +186,10 @@
 
 MIT，见 [`LICENSE`](LICENSE)。逐路径的权威映射见 [`REUSE.toml`](REUSE.toml)。
 
-### 5.3 数据子模块
+### 5.3 数据仓库
 
-`data/otomads/` 与 `data/custom/` 是独立仓库（git submodule），许可在各自仓库里声明。
+`data/otomads/` 与 `data/custom/` 是独立仓库（D174 起按 env `OTOMADS_DATA_DIR` / `CUSTOM_DATA_DIR` 挂载，
+**不再是 submodule**），许可在各自仓库里声明。
 
 ### 5.4 东方 Project 二次创作
 
