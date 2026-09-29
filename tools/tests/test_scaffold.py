@@ -17,7 +17,11 @@ MANIFEST = ('[pack]\nid = "otomads"\nlabel_en = "Otomads"\nlabel_zh = "音MAD"\n
 
 def make_tree(tmp_path: pathlib.Path, characters: dict[str, tuple[str, int]],
               existing: dict[str, str] | None = None) -> pathlib.Path:
-    """造一棵最小真源树：`data/characters/*.toml` + `data/otomads/packs/{otomads.toml,otomads/}`。"""
+    """造一棵最小真源树：`data/characters/*.toml` + 数据仓库的 `packs/{otomads.toml,otomads/}`。
+
+    曲包骨架的写入目标是 `repo.pack_roots()[1]`（即 `repo.data_dir("otomads")/packs`，见 roster.py）；
+    测试把它连同 `repo.DATA` 一起指到 `tmp_path`，所以下面这棵树就长在 `tmp_path/otomads/packs`。
+    """
     chars = tmp_path / "characters"
     chars.mkdir(parents=True)
     for key, (name, order) in characters.items():
@@ -34,8 +38,9 @@ def make_tree(tmp_path: pathlib.Path, characters: dict[str, tuple[str, int]],
 
 @pytest.fixture
 def tree(tmp_path, monkeypatch) -> pathlib.Path:
-    """把 `repo.DATA` 指到临时树（`tmc.packs` / `tmc.roster` 读的是同一个常量）。"""
+    """把 `repo.DATA` / `repo.data_dir` 指到临时树（`tmc.packs` / `tmc.roster` 读的是这一组函数）。"""
     monkeypatch.setattr(repo, "DATA", tmp_path)
+    monkeypatch.setattr(repo, "data_dir", lambda mode: tmp_path / mode)
     return make_tree(tmp_path, {"cirno": ("チルノ", 6), "rumia": ("ルーミア", 4)})
 
 
@@ -83,6 +88,7 @@ def test_skeleton_is_inert_for_the_pipeline(tree):
 
 def test_missing_follows_the_true_source_order(tmp_path, monkeypatch):
     monkeypatch.setattr(repo, "DATA", tmp_path)
+    monkeypatch.setattr(repo, "data_dir", lambda mode: tmp_path / mode)
     make_tree(tmp_path, {"later": ("後", 9), "earlier": ("先", 2)})
     assert [key for key, _name, _order in roster.scaffold_missing()] == ["earlier", "later"]
 
@@ -98,9 +104,15 @@ def test_example_keys_are_all_legal():
     assert keys <= set(pack_mod.TRACK_KEYS), keys
 
 
-def test_errors_when_the_submodule_is_not_initialised(tmp_path, monkeypatch):
-    """submodule 没初始化时给出可执行的提示，而不是写到一个不存在的地方。"""
+def test_errors_when_the_data_repo_is_not_present(tmp_path, monkeypatch):
+    """数据仓库不在场时给出可执行的提示，而不是写到一个不存在的地方。"""
     monkeypatch.setattr(repo, "DATA", tmp_path)
+    monkeypatch.setattr(repo, "data_dir", lambda mode: tmp_path / mode)
     (tmp_path / "characters").mkdir()
-    with pytest.raises(SystemExit, match="submodule"):
+    with pytest.raises(SystemExit) as failure:
         roster.scaffold_write()
+    message = str(failure.value)
+    assert "不存在" in message
+    # 提示要指向默认位置 data/otomads 或 env 覆盖（OTOMADS_DATA_DIR），使用者才知道去哪儿找
+    assert "data/otomads" in message or "OTOMADS_DATA_DIR" in message
+    assert not (tmp_path / "otomads").exists()      # 没写到不存在的地方去

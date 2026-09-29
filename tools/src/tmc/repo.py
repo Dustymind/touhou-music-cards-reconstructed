@@ -1,6 +1,7 @@
 """常量、路径与轻量文本处理（无第三方依赖）。"""
 from __future__ import annotations
 
+import os
 import pathlib
 import re
 import unicodedata
@@ -23,23 +24,38 @@ def shown(path: pathlib.Path) -> str:
     except ValueError:
         return str(path)
 
-#: 音MAD 曲包真源 submodule 的目录名（挂在 `data/` 下）。**开发时可选**：没初始化时
-#: 下面的查找函数找不到东西，`tmc.packs` 会跳过、`tmc.build` 不重新生成音MAD 数据集
-#: （用 `data/public/data/otomads/*.json`，S3 起是本地生成物）。
-OTOMADS_DATA = "otomads"
+#: 两个外部数据仓库的**位置来源**（REFACTOR-PLAN v2 §7.2/§11.4：不再是 submodule）。
+#: env 优先，默认 `<主仓库>/data/<mode>`：
+#:   * 本地开发：clone 到那儿，或把 env 指到工作区根的独立克隆；
+#:   * CI / Vercel：把 Release 的**数据集快照**解到那儿（`.github/workflows/gate.yml`）。
+DATA_DIR_ENV = {"otomads": "OTOMADS_DATA_DIR", "custom": "CUSTOM_DATA_DIR"}
+
+
+def data_dir(mode: str) -> pathlib.Path:
+    """某个外部数据仓库的根目录（env 覆盖 ⇒ 默认 `data/<mode>`）。"""
+    value = os.environ.get(DATA_DIR_ENV[mode], "").strip()
+    return pathlib.Path(value).expanduser() if value else DATA / mode
+
+
+def dataset_dir(mode: str) -> pathlib.Path:
+    """该仓库**已生成的数据集**目录：它自己的 `dataset.py` 写这里，或 CI 快照解开在这里。"""
+    return data_dir(mode) / "dataset"
 
 
 def pack_roots() -> tuple[pathlib.Path, ...]:
-    """曲包真源的根目录：主仓库 `data/packs/` + submodule `data/otomads/packs/`。
+    """曲包真源的根目录：主仓库 `data/packs/` + 音MAD 数据仓库的 `packs/`。
 
-    用函数而不是常量：测试会 monkeypatch `repo.DATA`（见 `tools/tests/`）。
+    用函数而不是常量：测试会 monkeypatch `repo.DATA`（见 `tools/tests/`），env 也可以随时改。
     """
-    return (DATA / "packs", DATA / OTOMADS_DATA / "packs")
+    return (DATA / "packs", data_dir("otomads") / "packs")
 
 
 def source_roots() -> tuple[pathlib.Path, ...]:
-    """音源注册表的根目录：主仓库 `data/sources/` + submodule `data/otomads/sources/`。"""
-    return (DATA / "sources", DATA / OTOMADS_DATA / "sources")
+    """音源注册表的根：主仓库 `data/sources/` + 两个数据仓库各自的 `sources/`。
+
+    每个模式的源跟着它自己的数据走（§11.3）：原曲只剩镜像，音MAD/自定义各在自己仓库。
+    """
+    return (DATA / "sources", data_dir("otomads") / "sources", data_dir("custom") / "sources")
 
 
 def find_source_registry(mode: str) -> pathlib.Path | None:

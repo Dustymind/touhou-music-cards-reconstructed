@@ -204,7 +204,7 @@ def check_source_table_urls(p: Problems) -> int:
         path = build_mod.dataset_dir(mode) / "sources.json"
         if not path.exists():
             if mode == "otomads":
-                p.note("音MAD 生成物不存在（submodule 未初始化）：跳过 otomads 源表地址检查")
+                p.note("音MAD 生成物不存在（数据仓库不在场）：跳过 otomads 源表地址检查")
             else:
                 p.error(f"缺少生成物：{repo.shown(path)}（跑 `pnpm data:build`）")
             continue
@@ -239,9 +239,9 @@ def check_source_registry(p: Problems) -> dict:
             continue
         path = repo.find_source_registry(mode)
         if path is None:
-            # 音MAD 的注册表在数据 submodule 里：没初始化就整个模式跳过（可选，见 D128）
+            # 音MAD 的注册表在它自己的数据仓库里：不在场就整个模式跳过（可选，见 D174）
             if mode == "otomads":
-                p.note("音MAD 数据 submodule 未初始化：跳过 otomads 音源注册表检查")
+                p.note("音MAD 数据仓库不在场：跳过 otomads 音源注册表检查")
             else:
                 p.error(f"缺少音源注册表：data/sources/{mode}.toml")
                 by_mode[mode] = []
@@ -310,6 +310,32 @@ def _read_mirror(source_id: str) -> list[list[str]] | None:
     with open(path, "rb") as fh:
         data = tomllib.load(fh)
     return [[t["album"], t["title"], t["url"]] for t in data.get("track", [])]
+
+
+def check_declared_sources(p: "Problems") -> int:
+    """逐曲 ``[[track]].sources``（REFACTOR-PLAN v2 §4/§6）必须真的能在那些源里解析到。
+
+    这张表是 S1 写进每条 ``[[track]]`` 的**声明**；在运行时按它排序之前，先让"写错源 id /
+    源表里没有这条曲目"当场报错 —— 否则它只是个没人看的字段。当前数据里 378 条声明的是同一对源，
+    与"按注册表 order 全局兜底"等价；运行时的解析顺序仍以注册表 order 为准（见 D174）。
+    """
+    registry = {entry["id"] for entry in build_mod.load_registry("originals") or []}
+    tables: dict[str, set[str]] = {}
+    declared_count = 0
+    for path in sorted((repo.DATA / "characters").glob("*.toml")):
+        with open(path, "rb") as fh:
+            data = tomllib.load(fh)
+        for track in data.get("track", []):
+            for source_id in track.get("sources") or []:
+                declared_count += 1
+                if source_id not in registry:
+                    p.error(f"{data['key']} / {track['id']}：声明的音源不在注册表里 → {source_id}")
+                    continue
+                if source_id not in tables:
+                    tables[source_id] = {entry["id"] for entry in build_mod.load_mirror_entries(source_id)}
+                if track["id"] not in tables[source_id]:
+                    p.error(f"{data['key']} / {track['id']}：{source_id} 的镜像表里没有这条曲目")
+    return declared_count
 
 
 def check_sources(referenced: set[tuple[str, str]], p: Problems):
@@ -392,90 +418,109 @@ def check_track_covers(covers: dict, problems: "Problems") -> None:
                 problems.error(f"音MAD 封面不是一条 https 直链：{key} 第 {index} 首（{cover!r}）")
 
 
-def check_datasets(chars: list[dict], pack_tracks: list[dict], pack_albums: list[dict],
-                   pack_cards: dict[str, list[str]],
-                   pack_covers: dict[str, list[str | dict[str, str]]],
-                   albums: dict[str, dict], p: "Problems") -> dict:
-    """每模式数据集（契约 `docs/otomads-separation-v1.md` §2/§3）。
+def _load_generated(mode: str) -> dict | None:
+    """读生成物（data/public/data/<mode>/）；缺 index.json 就当这个模式没有数据集。"""
+    base = build_mod.dataset_dir(mode)
+    if not (base / 'index.json').is_file():
+        return None
+    read = lambda name: json.loads((base / name).read_text(encoding='utf-8'))
+    return {'index': read('index.json'), 'characters': read('characters.json')['characters'],
+            'tracks': read('tracks.json')['tracks']}
 
-    查三件事：① 每份数据集**只含本模式的曲目**；② 各自的 `(角色, 专辑, 曲目)` 不重复、专辑已注册、
-    附加信息合法；③ **跨模式身份一致** —— 同一个角色 key 的 `name`/`order`/`searchNames` 必须一样
-    （否则界面上会出现"同一个角色两个名字"，契约 §5 S1）。
 
-    **卡面是这条规则的例外**：音MAD 侧可以在曲包角色文件里用 `card = [...]` 覆盖自己的卡面
-    （写法同 `data/characters/*.toml`）；只有**没覆盖**的角色才要求与共享身份一致。
-    **源封面（`cover`，D153）同样只在音MAD 那份里有**，所以它不参与"身份一致"，
-    但要检查"真源的 cover 真的进了生成物"（同 `card` 的那条）。
+def check_datasets(albums: dict[str, dict], pack_cards: dict[str, list[str]],
+                   pack_covers: dict[str, list[str | dict[str, str]]], p: 'Problems') -> dict:
+    """每模式数据集（契约 docs/otomads-separation-v1.md §2/§3）—— 这次检查的是**生成物本身**。
+
+    三件事：① 每份数据集**只含本模式的曲目**；② 角色/专辑/曲目不重复、专辑已注册、附加信息合法、
+    计数与 index.json 一致；③ **跨模式身份一致** —— 同一个角色 key 的 name/order/searchNames 必须一样
+    （否则界面上会出现同一个角色两个名字，契约 §5 S1）。
+
+    音MAD / 自定义的数据集来自各自的数据仓库（REFACTOR-PLAN v2 §7.2）；不在场时跳过该模式并记 note，
+    不是错误。卡面是身份一致的例外：音MAD 侧可以在曲包角色文件里用 card 覆盖自己的卡面。
     """
-    pack_names = {entry["name"] for entry in pack_albums}
-    datasets = {mode: build_mod.build_characters(mode, chars, pack_tracks, pack_cards,
-                                                 pack_covers)["characters"]
-                for mode in build_mod.MODES}
+    generated = {mode: _load_generated(mode) for mode in build_mod.MODES}
+    for mode, data in generated.items():
+        if data is None:
+            p.note(f'{mode} 数据集不在场（既没有 <data_dir>/dataset/，也没有快照）⇒ 跳过它的检查')
+    pack_names = {entry['name'] for entry in packs_mod.load_packs()[1]}
     stats: dict = {}
-    for mode, entries in datasets.items():
+    for mode in build_mod.MODES:
+        data = generated[mode]
+        if data is None:
+            continue
+        entries, tracks, index = data['characters'], data['tracks'], data['index']
+        if index.get('schema') != 2 or index.get('mode') != mode:
+            p.error(f'[{mode}] index.json 的形状不对：schema={index.get("schema")!r} mode={index.get("mode")!r}')
         seen: set[tuple[str, str, str]] = set()
+        ids: set[str] = set()
         count = 0
         for char in entries:
-            for album, title, extra, *_rest in _triples(char["music"]):
-                count += 1
-                where = f"{char['key']} / {album} / {title}"
+            for track_id in char.get('music', []):
+                record = tracks.get(track_id)
+                if record is None:
+                    p.error(f'[{mode}] 曲目 {track_id} 不在 tracks.json 里（{char.get("key")}）')
+                    continue
+                album, title, extra = record.get('album'), record.get('title'), record.get('extra')
+                count += 1; ids.add(track_id)
+                where = f'{char.get("key")} / {album} / {title}'
                 if extra not in EXTRAS:
-                    p.error(f"[{mode}] 附加信息非法「{extra}」（{where}）")
+                    p.error(f'[{mode}] 附加信息非法「{extra}」（{where}）')
                 if album not in albums:
-                    p.error(f"[{mode}] 专辑未注册「{album}」（{where}）")
-                if (album in pack_names) != (mode == "otomads"):
-                    p.error(f"[{mode}] 曲目不属于本模式（{where}）")
-                key = (char["key"], album, title)
+                    p.error(f'[{mode}] 专辑未注册「{album}」（{where}）')
+                if (album in pack_names) != (mode == 'otomads'):
+                    p.error(f'[{mode}] 曲目不属于本模式（{where}）')
+                key = (char.get('key'), album, title)
                 if key in seen:
-                    p.error(f"[{mode}] 曲目重复：{where}")
+                    p.error(f'[{mode}] 曲目重复：{where}')
                 seen.add(key)
-        stats[mode] = {
-            "characters": len(entries), "entries": count,
-            "distinctTracks": len({e["id"] for c in entries for e in c["music"]}),
-        }
-    # 跨模式身份/卡面的比较**只在原曲与音MAD 之间**做：模式 3 的自带数据集恒为空（0 角色，
-    # 卡名/卡面都是使用者自己的），它没有"共享身份"这回事 —— 不是漏了它。
-    by_mode = {mode: {c["key"]: c for c in entries} for mode, entries in datasets.items()}
-    for key in sorted(set(by_mode["originals"]) & set(by_mode["otomads"])):
-        left, right = by_mode["originals"][key], by_mode["otomads"][key]
-        for field in ("name", "order", "searchNames"):
-            if left[field] != right[field]:
-                p.error(f"跨模式身份不一致：{key} 的 {field}（{left[field]!r} vs {right[field]!r}）")
-        # 卡面：覆盖过的角色本来就该不同，只有**没覆盖**的才要求一致
-        if key in pack_cards:
-            if right["card"] != list(pack_cards[key]):
-                p.error(f"音MAD 卡面覆盖没生效：{key}（{right['card']!r} vs {pack_cards[key]!r}）")
-        elif left["card"] != right["card"]:
-            p.error(f"跨模式卡面不一致（未在曲包里覆盖）：{key}")
-        # 源封面（D153/D167）：只在 otomads 那份里有，检查"真源的 cover 真的进了生成物"
-        # （两边都是一条链接的字符串数组，直接比即可）
-        if key in pack_covers:
-            if right.get("covers") != list(pack_covers[key]):
-                p.error(f"音MAD 封面没生效：{key}（{right.get('covers')!r} vs {pack_covers[key]!r}）")
-        elif "covers" in right:
-            p.error(f"音MAD 生成物里多出了源码里没有的 covers：{key}")
+        counts = index.get('counts') or {}
+        expect = {'characters': len(entries), 'trackEntries': count, 'distinctTracks': len(ids)}
+        for field, value in expect.items():
+            if counts.get(field) != value:
+                p.error(f'[{mode}] index.counts.{field} 与生成物不符：{counts.get(field)!r} vs {value}')
+        stats[mode] = {'characters': len(entries), 'entries': count, 'distinctTracks': len(ids)}
+    by_mode = {mode: {c['key']: c for c in data['characters']}
+               for mode, data in generated.items() if data is not None}
+    if 'originals' in by_mode and 'otomads' in by_mode:
+        for key in sorted(set(by_mode['originals']) & set(by_mode['otomads'])):
+            left, right = by_mode['originals'][key], by_mode['otomads'][key]
+            for field in ('name', 'order', 'searchNames'):
+                if left.get(field) != right.get(field):
+                    p.error(f'跨模式身份不一致：{key} 的 {field}（{left.get(field)!r} vs {right.get(field)!r}）')
+            if key in pack_cards:
+                if right.get('card') != list(pack_cards[key]):
+                    p.error(f'音MAD 卡面覆盖没生效：{key}（{right.get("card")!r} vs {pack_cards[key]!r}）')
+            elif left.get('card') != right.get('card'):
+                p.error(f'跨模式卡面不一致（未在曲包里覆盖）：{key}')
+            if key in pack_covers:
+                if right.get('covers') != list(pack_covers[key]):
+                    p.error(f'音MAD 封面没生效：{key}（{right.get("covers")!r} vs {pack_covers[key]!r}）')
+            elif 'covers' in right:
+                p.error(f'音MAD 生成物里多出了源码里没有的 covers：{key}')
+    otomads_chars = by_mode.get('otomads', {})
     for key in sorted(pack_covers):
-        if key not in by_mode["originals"]:
-            p.error(f"曲包里的封面指向未知角色：{key}")
-        if key not in by_mode["otomads"]:
-            p.error(f"曲包里的封面指向没有音MAD 曲目的角色：{key}")
+        if key not in by_mode.get('originals', {}):
+            p.error(f'曲包里的封面指向未知角色：{key}')
+        if otomads_chars and key not in otomads_chars:
+            p.error(f'曲包里的封面指向没有音MAD 曲目的角色：{key}')
         cover = pack_covers[key]
-        if not cover or not all(isinstance(item, str) and item.startswith("https://") for item in cover):
-            p.error(f"曲包里的封面非法（{key}，必须是 https 直链的列表，一条一个封面）：{cover!r}")
-        entry = by_mode["otomads"].get(key)
-        if entry is not None and len(cover) != len(entry["music"]):
-            p.error(f"曲包里的封面数与曲目数不等（{key}：{len(cover)} vs {len(entry['music'])}）"
-                    f"—— 一首一封面，顺序一一对应")
+        if not cover or not all(isinstance(item, str) and item.startswith('https://') for item in cover):
+            p.error(f'曲包里的封面非法（{key}，必须是 https 直链的列表，一条一个封面）：{cover!r}')
+        entry = otomads_chars.get(key)
+        if entry is not None and len(cover) != len(entry.get('music', [])):
+            p.error(f'曲包里的封面数与曲目数不等（{key}：{len(cover)} vs {len(entry.get("music", []))}）'
+                    f'—— 一首一封面，顺序一一对应')
     for key in sorted(pack_cards):
-        if key not in by_mode["originals"]:
-            p.error(f"曲包里的卡面覆盖指向未知角色：{key}")
+        if key not in by_mode.get('originals', {}):
+            p.error(f'曲包里的卡面覆盖指向未知角色：{key}')
         face = pack_cards[key]
         if not face or not all(isinstance(item, str) and item for item in face):
-            p.error(f"曲包里的卡面覆盖非法（{key}）：{face!r}")
-    # 并集（两份数据集按构造互斥：曲包专辑只进 otomads）；模式 3 恒为空 ⇒ 并集与它无关
-    stats["union"] = {
-        "entries": stats["originals"]["entries"] + stats["otomads"]["entries"],
-        "distinctTracks": stats["originals"]["distinctTracks"] + stats["otomads"]["distinctTracks"],
+            p.error(f'曲包里的卡面覆盖非法（{key}）：{face!r}')
+    modes = [mode for mode in build_mod.MODES if mode in stats]
+    stats['union'] = {
+        'entries': sum(stats[mode]['entries'] for mode in modes),
+        'distinctTracks': sum(stats[mode]['distinctTracks'] for mode in modes),
     }
     return stats
 
@@ -535,12 +580,12 @@ def check_packs(packs: list[dict], albums: list[dict], tracks: list[dict],
 
 
 def check_roster(p: "Problems") -> int:
-    """数据仓库的角色清单（`data/otomads/characters.toml`）必须与主仓库真源一致（D130）。
+    """数据仓库的角色清单（`<data_dir>/characters.toml`）必须与主仓库真源一致（D130）。
 
-    submodule 未初始化时给 note 跳过（音MAD 数据在开发时可选，见 D128）。
+    数据仓库不在场时给 note 跳过（音MAD 数据在开发时可选，见 §7.2）。
     """
-    if not roster_mod.ROSTER.exists():
-        p.note("音MAD 数据 submodule 未初始化：跳过角色清单检查")
+    if not roster_mod.roster_path().exists():
+        p.note("音MAD 数据仓库不在场：跳过角色清单检查")
         return 0
     for problem in roster_mod.diff():
         p.error(f"[roster] {problem}")
@@ -611,7 +656,7 @@ def run() -> tuple["Problems", dict]:
     p = Problems()
     pack_list, pack_albums, pack_tracks, pack_cards, pack_covers = packs_mod.load_packs()
     if not packs_mod.available():
-        p.note("曲包真源 submodule 未初始化（data/otomads）：跳过曲包相关校验，音MAD 数据集按空处理")
+        p.note("曲包真源不在场（OTOMADS_DATA_DIR 没指到 clone）：跳过曲包相关校验")
     roster_count = check_roster(p)
     albums = load_albums(p)
     for entry in pack_albums:
@@ -623,12 +668,13 @@ def run() -> tuple["Problems", dict]:
     pack_stats = check_packs(pack_list, pack_albums, pack_tracks, chars, p)
     # 每模式数据集（含跨模式身份一致）；下面整套检查都跑在**原曲数据集**上 ——
     # 它们是关于 THBWiki 派生数据（角色/别名/裁定表/面次）的，曲包曲目不参与
-    mode_stats = check_datasets(chars, pack_tracks, pack_albums, pack_cards, pack_covers, albums, p)
+    mode_stats = check_datasets(albums, pack_cards, pack_covers, p)
     char_stats = check_characters(chars, albums, p)
     # 曲包曲目不在镜像表里（只存在于本机），覆盖检查只看非曲包曲目
     mirror_referenced = {(a, t) for a, t in char_stats["referenced"]
                          if a not in pack_album_names}
     source_stats = check_sources(mirror_referenced, p)
+    declared_sources = check_declared_sources(p)
     source_registry = check_source_registry(p)
     # 生成物里的源表地址形态（D131）：前端读的是 JSON，注册表对了这里也不能漏
     source_registry["table_urls"] = check_source_table_urls(p)
@@ -641,12 +687,17 @@ def run() -> tuple["Problems", dict]:
     return p, {
         "albums": len(albums), "characters": len(chars),
         "digest": digest, "sources": source_stats, "source_registry": source_registry,
-        "card_sets": card_sets, "packs": pack_stats,
+        "card_sets": card_sets, "packs": pack_stats, "declared_sources": declared_sources,
         "roster": roster_count,
         "modes": mode_stats, "pack_cards": len(pack_cards), "pack_covers": len(pack_covers),
         "titles": title_stats,
         **{k: v for k, v in char_stats.items() if k != "referenced"},
     }
+
+
+def _pick(modes: dict, mode: str, field: str) -> int:
+    """某个模式的某个计数；该模式的数据集不在场时算 0（报告照常出）。"""
+    return modes.get(mode, {}).get(field, 0)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -659,17 +710,19 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
 
     p, stats = run()
+    modes = stats["modes"]
     char_stats, source_stats = stats, stats["sources"]
 
     lines = ["# 校验报告", "",
              f"- 角色：{stats['characters']}", f"- 专辑：{stats['albums']}",
              f"- 曲目条目：{stats['modes']['union']['entries']}"
-             f"（原曲 {stats['modes']['originals']['entries']} + 音MAD {stats['modes']['otomads']['entries']}）",
+             f"（原曲 {_pick(modes, 'originals', 'entries')} + 音MAD {_pick(modes, 'otomads', 'entries')}）",
              f"- 去重曲目：{stats['modes']['union']['distinctTracks']}"
-             f"（原曲 {stats['modes']['originals']['distinctTracks']} + 音MAD {stats['modes']['otomads']['distinctTracks']}）",
-             f"- 每模式数据集：原曲 {stats['modes']['originals']['characters']} 角色 / "
-             f"音MAD {stats['modes']['otomads']['characters']} 角色（互斥，音MAD 只含有曲目的角色）/ "
-             f"自定义 {stats['modes']['custom']['characters']} 角色（**恒为空**，数据由使用者自己的源提供）",
+             f"（原曲 {_pick(modes, 'originals', 'distinctTracks')}"
+             f" + 音MAD {_pick(modes, 'otomads', 'distinctTracks')}）",
+             f"- 每模式数据集：原曲 {_pick(modes, 'originals', 'characters')} 角色 / "
+             f"音MAD {_pick(modes, 'otomads', 'characters')} 角色（互斥，音MAD 只含有曲目的角色）/ "
+             f"自定义 {_pick(modes, 'custom', 'characters')} 角色（恒为空，数据由使用者自己的源提供）",
              f"- 秘封曲条目：{char_stats['hifuu_entries']}",
              f"- 跨角色共用曲目：{len(char_stats['shared'])}",
              f"- 曲目身份 `(专辑,曲目)`：{stats['titles']['pairs']} 条，其中被多个角色共用 "

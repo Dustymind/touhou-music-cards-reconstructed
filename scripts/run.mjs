@@ -46,6 +46,13 @@ env.PLAYWRIGHT_BROWSERS_PATH ??= path.join(ROOT, ".playwright-browsers");
 // uv 的缓存也放仓库内：有些环境（沙箱、只读 $HOME）写不了默认位置。
 // 一个仓库一个缓存，不按子项目分。
 env.UV_CACHE_DIR ??= path.join(ROOT, ".uv", "cache");
+// 两个数据仓库的位置（REFACTOR-PLAN v2 §7.2/§11.4：不再是 submodule）：
+// env 可覆盖，默认 data/<mode>；npm script 里写 $OTOMADS_DATA_DIR/tools，由下面的展开处理。
+// 空串也算没设：调用方（pnpm / CI）常常导出空值占位，`??=` 会把空串当成有效值。
+env.OTOMADS_DATA_DIR = (env.OTOMADS_DATA_DIR ?? "").trim() || path.join(ROOT, "data", "otomads");
+env.CUSTOM_DATA_DIR = (env.CUSTOM_DATA_DIR ?? "").trim() || path.join(ROOT, "data", "custom");
+// uv 的仓库内兜底：scripts/ensure-uv.mjs 在 postinstall 里把它装到 .tools/（§7.1）
+env.PATH = path.join(ROOT, ".tools") + path.delimiter + env.PATH;
 
 // 参数里的 `$VAR` / `${VAR}` 由**我们自己**展开，不留给 shell ——
 // POSIX 认 `$VAR`、`cmd.exe` 认 `%VAR%`，交给 shell 就等于又把脚本绑回某个平台。

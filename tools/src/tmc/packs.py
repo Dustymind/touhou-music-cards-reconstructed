@@ -14,8 +14,8 @@
     <根>/otomads.toml                    # 清单：只放 [pack] 与 [[album]]
     <根>/otomads/kirisame-marisa.toml    # 角色文件：该角色的若干 [[track]]
 
-**根目录**（:func:`tmc.repo.pack_roots`）：主仓库 `data/packs/` + 音MAD 数据 submodule
-`data/otomads/packs/`。submodule 在开发时**可选** —— 没初始化时这里给一行提示并跳过它
+**根目录**（:func:`tmc.repo.pack_roots`）：主仓库 `data/packs/` + 音MAD 数据仓库的 `packs/`
+（`OTOMADS_DATA_DIR`，默认 `data/otomads`）。数据仓库在开发时**可选** —— 不在场时跳过它
 （契约 `docs/otomads-separation-v1.md`）。
 
 **只读**：写入侧（录入 / 抓取 / 响度）自 D130 起在数据仓库的 `tools/`（`otomads.*`），
@@ -125,10 +125,10 @@ def trim_seconds(track: dict) -> tuple[float, float | None] | None:
 
 
 def available() -> bool:
-    """曲包真源是否可用（音MAD 数据 submodule 初始化过）。
+    """曲包真源是否可用（音MAD 数据仓库在场）。
 
     ``False`` 时 :func:`load_packs` 返回空、``tmc.build`` 不重新生成音MAD 数据集 ——
-    submodule 在开发时**可选**，用主仓库里已提交的生成物（见 ``data/README.md``）。
+    数据仓库在开发时**可选**：不在场时走生成物 / Release 快照那条路（见 ``data/README.md``）。
     """
     return any(root.is_dir() and any(root.glob("*.toml")) for root in repo.pack_roots())
 
@@ -139,7 +139,7 @@ def load_packs() -> tuple[list[dict], list[dict], list[dict], dict[str, list[str
     ``cards`` 是"音MAD 侧自己的卡面覆盖"：``{角色 key: [卡面文件名, …]}``（只有写了 `card` 的角色才在里面）。
     ``covers`` 是"每首曲目一张的封面直链"：``{角色 key: [绝对 https URL, …]}``（只有写了 `cover`
     的角色才在里面，顺序与曲目一一对应，D153）。
-    根目录见 :func:`tmc.repo.pack_roots`；不存在的根（submodule 没初始化）**跳过并提示**。
+    根目录见 :func:`tmc.repo.pack_roots`；不存在的根（数据仓库不在场）**跳过并提示**。
     """
     packs: list[dict] = []
     albums: list[dict] = []
@@ -149,7 +149,7 @@ def load_packs() -> tuple[list[dict], list[dict], list[dict], dict[str, list[str
     for directory in repo.pack_roots():
         if not directory.is_dir():
             print(f"[packs] 跳过不存在的曲包根目录 {repo.shown(directory)}"
-                  f"（音MAD 数据 submodule 没初始化？跑 `git submodule update --init data/otomads`）",
+                  f"（音MAD 数据仓库不在场？clone 到 data/otomads 或设 OTOMADS_DATA_DIR）",
                   file=sys.stderr)
             continue
         _load_root(directory, packs, albums, tracks, cards, covers)

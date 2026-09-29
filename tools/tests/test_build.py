@@ -1,4 +1,4 @@
-"""生成物契约：`tmc.build` 写出哪些文件、曲包曲目进哪一份、镜像清单从哪来。
+"""生成物契约：`tmc.build` 写出哪些文件、数据集怎么接上原曲身份、镜像清单从哪来。
 
 对应用户审阅时列的仓库外条目（`REVIEW-enhanced-otomad-mode.md`）：R1（并入口只有一处）、
 R6（停生成没人读的 `packs.json`）、R7④（镜像 id 从注册表派生，不再三处硬编码）。
@@ -17,8 +17,8 @@ from tmc import build
 from tmc import packs as pack_mod
 from tmc import repo
 
-#: 音MAD 曲包真源在 submodule 里，开发时**可选**；没初始化时跳过依赖它的用例
-needs_otomads = pytest.mark.skipif(not pack_mod.available(), reason="音MAD 曲包 submodule 未初始化")
+#: 音MAD 数据仓库（曲包真源 + 数据集）在开发时**可选**；不在场时跳过依赖它的用例
+needs_otomads = pytest.mark.skipif(not pack_mod.available(), reason="音MAD 数据仓库不在场")
 
 
 @needs_otomads
@@ -41,24 +41,143 @@ def test_generated_outputs_are_exactly_the_contract():
     assert paths == expected
 
 
-@needs_otomads
-def test_pack_tracks_land_only_in_the_otomads_set():
-    """曲包曲目**只**进 otomads 数据集（D112）：原曲那份必须与真源逐条一致。
+# ---------------------------------------- 数据集合并：无身份数据集 + 原曲身份（§7.2/§13.4）
 
-    (R1：仓库里还留着旧的 `apply_tracks()`（生成物早已改走 `_pack_music`）——
-    "并入曲包曲目的地方只有一处"这件事由这条守。)
+def make_dataset(*, characters: list[dict], tracks: dict, albums: list[dict] | None = None,
+                 sources: list[dict] | None = None, pack_audio: list | None = None) -> dict:
+    """一份**最小数据集**：形状照 ``data/otomads/dataset/*.json``（§13.4 的五件）。
+
+    ``characters.json`` **没有身份**（只有 key + 曲id[] + 可选 card/covers），身份由
+    :func:`tmc.build.merge_characters` 从原曲真源接上。
+    """
+    return {
+        "characters.json": {"schema": build.SCHEMA_VERSION, "characters": characters},
+        "tracks.json": {"schema": build.SCHEMA_VERSION, "tracks": tracks},
+        "albums.json": {"schema": build.SCHEMA_VERSION, "albums": albums or []},
+        "sources.json": {"schema": build.SCHEMA_VERSION, "sources": sources or []},
+        "pack-audio.json": {"schema": build.SCHEMA_VERSION, "entries": pack_audio or []},
+    }
+
+
+def write_dataset(root: pathlib.Path, dataset: dict) -> pathlib.Path:
+    """把数据集写进某个 ``dataset/`` 目录（:func:`tmc.build.load_dataset` 读的那五件）。"""
+    root.mkdir(parents=True, exist_ok=True)
+    for name, payload in dataset.items():
+        (root / name).write_text(json.dumps(payload, ensure_ascii=False, indent=1) + "\n",
+                                 encoding="utf-8")
+    return root
+
+
+def original_character(key: str, name: str, order: int, card: str,
+                       search_names: list[str]) -> dict:
+    """原曲真源内存形状的一条角色（与 ``build.load_characters()`` 的产物同形）。"""
+    return {"key": key, "name": name, "order": order, "card": [card],
+            "searchNames": list(search_names),
+            "music": [{"id": f"{key}_orig_001", "album": "原曲盘", "title": "原曲",
+                       "extra": "角色曲"}]}
+
+
+def test_dataset_is_merged_onto_the_originals_identity():
+    """外部数据集**没有身份**：name / order / card / searchNames 一律取自原曲真源（§9 的继承），
+    曲目按 ``tracks.json`` 的 id 解析，顺序沿用原曲的 ``order``。
+
+    **反证**：把 ``merge_characters`` 的 ``dict(shared, music=music)`` 换成直接用数据集里的
+    entry ⇒ 身份与排序两条断言立刻红。
     """
     chars = build.load_characters()
-    _packs, _albums, pack_tracks, _cards, _covers = pack_mod.load_packs()
+    identity = {char["key"]: char for char in chars}
+    dataset = make_dataset(
+        # 故意把 cirno 写在 rumia 前面：合并必须按原曲身份重排，而不是照数据集的顺序
+        characters=[{"key": "cirno", "music": ["cirno_otomad_001", "cirno_otomad_002"]},
+                    {"key": "rumia", "music": ["rumia_otomad_001"]}],
+        tracks={
+            "cirno_otomad_001": {"album": "otomads", "title": "一", "extra": "角色曲",
+                                 "author": "甲"},
+            "cirno_otomad_002": {"album": "otomads", "title": "二", "extra": "秘封曲",
+                                 "author": "甲 & 乙", "authors": ["甲", "乙"]},
+            "rumia_otomad_001": {"album": "otomads", "title": "三", "extra": "道中曲"},
+        })
+    out = build.build_characters("otomads", chars, dataset)["characters"]
 
-    originals = build.build_characters("originals", chars, pack_tracks)["characters"]
-    assert [(char["key"], char["music"]) for char in originals] == \
-        [(char["key"], char["music"]) for char in chars]
+    assert [char["key"] for char in out] == sorted(
+        ("cirno", "rumia"), key=lambda key: identity[key]["order"])
+    for char in out:
+        shared = identity[char["key"]]
+        for field in ("name", "order", "card", "searchNames"):
+            assert char[field] == shared[field], field
+    by_key = {char["key"]: char for char in out}
+    assert by_key["rumia"]["music"] == [
+        {"id": "rumia_otomad_001", "album": "otomads", "title": "三", "extra": "道中曲"}]
+    assert by_key["cirno"]["music"] == [
+        {"id": "cirno_otomad_001", "album": "otomads", "title": "一", "extra": "角色曲",
+         "author": "甲"},
+        {"id": "cirno_otomad_002", "album": "otomads", "title": "二", "extra": "秘封曲",
+         "author": "甲 & 乙", "authors": ["甲", "乙"]},
+    ]
 
-    otomads = build.build_characters("otomads", chars, pack_tracks, {})["characters"]
-    keys = {char["key"] for char in chars}
-    assert all(char["key"] in keys for char in otomads)
-    assert sum(len(char["music"]) for char in otomads) == len(pack_tracks)
+
+def test_dataset_card_and_covers_override_the_identity():
+    """卡面是"跨模式身份一致"的**唯一例外**：数据集里的 ``card`` 覆盖原曲那份；
+    源封面 ``covers`` 只有这份有，按曲目顺序原样带过去（D167：一条链接画所有画幅）。"""
+    chars = [original_character("a", "甲", 1, "orig.png", ["甲", "A"])]
+    merged = build.build_characters("otomads", chars, make_dataset(
+        characters=[{"key": "a", "music": ["a_001"], "card": ["mad.png", "mad2.png"],
+                     "covers": ["https://x/1.jpg", "https://x/2.jpg"]}],
+        tracks={"a_001": {"album": "demo", "title": "一", "extra": "角色曲"}}))["characters"][0]
+    assert merged["card"] == ["mad.png", "mad2.png"]
+    assert merged["covers"] == ["https://x/1.jpg", "https://x/2.jpg"]
+    assert "coversByRatio" not in merged      # 逐档表（D164）已取消：一个链接画所有画幅
+
+
+def test_dataset_without_card_or_covers_keeps_the_identity():
+    """数据集没覆盖卡面 ⇒ 沿用原曲卡面；没有源封面 ⇒ **连键都没有**（原曲那份一个字段不多）。"""
+    chars = [original_character("a", "甲", 1, "orig.png", ["甲", "A"])]
+    merged = build.build_characters("otomads", chars, make_dataset(
+        characters=[{"key": "a", "music": ["a_001"]}],
+        tracks={"a_001": {"album": "demo", "title": "一", "extra": "角色曲"}}))["characters"][0]
+    assert merged["card"] == ["orig.png"]
+    assert "covers" not in merged
+
+
+def test_dataset_character_missing_from_the_originals_is_a_readable_error():
+    """数据集里的 key 在原曲真源里没有 ⇒ 接不上身份（§9）：SystemExit 并点名是哪个 key。"""
+    chars = [original_character("a", "甲", 1, "a.png", ["甲"])]
+    dataset = make_dataset(characters=[{"key": "nope", "music": ["nope_001"]}], tracks={})
+    with pytest.raises(SystemExit) as failure:
+        build.build_characters("otomads", chars, dataset)
+    message = str(failure.value)
+    assert "nope" in message
+    assert "身份" in message
+
+
+def test_dataset_track_missing_from_tracks_json_is_a_system_exit():
+    """``characters.json`` 引用了 ``tracks.json`` 里没有的 id ⇒ SystemExit（点名曲目与角色）。"""
+    chars = [original_character("a", "甲", 1, "a.png", ["甲"])]
+    dataset = make_dataset(characters=[{"key": "a", "music": ["a_missing"]}], tracks={})
+    with pytest.raises(SystemExit) as failure:
+        build.build_characters("otomads", chars, dataset)
+    message = str(failure.value)
+    assert "a_missing" in message and "（a）" in message
+
+
+def test_build_albums_projects_the_dataset_registry():
+    """专辑注册表取自数据集的 ``albums.json``：只留契约字段（key/name/kind/pack/order
+    [/showAlbumName]）并按 ``order`` 排序，数据集里的其它键不许漏进生成物。"""
+    dataset = make_dataset(
+        characters=[], tracks={},
+        albums=[
+            {"key": "late", "name": "Late", "kind": "other", "pack": "demo", "order": 100,
+             "showAlbumName": False, "内部字段": "不许漏出去"},
+            {"key": "early", "name": "Early", "kind": "other", "pack": "demo", "order": 50},
+        ])
+    assert build.build_albums("otomads", dataset) == {
+        "schema": build.SCHEMA_VERSION,
+        "albums": [
+            {"key": "early", "name": "Early", "kind": "other", "pack": "demo", "order": 50},
+            {"key": "late", "name": "Late", "kind": "other", "pack": "demo", "order": 100,
+             "showAlbumName": False},
+        ],
+    }
 
 
 def test_mirror_ids_come_from_the_registry(tmp_path, monkeypatch):
@@ -156,28 +275,6 @@ def test_author_join_matches_the_data_repo_helper():
     # `authors` 这个键两边都要认（只认一边 ⇒ 曲包一写就被另一边当成"不认识的键"拒掉）
     for path in (helper, pathlib.Path(pack_mod.__file__)):
         assert '"authors"' in path.read_text(encoding="utf-8"), path
-
-
-# ------------------------------------------------------------------ 跨仓库耦合：曲目条目形状（D145）
-
-#: **共享测试向量**：与数据仓库 `tools/tests/test_pack_audio.py::PACK_MUSIC_VECTOR` **同一份字面量**。
-#: 数据仓库那边盯着 `packformat.music_entry`（源在自己的清单里发的曲目表），这里盯着 `_pack_music`
-#: （构建期写进自带数据的曲目表）—— 两边必须**逐字同形**，否则应用按 (专辑, 曲名) 配不上地址，
-#: 表现成"看得见、点不响"（D145 的 C 路线就是靠这条同形才敢让源提供曲目表）。
-PACK_MUSIC_VECTOR = [
-    ({"album": "demo", "title": "只有附加信息", "extra": "角色曲"},
-     ["demo", "只有附加信息", "角色曲"]),
-    ({"album": "demo", "title": "单作者", "extra": "道中曲", "author": "甲"},
-     ["demo", "单作者", "道中曲", "甲"]),
-    ({"album": "demo", "title": "多作者", "extra": "秘封曲", "author": "甲 & 乙", "authors": ["甲", "乙"]},
-     ["demo", "多作者", "秘封曲", "甲 & 乙", ["甲", "乙"]]),
-]
-
-
-def test_pack_music_shape_matches_the_data_repo_vector():
-    """`music` 条目的形状（3 / 4 / 5 位）与数据仓库那份**共享向量**一致（D145）。"""
-    tracks = [dict(case, character="cirno", pack="demo") for case, _ in PACK_MUSIC_VECTOR]
-    assert build._pack_music(tracks)["cirno"] == [expected for _, expected in PACK_MUSIC_VECTOR]
 
 
 # ------------------------------------------------------------------ 跨仓库耦合：曲名归一化（D147）
@@ -315,38 +412,6 @@ def test_audio_filename_shape_matches_the_data_repo_helper():
 
 # ------------------------------------------------- 源封面：一条链接（D167）
 
-def test_source_covers_are_one_link_per_track():
-    """真源里每条曲目的 `cover` 是**一条链接**，生成物里就是 `covers` 字符串数组（每首一条）。
-
-    D167：源给**原版无修改**的那张图（不加分辨率/裁切参数），画幅与裁切由前端按当前档位运行时做。
-    **反证**：把 `_read_track_cover` 的"只认字符串"去掉（放行旧表）⇒ 下面那个 SystemExit 用例红。
-    """
-    chars = [
-        {"key": "a", "name": "甲", "order": 1, "card": ["a.png"], "searchNames": ["甲"],
-         "music": [{"id": "x_1", "album": "旧作", "title": "甲曲", "extra": "角色曲"}]},
-        {"key": "b", "name": "乙", "order": 2, "card": ["b.png"], "searchNames": ["乙"],
-         "music": [{"id": "x_2", "album": "旧作", "title": "乙曲", "extra": "角色曲"}]},
-    ]
-    tracks = [
-        {"pack": "otomads", "character": "a", "album": "otomads", "title": "一", "extra": "角色曲"},
-        {"pack": "otomads", "character": "a", "album": "otomads", "title": "二", "extra": "角色曲"},
-        {"pack": "otomads", "character": "b", "album": "otomads", "title": "三", "extra": "角色曲"},
-    ]
-    covers = {
-        "a": ["https://x/a1.jpg", "https://x/a2.jpg"],
-        "b": ["https://x/b.jpg"],
-    }
-    out = build.build_characters("otomads", chars, tracks, {}, covers)["characters"]
-    a, b = out[0], out[1]
-    assert a["covers"] == ["https://x/a1.jpg", "https://x/a2.jpg"]      # 顺序 = 曲目顺序
-    assert b["covers"] == ["https://x/b.jpg"]
-    # 一条链接画所有画幅 ⇒ 生成物里**没有**逐档那套键（D164 的 coversByRatio 已取消）
-    assert "coversByRatio" not in a and "coversByRatio" not in b
-    # 原曲那份一个字段都不多（两份的指纹口径不因此变）
-    originals = build.build_characters("originals", chars, tracks, {}, covers)["characters"]
-    assert all("covers" not in entry for entry in originals)
-
-
 def test_a_cover_table_is_now_a_hard_error():
     """旧的逐档表写法（D164）现在**当场报错**，并把人指回"一条链接"这条口径。"""
     entry = {"album": "otomads", "title": "一", "extra": "角色曲",
@@ -361,18 +426,18 @@ def test_a_cover_table_is_now_a_hard_error():
 def test_custom_dataset_is_empty_in_all_three_pieces():
     """模式 3 的自带数据集**恒为空**：0 角色 / 0 专辑 / 一条地址为空的源。
 
-    这条是"应用不带这个模式的任何数据"的守卫（契约 C1）。**反证**：把
-    `build_characters` 里那条 `elif mode == "custom"` 摘掉 ⇒ 它会落到曲包那套 ⇒ 下面两条立刻红。
+    两条入口都要守住（契约 C1）：拿不到数据集（``dataset=None``，§7.2 ③ 的降级兜底）与
+    真拿到一份**空数据集**，都必须给空表 —— 任何一条路串到别的模式的数据上，这里立刻红。
     """
     chars = build.load_characters()
-    _packs, pack_albums, pack_tracks, pack_cards, pack_covers = pack_mod.load_packs()
+    empty = make_dataset(characters=[], tracks={}, albums=[], sources=[])
+    for dataset in (None, empty):
+        characters = build.build_characters("custom", chars, dataset)
+        albums = build.build_albums("custom", dataset)
+        assert characters == {"schema": build.SCHEMA_VERSION, "characters": []}
+        assert albums == {"schema": build.SCHEMA_VERSION, "albums": []}
 
-    characters = build.build_characters("custom", chars, pack_tracks, pack_cards, pack_covers)
-    albums = build.build_albums("custom", pack_albums)
     sources = build.build_sources("custom")
-    assert characters == {"schema": build.SCHEMA_VERSION, "characters": []}
-    assert albums == {"schema": build.SCHEMA_VERSION, "albums": []}
-
     assert [entry["kind"] for entry in sources["sources"]] == ["custom"]
     assert sources["sources"][0]["tableUrl"] == ""       # 空 = 还没填，是这个模式的正常状态
     assert sources["sources"][0]["enabled"] is True      # 本模式只有它一个源
@@ -381,34 +446,49 @@ def test_custom_dataset_is_empty_in_all_three_pieces():
     assert index["counts"] == {"characters": 0, "albums": 0, "trackEntries": 0, "distinctTracks": 0}
 
 
-@needs_otomads
-def test_custom_does_not_borrow_the_pack_dataset():
-    """三份生成物互不串味：音MAD 那份非空、自定义那份空 —— 两者**不能**相等。"""
-    chars = build.load_characters()
-    _packs, _albums, pack_tracks, pack_cards, pack_covers = pack_mod.load_packs()
-    otomads = build.build_characters("otomads", chars, pack_tracks, pack_cards, pack_covers)
-    custom = build.build_characters("custom", chars, pack_tracks, pack_cards, pack_covers)
-    assert otomads["characters"], "音MAD 那份应该是非空的（submodule 已初始化）"
+def test_custom_does_not_borrow_the_otomads_dataset(tmp_path, monkeypatch):
+    """两份挂载的数据集互不串味：音MAD 那份非空、自定义那份空 —— 两者**不能**相等。
+
+    数据集位置由 ``repo.data_dir`` 决定（env 可覆盖）：这里指到 tmp 里的一份最小数据集，
+    所以**不依赖** ``data/otomads`` 在不在场，同时顺带守住 ``load_dataset`` 的"不齐 ⇒ None"。
+    """
+    monkeypatch.setattr(repo, "data_dir", lambda mode: tmp_path / mode)
+    write_dataset(tmp_path / "otomads" / "dataset", make_dataset(
+        characters=[{"key": "a", "music": ["a_001"]}],
+        tracks={"a_001": {"album": "demo", "title": "一", "extra": "角色曲"}}))
+    chars = [original_character("a", "甲", 1, "a.png", ["甲"])]
+
+    otomads_dataset = build.load_dataset("otomads")
+    assert otomads_dataset is not None
+    assert build.load_dataset("custom") is None          # 自定义那份压根没有数据集
+    otomads = build.build_characters("otomads", chars, otomads_dataset)
+    custom = build.build_characters("custom", chars, build.load_dataset("custom"))
+    assert otomads["characters"], "音MAD 那份应该是非空的"
     assert custom["characters"] == []
 
 
-def test_custom_outputs_do_not_depend_on_the_pack_submodule(monkeypatch):
-    """Q2：曲包 submodule 初始化与否，**除 otomads 之外**的生成物必须逐字相同。
+@needs_otomads
+def test_originals_and_custom_outputs_do_not_depend_on_the_otomads_dataset(monkeypatch):
+    """Q2：音MAD 数据集在不在场，**除 otomads 之外**的生成物必须逐字相同（§7.2 ③ 的降级兜底）。
 
-    做法是把"曲包真源在不在"这一个开关翻过来跑两遍再比文本 —— 这比"临时挪走目录"轻，
-    守的却是同一条：构建**不依赖** `data/otomads`（那个 submodule 只是开发时的可选真源）。
+    做法是把 ``build.load_dataset`` 对 otomads 这一个模式关掉再跑一遍比文本 —— 这比"临时挪走
+    数据集"轻，守的却是同一条：主仓库构建**不依赖**数据仓库那份数据集（它只是可选输入）。
     """
-    _indices, with_packs = build.build_outputs()
+    indices, with_dataset = build.build_outputs()
+    assert indices["otomads"]["counts"]["characters"] > 0      # 真数据集在场，开关真的翻过来了
 
-    monkeypatch.setattr(pack_mod, "available", lambda: False)
-    _indices2, without_packs = build.build_outputs()
+    real_load_dataset = build.load_dataset
+    monkeypatch.setattr(build, "load_dataset",
+                        lambda mode: None if mode == "otomads" else real_load_dataset(mode))
+    indices_without, without_dataset = build.build_outputs()
+    assert indices_without["otomads"]["counts"]["characters"] == 0
 
     def without_otomads(outputs):
         return {str(path.relative_to(repo.PUBLIC_DATA)): text for path, text in outputs.items()
                 if not str(path.relative_to(repo.PUBLIC_DATA)).startswith("otomads/")}
 
-    assert without_otomads(with_packs) == without_otomads(without_packs)
-    assert "custom/index.json" in without_otomads(with_packs)
+    assert without_otomads(with_dataset) == without_otomads(without_dataset)
+    assert "custom/index.json" in without_otomads(with_dataset)
 
 
 def test_source_table_url_problem_is_kind_aware():

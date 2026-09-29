@@ -1,11 +1,14 @@
 """把 ``data/``（TOML 真相源）生成为运行时直接 fetch 的 JSON，写到 ``data/public/data/``。
 
-布局（音MAD 与原曲分离契约 v1，见 ``docs/otomads-separation-v1.md``）：
+**三仓库独立构建**（REFACTOR-PLAN v2 §7.2；契约 ``docs/otomads-separation-v1.md``）：
 
-* **共享项**（与模式无关）写一份：``cardsets.json`` / ``sources/*.json``；
-* **每模式一份数据集**：``index.json`` / ``characters.json`` / ``albums.json`` /
-  ``tracks.json``，音MAD 那套在 ``data/public/data/otomads/`` —— 各自只含本模式的曲目、
-  各自一个 ``contentHash``。
+* 主仓库**只构建 originals** 与共享项（``cardsets.json`` / 镜像源表）；
+* **音MAD / 自定义**的数据集由**各自的数据仓库**构建（``python -m otomads.dataset` /
+  ``python -m custom.dataset`，写 ``<data_dir>/dataset/``），主仓库只**取用**：接上身份
+  （音MAD 的身份继承原曲数据集，§9）再组装成运行时那份；
+* 数据仓库位置：env ``OTOMADS_DATA_DIR`` / ``CUSTOM_DATA_DIR``，默认 ``data/<mode>``
+  （见 ``repo.data_dir``）；**不再是 submodule**（§11.4）；
+* 拿不到数据集时**不报错**（§7.2 ③）：该模式写成空兜底 + 一条默认源记录，运行时回退远程清单。
 
 S3 起生成物**不进仓库**（``data/public/`` 是 gitignored 生成目录，Vite 的 publicDir 指过去）；
 可复现性由 ``pnpm gate`` 的两次构建比对承担。
@@ -23,7 +26,6 @@ import re
 import sys
 import tomllib
 
-from . import packs as pack_mod
 from . import repo
 
 SCHEMA_VERSION = 2
@@ -73,80 +75,123 @@ def load_albums() -> list[dict]:
     return albums
 
 
-def build_characters(mode: str, chars: list[dict], pack_tracks: list[dict],
-                     pack_cards: dict[str, list[str]] | None = None,
-                     pack_covers: dict[str, list[str]] | None = None) -> dict:
-    """某模式的角色表：**只带本模式的曲目**。
+#: 数据集目录里必须齐的几件（缺任何一件 ⇒ 这个模式没有数据集）。形状见 REFACTOR-PLAN v2 §13.4：
+#: characters.json（**无身份**：key + 曲id[] + 可选 card/covers）、albums.json、
+#: tracks.json（TrackIndex）、sources.json 五件；pack-audio.json（contentHash 的音频口径输入）
+#: 是**可选**的（自定义模式没有音频口径，那份数据集不写它）。
+DATASET_FILES = ("characters.json", "albums.json", "tracks.json", "sources.json")
 
-    * ``originals``：全部 121 个角色，各自原本的曲目（曲包曲目**不再**并进来）；
-    * ``otomads``：只有"有音MAD 曲目"的角色，曲目就是那些曲包曲目（顺序沿用曲包文件顺序）；
-    * ``custom``：**恒为空表**（一条都不生成）—— 这个模式一条自带数据都没有，
-      卡名/卡面/曲目全部来自使用者自己的源清单，运行时由应用重建（契约 `docs/custom-mode-v1.md`）。
-      ⚠️ 这条分支不能省：`mode != "originals"` 原来会把**其它任何模式**都当成曲包那份处理 ⇒
-      漏了它，`custom` 会安静地拿到音MAD 那份的**全部角色与曲目**（最危险的一处）。
+#: 数据仓库不在场、也没有 Release 快照时的**降级兜底**（§7.2 ③）：应用仍要启动、设置页仍要能填源。
+#: 真源是各自数据仓库的 sources/<mode>.toml（在场时以它为准）；这里只是那份记录的副本。
+#: 音MAD 的 tableUrl 指向项目 CDN ⇒ 空数据集 + 运行时清单快照 = 那个模式照常可用。
+FALLBACK_SOURCES: dict[str, dict] = {
+    "otomads": {
+        "id": "local",
+        "label": {"en": "Local library", "zh": "本地曲库"},
+        "tableUrl": "https://otomads-cdn.tsukinomiyako-mangesui.top/manifest.json",
+        "kind": "local",
+        "order": 1,
+        "enabled": True,
+        "proxyable": False,
+        "description": {
+            "en": "Otomads tracks, served by the project CDN. Set the local library address to your"
+                  " own helper to use a local library instead.",
+            "zh": "音MAD 曲目，默认由项目 CDN 提供。想用自己的曲库，就把上面的「本地曲库地址」指向本机助手。",
+        },
+    },
+    "custom": {
+        "id": "custom",
+        "label": {"en": "Custom source", "zh": "自定义源"},
+        "tableUrl": "",
+        "kind": "custom",
+        "order": 1,
+        "enabled": True,
+        "proxyable": False,
+        "description": {
+            "en": "Your own card list: one card name, one card face and one track per card, served"
+                  " from a manifest you host yourself.",
+            "zh": "你自己的卡表：一张卡 = 一个卡名 + 一张卡面 + 一首曲目，由你自己托管的清单提供。",
+        },
+    },
+}
 
-    身份字段（``name``/``order``/``searchNames``）来自**同一份真源**（契约 §5 S1），两份生成物里各存一份，
-    跨模式一致性由 ``tmc.validate`` 守；**卡面是例外**：音MAD 侧可以在曲包的角色文件里用
-    ``card = [...]`` 覆盖（写法同 ``data/characters/*.toml``），缺省才沿用共享身份。
 
-    ``pack_covers`` 是**源封面**：``{角色 key: [链接, …]}``，每首曲目一条（D153/D167：
-    **一条链接**、原版无修改的图，画幅与裁切由前端按用户选的档位运行时做）。
-    它只在 ``otomads`` 那份里写进 ``covers``，原曲那份**一个字段都不多**（两份的指纹口径因此不变）。
+def load_dataset(mode: str) -> dict | None:
+    """读某个外部数据仓库已生成的数据集（<data_dir>/dataset/）；不齐就返回 None。
+
+    数据仓库位置见 repo.data_dir（env OTOMADS_DATA_DIR / CUSTOM_DATA_DIR，默认 data/<mode>）。
+    目录由各仓库自己的 dataset.py 写，或由 CI 的 Release 快照解开（scripts/build-datasets.mjs）。
     """
-    by_key = {char["key"]: char for char in chars}
+    root = repo.dataset_dir(mode)
+    if not all((root / name).is_file() for name in DATASET_FILES):
+        return None
+    dataset = {name: json.loads((root / name).read_text(encoding="utf-8")) for name in DATASET_FILES}
+    audio = root / "pack-audio.json"
+    dataset["pack-audio.json"] = (json.loads(audio.read_text(encoding="utf-8"))
+                                  if audio.is_file() else {"schema": SCHEMA_VERSION, "entries": []})
+    return dataset
+
+
+def merge_characters(mode: str, dataset: dict, chars: list[dict]) -> list[dict]:
+    """数据集（**没有身份**）→ 运行时角色表：接上原曲那份身份（§9 的继承关系）。
+
+    card 是例外：曲包角色文件里的覆盖**优先于**共享身份；covers（源封面）只在音MAD 那份里有，
+    原样带过去。顺序沿用原曲的 order（与构建期排序同一口径）。
+    """
+    identity = {char["key"]: char for char in chars}
+    tracks = dataset["tracks.json"]["tracks"]
+    chosen: list[dict] = []
+    for entry in dataset["characters.json"]["characters"]:
+        key = entry["key"]
+        shared = identity.get(key)
+        if shared is None:
+            raise SystemExit(f"[{mode}] 数据集里的角色 {key} 在原曲真源里没有 ⇒ 接不上身份"
+                             f"（身份继承见 docs/otomads-separation-v1.md §5 S1）")
+        music = []
+        for track_id in entry["music"]:
+            record = tracks.get(track_id)
+            if record is None:
+                raise SystemExit(f"[{mode}] 数据集缺曲目 {track_id}（{key}）")
+            music.append({"id": track_id, **record})
+        char = dict(shared, music=music)
+        if entry.get("card"):
+            char["card"] = list(entry["card"])       # 曲包覆盖：优先于共享身份
+        if entry.get("covers"):
+            char["covers"] = list(entry["covers"])   # 源封面：只有这份有
+        chosen.append(char)
+    order = {char["key"]: char["order"] for char in chars}
+    chosen.sort(key=lambda c: order[c["key"]])
+    return chosen
+
+
+def build_characters(mode: str, chars: list[dict], dataset: dict | None = None) -> dict:
+    """某模式的角色表：``originals`` 来自真源；两个外部模式来自各自数据仓库的数据集（接身份）。
+
+    * ``originals``：全部 121 个角色，各自原本的曲目；
+    * ``otomads`` / ``custom``：数据仓库的 ``dataset/characters.json``（**无身份**）+ 原曲那份身份
+      （``name`` / ``order`` / ``card`` / ``searchNames``）⇒ 运行时角色表。曲包里的 ``card`` 覆盖
+      与源封面 ``covers`` 优先/追加，语义与 S1 契约一致（``docs/otomads-separation-v1.md`` §5）。
+    * 数据集不在场（``dataset is None``）⇒ **空表**（降级兜底，§7.2 ③；运行时回退远程清单）。
+    """
     if mode == "originals":
         chosen = [dict(char, music=[dict(entry) for entry in char["music"]]) for char in chars]
-    elif mode == "custom":
+    elif dataset is None:
         chosen = []
     else:
-        chosen = []
-        cards = pack_cards or {}
-        covers = pack_covers or {}
-        for key, entries in _pack_music(pack_tracks).items():
-            char = by_key[key]
-            face = cards.get(key)
-            cover = covers.get(key)
-            # 曲id（§11.1）：<角色id>_otomad_<序号>，三位、从 01 起、按曲包文件顺序（与数据仓库 manifest 同序）
-            music = []
-            for index, entry in enumerate(entries, start=1):
-                item = {"id": f"{key}_otomad_{index:03d}", "album": entry[0],
-                        "title": entry[1], "extra": entry[2]}
-                if len(entry) > 3:
-                    item["author"] = entry[3]
-                if len(entry) > 4:
-                    item["authors"] = entry[4]
-                music.append(item)
-            # 源封面（D153/D167）：每条曲目**一条链接**，生成物里就是 `covers` 字符串数组
-            chosen.append(dict(char, music=music,
-                               **({"card": list(face)} if face else {}),
-                               **({"covers": list(cover)} if cover else {})))
-        order = {char["key"]: char["order"] for char in chars}
-        chosen.sort(key=lambda c: order[c["key"]])
+        chosen = merge_characters(mode, dataset, chars)
     return {"schema": SCHEMA_VERSION, "characters": chosen}
 
 
-def _pack_music(pack_tracks: list[dict]) -> dict[str, list[list]]:
-    """曲包曲目 → ``{角色 key: [music 条目, …]}``（**只有** otomads 数据集会用它，D112）。"""
-    music: dict[str, list[list]] = {}
-    for track in pack_tracks:
-        entry = [track["album"], track["title"], track["extra"]]
-        if track.get("author"):
-            entry.append(track["author"])      # 可选第 4 位：作者（D94）
-        if track.get("authors"):
-            entry.append(track["authors"])     # 可选第 5 位：**多作者数组**（D135，与第 4 位同源）
-        music.setdefault(track["character"], []).append(entry)
-    return music
-
-
-def build_albums(mode: str, pack_albums: list[dict]) -> dict:
-    """某模式的专辑注册表：``originals`` = ``originals.toml``；``otomads`` = 曲包自带的专辑；
-    ``custom`` = 空表（专辑跟着使用者的源清单走，运行时才有）。"""
-    albums: list[dict] = []
-    for entry in pack_albums if mode == "otomads" else []:
-        albums.append({k: entry[k] for k in ("key", "name", "kind", "pack", "order") if k in entry}
-                      | ({"showAlbumName": entry["showAlbumName"]} if "showAlbumName" in entry else {}))
+def build_albums(mode: str, dataset: dict | None = None) -> dict:
+    """某模式的专辑注册表：``originals`` = ``originals.toml``；其余 = 数据仓库给的那份（缺 ⇒ 空）。"""
     if mode == "originals":
         albums = load_albums()
+    elif dataset is None:
+        albums = []
+    else:
+        albums = [{k: entry[k] for k in ("key", "name", "kind", "pack", "order") if k in entry}
+                  | ({"showAlbumName": entry["showAlbumName"]} if "showAlbumName" in entry else {})
+                  for entry in dataset["albums.json"]["albums"]]
     albums.sort(key=lambda a: a["order"])
     return {"schema": SCHEMA_VERSION, "albums": albums}
 
@@ -183,7 +228,7 @@ def load_registry(mode: str) -> list[dict]:
     """读某个模式的音源注册表。
 
     ``originals``（S1c 起）= 每源一个自包含 TOML 的**头部集合**（没有单独注册表文件）；
-    其余模式 = ``data/sources/<mode>.toml`` 或 submodule 里的同名注册表文件。
+    其余模式 = 两个数据仓库各自 ``sources/<mode>.toml``（见 :func:`repo.source_roots`）。
     """
     if mode == "originals":
         entries = []
@@ -198,8 +243,9 @@ def load_registry(mode: str) -> list[dict]:
         return sorted(entries, key=lambda e: e["order"])
     path = repo.find_source_registry(mode)
     if path is None:
-        searched = "、".join(repo.shown(root) for root in repo.source_roots())
-        raise SystemExit(f"找不到音源注册表 {mode}.toml（找过：{searched}）")
+        # 两个外部模式的注册表跟着它们的数据仓库走（§11.3）：仓库不在场时返回 None，
+        # 调用方走 :data:`FALLBACK_SOURCES` 的降级兜底（§7.2 ③），不把构建打断。
+        return None
     with open(path, "rb") as fh:
         return tomllib.load(fh)["source"]
 
@@ -261,12 +307,18 @@ def build_sources(mode: str) -> dict:
     地址形态在这里就把关（:func:`source_table_url_problem`）：坏形态在 `data:build` 当场炸，
     而不是等用户在某个子目录部署上发现"一首歌都放不出来"（D131）。
     """
+    registry = load_registry(mode)
+    if registry is None:                       # 数据仓库不在场 ⇒ 降级兜底（§7.2 ③）
+        fallback = FALLBACK_SOURCES.get(mode)
+        if fallback is None:
+            raise SystemExit(f"[{mode}] 找不到音源注册表，也没有兜底记录")
+        return {"schema": SCHEMA_VERSION, "sources": [dict(fallback)]}
     sources = []
-    for entry in load_registry(mode):
+    for entry in registry:
         problem = source_table_url_problem(entry["kind"], entry["table_url"])
         if problem is not None:
             raise SystemExit(
-                f"❌ [{mode}] 音源 {entry['id']} 的 table_url 不合法：{entry['table_url']}\n   {problem}")
+                f"[FAIL] [{mode}] 音源 {entry['id']} 的 table_url 不合法：{entry['table_url']}\n   {problem}")
         record = {
             "id": entry["id"],
             "label": {"en": entry["label_en"], "zh": entry["label_zh"]},
@@ -349,36 +401,44 @@ def dataset_dir(mode: str):
 def loudness_tables(mode: str) -> list[tuple[pathlib.Path, pathlib.Path]]:
     """某模式各源声明的响度表 → ``[(源文件, 目标文件)]``（D130）。
 
-    ``loudness`` 路径写在各源的注册表里、相对**注册表所在仓库的根**；表由源的所有者生成
-    （音MAD 的表在数据仓库），主仓库只负责把它拷进 ``data/public/data/<mode>/``。
+    ``loudness`` 路径写在各源的注册表里、相对**注册表所在仓库的根**；数据仓库的 dataset.py 会顺手
+    把它拷进 ``<data_dir>/dataset/`` ⇒ **优先取数据集里那份**（Release 快照那条路只有它），
+    再回落到仓库里那份。表由源的所有者生成，主仓库只负责把它拷进 ``data/public/data/<mode>/``。
     """
     path = repo.find_source_registry(mode)
     if path is None:
         return []
-    base = path.parent.parent                  # data/otomads/sources/otomads.toml → data/otomads
-    return [(base / entry["loudness"], dataset_dir(mode) / entry["loudness"])
-            for entry in load_registry(mode) if entry.get("loudness")]
+    base = path.parent.parent                  # <仓库根>/sources/<mode>.toml → <仓库根>
+    pairs = []
+    for entry in load_registry(mode) or []:
+        rel = entry.get("loudness")
+        if not rel:
+            continue
+        origin = repo.dataset_dir(mode) / rel
+        pairs.append((origin if origin.is_file() else base / rel, dataset_dir(mode) / rel))
+    return pairs
 
 
 def build_outputs() -> tuple[dict, dict[str, dict[str, str]]]:
-    """生成全部文件 → ``(摘要, {模式: {相对路径: 文本}})``。
+    """生成全部文件 → (摘要, {模式: {相对路径: 文本}})。
 
-    音MAD 数据集依赖曲包真源（submodule）：**没初始化就跳过它**，不拿空数据覆盖已提交的生成物
-    （submodule 在开发时可选，见 ``data/README.md``）。
-    **自定义那个模式不依赖任何真源**（它恒为空）⇒ 跳过的只有 otomads：submodule 初始化与否，
-    `data/public/data/custom/*` 与 `data/public/data/<原曲那几份>` 都**逐字相同**（Q2 的"构建不依赖 submodule"）。
+    主仓库只构建 **originals** 与共享项；两个外部模式的数据集由各自数据仓库的 dataset.py 产出
+    （<data_dir>/dataset/，见 repo.dataset_dir）。拿不到就写**空兜底 + 默认源记录**（§7.2 ③）：
+    应用照常启动，那个模式运行时回退远程清单。
     """
-    _packs, pack_albums, pack_tracks, pack_cards, pack_covers = pack_mod.load_packs()
     chars = load_characters()
-    pack_audio = pack_mod.audio_descriptors(pack_tracks)
-
-    modes = MODES if pack_mod.available() else ("originals", "custom")
     outputs: dict[str, str] = {}
     indices: dict[str, dict] = {}
-    for mode in modes:
-        characters = build_characters(mode, chars, pack_tracks, pack_cards, pack_covers)
-        albums = build_albums(mode, pack_albums)
-        digest = content_hash(characters, albums, pack_audio if mode == "otomads" else [])
+    for mode in MODES:
+        dataset = None if mode == "originals" else load_dataset(mode)
+        if mode != "originals" and dataset is None:
+            print(f"[!] {mode} 数据集不可得（没有 {repo.shown(repo.dataset_dir(mode))}，也没有 Release"
+                  f" 快照）⇒ 只写空兜底，运行时回退远程清单", file=sys.stderr)
+        characters = build_characters(mode, chars, dataset)
+        albums = build_albums(mode, dataset)
+        # contentHash 的音频口径（source / 裁剪区间）由数据仓库给 —— 它知道音频是怎么来的
+        pack_audio = dataset["pack-audio.json"]["entries"] if dataset else []
+        digest = content_hash(characters, albums, pack_audio)
         index = build_index(mode, characters, albums, digest)
         indices[mode] = index
         base = dataset_dir(mode)
@@ -397,36 +457,33 @@ def build_outputs() -> tuple[dict, dict[str, dict[str, str]]]:
         # 源表随数据集走（音源层也按模式分，见 sources-separation-v1.md）
         outputs[base / "sources.json"] = _dumps(build_sources(mode))
 
-    # 各源的响度表（D130）：表在源的所有者那边，这里只按注册表声明的路径拷过来
-    for mode in modes:
+    # 各源的响度表（D130）：表在源的所有者那边，这里只按注册表声明的路径拷过来。
+    # 数据仓库不在场 ⇒ 注册表也找不到 ⇒ 没有可拷的（降级兜底那条路本来也不声明 loudness）。
+    for mode in MODES:
         for origin, target in loudness_tables(mode):
             if not origin.exists():
                 raise SystemExit(
                     f"响度表不存在：{repo.shown(origin)}"
-                    f"（在数据仓库跑 `uv run --project tools python -m otomads.loudness`）")
+                    f"（在数据仓库跑 uv run --project tools python -m otomads.loudness）")
             outputs[target] = origin.read_text(encoding="utf-8")
 
     # 共享项：与模式无关，只写一份
     outputs[repo.PUBLIC_DATA / "cardsets.json"] = _dumps(build_card_sets())
     for source_id in mirror_source_ids():
-        entries = {t["id"]: {"url": t["url"]} for t in load_mirror_entries(source_id)}
+        entries = {entry["id"]: {"url": entry["url"]} for entry in load_mirror_entries(source_id)}
         # 契约 §6：SourceTable（曲id → SourceEntry{url, revision?}）
-        outputs[repo.PUBLIC_DATA / "sources" / f"{source_id}.json"] = \
-            json.dumps({"schema": SCHEMA_VERSION, "entries": entries}, ensure_ascii=False, indent=1) + "\n"
+        outputs[repo.PUBLIC_DATA / "sources" / f"{source_id}.json"] = json.dumps(
+            {"schema": SCHEMA_VERSION, "entries": entries}, ensure_ascii=False, indent=1) + "\n"
     return indices, outputs
 
 
 def main(argv: list[str] | None = None) -> int:
-    # S3 起没有 --check：生成物不进仓库，漂移守卫由 pnpm gate 的可复现性比对承担（REFACTOR-PLAN v2 §7.5）
+    # S3 起没有 --check：生成物不进仓库，漂移守卫由 pnpm gate 的可复现性比对承担（§7.5）
     del argv
     indices, outputs = build_outputs()
-    if "otomads" not in indices:
-        print("[!] 跳过音MAD 数据集（曲包真源 submodule 未初始化）："
-              "不写 data/public/otomads/*.json", file=sys.stderr)
-
     for path, text in outputs.items():
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(text, encoding="utf-8")
+        path.write_text(text, encoding="utf-8", newline="\n")   # §13.7 ②：显式 LF
     summary = " / ".join(
         f"{mode} {indices[mode]['counts']['characters']} 角色 "
         f"{indices[mode]['counts']['distinctTracks']} 曲（{indices[mode]['contentHash'][:12]}）"

@@ -3,7 +3,6 @@ import pathlib
 
 import pytest
 
-from tmc import build
 from tmc import packs as pack_mod
 from tmc import validate
 
@@ -80,75 +79,6 @@ def test_pack_album_must_name_a_registered_pack():
     problems = validate.Problems()
     validate.check_packs(packs, typo, [], [], problems)
     assert any("未注册的曲包" in error for error in problems.errors), problems.errors
-
-
-def test_card_override_is_allowed_for_otomads_only():
-    """卡面是"跨模式身份一致"的**唯一例外**：音MAD 可以在曲包角色文件里覆盖自己的卡面。
-
-    其余身份字段（name / order / searchNames）仍必须一致；没覆盖的角色连 card 也要一致。
-    """
-    chars = [{"key": "a", "name": "A", "order": 1, "card": ["a.png"], "searchNames": ["a"],
-              "music": [{"id": "x_1", "album": "原曲盘", "title": "t", "extra": "角色曲"}]}]
-    pack_albums = [{"key": "otomads", "name": "otomads", "kind": "other", "pack": "otomads", "order": 1}]
-    pack_tracks = [{"character": "a", "album": "otomads", "title": "t2", "extra": "角色曲", "pack": "otomads"}]
-    albums = {"原曲盘": {}, "otomads": {}}
-
-    # ① 覆盖卡面：合法
-    problems = validate.Problems()
-    validate.check_datasets(chars, pack_tracks, pack_albums, {"a": ["a-mad.png"]}, {}, albums, problems)
-    assert problems.errors == [], problems.errors
-
-    # ② 没覆盖：两份数据集的 card 必须一致（这里本来就一致）
-    problems = validate.Problems()
-    validate.check_datasets(chars, pack_tracks, pack_albums, {}, {}, albums, problems)
-    assert problems.errors == [], problems.errors
-
-    # ③ 覆盖指向未知角色 → 报错
-    problems = validate.Problems()
-    validate.check_datasets(chars, pack_tracks, pack_albums, {"nope": ["x.png"]}, {}, albums, problems)
-    assert any("未知角色" in error for error in problems.errors)
-
-    # （校验里还有一条"覆盖了却没生效"的守卫：数据集是 build 出来的，正常路径下不会触发，
-    #   它防的是将来有人改 build_characters 绕过覆盖 —— 所以这里没有可构造的反例。）
-
-
-def test_source_covers_are_otomads_only_and_must_match_the_track_count():
-    """源封面（D153）：只在音MAD 那份里有；**一首一封面**（长度必须等于曲目数）。
-
-    `covers` 与 `card` 一样是"跨模式身份一致"的例外 —— 它压根不出现在原曲那份里，
-    所以要比的是"真源的 cover 真的进了 otomads 生成物"，以及"条数与曲目数相等"。
-    """
-    chars = [{"key": "a", "name": "A", "order": 1, "card": ["a.png"], "searchNames": ["a"],
-              "music": [{"id": "x_1", "album": "原曲盘", "title": "t", "extra": "角色曲"}]}]
-    pack_albums = [{"key": "otomads", "name": "otomads", "kind": "other", "pack": "otomads", "order": 1}]
-    pack_tracks = [{"character": "a", "album": "otomads", "title": "t2", "extra": "角色曲", "pack": "otomads"},
-                   {"character": "a", "album": "otomads", "title": "t3", "extra": "角色曲", "pack": "otomads"}]
-    albums = {"原曲盘": {}, "otomads": {}}
-    covers = {"a": ["https://i0.hdslb.com/a.jpg@703w_1000h_1c.webp",
-                    "https://i1.hdslb.com/b.jpg@703w_1000h_1c.webp"]}
-
-    # ① 两条曲目两条封面：合法，且**只**进 otomads 那份
-    problems = validate.Problems()
-    stats = validate.check_datasets(chars, pack_tracks, pack_albums, {}, covers, albums, problems)
-    assert problems.errors == [], problems.errors
-    assert stats["otomads"] == {"characters": 1, "entries": 2, "distinctTracks": 2}
-
-    # ② 长度对不上（两首曲目只有一条封面）→ 报错，且话说清楚"一首一封面"
-    problems = validate.Problems()
-    validate.check_datasets(chars, pack_tracks, pack_albums, {}, {"a": covers["a"][:1]}, albums, problems)
-    assert any("封面数与曲目数不等" in error for error in problems.errors), problems.errors
-
-    # ③ 不是 https 绝对 URL → 报错
-    problems = validate.Problems()
-    validate.check_datasets(chars, pack_tracks, pack_albums, {}, {"a": ["a-mad.png", "b.png"]},
-                            albums, problems)
-    assert any("封面非法" in error for error in problems.errors), problems.errors
-
-    # ④ 封面指向没有音MAD 曲目的角色 → 报错（曲目表里没有它，图也就没有落点）
-    problems = validate.Problems()
-    validate.check_datasets(chars, pack_tracks, pack_albums, {}, {"nope": ["https://x/y.jpg"]},
-                            albums, problems)
-    assert any("没有音MAD 曲目的角色" in error for error in problems.errors), problems.errors
 
 
 # ------------------------------------------------------------------ 曲包校验（写入侧已搬到数据仓库，D130）
@@ -311,16 +241,3 @@ def test_old_top_level_cover_array_is_rejected_with_a_migration_hint(tmp_path, m
         pack_mod.load_packs()
 
 
-def test_build_emits_authors_as_the_fifth_slot():
-    """`build._pack_music`：第 4 位仍是整串（stem），第 5 位才是多作者数组。"""
-    music = build._pack_music([
-        {"character": "cirno", "album": "demo", "title": "一", "extra": "角色曲",
-         "author": "甲 & 乙", "authors": ["甲", "乙"]},
-        {"character": "cirno", "album": "demo", "title": "二", "extra": "角色曲", "author": "丙"},
-        {"character": "cirno", "album": "demo", "title": "三", "extra": "角色曲"},
-    ])
-    assert music["cirno"] == [
-        ["demo", "一", "角色曲", "甲 & 乙", ["甲", "乙"]],
-        ["demo", "二", "角色曲", "丙"],
-        ["demo", "三", "角色曲"],
-    ]

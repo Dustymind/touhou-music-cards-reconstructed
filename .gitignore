@@ -3,6 +3,7 @@
 
 # Python / uv
 tools/.venv/
+.tools/
 __pycache__/
 *.py[cod]
 .pytest_cache/
@@ -33,6 +34,11 @@ cards-otomads/
 # S3：生成物不进仓库（dev 懒生成缓存 + Vite publicDir 的落点）
 data/public/
 .cache/
+# 两个数据仓库的落点（REFACTOR-PLAN v2 §7.2/§11.4：不再是 submodule）：
+#   本地开发：clone 到这里（或把 OTOMADS_DATA_DIR / CUSTOM_DATA_DIR 指到工作区根的独立克隆）；
+#   CI/Vercel：把 Release 的数据集快照下到这里（scripts/build-datasets.mjs）。
+data/otomads/
+data/custom/
 # S5：校验报告是本地工作记录（validate --report 现写现用），不随仓库分发
 docs/reports/
 

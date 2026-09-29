@@ -1,4 +1,4 @@
-"""把主仓库的角色真源写成数据仓库的角色清单（submodule 的 `characters.toml`）。
+"""把主仓库的角色真源写成数据仓库的角色清单（数据仓库根那份 characters.toml）。
 
 用法::
 
@@ -17,8 +17,9 @@ import tomllib
 
 from . import packs, repo
 
-#: 数据仓库里的清单路径（submodule；未初始化时不存在）
-ROSTER = repo.DATA / repo.OTOMADS_DATA / "characters.toml"
+def roster_path() -> pathlib.Path:
+    """数据仓库里的角色清单路径（env OTOMADS_DATA_DIR 可覆盖位置；仓库不在场时它不存在）。"""
+    return repo.data_dir("otomads") / "characters.toml"
 
 
 def load_characters() -> dict[str, dict]:
@@ -33,9 +34,9 @@ def load_characters() -> dict[str, dict]:
 
 def read_roster() -> dict[str, dict]:
     """读现有清单（不存在返回空）。"""
-    if not ROSTER.exists():
+    if not roster_path().exists():
         return {}
-    data = tomllib.loads(ROSTER.read_text(encoding="utf-8"))
+    data = tomllib.loads(roster_path().read_text(encoding="utf-8"))
     return {entry["key"]: entry for entry in data.get("character", [])}
 
 
@@ -77,8 +78,8 @@ def render(roster: dict[str, dict]) -> str:
 
 def diff() -> list[str]:
     """清单与真源的差异（给 `--check` 与 `tmc.validate` 用）。"""
-    if not ROSTER.exists():
-        return [f"缺少角色清单：{repo.shown(ROSTER)}（跑 `pnpm data:roster` 生成）"]
+    if not roster_path().exists():
+        return [f"缺少角色清单：{repo.shown(roster_path())}（跑 `pnpm data:roster` 生成）"]
     current = read_roster()
     expected = build_roster(existing=current)
     problems: list[str] = []
@@ -95,22 +96,22 @@ def diff() -> list[str]:
 
 
 def write(roster: dict[str, dict] | None = None) -> pathlib.Path:
-    if not ROSTER.parent.is_dir():
-        raise SystemExit(f"{repo.shown(ROSTER.parent)} 不存在："
-                         f"先跑 `git submodule update --init data/otomads`")
+    if not roster_path().parent.is_dir():
+        raise SystemExit(f"{repo.shown(roster_path().parent)} 不存在："
+                         f"clone 到 data/otomads 或设 OTOMADS_DATA_DIR")
     roster = build_roster() if roster is None else roster
-    ROSTER.write_text(render(roster), encoding="utf-8")
-    return ROSTER
+    roster_path().write_text(render(roster), encoding="utf-8", newline="\n")
+    return roster_path()
 
 
 # ---- 曲包骨架（S5 起并入 roster，原 tmc.scaffold，D137） ----
-#: 目标曲包：骨架写进 `<数据仓库 submodule>/packs/<PACK_ID>/`
+#: 目标曲包：骨架写进 `<数据仓库>/packs/<PACK_ID>/`（env OTOMADS_DATA_DIR 可覆盖位置）
 PACK_ID = "otomads"
 
 
 def scaffold_target_dir() -> pathlib.Path:
-    """骨架要写进的目录（submodule 未初始化时不存在）。"""
-    return repo.DATA / repo.OTOMADS_DATA / "packs" / PACK_ID
+    """骨架要写进的目录（数据仓库不在场时不存在）。"""
+    return repo.pack_roots()[1] / PACK_ID
 
 
 def scaffold_toml_str(value: str) -> str:
@@ -170,7 +171,7 @@ def scaffold_write(dry_run: bool = False) -> list[str]:
     directory = scaffold_target_dir()
     if not directory.is_dir():
         raise SystemExit(f"{repo.shown(directory)} 不存在："
-                         f"先跑 `git submodule update --init data/otomads`")
+                         f"clone 到 data/otomads 或设 OTOMADS_DATA_DIR")
     created: list[str] = []
     for key, name, order in scaffold_missing():
         created.append(key)
