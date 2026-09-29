@@ -40,25 +40,43 @@ def _dumps(payload) -> str:
     return json.dumps(payload, ensure_ascii=False, indent=1, sort_keys=False) + "\n"
 
 
+def _field(owner: dict, key: str, where: str):
+    """必填字段：缺了就点名"哪个文件 + 哪个键"，而不是抛 `KeyError` traceback。
+
+    `tmc.validate` 也会报这些，但 `pnpm build` / `pnpm gate` **先跑 build** —— 真源里写错一个键，
+    用户该看到的是一句人话（D178 之后的健壮性自查）。
+    """
+    if key not in owner:
+        raise SystemExit(f"[FAILED] {where} 缺 `{key}`")
+    return owner[key]
+
+
 def load_characters() -> list[dict]:
     """真相源：``data/characters/*.toml``（一角色一份，含**该角色的全部**曲目）。
 
     S1b 起 TOML 是规整化形状（``search_names`` / ``card_name`` / ``[[track]]`` 带 ``id``·
     ``album_key``·``sources``）；**D177 起那个 ``card``=卡面组 id 列表已删**（121 份全一样、
     没有任何消费者）。这里**还原旧内存形状**（``searchNames`` / ``card``=文件名 / ``music``=三元组），
-    contentHash 与输出不变。
+    contentHash 与输出不变。缺键 / `album_key` 没注册都当场点名（见 :func:`_field`）。
     """
     key_to_name = {a["key"]: a["name"] for a in load_albums()}
     chars = []
     for path in sorted((repo.DATA / "characters").glob("*.toml")):
+        where = repo.shown(path)
         with open(path, "rb") as fh:
             c = tomllib.load(fh)
-        music = [{"id": t["id"], "album": key_to_name[t["album_key"]], "title": t["title"],
-                  "extra": t["extra"]} for t in c.get("track", [])]
+        music = []
+        for t in c.get("track", []):
+            album_key = _field(t, "album_key", where)
+            if album_key not in key_to_name:
+                raise SystemExit(f"[FAILED] {where}：曲目 {t.get('id', '?')} 的 album_key 没在 "
+                                 f"data/originals.toml 里注册：{album_key!r}")
+            music.append({"id": _field(t, "id", where), "album": key_to_name[album_key],
+                          "title": _field(t, "title", where), "extra": _field(t, "extra", where)})
         chars.append({
-            "key": c["key"], "name": c["name"], "order": c["order"],
-            "card": list(c["card_name"]), "searchNames": list(c["search_names"]),
-            "music": music,
+            "key": _field(c, "key", where), "name": _field(c, "name", where),
+            "order": _field(c, "order", where), "card": list(_field(c, "card_name", where)),
+            "searchNames": list(_field(c, "search_names", where)), "music": music,
         })
     chars.sort(key=lambda c: c["order"])
     return chars
@@ -70,8 +88,11 @@ def load_albums() -> list[dict]:
         data = tomllib.load(fh)
     albums = []
     for entry in data["album"]:
-        albums.append({k: entry[k] for k in ("key", "name", "kind", "pack", "order") if k in entry}
-                      | ({"work": entry["work"]} if "work" in entry else {}))
+        record = {k: _field(entry, k, "data/originals.toml")
+                  for k in ("key", "name", "kind", "pack", "order")}
+        if "work" in entry:                      # `work` 可选（秘封那几张才有）
+            record["work"] = entry["work"]
+        albums.append(record)
     albums.sort(key=lambda a: a["order"])
     return albums
 
