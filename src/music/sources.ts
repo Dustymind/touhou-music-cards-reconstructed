@@ -81,33 +81,22 @@ function normalizeTitle(title: string): string {
 }
 
 /**
- * 源清单的 payload → 查表用的 Map（REFACTOR-PLAN v2 §2.1：**只有对象这一种**，裸数组分支已退场）：
+ * 源清单的 payload → 查表用的 Map（REFACTOR-PLAN v2 §2.1：**只有 manifest 这一种形状**）：
  *
- *   1. 构建期源表 `{schema, entries: {曲id: {url, revision?}}}`（`data/public/data/sources/*.json`）；
- *   2. 本机助手 / CDN / 远端清单 `{schema, pack, tracks: [[专辑, 曲名, 地址, 版本?], …]}`。
+ *   `{schema, mode, pack, revision?, tracks: [[专辑, 曲名, 地址, 版本?], …]}` ——
+ *   构建期镜像表（`data/public/data/sources/*.json`）与本机助手 / CDN / 远端清单**同形**；
+ *   裸数组与 id 键控的 `{entries}` 两条分支都已退场（§2.1：前端删掉"数组 vs 对象"与"两套键"）。
  *
  *  `manifestUrl` 非空时，相对地址按 **manifest 所在的那一层**解析（D141，见 `sourceRelativeUrl`）；
  *  不传（纯函数用法 / 没加载过 manifest）时原样存 URL —— 与改前逐字一致。
  *  `revision` 是**整表兜底**版本（D144，见 `tableRevision`）：行里自带第 4 位时以行为准。 */
 export function buildEntries(payload: unknown, manifestUrl = "", revision = ""): Map<string, string> {
   const entries = new Map<string, string>();
-  // 形状归一都在这一处（别让调用方自己剥一层 —— S2 就是这么漏的：构建期那张 id 键控表被按
-  // `{tracks}` 剥成 undefined ⇒ 表空 ⇒ 整个曲库"所有已启用的音源都取不到"）。
+  // 形状归一都在这一处（别让调用方自己剥一层 —— S2 就是这么漏的：一张表被按另一种形状剥成
+  // undefined ⇒ 表空 ⇒ 整个曲库"所有已启用的音源都取不到"）。
   const table = payload !== null && typeof payload === "object" && !Array.isArray(payload)
-    ? payload as { entries?: unknown; tracks?: unknown }
+    ? payload as { tracks?: unknown }
     : null;
-  if (table?.entries && typeof table.entries === "object") {
-    for (const [id, rec] of Object.entries(table.entries as Record<string, { url?: unknown; revision?: unknown }>)) {
-      if (!rec || typeof rec.url !== "string" || rec.url.length === 0) continue;
-      const resolved = manifestUrl ? sourceRelativeUrl(manifestUrl, rec.url) : rec.url;
-      entries.set(
-        id,
-        versionedUrl(canonicalPathEncoding(resolved),
-                     typeof rec.revision === "string" ? rec.revision : revision),
-      );
-    }
-    return entries;
-  }
   const list = table?.tracks;
   if (!Array.isArray(list)) return entries;
   for (const row of list) {
@@ -128,7 +117,10 @@ export function buildEntries(payload: unknown, manifestUrl = "", revision = ""):
 }
 
 
-/** 按顺序找第一个"有这条曲目且没失败过"的源（S2：先按曲id 直查，再走旧清单行的桥接键）。 */
+/** 按顺序找第一个"有这条曲目且没失败过"的源（先按曲id 直查，再走 (专辑,曲名) 桥接键）。
+ *
+ *  清单行**不带**曲id（§1.5 的行形状就是 `[专辑, 曲名, 地址, 版本?]`）⇒ 实际命中的是桥接键；
+ *  曲id 那一步留着是 §6 解析规则的第一条，键控表真带 id 时照常命中，不额外花一次请求。 */
 export function resolveTrack(
   tables: TableMap,
   order: readonly string[],
@@ -221,13 +213,13 @@ export async function loadSourceTables(
       const response = await fetcher(source.tableUrl, { cache: "no-cache" });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const payload: unknown = await response.json();
-      // 形状归一交给 `buildEntries`（id 键控表 / `{tracks}` 清单 / 裸数组三种都认）
+      // 形状归一交给 `buildEntries`（只有 manifest 一种：`{schema, mode, pack, tracks[]}`）
       table.entries = buildEntries(payload, source.tableUrl, tableRevision(payload));
       // 源可以自己声明响度表（**相对 manifest 自身**，D139）：表跟着源部署，跨宿主也不用改应用。
       // 没声明就留空 —— 调用方（AppShell）回落到注册表里那份（相对数据集目录）。
-      const declared = Array.isArray(payload)
-        ? undefined
-        : (payload as { loudness?: unknown } | null)?.loudness;
+      const declared = payload !== null && typeof payload === "object" && !Array.isArray(payload)
+        ? (payload as { loudness?: unknown }).loudness
+        : undefined;
       if (typeof declared === "string" && declared.trim()) {
         table.loudnessUrl = sourceRelativeUrl(source.tableUrl, declared);
       }

@@ -160,6 +160,25 @@ def test_dataset_track_missing_from_tracks_json_is_a_system_exit():
     assert "a_missing" in message and "（a）" in message
 
 
+def test_mirror_tables_are_manifests_not_id_keyed_tables():
+    """§2.1：镜像表也是**同一个 manifest 形状**（mode / pack / tracks[]），不再是 id 键控的 entries 表。
+
+    行形状与音MAD 清单一致（[专辑, 曲名, 地址]，第 4 位版本号这里没有 —— 镜像地址不改，D144）；
+    形状统一后前端只有一条解析路径，键由 (专辑,曲名) 现推（曲目身份见 D173）。
+    """
+    _indices, outputs = build.build_outputs()
+    for source_id in build.mirror_source_ids():
+        payload = json.loads(outputs[repo.PUBLIC_DATA / "sources" / f"{source_id}.json"])
+        assert payload["schema"] == build.SCHEMA_VERSION
+        assert payload["mode"] == "originals" and payload["pack"] == source_id
+        assert "entries" not in payload
+        rows = payload["tracks"]
+        toml_rows = build.load_mirror_entries(source_id)
+        assert len(rows) == len(toml_rows) and rows[0] == [toml_rows[0]["album"],
+                                                          toml_rows[0]["title"], toml_rows[0]["url"]]
+        assert all(len(row) == 3 and row[2].startswith("http") for row in rows)
+
+
 def test_build_albums_projects_the_dataset_registry():
     """专辑注册表取自数据集的 ``albums.json``：只留契约字段（key/name/kind/pack/order
     [/showAlbumName]）并按 ``order`` 排序，数据集里的其它键不许漏进生成物。"""

@@ -108,14 +108,18 @@ export function installDataFetchStub(): void {
   globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = new URL(String(input), globalThis.location?.origin ?? "http://localhost/");
     if (url.pathname.startsWith("/data/")) return realFetch(input as RequestInfo, init);
-    // S2：生成物里 `music` 是**曲id 列表**（曲目信息在 tracks.json）⇒ 假表按 id 键控。
+    // S2：生成物里 `music` 是**曲id 列表**（曲目信息在 tracks.json）；§2.1 起源清单只有 manifest
+    // 一种形状（`tracks` 行 = [专辑, 曲名, 地址]）⇒ 假表按 (专辑,曲名) 键控。
     // 还按元组解构的话，这串 id 会被拆成一个个字符，播放层一首也解析不出来。
     const characters = (await (await realFetch("/data/characters.json")).json()) as {
       characters: { music: string[] }[];
     };
-    const entries: Record<string, { url: string }> = {};
-    for (const id of characters.characters[0]!.music) entries[id] = { url: "data:audio/mpeg;base64," };
-    return json({ entries });
+    const tracks = (await (await realFetch("/data/tracks.json")).json()) as {
+      tracks: Record<string, { album: string; title: string }>;
+    };
+    const rows = characters.characters[0]!.music.map(
+      (id) => [tracks.tracks[id]!.album, tracks.tracks[id]!.title, "data:audio/mpeg;base64,"]);
+    return json({ schema: 2, mode: "originals", pack: "stub", tracks: rows });
   }) as typeof fetch;
 }
 

@@ -470,10 +470,12 @@ def build_outputs() -> tuple[dict, dict[str, dict[str, str]]]:
     # 共享项：与模式无关，只写一份
     outputs[repo.PUBLIC_DATA / "cardsets.json"] = _dumps(build_card_sets())
     for source_id in mirror_source_ids():
-        entries = {entry["id"]: {"url": entry["url"]} for entry in load_mirror_entries(source_id)}
-        # 契约 §6：SourceTable（曲id → SourceEntry{url, revision?}）
-        outputs[repo.PUBLIC_DATA / "sources" / f"{source_id}.json"] = json.dumps(
-            {"schema": SCHEMA_VERSION, "entries": entries}, ensure_ascii=False, indent=1) + "\n"
+        rows = [[e["album"], e["title"], e["url"]] for e in load_mirror_entries(source_id)]
+        # §2.1 / §6：镜像表与音MAD 清单**同一个 manifest 形状**（mode / pack / tracks[]）——
+        # 前端只剩一条解析路径。行里不带曲id（键由 (专辑,曲名) 现推，曲目身份见 D173），也没有
+        # 版本号：镜像地址是别人的，我们一个字节都不改（D144）。
+        outputs[repo.PUBLIC_DATA / "sources" / f"{source_id}.json"] = _dumps({
+            "schema": SCHEMA_VERSION, "mode": "originals", "pack": source_id, "tracks": rows})
     return indices, outputs
 
 
