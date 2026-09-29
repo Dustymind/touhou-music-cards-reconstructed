@@ -26,10 +26,10 @@ pnpm dev                     # http://127.0.0.1:5173/?locale=zh
 |---|---|---|
 | **Node** | 24（`fnm use 24`） | 前端全部命令 |
 | **pnpm** | `corepack enable`，或 `npm i -g pnpm`（本机实测 12.4.2） | 同上 |
-| **Python ≥ 3.11 + uv** | `curl -LsSf https://astral.sh/uv/install.sh \| sh` | `tools/`：数据管线、曲库助手、抓取 |
+| **Python ≥ 3.11 + uv** | `curl -LsSf https://astral.sh/uv/install.sh \| sh`（`pnpm install` 的 postinstall 也会在 PATH 没有时自动装一份到仓库内 `.tools/`，见 `scripts/ensure-uv.mjs`） | `tools/` 与两个数据仓库：数据管线、曲库助手、抓取 |
 | **ffmpeg** | 系统二进制：`apt install ffmpeg` / `brew install ffmpeg` | 只用于曲包音频的**抓取与裁剪**（缺失时抓取命令启动即报错） |
 | **Playwright 浏览器** | 装进仓库内 `.playwright-browsers/`（已 gitignore） | 只用于 `pnpm test` / `pnpm e2e` |
-| **yt-dlp** | 不用手装：写在**数据仓库**的 `data/otomads/tools/pyproject.toml` 里，由 uv 管（主仓库 `tools/` 自 D130 起已不再依赖它） | 只用于抓取 |
+| **yt-dlp** | 不用手装：写在**数据仓库**的 `tools/pyproject.toml` 里（位置 = env `OTOMADS_DATA_DIR`，默认 `data/otomads/`），由 uv 管（主仓库 `tools/` 自 D130 起已不再依赖它） | 只用于抓取 |
 
 仓库内已有两处约定：`.npmrc` 把 pnpm store 放进仓库（`.pnpm-store/`，HOME 只读的沙箱里也能装）；
 `pnpm-workspace.yaml` 关掉严格 peer 检查（MUI 7 + React 19 有可选 peer）。
@@ -39,7 +39,8 @@ pnpm dev                     # http://127.0.0.1:5173/?locale=zh
 ```bash
 fnm use 24
 pnpm install                                         # 前端
-git submodule update --init data/otomads              # 音MAD 曲包真源（可选；不拉也能跑原曲模式）
+git clone https://github.com/Dustymind/touhou-music-cards-otomads-data.git data/otomads  # 音MAD 数据（可选；或设 OTOMADS_DATA_DIR 指向工作区根的同名克隆）
+git clone https://github.com/Dustymind/touhou-music-cards-custom-data.git data/custom    # 自定义数据（可选；CUSTOM_DATA_DIR 同理）
 pnpm data:sync                                        # 数据管线（建 tools/.venv）
 # 只为跑测试 / e2e（浏览器落在仓库内，已 gitignore）
 pnpm exec playwright install chromium firefox   # 装进仓库内 .playwright-browsers/（脚本会指过去）
@@ -92,8 +93,9 @@ label_zh = "音MAD"
 启动：
 
 ```bash
-pnpm local                                            # 起助手（工具在数据仓库 tools/，D130）
-# 等价于 cd data/otomads/tools && uv run python -m otomads.local_source --config ../../../local-source.toml
+pnpm local                                            # 起助手（工具在数据仓库 tools/，D130；先经 scripts/require-data.mjs 确认它在场）
+# 等价于 uv run --project $OTOMADS_DATA_DIR/tools python -m otomads.local_source --config local-source.toml
+# （$OTOMADS_DATA_DIR 由 scripts/run.mjs 补默认值 data/otomads，可用 env 覆盖）
 # --root / --port / --host / --public-base 可覆盖配置；
 # --print-url 只打印实际地址；--print-table 只打印曲目表 JSON
 ```
@@ -110,9 +112,10 @@ pnpm local                                            # 起助手（工具在数
 
 ### 4. 曲包音频的抓取与裁剪（可选）
 
-音MAD 曲包的真源在主仓库外的数据 submodule（`data/otomads/packs/otomads/*.toml`，一角色一份，见 D128）。
-submodule **pin 在一个 commit 上**（不是分支；tag 只是那个 commit 的名字，换成数据不必等打 tag）——
-数据仓库改完先 `git -C data/otomads fetch` 再 `git -C data/otomads checkout <commit>`，然后 `pnpm data:build`：
+音MAD 曲包的真源在独立数据仓库（`<OTOMADS_DATA_DIR>/packs/otomads/*.toml`，一角色一份；位置由 env 决定，默认 `data/otomads/`，见 D128）。
+它**不再是 submodule、也没有 pin**：主仓库直接用 env 指向的那份克隆，CI / Vercel 可以用 Release 数据集快照（`OTOMADS_DATASET_URL`）。
+数据仓库改完跑 `pnpm data:datasets` 让它重生成数据集，再 `pnpm data:build`：
+（下面这些 `audio:*` / `local` 命令都先经 `scripts/require-data.mjs otomads` 确认数据仓库在场，再用 `uv run --project $OTOMADS_DATA_DIR/tools` 跑。）
 写了 `source` 的曲目可以自动抓，并按 `start_time` / `stop_time` 裁掉前摇。裁剪走"**解码后精确切 + 重编码**"
 （D142）——起点与时长**按采样点**对齐，不是就近取整到 mp3 帧边界（改之前 `-c copy` 实测偏过 90 ms，
 见 `docs/packs-audio-v1.md` §5）。
@@ -202,11 +205,12 @@ pnpm build                                    # 先构建（vite 会清空 dist�
 pnpm media:pack                               # 打归档 → otomads-media.tar.gz（已 gitignore）→ 发布成 Release 资产
 pnpm media:stage                              # 从本机 .music + cards-otomads 铺进 dist
 OTOMADS_MEDIA_URL=<归档 URL> pnpm media:pull  # 构建时从归档拉（CI 用的就是这条思路）
+# media:* 同样先经 scripts/require-data.mjs otomads（OTOMADS_DATA_DIR，默认 data/otomads）
 ```
 
-**部署方式：静态音MAD 源由人手动铺**（**不接 CI** —— 主仓库的 Pages 工作流保持"纯静态、不需要 Python"
-的原取舍，见 D138）。拿到归档两条路：`gh release download th09.5-260925 --pattern otomads-media.tar.gz`
-（**主仓库是私有的**，匿名 `curl` 那个 release 地址会 404），或本机 `pnpm media:pack` 现打一份；
+**部署方式：静态音MAD 源由人手动铺**（素材不进仓库，见 D138）。注意构建链本身自 S3 起会跑 Python：
+`pnpm build` 先经 `scripts/build-datasets.mjs` 取两个数据仓库的数据集（env 克隆或 Release 快照），**不再是 submodule、也不再"不需要 Python"**。拿到归档两条路：`gh release download media --pattern otomads-media.tar.gz -R Dustymind/touhou-music-cards-otomads-data`
+（**数据仓库已公开**，匿名 `curl` 也能取），或本机 `pnpm media:pack` 现打一份；
 把归档解到静态站根目录即可（里面就是 `manifest.json` + `media/otomads/*.mp3` + `loudness/otomads.json`）。
 归档里是一份**相对地址**的 `manifest.json` + `media/otomads/*.mp3` + **本源响度表**（`loudness/otomads.json`，
 manifest 用 `loudness` 键声明它 —— **表跟着源走**，D139）+ 可选 `cards-otomads/*`，
@@ -263,10 +267,11 @@ manifest 所在那一层解析 ⇒ 换域名/端口/协议、换宿主与子路�
 | `pnpm test` | 单测（真实浏览器）：chromium + firefox 两个引擎各跑一遍；只跑一个引擎用 `pnpm test:chromium` / `pnpm test:firefox` |
 | `pnpm e2e` | 端到端：chromium + firefox + 移动端（Pixel 7）；会自己起 dev（5190）与信令（9100） |
 | `pnpm e2e:perf` | 「点击长任务」性能守卫（对机器负载敏感，单独跑） |
-| `pnpm data:test` | 数据管线测试（音频/本地源那些在数据仓库里，各有自己的 `pnpm` 脚本） |
+| `pnpm data:test` | 数据管线测试（音频/本地源那些在数据仓库里，各有自己的 uv 工程；主仓库的 `pnpm` 脚本只是包装） |
 | `pnpm gate` | build + validate + notices --check（提交前必跑；CI 再加两次构建比对） |
 | `pnpm data:validate` | 数据不变量校验（分类、面次、覆盖表、曲包） |
-| `pnpm data:build` | 改了 `data/` 之后重新生成 `data/public/data/*.json` |
+| `pnpm data:build` | 改了 `data/` 之后重新生成 `data/public/data/*.json`（先跑 `pnpm data:datasets`） |
+| `pnpm data:datasets` | 只让两个数据仓库各自生成 `dataset/`（env `OTOMADS_DATA_DIR` / `CUSTOM_DATA_DIR`，默认 `data/<mode>`；`build` / `gate` / `data:build` / `dev` 都会先跑它） |
 | `pnpm data:scaffold` | 给「真源里有、音MAD 曲包里还没有」的角色预置骨架文件（幂等、**不覆盖**手写内容、不影响生成物；D137） |
 
 > **各套测试当前的实测条数以 [`docs/README.md`](docs/README.md) 的现状表为准** —— 那里是唯一维护点。
@@ -329,7 +334,7 @@ manifest 所在那一层解析 ⇒ 换域名/端口/协议、换宿主与子路�
 | `data/**` | **MIT**（本仓库自己的汇编；来源见 [`docs/data-provenance.md`](docs/data-provenance.md)） |
 | `src/assets/Inconsolata-Medium.ttf` | **SIL OFL-1.1** —— 原样分发，**不可**按 MIT 再许可 |
 | 打包进 `dist/` 的第三方 npm 包 | MIT 与 BSD-3-Clause；另有 Google Material Icons 的 Apache-2.0 |
-| `data/otomads/`、`data/custom/` | 独立仓库（submodule），许可在各自仓库里声明 |
+| `data/otomads/`、`data/custom/` | 独立仓库（默认 clone 在 `data/<mode>/`，位置由 env 覆盖；gitignored、不随本仓库分发），许可在各自仓库里声明 |
 
 逐路径的权威映射在 [`REUSE.toml`](REUSE.toml)，可以校验：
 

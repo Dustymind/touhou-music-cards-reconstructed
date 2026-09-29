@@ -8,20 +8,20 @@
   源没给就不显示 —— D153））
 
 - `packs/` 附加曲包的**通用根目录**（当前只剩 `README.md`：未来的第二个包放这里，契约见它）；音MAD 的真源在
-  **submodule** `otomads/` —— 清单 `otomads/packs/otomads.toml` + 一角色一份 `otomads/packs/otomads/*.toml`（**80** 份有曲目；
-  本地专辑，**191 首 / 80 个角色**，见 `otomads/README.md`）。submodule **pin 在 commit 上**（tag 只是那个
-  commit 的名字）：换数据 = `git -C data/otomads fetch` → `checkout <commit>` → `pnpm data:build`。另有角色清单 `otomads/characters.toml`
+  **独立数据仓库**（**不再是 submodule**）：位置 = env `OTOMADS_DATA_DIR`，默认 `otomads/`（gitignored，自行 clone 或由 CI 快照解开）——
+  清单 `otomads/packs/otomads.toml` + 一角色一份 `otomads/packs/otomads/*.toml`（**80** 份有曲目；
+  本地专辑，**191 首 / 80 个角色**，见 `otomads/README.md`）。**没有 commit pin**：换数据 = 在数据仓库改完 →
+  `pnpm data:datasets`（或 `pnpm data:build`）重新生成 `<data_dir>/dataset/`。另有角色清单 `otomads/characters.toml`
   （`pnpm data:roster` 生成）、本源响度表 `otomads/loudness/otomads.json` 与自带工具 `otomads/tools/`（D130）。
-  submodule 未初始化时它整个不存在，构建会跳过音MAD 数据集
+  数据仓库不在场、也没设数据集快照 URL 时，构建**不失败**：写空数据集 + 默认源记录，运行时回退远程清单（REFACTOR-PLAN v2 §7.2 ③）
 - `sources/netease163.toml` / `sources/thbwiki.toml` **原曲**的两个镜像源（**每源一个自包含文件**：
   头部 = 注册信息，`[[track]]` = `id / album / title / url` 各 651 条；构建把它重排成
-  `data/public/data/sources/*.json` 的 `{entries: {曲id: {url}}}`）；音MAD 那份在 submodule 里
-  （`otomads/sources/otomads.toml` = 本地曲库助手，其同源路径 `/manifest.json`）
-- `sources/custom.toml` **自定义模式**的源注册表：只有一条 `kind = "custom"` 的源，**`table_url` 是空串**
-  （合法形态，见 `tmc.build.source_table_url_problem`）—— 地址由使用者在应用里填。
-  这个模式的数据**不在本仓库**：契约见 `docs/custom-mode-v1.md`，工具在独立仓库
-  `touhou-music-cards-custom-data`（submodule `custom/`；本仓库的构建**不依赖**它 ——
-  `data/custom` 初始化与否，`data:build` 的 custom 产物都逐字相同（实测））
+  `data/public/data/sources/*.json` 的 `{entries: {曲id: {url}}}`）；音MAD 那份在数据仓库里
+  （`<OTOMADS_DATA_DIR>/sources/otomads.toml` = 本地曲库助手，其同源路径 `/manifest.json`）
+- **自定义模式**的源注册表已搬去 custom 数据仓库：`<CUSTOM_DATA_DIR>/sources/custom.toml`（env `CUSTOM_DATA_DIR`，默认 `custom/`）。
+  只有一条 `kind = "custom"` 的源，**`table_url` 是空串**（合法形态，见 `tmc.build.source_table_url_problem`）—— 地址由使用者在应用里填。
+  它自己的数据集（`python -m custom.dataset` → `<data_dir>/dataset/`，恒为空兜底）也由那个仓库生成，主仓库只取用；
+  契约见 `docs/custom-mode-v1.md`
 
 `extra` 四值词汇（角色曲/道中曲/更多道中曲/秘封曲）的口径与来源见 `docs/data-provenance.md`；
 S5 起分类派生链（.ref/thbwiki 快照、data/meta 参照表）已删除，`extra` 只剩"四选一"校验。

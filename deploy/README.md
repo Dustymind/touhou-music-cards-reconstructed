@@ -16,16 +16,18 @@
 |---|---|---|---|
 | **Vercel**（**当前线上**） | `https://<project>.vercel.app/` | `vercel.json` | 框架选 Other（配置里 `framework: null`）；构建/安装命令都写死在配置里。push 到 `main` 由 Vercel 自己构建 |
 | ~~GitHub Pages~~（**暂时停用**，D146） | `https://<user>.github.io/<repo>/`（**子目录**） | `.github/workflows/deploy-pages.yml`（**保留，但已摘掉 push 触发**） | 这个仓库的 Pages 从没启用过 ⇒ 每次 push 都在 `configure-pages` 失败（23 次全红）。要用就把工作流里 `push:` 那两行恢复 + Settings → Pages → Source 选 **GitHub Actions**；`base: "./"` 不用改 |
-| **Cloudflare Pages**（可选，应用本体） | `https://<project>.pages.dev/` | 无（面板填构建配置） | 构建命令 `pnpm build`、输出目录 `dist`、Node 24、包管理器 pnpm 12；响应头见 `public/_headers` |
+| **Cloudflare Pages**（可选，应用本体） | `https://<project>.pages.dev/` | 无（面板填构建配置） | 构建命令 `pnpm build`、输出目录 `dist`、Node 24、包管理器 pnpm 12；响应头统一写在 `vercel.json` 的 `headers`（S3 起 `public/_headers` 已删；CF Pages 不读 vercel.json，真要上它得自备一份 `_headers`） |
 
 > 注意"Cloudflare Pages"在这个项目里有**两个不同的站点**：上面这行是**应用本体**（可选形态），
 > 而默认音源用的**素材站** `otomads-cdn.tsukinomiyako-mangesui.top` 是另一个 Pages 项目
-> （`otomads-cdn`），它由**数据仓库**的 `data/otomads/.github/workflows/publish.yml` 部署
+> （`otomads-cdn`），它由**数据仓库**的 `.github/workflows/publish.yml` 部署（默认位置 `<OTOMADS_DATA_DIR>/`，即 `data/otomads/`）
 > （`wrangler deploy`）。主仓库里早先那个 `.github/workflows/deploy-otomads-cdn.yml`
 > 已在 D150 并入数据仓库的 publish 流程，**本仓库现存的工作流只有 `deploy-pages.yml`**。
 
-三家的构建命令都是 `pnpm build`（= `tsc --noEmit && vite build`，类型检查也是这一关的一部分），
-构建期需要 **Python（uv）**：数据集由 `pnpm build` 现生成（Vercel 的 `installCommand` 装 uv）；submodule 仍不需要。
+三家的构建命令都是 `pnpm build`（= 先让两个数据仓库各自生成数据集，再 `tmc.build` + `tsc --noEmit` + `vite build`，类型检查也是这一关的一部分），
+构建期需要 **Python（uv）**：`pnpm install` 的 postinstall（`scripts/ensure-uv.mjs`）会在 PATH 没有时把 uv 装到仓库内 `.tools/`（Vercel 的 `installCommand` 本身不装 uv）。
+数据集来自两个数据仓库：env `OTOMADS_DATA_DIR` / `CUSTOM_DATA_DIR` 指向的克隆，或 `OTOMADS_DATASET_URL` / `CUSTOM_DATASET_URL` 指向的 Release 快照（逐文件下载前缀）；
+两者都没有时构建**不失败**——写空数据集 + 默认源记录，应用运行时回退远程清单（音MAD 走 CDN、自定义由用户清单驱动）。
 
 ### 部署形态对数据的要求（D131）
 
@@ -40,10 +42,10 @@
 
 ### 缓存
 
-平台默认按文件类型缓存，够用。要显式控制就按平台加：响应头统一写在 `vercel.json` 的 `headers`（S3 起）；
-Vercel 用 `vercel.json` 的 `headers`；GitHub Pages **不认** `_headers`（会被当普通文件发出去，无害）。
+平台默认按文件类型缓存，够用。要显式控制就按平台加：响应头统一写在 `vercel.json` 的 `headers`（S3 起，
+`public/_headers` 已删）；Vercel 与 GitHub Pages 都**不认** `_headers`（会被当普通文件发出去，无害）。
 原则：带指纹的 `/assets/*` 可长缓存；`/index.html` 与 `/data/**` 要短缓存 ——
-数据 JSON 里的 `contentHash` 是联机握手要比的，压住旧数据会让两端哈希不一致（协议 v4 会拒）。
+数据 JSON 里的 `contentHash` 是联机握手要比的，压住旧数据会让两端哈希不一致（协议 v7 会拒）。
 
 ### 静态托管下的音频（重要）
 
@@ -53,7 +55,7 @@ Vercel 用 `vercel.json` 的 `headers`；GitHub Pages **不认** `_headers`（�
 
 1. **默认：走 CDN**（推荐，D141）—— 打开就有声音，站点不必带那 324 MB；代价是依赖外网与 CDN 可用性。
 2. **站点自带素材**（同源，不依赖外网）：把音MAD 的音频与卡面铺进 `dist/`，**并把数据里的 `table_url`
-   改回相对路径 `manifest.json`**（`data/otomads/sources/otomads.toml` → `pnpm data:build`），
+   改回相对路径 `manifest.json`**（`<OTOMADS_DATA_DIR>/sources/otomads.toml`，默认 `data/otomads/` → `pnpm data:build`），
    否则访客仍旧走 CDN：
 
    ```bash
@@ -292,7 +294,7 @@ node deploy/single-port-proxy.mjs        # 默认 0.0.0.0:8080
 
 ## 音MAD 源的地址形态（D141）
 
-`data/otomads/sources/otomads.toml` 里 `local` 源的默认 `table_url` 现在是 **CDN 的绝对地址**
+`<OTOMADS_DATA_DIR>/sources/otomads.toml`（默认 `data/otomads/`）里 `local` 源的默认 `table_url` 现在是 **CDN 的绝对地址**
 （`https://otomads-cdn.tsukinomiyako-mangesui.top/manifest.json`）⇒ 静态站与单端口形态**都不必自带素材**，
 反代那两条 `/manifest.json`、`/media/*`（见 B 节表格）只在**你把 `table_url` 改回相对路径**时才有用。
 

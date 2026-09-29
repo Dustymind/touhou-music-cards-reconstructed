@@ -2,7 +2,7 @@
 
 **状态：已实现**（D112，分支 `enhanced-otomad-mode`）。§10 的 6 条按推荐全部采纳（用户裁定）；实现结果见 §11。
 
-对象：`public/data/*.json` 的**布局**、`tools/src/tmc/build.py` 的产出、前端 `DataBundle` 的加载，
+对象：`data/public/data/*.json`（S3 起的生成目录，gitignored）的**布局**、`tools/src/tmc/build.py` 的产出、前端 `DataBundle` 的加载，
 以及联机握手用的 `contentHash` 口径。
 目的：两个模式不再共用"一份合并数据 + 一个 `mode` 参数过滤"，而是**各自一份数据集**；
 运行时删掉那层过滤，把"模式"变成"当前数据集的名字"。
@@ -32,7 +32,7 @@
 ## 2. 生成物布局（推荐 D2）
 
 > **注（现状，别再照抄下面的清单）**：这一段是 D2 的**提案**。实际落地见 §11（D112：**每模式一份数据集**、
-> 源表随数据集走）与 D130（**响度表按源声明**，落在 `public/data/<模式>/loudness/…`，不是共享的 `loudness.json`）；
+> 源表随数据集走）与 D130（**响度表按源声明**，落在 `data/public/data/<模式>/loudness/…`，不是共享的 `loudness.json`）；
 > D139 又往前一步：源可以在自己的 manifest 里声明表（`loudness` 键，相对 manifest 解析），前端优先按它取
 > ⇒ **表跟着源部署**。
 
@@ -182,7 +182,7 @@ C3 的形状（示意）：
 dataHash: { originals: string; otomads: string };
 ```
 
-**"要求两端都部署两份数据"是不是问题**：是 —— otomads 数据在**主仓库里**（生成物 `public/data/otomads/*`；真源自 D128 起在独立数据仓库的 submodule `data/otomads/`），
+**"要求两端都部署两份数据"是不是问题**：是 —— otomads 数据随前端一起部署（生成物 `data/public/data/otomads/*`，构建期生成、不进仓库；真源自 D128 起在独立数据仓库，当时以 submodule 挂在 `data/otomads/`，S3/§11.4 起改为 env `OTOMADS_DATA_DIR` / Release 快照），
 不是"只有本机才有"（只有**音频**是本机的：本地曲库助手）。所以两端都部署两份数据是正常状态，
 C3 不会把"单机模式"变成联机障碍。
 

@@ -6903,3 +6903,39 @@ firefox **635**；e2e **115 passed + 1 skipped**。S2 的数据等价性由 `bac
 **没动的**：`data/otomads` / `data/custom` 两个 submodule 的 gitlink（本分支不换数据）；
 数据仓库侧的工具合并（REFACTOR-PLAN v2 §13.2/§13.3）属于各自仓库的后续。
 
+
+---
+
+## D174 三仓库独立构建：数据集各归其仓库、submodule 拆除（2026-09-29）
+
+**结论**：按 REFACTOR-PLAN v2 §7.2/§11.3/§11.4 落地"每个仓库只构建自己的数据集"：
+
+- **音MAD / 自定义数据仓库**各加 `dataset.py`（`python -m otomads.dataset` / `python -m custom.dataset`）：
+  从自己的 `packs/` / `sources/` / `loudness/` 生成 `dataset/`（characters.json **不带身份**、
+  albums.json、tracks.json、pack-audio.json（音MAD 才有）、sources.json、index.json + 响度表副本）；
+  `index.json.source = {repo, commit, dirty?}` 由仓库自己写，**没有 contentHash**（它在身份合并之后
+  才算得出来）。自定义仓库同时接手 `sources/custom.toml`（源注册表跟着数据走）。
+- **主仓库只构建 originals 与共享项**：`tmc.build` 读 `<data_dir>/dataset/`，把原曲那份身份
+  （name/order/card/searchNames）接到音MAD 角色上（§9 的继承），再算最终的 `contentHash`。
+  数据仓库位置：env `OTOMADS_DATA_DIR` / `CUSTOM_DATA_DIR`，默认 `data/<mode>`。
+- **submodule 拆除**：删 `.gitmodules` 与两个 gitlink（`data/otomads`、`data/custom` 变成 gitignored
+  的普通目录）；`scripts/require-submodule.mjs` → `require-data.mjs`；6 个 npm script 走
+  `$OTOMADS_DATA_DIR/tools`；`repo.source_roots()` 读三个根（主仓库 + 两个数据仓库）。
+- **取用三级**（§7.2）：① 本地 clone（`scripts/build-datasets.mjs` 现调它的 `dataset.py`）；
+  ② `OTOMADS_DATASET_URL` / `CUSTOM_DATASET_URL` 的 Release **逐文件**快照；③ 都不可得 ⇒ **不报错**，
+  写空兜底 + 一条默认源记录（`build.FALLBACK_SOURCES`），运行时回退远程清单。
+- **CI**：主仓库新增 `.github/workflows/gate.yml`（setup-uv/node/pnpm → 下快照 → `pnpm gate` →
+  同输入构建两次逐字比对，**不部署**）；两个数据仓库的 workflow 各加 `dataset` 快照段；
+  custom 的 `manifest.json` / `covers.json` 是派生物 ⇒ 移出提交（随快照发布）。
+- **Vercel 的 uv**：新增 `scripts/ensure-uv.mjs` 挂在 `postinstall`（PATH 上有就用、没有就装到
+  仓库内 `.tools/`），`scripts/run.mjs` 把它加进 PATH。
+
+**等价性**：改完之后 `pnpm gate` 仍是 **19 个文件**、三个 contentHash **逐字未变**
+（`f24566164f7e` / `d675c854bcf9` / `fe0bccdf9c80`）、引用指纹 `9eecf074138b` —— 换的是"谁构建"，
+不是数据。pytest 三侧 71 / 233 / 381。
+
+**顺带落地**：前端 `buildEntries` 删掉裸数组分支（§2.1 的"统一清单形状"）；`tmc.validate` 新增
+逐曲 `[[track]].sources` 的声明校验（§4/§6 的那个字段此前只写不读）。运行时的解析顺序仍按源注册表
+`order`（当前 378 条声明的都是同一对源，两者等价）—— 真要按逐曲 `sources` 排序时再开一步。
+
+**没动的**：`loudness/*.json` 仍随数据仓库提交（重算要全量音频 + ffmpeg，§7.2 的口径）。

@@ -8,10 +8,10 @@
 <根>/otomads/kirisame-marisa.toml  # 角色文件：`key` 加若干 [[track]]
 ```
 
-**根目录**（`tmc.repo.pack_roots`）：主仓库 `data/packs/`（未来的曲包放这里）+ 音MAD 数据
-submodule `data/otomads/packs/`（真源在独立仓库，见 D128）。submodule 在开发时**可选**：
-没初始化时 `data/packs/` 里没有包，构建会跳过音MAD 数据集、用已提交的
-`public/data/otomads/*.json`。
+**根目录**（`tmc.repo.pack_roots`）：主仓库 `data/packs/`（未来的曲包放这里）+ 音MAD 数据仓库的
+`packs/`（`OTOMADS_DATA_DIR`，默认 `data/otomads/packs/`；真源自 D128 起在独立仓库，S3/§11.4 起**不再是 submodule**）。
+数据仓库在开发时**可选**：不在场时构建写空兜底 + 默认源记录（生成物不提交，也没有"已提交的那份"可回落），
+运行时由应用回退远程清单（REFACTOR-PLAN v2 §7.2 ③）。
 
 曲目带上 `pack` 归属后，界面按曲包过滤，"当前音乐模式可用"的判定也只算上它们里的曲目。
 曲包曲目**不进** `data/sources/*.json`（地址由曲包的 `kind` 决定），所以 `tmc.validate` 会跳过
@@ -30,26 +30,27 @@ card = ["チルノ-mad.png"]        # 可选：这套图集目录里的文件名
 ```
 
 - 文件名要在**用户选中的卡面图集**里存在 —— 音MAD 专用卡面请配套用 `id = "otomads"` 那套
-  （`data/card-sets.toml`，`local_only`：素材自己放进 `public/cards-otomads/`）。
+  （`data/card-sets.toml`，`local_only`：素材自己放进仓库根 `cards-otomads/`，gitignored）。
 - 卡面是"跨模式身份一致"的**唯一例外**（`tmc.validate` 的 `check_datasets` 只管
   `name`/`order`/`searchNames`；没写 `card` 的角色仍要求与共享身份一致）。
 - 之后若要让音MAD 有**原曲没有的角色**，得先决定角色 key 从哪来（主仓库加同名 key，或另立一份
   "音MAD 自己的身份"契约）—— 见 `docs/otomads-separation-v1.md` §5。
 
-当前唯一的曲包是 `otomads`（音MAD，`kind = "local"`）：**191 首 / 80 个角色**，真源在数据 submodule
-`data/otomads/packs/`（独立仓库，见 D128），音频地址来自本地曲库助手（数据仓库的 `otomads.local_source`
+当前唯一的曲包是 `otomads`（音MAD，`kind = "local"`）：**191 首 / 80 个角色**，真源在数据仓库
+`<OTOMADS_DATA_DIR>/packs/`（默认 `data/otomads/`；独立仓库，见 D128），音频地址来自本地曲库助手（数据仓库的 `otomads.local_source`
 提供 `/manifest.json`，主仓库用 `pnpm local` 起）。音MAD 的**录入/抓取/量响度全在数据仓库的工具里**
-（`data/otomads/tools/`，见它的 `README.md`；主仓库只留 `pnpm` 路径包装，D130）。
+（`<OTOMADS_DATA_DIR>/tools/`，见它的 `README.md`；主仓库只留 `pnpm` 路径包装 + `scripts/require-data.mjs` 在场检查，D130）。
 
 ## 录一条新曲目
 
 ```bash
-cd data/otomads
+cd "${OTOMADS_DATA_DIR:-data/otomads}"      # 数据仓库（默认位置；env 指到别处就跟着变）
 uv run --project tools python -m otomads.parse_ingest_rows rows.txt   # ① 解析 → tools/ingest_rows_<日期>.json
 uv run --project tools python -m otomads.ingest_pack \
     --pack otomads --rows tools/ingest_rows_<日期>.json               # ② 按角色追加（校验 characters.toml）
 uv run --project tools python -m otomads.fetch_audio                  # ③ 抓取/裁剪 + 刷新 loudness/otomads.json
-cd ../.. && pnpm data:build && pnpm data:validate                     # ④ 拷响度表 + 生成 + 校验
+# ④ 回到主仓库根：拷响度表 + 生成 + 校验
+pnpm data:build && pnpm data:validate
 ```
 
 ③ 按行的 `character` 分组落文件（文件不存在就新建，带 `key = "…"` 与两行说明），
@@ -57,8 +58,8 @@ cd ../.. && pnpm data:build && pnpm data:validate                     # ④ 拷�
 `--dry-run` 只打印不落盘；角色 key 不在 `data/characters/*.toml` 里直接报错
 （写错一个 key 会让曲目被静默错挂）。
 
-> ②③ 写进的是 submodule 的工作区：要在**数据仓库**里提交、打新 tag，主仓库切到该 tag 后再跑 ④
-> （见 `data/otomads/README.ai.MD`）。
+> ②③ 写进的是**数据仓库**的工作区：在那边提交即可（主仓库不再 pin commit，按 env 指向的克隆 / CI 快照取用），
+> 然后回主仓库跑 ④（见数据仓库的 `README.ai.MD`）。
 
 ## `[[track]]` 的三个音频键（可选）
 
@@ -75,7 +76,7 @@ cd ../.. && pnpm data:build && pnpm data:validate                     # ④ 拷�
 两个时间键**都只在抓取/裁剪期被读**，运行时不进 `characters.json`、前端看不到；产出的音频用
 **解码后精确切 + 重编码**裁剪（D142；`-c copy` 只能切在 mp3 帧边界、且冷启动会让头一帧解不出来，
 理由与实测见 `docs/packs-audio-v1.md` §5）—— 起点与时长因此是采样点级精确的。**注意**：
-`source` / `start_time` / `stop_time` 会进 `public/data/index.json` 的 `contentHash` ——
+`source` / `start_time` / `stop_time` 会进 `data/public/data/index.json` 的 `contentHash` ——
 两端音频口径不同会在联机握手期就被拒。
 
 ```bash

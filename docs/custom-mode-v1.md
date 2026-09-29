@@ -15,12 +15,13 @@
 
 | 角色 | 提供什么 | 不提供什么 |
 |---|---|---|
-| **应用**（本仓库） | 读取、校验、渲染、联机；**一套空兜底数据集**（`public/data/custom/`，0 角色 0 专辑） | 任何卡名 / 卡面 / 曲目 / 音频地址 |
+| **应用**（本仓库） | 读取、校验、渲染、联机；**一套空兜底数据集**（`data/public/data/custom/`，0 角色 0 专辑） | 任何卡名 / 卡面 / 曲目 / 音频地址 |
 | **使用者的源**（`manifest.json` + 素材） | 卡表（一张卡 = 一个卡名 + 一张卡面 + 一首曲目）、素材地址、可选的响度表 | 任何应用逻辑 |
-| **数据仓库**（独立仓库，`touhou-music-cards-custom-data`，挂在 `data/custom`） | **提供工具 + 作者自己的源**：把手写的卡表抓成素材并生成清单；**仓库里不放文档**（无 `.md` 被跟踪）。它**含作者自己那张卡的源数据**（`cards.toml` / `manifest.json` / `covers.json` / `loudness/custom.json`），但**不是应用的构建输入** | 卡数据本身；应用不 import 它、`data:build` 不读它 |
+| **数据仓库**（独立仓库，`touhou-music-cards-custom-data`；位置 = env `CUSTOM_DATA_DIR`，默认 `data/custom`，**不是 submodule**） | **提供工具 + 作者自己的源**：把手写的卡表抓成素材并生成清单；**仓库里不放文档**（无 `.md` 被跟踪）。它**含作者自己那张卡的源数据**（`cards.toml` / `manifest.json` / `covers.json` / `loudness/custom.json`），以及它自己生成的数据集（`python -m custom.dataset` → `<data_dir>/dataset/`） | 卡数据本身；应用运行时不 import 它（主仓库构建只取用它那份数据集，见下） |
 
-**不依赖主仓库构建**（Q2）：`data/custom` submodule 初始化与否，`pnpm data:build`
-的输出**逐字相同**（有守卫用例：把"曲包真源在不在"这个开关翻过来跑两遍比文本；另有手工验证：
+**不拖累主仓库构建**（Q2）：`CUSTOM_DATA_DIR`（默认 `data/custom`）在场与否，`pnpm data:build`
+的输出**逐字相同**（在场时取它那份恒为空的数据集 + 空源注册表，不在场时写空兜底 + 默认源记录，§7.2 ③；
+有守卫用例：把"曲包真源在不在"这个开关翻过来跑两遍比文本；另有手工验证：
 把 `data/otomads` 与 `data/custom` 分别挪走各跑一次 —— 都无漂移；S3 起生成物不进仓库，
 "无漂移"由 `pnpm gate` 与 CI 的两次构建比对承担）。
 
@@ -154,4 +155,4 @@ v7（曲id 身份 + 生成物 `schema` 2）只改哈希取值与存档迁移，*
 | 2 | 坏清单**整份**不生效（不半信半疑地用） | `customManifest.test.ts` 的 **28** 条坏形状矩阵 |
 | 3 | 卡名/顺序/卡面不同 ⇒ **握手期**就拒 | `customHash` + `protocol.ts` 的三项比较 |
 | 4 | 禁用的卡不进轮播**也不进卡池** | `AppShell.isUsable` → 队列与 `GamePanel.cardKeys` |
-| 5 | 主仓库构建**不依赖** `data/custom` | `tools/tests/test_build.py` + 手工 `pnpm gate` 比两次 |
+| 5 | 主仓库构建**不依赖** `CUSTOM_DATA_DIR` 在场（不在场 ⇒ 空兜底 + 默认源记录，产物逐字相同） | `tools/tests/test_build.py` + 手工 `pnpm gate` 比两次 |

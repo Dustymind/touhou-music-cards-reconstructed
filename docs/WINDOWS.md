@@ -4,18 +4,21 @@
 
 ## 1. 迁移清单
 
-### 1.1 必须带走（不在任何 git 仓库里，或很贵）
+### 1.1 必须带走（不在主仓库里，或很贵）
 
 | 路径 | 体积 | 为什么 |
 |---|---:|---|
 | `.music/` | 780 MB | 音MAD 的本地源（gitignore）。**按"只能拷"处理** —— 虽然原理上可重抓，但依赖第三方投稿仍在线上，见 §1.4 |
-| `local-source.toml` | 4 KB | 本机助手配置（gitignore）。内容 20 行，也可照 `data/otomads/local-source.toml.example` 重建 |
+| `local-source.toml` | 4 KB | 本机助手配置（gitignore）。内容 20 行，也可照数据仓库的 `local-source.toml.example` 重建（默认位置 `data/otomads/`，或 `$OTOMADS_DATA_DIR`） |
 | `.ref/` | ~0.3 MB | 只剩 `notes/` 五份（S5 起 THBWiki 快照与上游克隆已删，有 URL 可随时重克隆） |
 | `touhou-music-cards-otomads-data/` | 2.1 GB | 数据仓库的独立克隆（改数据、打 tag 用）。**可重新 clone**，但省事就拷 |
 | `touhou-music-cards-custom-data/` | 42 MB | 同上（自定义数据） |
 | `HANDOVER.md` · `UPDATING.md` · `local-docs/` | 很小 | 工作区根的文档。`UPDATING.md` 是**现行操作手册**，不在任何仓库里 |
 
-> 只有主仓库走 git（已推到 GitHub）。上面这些**都不在任何仓库里**。
+> 只有主仓库走 git（已推到 GitHub）。上面这些**都不在主仓库里**（两个数据目录是各自的独立仓库）。
+>
+> 两个数据仓库**不再是 submodule**：主仓库按 env `OTOMADS_DATA_DIR` / `CUSTOM_DATA_DIR` 找它们，默认
+> `data/otomads/`、`data/custom/`。只拷工作区根那两个克隆时，记得在新机器上设这两个 env（或把它们 clone 到默认位置）。
 
 ### 1.2 不要带（装了也用不了，或纯再生）
 
@@ -89,20 +92,21 @@ git config --global core.longpaths true
 
 | 原写法 | 用在哪 | 现在 |
 |---|---|---|
-| `[ -d … ] \|\| { echo …; exit 1; }` | `local` / `audio:*` / `media:*` | `node scripts/require-submodule.mjs` |
+| `[ -d … ] \|\| { echo …; exit 1; }` | `local` / `audio:*` / `media:*` | `node scripts/require-data.mjs otomads` |
 | `[ -n "$VAR" ] \|\| { … }` | `media:pull` | `node scripts/require-env.mjs` |
 | `PLAYWRIGHT_BROWSERS_PATH="$PWD/…" cmd` | `test*` / `e2e*` | `node scripts/run.mjs cmd`（它自己设） |
 | `UV_CACHE_DIR=.uv/cache cmd` | 全部 `data:*` | 同上 |
-| `cd data/otomads/tools && …`（`cd` 带斜杠，cmd 不认） | `local` / `audio:*` / `media:*` | `uv run --project data/otomads/tools` |
+| `cd data/otomads/tools && …`（`cd` 带斜杠，cmd 不认） | `local` / `audio:*` / `media:*` | `uv run --project $OTOMADS_DATA_DIR/tools`（`run.mjs` 补默认值） |
 | `$VAR` 传参（POSIX 认 `$VAR`、cmd 认 `%VAR%`） | `media:pull` | `run.mjs` 自己展开 |
 
-改法是三个 Node 帮助脚本（Node 本来就是硬前置），路径**一律从脚本自身位置推导**、
+改法是四个 Node 帮助脚本（Node 本来就是硬前置），路径**一律从脚本自身位置推导**、
 没有一个写死的绝对路径：
 
 | 脚本 | 干什么 |
 |---|---|
 | `scripts/run.mjs <命令> [参数…]` | 设好 `PLAYWRIGHT_BROWSERS_PATH` / `UV_CACHE_DIR`（**已在环境里设过的不覆盖**）再 spawn；`$VAR` 由它展开；仅在 Windows 过 shell（`.cmd` 垫片需要），POSIX 走 `shell:false` 以**精确保留带空格的参数** |
-| `scripts/require-submodule.mjs [路径]` | 子模块没初始化就 exit 1 |
+| `scripts/require-data.mjs <otomads\|custom>` | 数据仓库不在场就 exit 1（位置 = env `OTOMADS_DATA_DIR` / `CUSTOM_DATA_DIR`，默认 `data/<mode>`） |
+| `scripts/ensure-uv.mjs` | `pnpm install` 的 postinstall：PATH 上没有 uv 就下载官方发行包到仓库内 `.tools/`（`run.mjs` 会加进 PATH）；装不上即非 0 退出 |
 | `scripts/require-env.mjs <变量> [提示]` | 变量没设就 exit 1 |
 
 **所以不要**再配 `script-shell` 指向某个 bash 绝对路径 —— 那既硬编码、又把仓库绑到某个平台。
@@ -178,11 +182,11 @@ pnpm exec playwright install             # 见 §2.4
 数据管线那侧（Python）：
 
 ```bash
-pnpm data:sync && pnpm data:test         # 期望 83 passed
+pnpm data:sync && pnpm data:test         # 期望全绿（条数见 docs/README.md 的现状表）
 ```
 
-音MAD 相关的 e2e 要先起本地曲库助手：`pnpm local`（需要 `data/otomads` submodule 已初始化 +
-`.music/` 已拷过来）。
+音MAD 相关的 e2e 要先起本地曲库助手：`pnpm local`（需要数据仓库在场：`OTOMADS_DATA_DIR` 或默认
+`data/otomads`；再加 `.music/` 已拷过来）。
 
 ## 4. 平台差异速查
 

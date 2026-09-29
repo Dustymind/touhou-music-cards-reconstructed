@@ -2,8 +2,8 @@
 
 **状态：已实现**（D113）。§8 的 6 条按推荐全部采纳（用户裁定）；实现结果见 §9。
 
-对象：`data/sources/sources.toml`（音源注册表）、`public/data/sources.json`（它的生成物）、
-`tmc.v1.sources`（用户的开关/顺序存档），以及 `effectiveSourceOverrides()` 这个运行期补丁。
+对象：`data/sources/*.toml`（原曲音源注册表；S1c 起每源一个自包含文件）、`data/public/data/{,otomads/}sources.json`（生成物）、
+`tmc.v1.sources`（用户的开关/顺序存档），以及 `effectiveSourceOverrides()` 这个运行期补丁（已删，见 §5）。
 目的：**音源层也跟数据层一个口径** —— 每个模式用自己那份源表，不需要"切模式时偷偷把某个源打开"。
 
 **用户已裁定**（2026-09）：
@@ -52,20 +52,20 @@
 ```
 data/sources/netease163.toml       # 原曲镜像源，**每源一个自包含文件**（S1c：头部 = 注册信息 + [[track]]）
 data/sources/thbwiki.toml
-data/otomads/sources/otomads.toml  # 只有 local 源，且 enabled = true（D128：在 submodule 里）
+<OTOMADS_DATA_DIR>/sources/otomads.toml  # 只有 local 源，且 enabled = true（数据仓库，默认 data/otomads；D128 拆出，S3/§11.4 起不再是 submodule）
 # 旧布局：data/sources/originals.toml（注册表）+ 两份 *.json（镜像表）—— 2026-09 S1c 已拆进上面两个文件
 
-public/data/sources.json           # 原曲注册表（生成物）
-public/data/otomads/sources.json   # 音MAD 注册表（生成物）
-public/data/sources/*.json         # 两份镜像表原样复制（它们本来就在原曲数据集根下）
+data/public/data/sources.json         # 原曲注册表（生成物）
+data/public/data/otomads/sources.json # 音MAD 注册表（生成物）
+data/public/data/sources/*.json       # 两份镜像表原样复制（它们本来就在原曲数据集根下）
 ```
 
-- **镜像表不拆**：它们的内容已经只属于原曲，位置 `public/data/sources/` 就在原曲数据集根下；
+- **镜像表不拆**：它们的内容已经只属于原曲，位置 `data/public/data/sources/` 就在原曲数据集根下；
   给音MAD 造三份空表不是分离，是仪式。
 - 每份注册表的 `order` 从 1 起（各自独立的回退顺序）；`table_url` 的相对路径不变。
   > D131 追补：这里说的"相对路径"必须是**真相对路径**（`data/sources/x.json`，**不带前导 `/`**）。
   > 带前导 `/` 的根绝对路径只在域名根部署时看着正常，子目录部署（GitHub Pages 项目页）会 404。
-  > 形态由 `tmc.build.table_url_problem()` 守（build 报错 + validate 查生成物）。
+  > 形态由 `tmc.build.source_table_url_problem()` 守（build 报错 + validate 查生成物）。
 
 ## 3. 数据集形状
 
@@ -118,7 +118,7 @@ public/data/sources/*.json         # 两份镜像表原样复制（它们本来�
 
 ## 7. 验证与回滚
 
-**验证**：`pnpm data:check`（两份注册表都按模式比）/ `pnpm data:validate`（§5 的 4 条不变量）/
+**验证**：`pnpm gate`（build + validate；`data:check` 已随 S3/§7.5 删除）/ `pnpm data:validate`（§5 的 4 条不变量）/
 `uv run pytest` / `pnpm typecheck` / `pnpm test`（真实浏览器，chromium + firefox）/
 `pnpm e2e`（三端）+ `pnpm e2e:perf`；另加一条 e2e：**音MAD 模式下不请求那两份镜像表**
 （用 `page.on("request")` 抓 `/data/sources/*.json`，断言 0 次）—— 这就是这次拆分最直接的可观测收益。

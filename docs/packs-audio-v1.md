@@ -2,7 +2,7 @@
 
 **状态：已实现**（D107）。字段与流程按用户 11 条答复定（见 §7）；实现结果与偏差见 §12。
 
-对象：曲包**角色文件**（`<曲包根>/<曲包 id>/<角色 key>.toml`，一角色一份；清单只放 `[pack]` / `[[album]]`。音MAD 的根是数据 submodule `data/otomads/packs/`，见 D128）
+对象：曲包**角色文件**（`<曲包根>/<曲包 id>/<角色 key>.toml`，一角色一份；清单只放 `[pack]` / `[[album]]`。音MAD 的根在数据仓库 `<OTOMADS_DATA_DIR>/packs/`，默认 `data/otomads/packs/`；D128 拆出，S3 起不再是 submodule）
 的 `[[track]]` 新增三个键 —— `source`（抓取）、`start_time` / `stop_time`（裁剪）。（D153 之后同一个 `[[track]]` 里
 还多了一个 `cover`（卡面素材），它不属于音频契约，但列在同一张字段表里。）
 目的：音MAD 这类曲包曲目不必再手工下载、手工剪，改成"数据里写清来源与裁剪区间，一条命令产出可播放的音频"。
@@ -76,7 +76,7 @@ manifest 里就会多出 `album = "raw"` 的垃圾条目，**曲目计数直接�
 ## 3. 命令与流程（独立命令，不进 `tmc.build`）
 
 ```bash
-pnpm audio:fetch          # = cd data/otomads/tools && uv run python -m otomads.fetch_audio --config ../../../local-source.toml
+pnpm audio:fetch          # = uv run --project $OTOMADS_DATA_DIR/tools python -m otomads.fetch_audio --config local-source.toml
 ```
 
 参数（**不做** `--only <pack>`：现在只有一个曲包，多包时再加；真正有用的是按曲目筛）：
@@ -117,7 +117,7 @@ CI 与别人的机器会直接失败。"音频齐不齐"由 `audio:fetch` 自己
 
 | 依赖 | 管理方式 | 说明 |
 |---|---|---|
-| `yt-dlp` | 加进**数据仓库** `data/otomads/tools/pyproject.toml` 的 `dependencies`，用 **Python API**（`yt_dlp.YoutubeDL`）而不是 subprocess | "与 uv 一起管理"；`uv.lock` 是**跟踪文件**，升级后会变脏，需一并提交 |
+| `yt-dlp` | 加进**数据仓库** `<OTOMADS_DATA_DIR>/tools/pyproject.toml`（默认 `data/otomads/tools/pyproject.toml`）的 `dependencies`，用 **Python API**（`yt_dlp.YoutubeDL`）而不是 subprocess | "与 uv 一起管理"；`uv.lock` 是**跟踪文件**，升级后会变脏，需一并提交 |
 | `ffmpeg` | 系统二进制，无法用 uv 管 | 命令启动时探测；缺失/过旧 ⇒ 明确报错 |
 
 - **运行前检查更新（并更新）才能继续**：先 `uv lock --upgrade-package yt-dlp`，再 `uv sync`，成功才继续抓取。
@@ -273,7 +273,7 @@ BV 号原先散在三处：`tools/ingest_otomads.py` 的 `ROWS`（61 条）、`t
 - **响度**：裁剪后 `loudness.json` 中该键刷新（用例守住"裁了必须失缓存"）；未被裁的曲目键值不变。
 - **硬链接**：重复 `source` 的两条成品 `os.stat().st_ino` 相同、目录磁盘占用不翻倍；
   重裁其中一条后两条内容**分道扬镳**（证明"写临时文件 + 原子改名"没被破坏）；不支持硬链接时回落复制并有提示。
-- **构建**：`pnpm data:check` 仍绿且仍**不依赖**音频与机器配置；`contentHash` 随 trim 变化。
+- **构建**：`pnpm gate` 仍绿且仍**不依赖**音频与机器配置；`contentHash` 随 trim 变化。
 - **端到端**：`otomads` 模式能播裁好的曲目；manifest 计数仍为 86（验证 `.raw/` 没被扫进 manifest）。
 - **文档**：主 `README.md`（依赖与命令）、`data/packs/README.md`（新字段）、`docs/DECISIONS.md`（一条决定）。
 
@@ -523,6 +523,8 @@ if is_anthology:
 它会变成 **87**，但**曲目选不到**：`src/**` 全程遍历 `dataset.characters[].music`，而源只提供地址
 （`resolveTrack` 只做 `(专辑, 曲名) → URL`）。CI（`.github/workflows/deploy-pages.yml`）只跑
 `pnpm install && pnpm build`（不装 Python、不拉 submodule）⇒ "只在数据仓库改"这条路走不通。
+> （**S3 起这条已经改了**：`pnpm build` 会先经 `scripts/build-datasets.mjs` 取两个数据仓库的数据集，
+> uv 由 postinstall 备好 —— 上面那句"不装 Python、不拉 submodule"只是 D145 当时那条工作流的样子。）
 
 ### 2. 契约形状：manifest 多两个**顶层**键
 

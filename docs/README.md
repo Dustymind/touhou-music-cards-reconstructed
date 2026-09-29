@@ -15,11 +15,11 @@
 | 专辑 | 39 | 同上 |
 | 角色曲目条目 / 去重曲目 | 569 / 559（**三份数据集**：原曲 121 角色 378 条 + 音MAD 80 角色 191 条 + 自定义 0，前两份互斥） | 同上（各份 `index.json` 的 `counts`） |
 | 卡面集 / 注册音源 | 8 / 4（含 1 套音MAD **本地图集**：素材用户自己放进仓库根 `cards-otomads/`；1 套音MAD 封面集 `source_only`；自定义模式用代码里的合成图集 + 用户在「卡面设置」里选的**常规 / 16:9 / 4:3** 档位 —— D167 起画幅纯前端裁、数据侧只有一条链接，都不进这张表） | 同上 |
-| 音MAD 曲包 | 1 包：191 首 / 80 个角色；**191 条带 `source`**（可自动抓取）、**36 条带裁剪区间**（前导静音已裁） | 真源在数据 submodule：清单 `data/otomads/packs/otomads.toml` + 一角色一份 `data/otomads/packs/otomads/*.toml`（D128）；`pnpm audio:fetch --dry-run`（数据仓库的 `otomads.fetch_audio`，D130） |
+| 音MAD 曲包 | 1 包：191 首 / 80 个角色；**191 条带 `source`**（可自动抓取）、**36 条带裁剪区间**（前导静音已裁） | 真源在数据仓库（`OTOMADS_DATA_DIR`，默认 `data/otomads/`）：清单 `<OTOMADS_DATA_DIR>/packs/otomads.toml` + 一角色一份 `<OTOMADS_DATA_DIR>/packs/otomads/*.toml`（D128；不再是 submodule）；`pnpm audio:fetch --dry-run`（数据仓库的 `otomads.fetch_audio`，D130） |
 | 前端单测 | **1270 passed**（chromium 与 firefox **各 635**；真实浏览器，vitest 浏览器模式；双引擎同跑偶发一条 flaky，稳跑法见 `DEVELOPMENT.md`） | `pnpm test:chromium` / `pnpm test:firefox` |
 | 数据管线测试 | **71 passed**（主仓库）+ **211 passed**（音MAD 数据仓库 `tools/`）+ **368 passed**（自定义数据仓库 `tools/`） | `cd tools && uv run pytest` / `uv run --project tools pytest`（在各自的数据仓库）。音MAD 那套 222 → 211 是随录入链删除的 13 条（另 +2 条 `packformat.character_keys`） |
 | 端到端 | **115 passed + 1 skipped**（chromium 52 + firefox 51，mobile 12；含模式 3 的 **8** 条 × 两个桌面引擎；skip 的那条是联机用例只在 chromium 跑）。整跑负载下 firefox 偶发一条超时（`pack-snapshot`，单跑 ✓）。**前置：先 `pnpm local` 起本地曲库助手** | `pnpm e2e` |
-| 数据漂移 | 无（S3 起生成物不进仓库） | `pnpm gate`（build + validate + notices；可复现性由 CI 的两次构建比对承担） |
+| 数据漂移 | 无（S3 起生成物不进仓库） | `pnpm gate`（先跑 `pnpm data:datasets`，再 build + validate + notices；可复现性由 CI 的两次构建比对承担） |
 | 数据校验 | 通过 | `pnpm data:validate` |
 | 联机协议版本 | **7** | `src/net/protocol.ts`（D168 起 `GameState` 带 `perTrackFaces` / `currentCardIndex` —— "这一回合放哪一首"由答案卡决定；`SessionConfigWire` = 音乐模式 + 会话种子 + 自定义源链接；`dataHash` = 三个模式各一个；**7** = 曲id 身份 + 生成物 schema 2，硬切，见 `protocol-v1.md` / D173） |
 | 决策日志 | 编号 D1–D173 中**实有 172 条**（**D165 未使用**，是编号空洞，见该处的编号说明）；D173 是最近一条：曲目身份换成曲id（生成物 `schema` 2、协议 v7、单曲存档 v2 一次性迁移）。带 `⚠️` 的 16 条是「已被取代」/「前提已变」标记，**不是待办** | [`DECISIONS.md`](DECISIONS.md) |
@@ -71,7 +71,7 @@ S5 起 `docs/reports/` 移出 git（工作记录不随仓库分发）；写入�
 [`../tools/README.md`](../tools/README.md)（数据管线模块）、
 [`../data/README.md`](../data/README.md)（真相源目录）、
 [`../data/packs/README.md`](../data/packs/README.md)（曲包形状）、
-[`../data/otomads/README.ai.MD`](../data/otomads/README.ai.MD)（音MAD 数据 submodule；AI 维护的说明）、
+[`touhou-music-cards-otomads-data`](https://github.com/Dustymind/touhou-music-cards-otomads-data) 的 `README.ai.MD`（音MAD 数据仓库的 AI 维护说明；默认 clone 在 `data/otomads/`，未 clone 时本地链接不存在）、
 [`../deploy/README.md`](../deploy/README.md)（单端口部署）、
 [`../THIRD-PARTY-NOTICES.md`](../THIRD-PARTY-NOTICES.md)（随产物分发的第三方署名）、
 [`../REUSE.toml`](../REUSE.toml)（逐路径许可映射，`uvx --from reuse reuse lint` 校验）。
