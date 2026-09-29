@@ -297,7 +297,7 @@ def check_source_registry(p: Problems) -> dict:
     }
 
 
-def check_album_prefixes(albums: dict[str, dict], p: "Problems") -> dict:
+def check_album_prefixes(albums: dict[str, dict], p: "Problems", entries=None) -> dict:
     """专辑码对照不落盘（§10）：从镜像表**现推**「THBWiki 前缀 ↔ albumKey」并断言一一对应。
 
     曲目文件引专辑用**名字**、THBWiki 文件名用**前缀**；两者之间不落一份对照表（会漂），
@@ -305,10 +305,10 @@ def check_album_prefixes(albums: dict[str, dict], p: "Problems") -> dict:
     专辑名回查 originals.toml。实测 44 前缀 / 39 albumKey —— 一个 albumKey 对多个前缀**合法**
     （子碟：th07.5-day/b、TFM-003A/O、th10.5-arrange/original、th14.5-bonus），反过来不合法。
     """
-    entries = build_mod.load_mirror_entries("thbwiki")
+    rows = build_mod.load_mirror_entries("thbwiki") if entries is None else entries
     by_name = {entry["name"]: entry.get("key") for entry in albums.values()}
     prefixes: dict[str, set[str]] = collections.defaultdict(set)
-    for entry in entries:
+    for entry in rows:
         track_id, album = entry["id"], entry["album"]
         if "_" not in track_id:
             p.error(f"thbwiki：曲id 不是 <前缀>_<序号> 形态 → {track_id}")
@@ -329,7 +329,7 @@ def check_album_prefixes(albums: dict[str, dict], p: "Problems") -> dict:
     return {"prefixes": len(prefixes), "album_keys": len(per_key), "multi_prefix_keys": multi}
 
 
-def check_declared_sources(p: "Problems") -> int:
+def check_declared_sources(p: "Problems", entries=None) -> int:
     """逐曲 ``[[track]].sources``（REFACTOR-PLAN v2 §4/§6）必须真的能在那些源里解析到。
 
     这张表是 S1 写进每条 ``[[track]]`` 的**声明**；在运行时按它排序之前，先让"写错源 id /
@@ -349,16 +349,20 @@ def check_declared_sources(p: "Problems") -> int:
                     p.error(f"{data['key']} / {track['id']}：声明的音源不在注册表里 → {source_id}")
                     continue
                 if source_id not in tables:
-                    tables[source_id] = {entry["id"] for entry in build_mod.load_mirror_entries(source_id)}
+                    rows = entries.get(source_id) if entries is not None else None
+                    if rows is None:
+                        rows = build_mod.load_mirror_entries(source_id)
+                    tables[source_id] = {entry["id"] for entry in rows}
                 if track["id"] not in tables[source_id]:
                     p.error(f"{data['key']} / {track['id']}：{source_id} 的镜像表里没有这条曲目")
     return declared_count
 
 
-def check_sources(referenced: set[tuple[str, str]], p: Problems):
+def check_sources(referenced: set[tuple[str, str]], p: Problems, tracks=None):
     stats = {}
     for source_id in build_mod.mirror_source_ids():
-        entries = build_mod.load_mirror_tracks(source_id, missing_ok=True)
+        entries = (tracks.get(source_id) if tracks is not None
+                   else build_mod.load_mirror_tracks(source_id, missing_ok=True))
         if entries is None:
             continue
         table = {(a, t): url for a, t, url in entries}
@@ -378,7 +382,7 @@ def check_sources(referenced: set[tuple[str, str]], p: Problems):
     return stats
 
 
-def check_title_uniqueness(chars: list[dict], p: Problems) -> dict[str, object]:
+def check_title_uniqueness(chars: list[dict], p: Problems, tracks=None) -> dict[str, object]:
     """同名 ≠ 同曲：确认"曲目身份必须带专辑"这条前提在数据里成立。
 
     - **不**把"同一 (专辑,曲目) 被多个角色引用"当错误：那是同一首曲子被多个角色共用（合法）。
@@ -403,7 +407,9 @@ def check_title_uniqueness(chars: list[dict], p: Problems) -> dict[str, object]:
     # 依据来自**源表全集**（不只是被引用的那部分）：同名同专辑的两首曲子只有靠序号区分
     all_titles: dict[str, set[str]] = {}
     for source_id in build_mod.mirror_source_ids():
-        for album, title, _url in build_mod.load_mirror_tracks(source_id, missing_ok=True) or []:
+        rows = (tracks.get(source_id) if tracks is not None
+                else build_mod.load_mirror_tracks(source_id, missing_ok=True))
+        for album, title, _url in rows or []:
             all_titles.setdefault(album, set()).add(title)
 
     numbered: dict[str, list[str]] = {}
@@ -686,14 +692,19 @@ def run() -> tuple["Problems", dict]:
     # 曲包曲目不在镜像表里（只存在于本机），覆盖检查只看非曲包曲目
     mirror_referenced = {(a, t) for a, t in char_stats["referenced"]
                          if a not in pack_album_names}
-    source_stats = check_sources(mirror_referenced, p)
-    declared_sources = check_declared_sources(p)
+    # 两张镜像表**一次读齐**（各 651 行）：下面四条检查共用 —— 以前各读一遍，同一份 TOML 解析 4-5 次
+    mirror_tracks = {sid: build_mod.load_mirror_tracks(sid, missing_ok=True)
+                     for sid in build_mod.mirror_source_ids()}
+    mirror_entries = {sid: build_mod.load_mirror_entries(sid)
+                      for sid, rows in mirror_tracks.items() if rows is not None}
+    source_stats = check_sources(mirror_referenced, p, tracks=mirror_tracks)
+    declared_sources = check_declared_sources(p, entries=mirror_entries)
     source_registry = check_source_registry(p)
     # 生成物里的源表地址形态（D131）：前端读的是 JSON，注册表对了这里也不能漏
     source_registry["table_urls"] = check_source_table_urls(p)
     card_sets = check_card_sets(p)
-    title_stats = check_title_uniqueness(chars, p)
-    prefix_stats = check_album_prefixes(albums, p)
+    title_stats = check_title_uniqueness(chars, p, tracks=mirror_tracks)
+    prefix_stats = check_album_prefixes(albums, p, entries=mirror_entries.get("thbwiki"))
     for album, notes in title_stats["number_prefix_required"].items():
         p.note(f"{album}：去掉曲目序号会撞名，故 `曲目` 保留 `NN. ` —— {'；'.join(notes)}")
     digest = hashlib.sha256(
