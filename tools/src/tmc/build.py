@@ -331,7 +331,7 @@ def build_sources(mode: str) -> dict:
         problem = source_table_url_problem(entry["kind"], entry["table_url"])
         if problem is not None:
             raise SystemExit(
-                f"[FAIL] [{mode}] 音源 {entry['id']} 的 table_url 不合法：{entry['table_url']}\n   {problem}")
+                f"[FAILED] [{mode}] 音源 {entry['id']} 的 table_url 不合法：{entry['table_url']}\n   {problem}")
         record = {
             "id": entry["id"],
             "label": {"en": entry["label_en"], "zh": entry["label_zh"]},
@@ -453,7 +453,7 @@ def build_outputs() -> tuple[dict, dict[str, dict[str, str]]]:
         dataset = None if mode == "originals" else load_dataset(mode)
         datasets[mode] = dataset
         if mode != "originals" and dataset is None:
-            print(f"[!] {mode} 数据集不可得（没有 {repo.shown(repo.dataset_dir(mode))}，也没有 Release"
+            print(f"[ WARN ] {mode} 数据集不可得（没有 {repo.shown(repo.dataset_dir(mode))}，也没有 Release"
                   f" 快照）⇒ 只写空兜底，运行时回退远程清单", file=sys.stderr)
         characters = build_characters(mode, chars, dataset)
         albums = build_albums(mode, dataset)

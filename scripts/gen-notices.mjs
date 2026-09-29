@@ -216,17 +216,17 @@ const dist = renderDist(next);
 
 if (CHECK) {
   const stale = next !== md || (fs.existsSync(TXT) && fs.readFileSync(TXT, "utf8") !== dist);
-  console.log(stale ? "[FAIL] 署名文件与生产闭包不一致 —— 跑 pnpm notices" : "[OK] 署名文件与生产闭包一致");
+  console.log(stale ? "[FAILED] 署名文件与生产闭包不一致 —— 跑 pnpm notices" : "[  OK  ] 署名文件与生产闭包一致");
   process.exit(stale ? 1 : 0);
 }
 
 fs.writeFileSync(MD, next, "utf8");
 fs.mkdirSync(path.dirname(TXT), { recursive: true });
 fs.writeFileSync(TXT, dist, "utf8");
-console.log(`[OK] ${packages.length} 个包 · 口径=${mode}（${[...groups.keys()].sort().join(" / ")}）`);
+console.log(`[  OK  ] ${packages.length} 个包 · 口径=${mode}（${[...groups.keys()].sort().join(" / ")}）`);
 console.log(`  ${path.relative(ROOT, MD)} ${next.length} 字符`);
 console.log(`  ${path.relative(ROOT, TXT)} ${dist.length} 字符`);
 if (!usedLicenses.every((id) => true) || usedLicenses.length !== groups.size) {
   const missing = [...groups.keys()].filter((id) => !usedLicenses.includes(id));
-  console.log(`  [!] LICENSES/ 里缺：${missing.join(", ")}`);
+  console.log(`  [ WARN ] LICENSES/ 里缺：${missing.join(", ")}`);
 }

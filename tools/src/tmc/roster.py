@@ -196,7 +196,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.scaffold:
         created = scaffold_write(dry_run=args.dry_run)
         if not created:
-            print("[OK] 没有缺失的角色文件（真源里的角色都有了骨架）")
+            print("[  OK  ] 没有缺失的角色文件（真源里的角色都有了骨架）")
             return 0
         verb = "会新建" if args.dry_run else "已新建"
         for key in created:
@@ -209,7 +209,7 @@ def main(argv: list[str] | None = None) -> int:
         problems = diff()
         for problem in problems:
             print(f"[x] {problem}")
-        print("[OK] 清单与真源一致" if not problems else f"[FAIL] {len(problems)} 处不一致")
+        print("[  OK  ] 清单与真源一致" if not problems else f"[FAILED] {len(problems)} 处不一致")
         return 1 if problems else 0
 
     path = write()

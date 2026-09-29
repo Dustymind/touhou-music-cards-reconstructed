@@ -66,7 +66,7 @@ function buildFromClone(mode, pkg, dir, datasetDir) {
     { stdio: "inherit", cwd: ROOT },
   );
   if (result.status !== 0) {
-    console.error("[!] " + mode + " 数据集生成失败（exit " + (result.status ?? "?") + "）");
+    console.error("[ WARN ] " + mode + " 数据集生成失败（exit " + (result.status ?? "?") + "）");
     return false;
   }
   return true;
@@ -81,13 +81,13 @@ async function downloadSnapshot(mode, base, datasetDir) {
     try {
       response = await fetch(prefix + asset, { redirect: "follow" });
     } catch (error) {
-      console.error("[!] " + mode + " 快照下载失败：" + asset + " —— " + String(error));
+      console.error("[ WARN ] " + mode + " 快照下载失败：" + asset + " —— " + String(error));
       return false;
     }
     if (!response.ok) {
       // 可选件：响度表（有的模式没有）与 pack-audio.json（只有音MAD 有音频口径）
       if (asset.startsWith("loudness-") || asset === "pack-audio.json") continue;
-      console.error("[!] " + mode + " 快照缺 " + asset + "（HTTP " + response.status + "）");
+      console.error("[ WARN ] " + mode + " 快照缺 " + asset + "（HTTP " + response.status + "）");
       return false;
     }
     const body = Buffer.from(await response.arrayBuffer());
@@ -106,20 +106,20 @@ async function runMode({ mode, pkg, dirEnv, urlEnv }) {
 
   if (existsSync(marker) && existsSync(path.join(datasetDir, "characters.json"))
       && statSync(marker).mtimeMs >= inputsMtime(dir)) {
-    console.log("[=] " + mode + " 数据集是最新的：" + path.relative(ROOT, datasetDir));
+    console.log("[ SKIP ] " + mode + " 数据集是最新的：" + path.relative(ROOT, datasetDir));
     return;
   }
   if (existsSync(path.join(dir, "tools", "src"))) {
-    console.log("[+] " + mode + " 用 " + path.relative(ROOT, dir) + " 的 dataset.py 现生成");
+    console.log("[  ..  ] " + mode + " 用 " + path.relative(ROOT, dir) + " 的 dataset.py 现生成");
     if (buildFromClone(mode, pkg, dir, datasetDir)) writeFileSync(marker, new Date().toISOString() + "\n");
     return;
   }
   if (url) {
-    console.log("[+] " + mode + " 从快照下载：" + url);
+    console.log("[  ..  ] " + mode + " 从快照下载：" + url);
     if (await downloadSnapshot(mode, url, datasetDir)) writeFileSync(marker, new Date().toISOString() + "\n");
     return;
   }
-  console.log("[!] " + mode + " 数据集不可得（" + dirEnv + " 没指向 clone，" + urlEnv
+  console.log("[ WARN ] " + mode + " 数据集不可得（" + dirEnv + " 没指向 clone，" + urlEnv
     + " 也没设）⇒ 该模式走空兜底，运行时回退远程清单");
 }
 

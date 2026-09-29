@@ -660,7 +660,7 @@ def check_source_urls(per_source: int = 5, all_: bool = False, seed: int = 0) ->
         for source_id, track, url, detail in failures:
             print(f"  [{source_id}] {track}\n      {url}\n      {detail}")
         return 1
-    print("[OK] 抽查全部通过（Range 请求可播放、206 带 Content-Range）")
+    print("[  OK  ] 抽查全部通过（Range 请求可播放、206 带 Content-Range）")
     return 0
 
 
@@ -777,9 +777,9 @@ def main(argv: list[str] | None = None) -> int:
     print(text if p.errors else text.split("## 源表")[0].strip())
 
     if p.errors:
-        print(f"\n[FAIL] 校验失败：{len(p.errors)} 个错误", file=sys.stderr)
+        print(f"\n[FAILED] 校验失败：{len(p.errors)} 个错误", file=sys.stderr)
         return 1
-    print(f"[OK] 校验通过（引用集合指纹 {stats['digest']}）")
+    print(f"[  OK  ] 校验通过（引用集合指纹 {stats['digest']}）")
     if args.urls:
         return check_source_urls(per_source=args.urls_per, all_=args.urls_all, seed=args.urls_seed)
     return 0
