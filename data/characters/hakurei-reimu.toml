@@ -2,7 +2,6 @@ key = "hakurei-reimu"
 name = "博麗霊夢"
 order = 3
 search_names = ["博麗霊夢", "Hakurei Reimu", "博丽灵梦", "boli lingmeng"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["霊夢.png"]
 
 [[track]]

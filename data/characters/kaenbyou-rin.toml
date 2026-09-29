@@ -2,7 +2,6 @@ key = "kaenbyou-rin"
 name = "火焔猫燐"
 order = 47
 search_names = ["火焔猫燐", "Kaenbyou Rin", "火焰猫磷", "huoyanmao lin", "火焰猫燐"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["燐.png"]
 
 [[track]]

@@ -2,7 +2,6 @@ key = "mitsugashira-enoko"
 name = "三頭慧ノ子"
 order = 100
 search_names = ["三頭慧ノ子", "Mitsugashira Enoko", "三头慧之子", "santou huizhizi"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["慧ノ子.png"]
 
 [[track]]

@@ -2,7 +2,6 @@ key = "watatsuki-no-toyohime"
 name = "綿月丰姬"
 order = 116
 search_names = ["綿月豊姫", "Watatsuki no Toyohime", "绵月丰姬", "mianyue fengji"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["豊姫.png"]
 
 [[track]]

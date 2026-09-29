@@ -2,7 +2,6 @@ key = "wriggle-nightbug"
 name = "リグル･ナイトバグ"
 order = 21
 search_names = ["リグル･ナイトバグ", "Riguru Naitobagu", "Wriggle Nightbug", "莉格露·奈特巴格", "ligelu naitebage"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["リグル.png"]
 
 [[track]]

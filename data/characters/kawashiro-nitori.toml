@@ -2,7 +2,6 @@ key = "kawashiro-nitori"
 name = "河城にとり"
 order = 36
 search_names = ["河城にとり", "Kawashiro Nitori", "河城荷取", "hecheng hequ"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["にとり.png"]
 
 [[track]]

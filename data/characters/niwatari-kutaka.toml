@@ -2,7 +2,6 @@ key = "niwatari-kutaka"
 name = "庭渡久侘歌"
 order = 86
 search_names = ["庭渡久侘歌", "Niwatari Kutaka", "庭渡久诧歌", "tingdu jiuchage"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["久侘歌.png"]
 
 [[track]]

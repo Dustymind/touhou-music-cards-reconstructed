@@ -2,7 +2,6 @@ key = "joutougu-mayumi"
 name = "杖刀偶磨弓"
 order = 88
 search_names = ["杖刀偶磨弓", "Joutougu Mayumi", "杖刀偶磨弓", "zhangdaou moyong"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["磨弓.png"]
 
 [[track]]

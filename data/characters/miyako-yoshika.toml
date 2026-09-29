@@ -2,7 +2,6 @@ key = "miyako-yoshika"
 name = "宮古芳香"
 order = 58
 search_names = ["宮古芳香", "Miyako Yoshika", "宫古芳香", "gonggu fangxiang"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["芳香.png"]
 
 [[track]]

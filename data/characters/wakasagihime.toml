@@ -2,7 +2,6 @@ key = "wakasagihime"
 name = "わかさぎ姫"
 order = 64
 search_names = ["わかさぎ姫", "Wakasagihime", "若鹭姬", "ruoluji"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["わかさぎ姫.png"]
 
 [[track]]

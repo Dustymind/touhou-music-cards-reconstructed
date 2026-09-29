@@ -2,7 +2,6 @@ key = "patchouli-knowledge"
 name = "パチュリー・ノーレッジ"
 order = 9
 search_names = ["パチュリー・ノーレッジ", "Pachuri Noredji", "Patchouli Knowledge", "帕秋莉·诺蕾姬", "paqiuli nuoleiji"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["パチュリー.png"]
 
 [[track]]

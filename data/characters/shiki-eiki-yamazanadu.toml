@@ -2,7 +2,6 @@ key = "shiki-eiki-yamazanadu"
 name = "四季映姫・ヤマザナドゥ"
 order = 32
 search_names = ["四季映姫・ヤマザナドゥ", "Shiki Eiki Yamazanadu", "四季映姬·亚玛萨那度", "siji yingji yamasannadu", "四季映姬·夜摩仙那度"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["映姫.png"]
 
 [[track]]

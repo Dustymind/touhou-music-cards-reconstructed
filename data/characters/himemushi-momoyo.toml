@@ -2,7 +2,6 @@ key = "himemushi-momoyo"
 name = "姫虫百々世"
 order = 97
 search_names = ["姫虫百々世", "Himemushi Momoyo", "姬虫百百世", "jichong baibaishi"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["百々世.png"]
 
 [[track]]

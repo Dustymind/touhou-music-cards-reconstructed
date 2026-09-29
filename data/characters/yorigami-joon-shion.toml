@@ -2,7 +2,6 @@ key = "yorigami-joon-shion"
 name = "依神女苑・紫苑"
 order = 111
 search_names = ["依神女苑・紫苑", "Yorigami Joon Shion", "依神女苑·紫苑", "yishen nvyuan ziyuan", "依神女苑", "依神紫苑"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["女苑.png", "紫苑.png"]
 
 [[track]]

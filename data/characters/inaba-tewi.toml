@@ -2,7 +2,6 @@ key = "inaba-tewi"
 name = "因幡てゐ"
 order = 24
 search_names = ["因幡てゐ", "Inaba Tewi", "因幡帝", "yinba di", "因幡天为"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["てゐ.png"]
 
 [[track]]

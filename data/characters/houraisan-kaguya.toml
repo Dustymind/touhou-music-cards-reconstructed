@@ -2,7 +2,6 @@ key = "houraisan-kaguya"
 name = "蓬莱山輝夜"
 order = 27
 search_names = ["蓬莱山輝夜", "Houraisan Kaguya", "蓬莱山辉夜", "penglaishan huiye"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["輝夜.png"]
 
 [[track]]

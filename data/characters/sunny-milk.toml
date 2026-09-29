@@ -2,7 +2,6 @@ key = "sunny-milk"
 name = "サニーミルク"
 order = 119
 search_names = ["サニーミルク", "Sani Miruku", "Sunny Milk", "桑尼·米尔克", "sangni mierke"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["サニーミルク.png"]
 
 [[track]]

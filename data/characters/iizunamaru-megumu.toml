@@ -2,7 +2,6 @@ key = "iizunamaru-megumu"
 name = "飯綱丸龍"
 order = 95
 search_names = ["飯綱丸龍", "Iizunamaru Megumu", "饭纲丸龙", "fangangwan long"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["龍.png"]
 
 [[track]]

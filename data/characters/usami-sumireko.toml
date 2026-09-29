@@ -2,7 +2,6 @@ key = "usami-sumireko"
 name = "宇佐見菫子"
 order = 110
 search_names = ["宇佐見菫子", "Usami Sumireko", "宇佐见堇子", "yuzuojian jinzi"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["菫子.png"]
 
 [[track]]

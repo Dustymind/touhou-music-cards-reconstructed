@@ -2,7 +2,6 @@ key = "hecatia-lapislazuli"
 name = "ヘカーティア・ラピスラズリ"
 order = 77
 search_names = ["ヘカーティア・ラピスラズリ", "Hekatia Rapisurazuri", "Hecatia Lapislazuli", "赫卡提亚·拉碧斯拉祖利", "hekatiya labisilazuli"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["ヘカーティア.png"]
 
 [[track]]

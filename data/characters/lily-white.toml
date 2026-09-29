@@ -2,7 +2,6 @@ key = "lily-white"
 name = "リリーホワイト"
 order = 15
 search_names = ["リリーホワイト", "Riri Howaito", "Lily White", "莉莉白", "lilibai", "莉莉霍瓦特"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["リリー.png"]
 
 [[track]]

@@ -2,7 +2,6 @@ key = "kuraunpisu"
 name = "クラウンピース"
 order = 75
 search_names = ["クラウンピース", "Kuraunpisu", "Clownpiece", "克劳恩皮丝", "kelaounpisi"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["クラウンピース.png"]
 
 [[track]]

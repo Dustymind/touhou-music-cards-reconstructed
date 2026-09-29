@@ -2,7 +2,6 @@ key = "tsukumo-benben-yatsuhashi"
 name = "九十九弁々・八橋"
 order = 67
 search_names = ["九十九弁々・八橋", "Tsukumo Benben Yatsuhashi", "九十九弁弁·八桥", "jiushijiu bianbian baqiao", "九十九八桥", "九十九弁弁", "九十九八橋", "九十九弁々"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["弁々.png", "八橋.png"]
 
 [[track]]

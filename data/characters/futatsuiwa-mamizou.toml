@@ -2,7 +2,6 @@ key = "futatsuiwa-mamizou"
 name = "二ッ岩マミゾウ"
 order = 63
 search_names = ["二ッ岩マミゾウ", "Futatsuiwa Mamizou", "二岩猯藏", "eryan tuanzang"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["マミゾウ.png"]
 
 [[track]]

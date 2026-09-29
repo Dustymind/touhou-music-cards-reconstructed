@@ -2,7 +2,6 @@ key = "son-biten"
 name = "孫美天"
 order = 99
 search_names = ["孫美天", "Son Biten", "孙美天", "sun meitian"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["孫美天.png"]
 
 [[track]]

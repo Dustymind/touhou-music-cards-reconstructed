@@ -2,7 +2,6 @@ key = "kitcho-yachie"
 name = "吉弔八千慧"
 order = 87
 search_names = ["吉弔八千慧", "Kitcho Yachie", "吉吊八千慧", "jidiao baqianhui"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["八千慧.png"]
 
 [[track]]

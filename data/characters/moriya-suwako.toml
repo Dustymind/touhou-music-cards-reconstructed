@@ -2,7 +2,6 @@ key = "moriya-suwako"
 name = "洩矢諏訪子"
 order = 41
 search_names = ["洩矢諏訪子", "Moriya Suwako", "泄矢诹访子", "xieshi zoufangzi", "洩矢诹访子"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["諏訪子.png"]
 
 [[track]]

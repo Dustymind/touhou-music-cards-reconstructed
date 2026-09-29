@@ -2,7 +2,6 @@ key = "sukuna-shinmyoumaru"
 name = "少名針妙丸"
 order = 69
 search_names = ["少名針妙丸", "Sukuna Shinmyoumaru", "少名针妙丸", "shaoming zhenmiaowan"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["針妙丸.png"]
 
 [[track]]

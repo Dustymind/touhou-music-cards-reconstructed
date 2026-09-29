@@ -2,7 +2,6 @@ key = "fujiwara-no-mokou"
 name = "藤原妹紅"
 order = 28
 search_names = ["藤原妹紅", "Fujiwara no Mokou", "藤原妹红", "tengyuan meihong"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["妹紅.png"]
 
 [[track]]

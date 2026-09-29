@@ -2,7 +2,6 @@ key = "hijiri-byakuren"
 name = "聖白蓮"
 order = 55
 search_names = ["聖白蓮", "Hijiri Byakuren", "圣白莲", "sheng bailian"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["聖.png"]
 
 [[track]]

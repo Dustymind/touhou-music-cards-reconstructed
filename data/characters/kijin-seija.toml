@@ -2,7 +2,6 @@ key = "kijin-seija"
 name = "鬼人正邪"
 order = 68
 search_names = ["鬼人正邪", "Kijin Seija", "鬼人正邪", "guiren zhengxie"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["正邪.png"]
 
 [[track]]

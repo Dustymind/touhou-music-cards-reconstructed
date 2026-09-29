@@ -2,7 +2,6 @@ key = "hata-no-kokoro"
 name = "秦こころ"
 order = 108
 search_names = ["秦こころ", "Hata no Kokoro", "秦心", "qin xin"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["こころ.png"]
 
 [[track]]

@@ -2,7 +2,6 @@ key = "nippaku-zanmu"
 name = "日白残無"
 order = 103
 search_names = ["日白残無", "Nippaku Zanmu", "日白残无", "ribai canwu"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["日白残無.png"]
 
 [[track]]

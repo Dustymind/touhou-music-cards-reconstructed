@@ -2,7 +2,6 @@ key = "iwanaga-ariya"
 name = "磐永阿梨夜"
 order = 117
 search_names = ["磐永阿梨夜", "Iwanaga Ariya", "磐永阿梨夜", "panyong aliye"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["阿梨夜.png"]
 
 [[track]]

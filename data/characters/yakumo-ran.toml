@@ -2,7 +2,6 @@ key = "yakumo-ran"
 name = "八雲藍"
 order = 19
 search_names = ["八雲藍", "Yakumo Ran", "八云蓝", "bayun lan"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["藍.png"]
 
 [[track]]

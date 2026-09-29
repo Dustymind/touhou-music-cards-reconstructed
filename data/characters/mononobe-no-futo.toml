@@ -2,7 +2,6 @@ key = "mononobe-no-futo"
 name = "物部布都"
 order = 61
 search_names = ["物部布都", "Mononobe no Futo", "物部布都", "wubu budu"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["布都.png"]
 
 [[track]]

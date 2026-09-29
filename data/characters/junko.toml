@@ -2,7 +2,6 @@ key = "junko"
 name = "純狐"
 order = 76
 search_names = ["純狐", "Junko", "纯狐", "chunhu"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["純狐.png"]
 
 [[track]]

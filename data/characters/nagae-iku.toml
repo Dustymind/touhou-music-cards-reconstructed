@@ -2,7 +2,6 @@ key = "nagae-iku"
 name = "永江衣玖"
 order = 106
 search_names = ["永江衣玖", "Nagae Iku", "永江衣玖", "yongjiang yijiu"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["衣玖.png"]
 
 [[track]]

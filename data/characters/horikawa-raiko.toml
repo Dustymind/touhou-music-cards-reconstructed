@@ -2,7 +2,6 @@ key = "horikawa-raiko"
 name = "堀川雷鼓"
 order = 70
 search_names = ["堀川雷鼓", "Horikawa Raiko", "堀川雷鼓", "kuchuan leigu"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["雷鼓.png"]
 
 [[track]]

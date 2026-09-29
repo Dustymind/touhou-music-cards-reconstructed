@@ -2,7 +2,6 @@ key = "kirisame-marisa"
 name = "霧雨魔理沙"
 order = 1
 search_names = ["霧雨魔理沙", "Kirisame Marisa", "雾雨魔理沙", "wuyu molisha"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["魔理沙.png"]
 
 [[track]]

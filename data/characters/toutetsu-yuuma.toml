@@ -2,7 +2,6 @@ key = "toutetsu-yuuma"
 name = "饕餮尤魔"
 order = 104
 search_names = ["饕餮尤魔", "Toutetsu Yuuma", "饕餮尤魔", "taotie youmo"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["尤魔.png"]
 
 [[track]]

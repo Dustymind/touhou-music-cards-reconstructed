@@ -2,7 +2,6 @@ key = "letty-whiterock"
 name = "レティ・ホワイトロック"
 order = 13
 search_names = ["レティ・ホワイトロック", "Reti Howaitorokku", "Letty Whiterock", "蕾蒂·霍瓦特洛克", "leidi huowateluoke"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["レティ.png"]
 
 [[track]]

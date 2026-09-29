@@ -2,7 +2,6 @@ key = "rumia"
 name = "ルーミア"
 order = 4
 search_names = ["ルーミア", "Rumia", "露米娅", "lumiya"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["ルーミア.png"]
 
 [[track]]

@@ -2,7 +2,6 @@ key = "doremy-sweet"
 name = "ドレミー・スイート"
 order = 73
 search_names = ["ドレミー・スイート", "Doremi Suito", "Doremy Sweet", "哆来咪·苏伊特", "duolaimi suyite"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["ドレミー.png"]
 
 [[track]]

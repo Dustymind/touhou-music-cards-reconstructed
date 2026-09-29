@@ -2,7 +2,6 @@ key = "kagiyama-hina"
 name = "鍵山雛"
 order = 35
 search_names = ["鍵山雛", "Kagiyama Hina", "键山雏", "jianshan chu"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["雛.png"]
 
 [[track]]

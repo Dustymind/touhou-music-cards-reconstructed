@@ -2,7 +2,6 @@ key = "reiuji-utsuho"
 name = "霊烏路空"
 order = 48
 search_names = ["霊烏路空", "Reiuji Utsuho", "灵乌路空", "lingwulu kong"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["空.png"]
 
 [[track]]

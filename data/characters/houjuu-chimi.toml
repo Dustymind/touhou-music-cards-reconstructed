@@ -2,7 +2,6 @@ key = "houjuu-chimi"
 name = "封獣チミ"
 order = 113
 search_names = ["封獣チミ", "Houjuu Chimi", "封獣魑魅", "fengshou chimei", "封兽魑魅"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["チミ.png"]
 
 [[track]]

@@ -2,7 +2,6 @@ key = "komano-aunn"
 name = "高麗野あうん"
 order = 80
 search_names = ["高麗野あうん", "Komano Aunn", "高丽野阿吽", "gaoliye ahou"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["あうん.png"]
 
 [[track]]

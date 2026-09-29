@@ -78,7 +78,8 @@ ALBUM_KEYS = {"key", "name", "kind", "pack", "order", "show_album_name"}
 #: 或**逐档表**（D164：`original` / `16x9` / `4x3`，与应用的 `parseCoverField` 同口径）
 TRACK_KEYS = {"album", "author", "authors", "title", "extra", "source", "start_time", "stop_time",
               "bitrate", "cover"}
-#: 角色文件的顶层键（`track` 之外）：`card` 是**可选**的卡面覆盖（写法同 `data/characters/*.toml`）
+#: 角色文件的顶层键（`track` 之外）：`card` 是**可选**的卡面覆盖，值是**卡面文件名**
+#: （等价于原曲角色文件的 `card_name` —— 那边的 `card` 是"卡面组 id 列表"，与这里**不同义**，D177 起已删）
 CHARACTER_KEYS = {"key", "card"}
 
 #: `bitrate`（可选的成品 CBR 码率，kbps）允许的范围 —— 与数据仓库的 `packformat.BITRATE_RANGE` 同口径

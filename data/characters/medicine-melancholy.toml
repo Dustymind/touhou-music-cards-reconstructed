@@ -2,7 +2,6 @@ key = "medicine-melancholy"
 name = "メディスン・メランコリー"
 order = 29
 search_names = ["メディスン・メランコリー", "Medisun Merankori", "Medicine Melancholy", "梅蒂欣·梅兰可莉", "meidixin meilankeli"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["メディスン.png"]
 
 [[track]]

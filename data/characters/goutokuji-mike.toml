@@ -2,7 +2,6 @@ key = "goutokuji-mike"
 name = "豪徳寺ミケ"
 order = 91
 search_names = ["豪徳寺ミケ", "Goutokuji Mike", "豪德寺三花", "haodesi sanhua"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["ミケ.png"]
 
 [[track]]

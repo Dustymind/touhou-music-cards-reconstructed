@@ -2,7 +2,6 @@ key = "sakata-nemuno"
 name = "坂田ネムノ"
 order = 79
 search_names = ["坂田ネムノ", "Sakata Nemuno", "坂田合欢", "bantian hehuan"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["ネムノ.png"]
 
 [[track]]

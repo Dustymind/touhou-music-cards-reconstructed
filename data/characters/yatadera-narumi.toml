@@ -2,7 +2,6 @@ key = "yatadera-narumi"
 name = "矢田寺成美"
 order = 81
 search_names = ["矢田寺成美", "Yatadera Narumi", "矢田寺成美", "shidasi chengmei"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["成美.png"]
 
 [[track]]

@@ -2,7 +2,6 @@ key = "kumoi-ichirin"
 name = "雲居一輪"
 order = 52
 search_names = ["雲居一輪", "Kumoi Ichirin", "云居一轮", "yunju yilun"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["一輪＆雲山.png"]
 
 [[track]]

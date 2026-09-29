@@ -2,7 +2,6 @@ key = "prismriver-sisters"
 name = "ルナサ/メルラン/リリカ・プリズムリバー"
 order = 16
 search_names = ["姐妹", "jiemei", "3", "プリズムリバー三姉妹", "Prismriver Sisters", "Purizumuriba", "普莉兹姆利巴", "pulizumuliba", "Lunasa", "Merlin", "Lyrica", "露娜萨·普莉兹姆利巴", "梅露兰·普莉兹姆利巴", "莉莉卡·普莉兹姆利巴", "ルナサ・プリズムリバー", "メルラン・プリズムリバー", "リリカ・プリズムリバー"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["ルナサ.png", "メルラン.png", "リリカ.png"]
 
 [[track]]

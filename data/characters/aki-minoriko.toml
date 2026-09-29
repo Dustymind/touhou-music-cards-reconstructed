@@ -2,7 +2,6 @@ key = "aki-minoriko"
 name = "秋穣子"
 order = 34
 search_names = ["秋穣子", "Aki Minoriko", "秋穰子", "qiu rangzi"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["穣子.png"]
 
 [[track]]

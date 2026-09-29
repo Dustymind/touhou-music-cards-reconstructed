@@ -2,7 +2,6 @@ key = "yasaka-kanako"
 name = "八坂神奈子"
 order = 40
 search_names = ["八坂神奈子", "Yasaka Kanako", "八坂神奈子", "baban shennaizi"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["神奈子.png"]
 
 [[track]]

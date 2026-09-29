@@ -2,7 +2,6 @@ key = "mystia-lorelei"
 name = "ミスティア・ローレライ"
 order = 22
 search_names = ["ミスティア・ローレライ", "Misutia Rorerai", "Mystia Lorelei", "米斯蒂娅·萝蕾拉", "misidiya luoleila"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["ミスティア.png"]
 
 [[track]]

@@ -2,7 +2,6 @@ key = "ringo"
 name = "鈴瑚"
 order = 72
 search_names = ["鈴瑚", "Ringo", "铃瑚", "linghu"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["鈴瑚.png"]
 
 [[track]]

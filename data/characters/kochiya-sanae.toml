@@ -2,7 +2,6 @@ key = "kochiya-sanae"
 name = "東風谷早苗"
 order = 39
 search_names = ["東風谷早苗", "Kochiya Sanae", "东风谷早苗", "dongfenggu zaomiao"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["早苗.png"]
 
 [[track]]

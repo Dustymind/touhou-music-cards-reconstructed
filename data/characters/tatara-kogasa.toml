@@ -2,7 +2,6 @@ key = "tatara-kogasa"
 name = "多々良小傘"
 order = 51
 search_names = ["多々良小傘", "Tatara Kogasa", "多多良小伞", "duoduoliang xiaosan"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["小傘.png"]
 
 [[track]]

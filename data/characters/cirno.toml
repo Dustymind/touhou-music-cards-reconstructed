@@ -2,7 +2,6 @@ key = "cirno"
 name = "チルノ"
 order = 6
 search_names = ["チルノ", "Cirno", "琪露诺", "qilunuo"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["チルノ.png"]
 
 [[track]]

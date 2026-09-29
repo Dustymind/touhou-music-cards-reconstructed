@@ -2,7 +2,6 @@ key = "reisen-udongein-inaba"
 name = "鈴仙・優曇華院・イナバ"
 order = 25
 search_names = ["鈴仙・優曇華院・イナバ", "Reisen Udongein Inaba", "铃仙·优昙华院·因幡", "lingxian youtanhauyuan yinfan"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["鈴仙.png"]
 
 [[track]]

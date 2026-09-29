@@ -2,7 +2,6 @@ key = "konpaku-youmu"
 name = "魂魄妖夢"
 order = 17
 search_names = ["魂魄妖夢", "Konpaku Youmu", "魂魄妖梦", "hunpo yaomeng"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["妖夢.png"]
 
 [[track]]

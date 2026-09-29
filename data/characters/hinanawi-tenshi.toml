@@ -2,7 +2,6 @@ key = "hinanawi-tenshi"
 name = "比那名居天子"
 order = 107
 search_names = ["比那名居天子", "Hinanawi Tenshi", "比那名居天子", "binamingju tianzi"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["天子.png"]
 
 [[track]]

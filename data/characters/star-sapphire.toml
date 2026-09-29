@@ -2,7 +2,6 @@ key = "star-sapphire"
 name = "スターサファイア"
 order = 121
 search_names = ["スターサファイア", "Suta Safaia", "Star Sapphire", "斯塔·萨菲雅", "sita safeiya"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["スターサファイア.png"]
 
 [[track]]

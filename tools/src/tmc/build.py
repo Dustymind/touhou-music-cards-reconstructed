@@ -43,9 +43,10 @@ def _dumps(payload) -> str:
 def load_characters() -> list[dict]:
     """真相源：``data/characters/*.toml``（一角色一份，含**该角色的全部**曲目）。
 
-    S1b 起 TOML 是规整化形状（``search_names`` / ``card``=卡面组 id / ``card_name``
-    / ``[[track]]`` 带 ``id``·``album_key``·``sources``）；这里**还原旧内存形状**
-    （``searchNames`` / ``card``=文件名 / ``music``=三元组），contentHash 与输出不变。
+    S1b 起 TOML 是规整化形状（``search_names`` / ``card_name`` / ``[[track]]`` 带 ``id``·
+    ``album_key``·``sources``）；**D177 起那个 ``card``=卡面组 id 列表已删**（121 份全一样、
+    没有任何消费者）。这里**还原旧内存形状**（``searchNames`` / ``card``=文件名 / ``music``=三元组），
+    contentHash 与输出不变。
     """
     key_to_name = {a["key"]: a["name"] for a in load_albums()}
     chars = []

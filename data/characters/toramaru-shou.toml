@@ -2,7 +2,6 @@ key = "toramaru-shou"
 name = "寅丸星"
 order = 54
 search_names = ["寅丸星", "Toramaru Shou", "寅丸星", "yinwan xing"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["星.png"]
 
 [[track]]

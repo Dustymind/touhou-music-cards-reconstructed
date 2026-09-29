@@ -2,7 +2,6 @@ key = "hoshiguma-yuugi"
 name = "星熊勇儀"
 order = 45
 search_names = ["星熊勇儀", "Hoshiguma Yuugi", "星熊勇仪", "xingxiong yongyi"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["勇儀.png"]
 
 [[track]]

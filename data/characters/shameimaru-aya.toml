@@ -2,7 +2,6 @@ key = "shameimaru-aya"
 name = "射命丸文"
 order = 38
 search_names = ["射命丸文", "Shameimaru Aya", "射命丸文", "shemingwan wen"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["文.png"]
 
 [[track]]

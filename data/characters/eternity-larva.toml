@@ -2,7 +2,6 @@ key = "eternity-larva"
 name = "エタニティラルバ"
 order = 78
 search_names = ["エタニティラルバ", "Etaniti Raruba", "Eternity Larva", "爱塔妮缇·拉尔瓦", "aitaniti laerwa", "爱塔妮缇拉尔瓦"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["エタニティラルバ.png"]
 
 [[track]]

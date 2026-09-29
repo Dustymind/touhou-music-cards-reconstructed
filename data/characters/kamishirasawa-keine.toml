@@ -2,7 +2,6 @@ key = "kamishirasawa-keine"
 name = "上白沢慧音"
 order = 23
 search_names = ["上白沢慧音", "Kamishirasawa Keine", "上白泽慧音", "shangbaize huiyin"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["慧音.png", "慧音2.png"]
 
 [[track]]

@@ -2,7 +2,6 @@ key = "toyosatomimi-no-miko"
 name = "豊聡耳神子"
 order = 62
 search_names = ["豊聡耳神子", "Toyosatomimi no Miko", "丰聪耳神子", "fengcong'er shenzi"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["神子.png"]
 
 [[track]]

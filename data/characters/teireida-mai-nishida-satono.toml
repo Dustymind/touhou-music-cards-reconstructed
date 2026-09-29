@@ -2,7 +2,6 @@ key = "teireida-mai-nishida-satono"
 name = "丁礼田舞・爾子田里乃"
 order = 82
 search_names = ["丁礼田舞・爾子田里乃", "Teireida Mai Nishida Satono", "丁礼田舞·尔子田里乃", "dinglitian wu erzitian linai", "丁礼田舞", "尔子田里乃"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["舞.png", "里乃.png"]
 
 [[track]]

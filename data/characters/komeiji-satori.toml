@@ -2,7 +2,6 @@ key = "komeiji-satori"
 name = "古明地さとり"
 order = 46
 search_names = ["古明地さとり", "Komeiji Satori", "古明地觉", "gumingdi jue"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["さとり.png"]
 
 [[track]]

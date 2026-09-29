@@ -2,7 +2,6 @@ key = "luna-child"
 name = "ルナチャイルド"
 order = 120
 search_names = ["ルナチャイルド", "Runa Chairudo", "Luna Child", "露娜·切露德", "luna qielude"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["ルナチャイルド.png"]
 
 [[track]]

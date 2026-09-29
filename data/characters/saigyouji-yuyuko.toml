@@ -2,7 +2,6 @@ key = "saigyouji-yuyuko"
 name = "西行寺幽々子"
 order = 18
 search_names = ["西行寺幽々子", "Saigyouji Yuyuko", "西行寺幽幽子", "xixingsi youyouzi"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["幽々子.png"]
 
 [[track]]

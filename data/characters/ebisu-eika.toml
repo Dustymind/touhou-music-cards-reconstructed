@@ -2,7 +2,6 @@ key = "ebisu-eika"
 name = "戎瓔花"
 order = 84
 search_names = ["戎瓔花", "Ebisu Eika", "戎璎花", "rong yinghua"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["戎.png"]
 
 [[track]]

@@ -2,7 +2,6 @@ key = "murasa-minamitsu"
 name = "村紗水蜜"
 order = 53
 search_names = ["村紗水蜜", "Murasa Minamitsu", "村纱水蜜", "cunsha shuimi"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["村紗.png"]
 
 [[track]]

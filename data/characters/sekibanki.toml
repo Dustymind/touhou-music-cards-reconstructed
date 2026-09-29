@@ -2,7 +2,6 @@ key = "sekibanki"
 name = "赤蛮奇"
 order = 65
 search_names = ["赤蛮奇", "Sekibanki", "赤蛮奇", "chimanqi"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["赤蛮奇.png"]
 
 [[track]]

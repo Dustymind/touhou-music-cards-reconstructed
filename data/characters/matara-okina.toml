@@ -2,7 +2,6 @@ key = "matara-okina"
 name = "摩多羅隠岐奈"
 order = 83
 search_names = ["摩多羅隠岐奈", "Matara Okina", "摩多罗隐岐奈", "moduoluo yinqinai"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["隠岐奈.png"]
 
 [[track]]

@@ -2,7 +2,6 @@ key = "kaku-seiga"
 name = "霍青娥"
 order = 59
 search_names = ["霍青娥", "Kaku Seiga", "霍青娥", "huo qinge"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["青娥.png"]
 
 [[track]]

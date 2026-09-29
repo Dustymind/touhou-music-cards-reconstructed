@@ -2,7 +2,6 @@ key = "houjuu-nue"
 name = "封獣ぬえ"
 order = 56
 search_names = ["封獣ぬえ", "Houjuu Nue", "封兽鵺", "fengshou ye"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["ぬえ.png"]
 
 [[track]]

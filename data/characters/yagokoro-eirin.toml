@@ -2,7 +2,6 @@ key = "yagokoro-eirin"
 name = "八意永琳"
 order = 26
 search_names = ["八意永琳", "Yagokoro Eirin", "八意永琳", "bayi yonglin"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["永琳.png"]
 
 [[track]]

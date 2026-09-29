@@ -2,7 +2,6 @@ key = "yuiman-asama"
 name = "ユイマン・浅間"
 order = 115
 search_names = ["ユイマン・浅間", "Yuiman Asama", "维缦·浅间", "weiman qianjian"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["ユイマン.png"]
 
 [[track]]

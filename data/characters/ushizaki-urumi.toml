@@ -2,7 +2,6 @@ key = "ushizaki-urumi"
 name = "牛崎潤美"
 order = 85
 search_names = ["牛崎潤美", "Ushizaki Urumi", "牛崎润美", "niuqi runmei"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["潤美.png"]
 
 [[track]]

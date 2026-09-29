@@ -2,7 +2,6 @@ key = "kisume"
 name = "キスメ"
 order = 42
 search_names = ["キスメ", "Kisume", "琪斯美", "qisimei"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["キスメ.png"]
 
 [[track]]

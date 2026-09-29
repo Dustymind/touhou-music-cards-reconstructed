@@ -2,7 +2,6 @@ key = "chirizuka-ubame"
 name = "塵塚ウバメ"
 order = 112
 search_names = ["塵塚ウバメ", "Chirizuka Ubame", "尘塚姥芽", "chenzhong muya", "chenzhong laoya"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["ウバメ.png"]
 
 [[track]]

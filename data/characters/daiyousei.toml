@@ -2,7 +2,6 @@ key = "daiyousei"
 name = "大妖精"
 order = 5
 search_names = ["大妖精", "Daiyousei", "大妖精", "dayaojing"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["大妖精.png"]
 
 [[track]]

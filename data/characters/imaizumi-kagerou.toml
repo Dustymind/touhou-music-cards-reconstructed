@@ -2,7 +2,6 @@ key = "imaizumi-kagerou"
 name = "今泉影狼"
 order = 66
 search_names = ["今泉影狼", "Imaizumi Kagerou", "今泉影狼", "jinquan yinglang"]
-card = ["dairi-sd", "dairi", "enbu", "enbu-dolls", "thbwiki-sd", "zun"]
 card_name = ["影狼.png"]
 
 [[track]]
