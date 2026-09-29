@@ -9,8 +9,10 @@
 #      2. 仓库 Settings → Pages → Build and deployment → Source 选 **GitHub Actions**。
 #
 # 为什么能这么简单：
-#   - 数据集在构建期由 `pnpm build` 生成到 `data/public/data/**`（gitignored，S3 起不随仓库提交），
-#     所以 CI 不需要 Python / uv，也不需要初始化 `data/otomads` submodule；
+#   - 数据集在构建期由 `pnpm build` 生成到 `data/public/data/**`（gitignored，S3 起不随仓库提交）；
+#     uv 由 `pnpm install` 的 postinstall（scripts/ensure-uv.mjs）装好，两个模式的数据集来自
+#     `OTOMADS_DATASET_URL` / `CUSTOM_DATASET_URL` 的 Release 快照 —— 两个数据仓库**不再是 submodule**
+#     （REFACTOR-PLAN v2 §7.2/§11.4），快照取不到时走空兜底、构建不失败；
 #   - `vite.config.ts` 的 `base` 是 `./`，子目录项目页（`user.github.io/<repo>/`）不用改配置。
 name: deploy-pages
 
@@ -44,12 +46,13 @@ jobs:
       - uses: actions/configure-pages@v6
       - name: 安装依赖
         run: pnpm install --frozen-lockfile
-      # `pnpm build` = `tsc --noEmit && vite build`：类型检查也是这一关的一部分
-      - name: 类型检查 + 构建
+      # `pnpm build` = 数据集（data:datasets）+ tmc.build + `tsc --noEmit` + `vite build`：
+      # 类型检查与数据管线都是这一关的一部分（REFACTOR-PLAN v2 §7.1）
+      - name: 数据管线 + 类型检查 + 构建
         run: pnpm build
       # 音MAD 素材**不在这里拉**（用户裁定：静态音MAD 源手动部署，见 D138）：
       # 音频不进仓库，归档由 `pnpm media:pack` 产出、发布成 Release 资产，**由人**铺到静态站根目录。
-      # 这条工作流保持原来的取舍：纯静态、不需要 Python、不需要 submodule。
+      # 这条工作流保持原来的取舍：纯静态（构建期会跑数据管线与 uv，见文件头）。
       # （顺带记一笔：写下上面这段时本仓库还是**私有**的，Release 资产对匿名请求返回 404；
       #   2026-09-28 复核：**仓库已公开**，匿名 `curl` 现在能直接取资产，那条限制不再成立。）
       - uses: actions/upload-pages-artifact@v5

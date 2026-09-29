@@ -1,0 +1,46 @@
+# 数据门禁（REFACTOR-PLAN v2 §14.4）：改了 data/** 真源 ⇒ 取两个数据仓库的**数据集快照**
+# → `pnpm gate`（build + validate + notices）→ 可复现性 diff（同输入构建两次必须逐字相同）。
+#
+# 三条边界：① 产物**不提交**（§7.1 默认链路）；② 本工作流**不部署**（部署是 Vercel 的事，
+# 保住 Git 集成与预览）；③ 谁的 CI 生成谁的产物 —— 数据集快照由两个数据仓库各自的 CI 发布
+# （otomads: publish.yml 的 dataset 段；custom: tests.yml 的 dataset 段）。
+name: gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # 数据集快照的**逐文件**下载前缀（scripts/build-datasets.mjs 认得这个形状）。
+      # 音MAD 仓库公开 ⇒ 默认指向它的 Release 资产；自定义仓库目前私有 ⇒ 想用它就在
+      # Settings → Variables 里配 CUSTOM_DATASET_URL（不带令牌拉不动私有资产 ⇒ 默认留空，
+      # 那个模式退回空兜底：它自带数据集恒为空，产品不受影响）。
+      OTOMADS_DATASET_URL: ${{ vars.OTOMADS_DATASET_URL || 'https://github.com/Dustymind/touhou-music-cards-otomads-data/releases/download/dataset' }}
+      CUSTOM_DATASET_URL: ${{ vars.CUSTOM_DATASET_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: 门禁（build + validate + notices --check）
+        run: pnpm gate
+      - name: 可复现性（同输入构建两次，逐字比对）
+        run: |
+          set -euo pipefail
+          cp -r data/public /tmp/data-first
+          pnpm data:build
+          diff -r /tmp/data-first data/public
+          echo "✅ 两次构建逐字相同"
