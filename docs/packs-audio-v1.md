@@ -547,9 +547,11 @@ if is_anthology:
 硬约束：
 
 - 老前端不认这两个键就忽略 ⇒ **向后兼容**（和 D144 的 `revision` 一个道理）。
-- `music` 条目的形状**必须与 `tmc.build._pack_music` 逐字一致**：`[专辑, 曲名, extra]` + 可选第 4 位作者
-  （整串）+ 可选第 5 位多作者数组（D94/D135）。两侧测试里放的是**同一份测试向量**
-  （数据仓库 `PACK_MUSIC_VECTOR` ↔ 主仓库 `test_build.py` 里那份）。
+- `music` 条目的形状：**行 = `[专辑, 曲名, extra]` + 可选第 4 位作者（整串）+ 可选第 5 位多作者数组**
+  （D94/D135）。数据仓库侧由 `packformat.music_entry` 产出、`test_pack_audio.py` 的 `PACK_MUSIC_VECTOR`
+  钉着它；主仓库侧把它落成 `tracks.json` 的 `{album, title, extra, author?, authors?}` 记录 ——
+  两侧形状由 D175 起的**共享向量** `tools/tests/test_vectors.py`（`DATASET_TRACK`）交叉守着
+  （`tmc.build._pack_music` 已随重构删除）。
 - **身份不搬进数据仓库**（契约 `docs/otomads-separation-v1.md` §5 S1）：应用启动时本来就把原曲数据集取全了，
   所以快照只给"角色 → 曲目"。真要"音MAD 自有身份"（S2）时，角色条目可以**可选**地自带
   `name` / `order` / `searchNames`（应用侧已经接收；今天数据仓库**不发**这三个字段）。
