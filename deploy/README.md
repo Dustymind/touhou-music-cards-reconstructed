@@ -15,6 +15,10 @@
 | 平台 | 地址形态 | 配置文件 | 备注 |
 |---|---|---|---|
 | **Vercel**（**当前线上**） | `https://<project>.vercel.app/` | `vercel.json` | 框架选 Other（配置里 `framework: null`）；构建/安装命令都写死在配置里。push 到 `main` 由 Vercel 自己构建 |
+
+> ⚠️ **`ignoreCommand` 只看 tip**：`git diff HEAD^ HEAD` 全是 `docs/**` 就跳过构建 —— 一次推 60 笔
+> 也只看最后一笔。所以 tip 别放纯文档提交；真推了纯文档 tip，线上会**停在上一次构建**，
+> 要再推一笔非文档改动或在面板 Redeploy。
 | ~~GitHub Pages~~（**暂时停用**，D146） | `https://<user>.github.io/<repo>/`（**子目录**） | `.github/workflows/deploy-pages.yml`（**保留，但已摘掉 push 触发**） | 这个仓库的 Pages 从没启用过 ⇒ 每次 push 都在 `configure-pages` 失败（23 次全红）。要用就把工作流里 `push:` 那两行恢复 + Settings → Pages → Source 选 **GitHub Actions**；`base: "./"` 不用改 |
 | **Cloudflare Pages**（可选，应用本体） | `https://<project>.pages.dev/` | 无（面板填构建配置） | 构建命令 `pnpm build`、输出目录 `dist`、Node 24、包管理器 pnpm 12；响应头统一写在 `vercel.json` 的 `headers`（S3 起 `public/_headers` 已删；CF Pages 不读 vercel.json，真要上它得自备一份 `_headers`） |
 
