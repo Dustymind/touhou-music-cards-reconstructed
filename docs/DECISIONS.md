@@ -7034,3 +7034,26 @@ firefox **635**；e2e **115 passed + 1 skipped**。S2 的数据等价性由 `bac
 
 **没动的**：D175 里那两条 D174 口径（逐曲 `sources` 只校验不排序、`loudness/*.json` 随数据仓库提交）不变 ——
 本轮动的只是"主仓库从哪儿读那张表"。
+
+
+---
+
+## D177 删掉角色文件里只写不读的 `card`（卡面组 id 列表）（2026-09-29）
+
+**背景**：D176 的复核列出一条观察 —— §4 的 TOML `card`（六套原版图集 id）**没有任何消费者**：
+`tmc.build` 只读 `card_name`（文件名 → 运行时 `characters.json` 的 `card`），`tmc.validate` 同样只读
+`card_name`，前端也拿不到它（`availableCardSets` 只按模式与 `sourceOnly` 过滤，没有"按角色限制图集"
+这条路）。实测 121 个角色文件**只有 1 种取值**（`["dairi-sd", "dairi", "enbu", "enbu-dolls",
+`"thbwiki-sd", "zun"]`）⇒ "全角色六套全列"等价于一条全局常量、被存了 121 遍。用户裁定：**删掉**
+（D176 §26.4 的选项 b）。
+
+**改动**：121 个 `data/characters/*.toml` 各删一行；`tmc.build.load_characters` 的 docstring 与
+`tmc.packs.CHARACTER_KEYS` 的注释同步 —— 曲包角色文件的 `card` 是**文件名**覆盖（等价于原曲侧的
+`card_name`），不是那个 id 列表，注释不再写"写法同 `data/characters/*.toml`"。
+
+**等价性（这就是"没人读"的证明）**：把 121 份改回去重建一次，与删掉后重建的产物 `diff -r`
+**逐字节完全相同**（19 个文件、contentHash `f24566164f7e` / `d675c854bcf9` / `fe0bccdf9c80`、
+引用指纹 `9eecf074138b` 全部未变）；pytest **82 passed**。
+
+**没做的**：没有把 id 列表接进运行时 —— 那会把字段带进 `characters.json` ⇒ 改 contentHash ⇒ 动协议与
+基线，属新功能（D176 §26.4 选项 c）。将来真要"按角色限制可用图集"，把它加回来即可（那时它是**输入**）。
