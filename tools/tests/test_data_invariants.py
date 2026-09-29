@@ -7,7 +7,7 @@ from tmc import packs as pack_mod
 from tmc import validate
 
 
-@pytest.mark.skipif(not pack_mod.available(), reason="音MAD 曲包 submodule 未初始化")
+@pytest.mark.skipif(not pack_mod.available(), reason="音MAD 数据仓库（OTOMADS_DATA_DIR）不在场")
 def test_data_invariants_hold():
     # 下面几个数字是**当前数据的快照**（曲包增长时要一起更新；含义见 docs/DECISIONS.md D52/D97/D112）
     problems, stats = validate.run()

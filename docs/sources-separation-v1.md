@@ -35,10 +35,13 @@
 
 `[专辑, 曲目, 地址]`，第 4 位可选：**该曲目的媒体版本号**（D144）。前端把版本拼成 `?v=` 追加到地址上
 （行里有就用行里的，没有才用顶层 `revision` 兜底；两者都没有 ⇒ 不拼，与改前逐字一致）。
+**§2.1 起镜像表也是这个形状**（`{schema, mode, pack, tracks[]}`，见 §2）：前端只有一条解析路径，
+键由 `(专辑, 曲名)` 现推（曲目身份见 D173），不再有"id 键控表"那第二种形状。
 
 为什么要有它：媒体地址在"音频变了但**链接没变**"时不会变，而 CDN 给 `.mp3` 发 `max-age=14400` ⇒
 浏览器与边缘节点最多 4 小时都拿旧的（重裁、换 P、换编码口径都会中）。版本号来自**源自己的清单**
-（数据仓库 `packformat.media_revision`：文件名 + 大小 + mtime），逐曲一位 ⇒ 只有真变过的那几首换 URL。
+（数据仓库 `packformat.content_revision`：**文件内容**的 sha1 前 16 位；§2.6 起 mtime 口径已删），
+逐曲一位 ⇒ 只有真变过的那几首换 URL。
 完整口径与实测见 `docs/packs-audio-v1.md` §15。
 
 **D145 起，清单里还可能有"包数据"**（顶层两个键 `albums` / `characters`）：源在运行时提供
@@ -57,7 +60,7 @@ data/sources/thbwiki.toml
 
 data/public/data/sources.json         # 原曲注册表（生成物）
 data/public/data/otomads/sources.json # 音MAD 注册表（生成物）
-data/public/data/sources/*.json       # 两份镜像表原样复制（它们本来就在原曲数据集根下）
+data/public/data/sources/*.json       # 两份镜像表：**manifest 形状**（§2.1，mode=originals / pack=<源id> / tracks[]）
 ```
 
 - **镜像表不拆**：它们的内容已经只属于原曲，位置 `data/public/data/sources/` 就在原曲数据集根下；
@@ -112,7 +115,8 @@ data/public/data/sources/*.json       # 两份镜像表原样复制（它们本�
 
 **D145 补两条**：
 
-- **媒体版本号（D144 的 `revision`）也不进哈希** —— 同上，它是"这台机器上那份文件"的 mtime 指纹；
+- **媒体版本号（D144 的 `revision`）也不进哈希** —— 它标识的是**那一个源上**那份文件
+  （本机助手给内容哈希，CDN 给自己的那份）：同一份曲目表、不同部署，不该被判成两套数据；
 - **但清单里那段"包数据"（`albums` / `characters`）是要进哈希的**：它就是音MAD 的曲目表，
   两端曲目表不同必须在**握手期**被拒（D107 §6 的初衷）。形状见 `packs-audio-v1.md` §16。
 

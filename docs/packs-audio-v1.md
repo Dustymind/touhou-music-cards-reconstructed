@@ -451,9 +451,9 @@ if is_anthology:
 
 | 位置 | 做了什么 |
 |---|---|
-| 数据仓库 `packformat.py` | 新增 `media_revision([(名字, 路径), …])`：**名字 + 字节数 + mtime** 的 sha1 前 16 位。故意不读文件内容（86 首要哈希 370 MB，不值当） |
+| 数据仓库 `packformat.py` | `content_revision(path)` + 带**进程内缓存**的 `content_revisions([(名字, 路径), …])`：**文件内容**的 sha1 前 16 位（缓存键 = 文件身份 `(路径, 大小, mtime)`，值仍是内容哈希 ⇒ 同一份文件在哪台机器都是同一版；§2.6 起 mtime 口径已删） |
 | 数据仓库 `local_source.py` | manifest 新增顶层 `revision`（整表）**与每行第 4 位**（逐曲）；新增 `library_files()`（带路径的扫描，`scan_library` 改成它的投影） |
-| 数据仓库 `stage_media.py` | `build_manifest(..., revisions=, revision=)` 同样写这两处；`pack` 从**内容哈希**算（`packformat.content_revision`；stat/mtime 口径只剩本机助手那侧） |
+| 数据仓库 `stage_media.py` | `build_manifest(..., revisions=, revision=)` 同样写这两处；`pack` 与逐曲版本都从**内容哈希**算（`packformat.content_revision`，两处口径同一套） |
 | 主仓库 `sources.ts` | `tableRevision(payload)` 读顶层版本号；`versionedUrl()` 拼 `?v=`（已有查询串用 `&`，值 `encodeURIComponent`）；`buildEntries(rows, manifestUrl, revision)` 里**行里第 4 位优先、顶层兜底** |
 | 主仓库 `public/_headers` | 自托管形态下 `/manifest.json` 与 `/loudness/*` 明确 `max-age=0, must-revalidate`（清单被压住的话，换不换 URL 都白搭） |
 
@@ -587,8 +587,8 @@ if is_anthology:
    在**同一份曲目表**上必然得到同一个哈希 ⇒ **一人用本机助手、一人用 CDN 也能一起玩**；
    两端**曲目表不同**才会在握手期被拒（这正是 D107 §6 的初衷）。代价：没有快照时 otomads 的界面指纹
    不再是构建期那个 `contentHash`（**数据集本身逐字不变**，只有哈希口径换了一套）。
-2. **不算 `revision`**：它是"这台机器上那份文件"的 mtime 指纹，算进去会让**两个各自用本机助手的人**
-   （曲库文件相同、mtime 不同）握不上手，也会让"助手 vs CDN"握不上手。音频身份仍由 URL 上的 `?v=` 保证
+2. **不算 `revision`**：它标识的是**那一个源上**那份文件（助手给内容哈希、CDN 给自己的那份），
+   算进去会让"同一份曲目表、不同部署"被判成两套数据（"助手 vs CDN"握不上手）。音频身份仍由 URL 上的 `?v=` 保证
    （同一个源必然同一版）。**代价明说**：曲目表相同、而两边音频字节不同（各自曲库里的同名文件不一样）
    **不会**被握手拦住 —— 今天也拦不住（D143 之前更拦不住）。
 

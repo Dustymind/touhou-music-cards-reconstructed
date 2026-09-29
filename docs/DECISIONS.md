@@ -6939,3 +6939,60 @@ firefox **635**；e2e **115 passed + 1 skipped**。S2 的数据等价性由 `bac
 `order`（当前 378 条声明的都是同一对源，两者等价）—— 真要按逐曲 `sources` 排序时再开一步。
 
 **没动的**：`loudness/*.json` 仍随数据仓库提交（重算要全量音频 + ffmpeg，§7.2 的口径）。
+
+
+---
+
+## D175 计划收尾：镜像 manifest 同形 / revision 一律内容哈希 / index 的 source / 前缀断言 / 共享向量（2026-09-29）
+
+**结论**：REFACTOR-PLAN v2 里上一轮**没有真正执行完**的六项一次补完 —— 没有把计划文字改成现状，
+而是把现状补到计划；计划里对应段落都加了【已执行】标记（§2.1 / §2.6 / §7.1 / §7.2 / §7.4 / §7.5 /
+§10 / §11.2 / §11.3 / §16 / §17 / §18）。
+
+1. **§2.6 revision 一律内容哈希，mtime 口径删除**（数据仓库 `touhou-music-cards-otomads-data` 提交
+   `e6e4fa0717ce454a355c3f7a801e732b8e1e993a`）：`packformat.media_revision`（名字 + 大小 + mtime）删除；
+   本机助手与归档都走 `content_revision`（**文件内容**的 sha1 前 16 位）。助手每个请求都要出整份 manifest，
+   所以加了**进程内缓存**（键 = `(绝对路径, st_size, st_mtime_ns)`，值仍是内容哈希）：同一份文件在哪台
+   机器都是同一版（这才是 §2.6 要的），重复请求零重读。pytest 234 passed。主仓库把 `data/otomads` 重新
+   pin 到这次提交，`dataset/index.json` 的 `source.commit` 跟着走；三个 contentHash 与引用指纹**逐字未变**。
+
+2. **§2.1 镜像表也是 manifest**（主仓库 `tools/src/tmc/build.py`）：`data/public/data/sources/*.json` 从
+   `{schema, entries: {曲id: {url}}}` 改成 `{schema, mode: "originals", pack: <源id>, tracks: [[专辑, 曲名, 地址], …]}`，
+   与音MAD / 本机助手清单**同一个形状**（§6）。前端 `buildEntries` 只剩这一条解析路径（`entries` 分支删除，
+   裸数组分支早在 D174 退场），键由 `trackId(专辑, 曲名)` 现推（曲目身份见 D173）。两张表共 651×2 行，
+   **地址逐字不变**（镜像地址没有版本号，D144 的"不改别人地址"继续成立）；`entries.size` 仍是 651
+   （`check_sources` 早就断言过 (专辑,曲名) 在表内唯一）。`test-utils.tsx` 的假表夹具同步改成 manifest。
+
+3. **§7.2 index.json 的 `source` 真的搬进产物**（上一轮只落在数据仓库那侧）：`load_dataset` 把
+   `index.json` 也算作**数据集必齐件**（"不齐 ⇒ None"的降级前提），`build_index(..., source=)` 原样搬运
+   `{repo, commit, dirty?}`；**原曲不记**（自指，写出来只会指向父提交）。`validate.check_datasets` 新增断言：
+   外部模式的产物**必须**有 `source.repo/commit`（数据集在场时）。
+
+4. **§10 前缀 ↔ albumKey 的断言落地**（`tmc.validate.check_album_prefixes`，`pnpm gate` 必跑）：从
+   `sources/thbwiki.toml` 现推（曲id = `<前缀>_<序号>`，albumKey 由专辑名回查 `originals.toml`），断言
+   **每个前缀只属于一个 albumKey**；对照表不落盘。实测 **44 前缀 / 39 albumKey**，一码多前缀 4 个（子碟：
+   `th07.5-day/b`、`TFM-003A/O`、`th10.5-arrange/original`、`th14.5-bonus`）—— 这个方向合法，反过来不合法。
+
+5. **§18 Q1 共享向量推广到全部产物形状**：主仓库新增 `tools/tests/test_vectors.py`（字面量 + 三个测试：
+   字面量自检、字面量数据集 → `build_outputs` 全产物对向量、真数据集对向量），两个数据仓库各存**同一份
+   字面量**的 `tools/tests/test_vectors.py`（零 import 依赖）。覆盖：数据集六件（含 `index.source` 与 `counts`）、
+   角色 / 专辑 / 曲目 / 源记录的内层键与类型、`pack-audio` 行的元数（5）、运行时产物（`characters` / `albums` /
+   `tracks` / `sources` / `index` / `cardsets`）、镜像 manifest 与助手清单。多出来的键**也必须登记**
+   （悄悄加字段同样报红）。
+
+6. **§16 生成物口径的等价物**：`.github/workflows/gate.yml` 在原来的「`data/public` 两次构建 diff」之后再加
+   一步「`dist` 两次构建 diff」（S0 只记了生成数据的清单与哈希，那份由 contentHash + 两次 `data:build` 承担；
+   dist 是它的函数，也真的比一遍）。
+
+**同一轮里顺手对齐的旧文档**：`docs/sources-separation-v1.md`（§1.5 行形状 + §2 镜像表 + §6 版本号不进哈希的
+理由）、`docs/packs-audio-v1.md`（§15 的 `media_revision` → `content_revision`、§16 不算 revision 的理由）、
+`src/music/manifestUrl.ts` / `src/data/packSnapshot.ts` 的注释（mtime → 内容哈希；版本号标识的是"那一个源上
+那份文件"）。
+
+**验证**（Linux，2026-09-29 收尾后）：`pnpm gate` 19 个文件、contentHash `f24566164f7e` / `d675c854bcf9` /
+`fe0bccdf9c80`、引用指纹 `9eecf074138b` 全部未变；pytest 主仓库 **80** + 音MAD **234** + 自定义（见各自仓库
+提交）；`pnpm typecheck` 0；vitest chromium + firefox **1270 passed**。
+
+**仍然保留的两条 D174 口径**（不在本轮范围内，都是"当前数据下等价"的显式选择）：① 逐曲 `[[track]].sources`
+只校验、运行时不据它排序（按注册表 `order` 全局兜底，378 条声明的都是同一对源）；② `loudness/*.json` 仍随
+数据仓库提交。
