@@ -6,6 +6,7 @@
 import { describe, expect, it } from "vitest";
 
 import { aboutContent, type AboutRow } from "./about";
+import { bundledLicenseIds } from "./licenses.generated";
 import type { Localized } from "../i18n/localization";
 
 /** 内容真源里的**普通行**（自动行没有 name / url，那些由运行时数据填）。 */
@@ -76,5 +77,11 @@ describe("关于弹窗的内容真源", () => {
       .filter(([, value]) => /\*\*|\[.*\]\(.*\)/.test(`${value.en}\n${value.zh}`))
       .map(([path]) => path);
     expect(offenders).toEqual([]);
+  });
+
+  it("License 行的标识符 = 生成器那一份（`pnpm notices` 生成，别再手写一份）", () => {
+    const row = entryRows().find((entry) => entry.label?.en === "License");
+    expect(row, '「关于」里要有一行 label.en === "License"').toBeDefined();
+    expect(row!.name.split("·").map((part) => part.trim())).toEqual([...bundledLicenseIds]);
   });
 });

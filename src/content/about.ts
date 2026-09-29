@@ -12,6 +12,7 @@
  * | 关闭按钮 | `close` |
  * | 加行 / 删行 / 换顺序 | `rows` 数组：**顺序就是弹窗里从上到下的顺序**，加一行就往下抄一个 `{ … }` |
  * | 外置曲库（音MAD）曲目作者的**名单** | 不用写 —— `{ auto: "pack-authors" }` 那一行会**自动**列出（见下） |
+ * | License 行里的**许可标识符** | **不在这里** —— 由 `pnpm notices` 生成 `licenses.generated.ts`（`pnpm gate` 比对） |
  *
  * ---- 两条填写规则（`about.test.ts` 会替你把关）----
  *
@@ -31,6 +32,7 @@
  * 检查用 `pnpm typecheck && pnpm test`。
  */
 import type { Localized } from "../i18n/localization";
+import { bundledLicenseIds } from "./licenses.generated";
 
 /** 弹窗里的一行：普通行（自己写内容）或**自动行**（内容来自运行时数据）。 */
 export type AboutRow = AboutEntryRow | AboutAutoRow;
@@ -86,9 +88,11 @@ export const aboutContent: AboutContent = {
     },
     // 许可：本仓库是聚合（代码 / 字体 / 数据各有各的），所以这里只列**标识符**，
     // 细节全部指向 THIRD-PARTY-NOTICES.md —— 这一行按纯文本渲染，放不下那张表。
+    // 标识符**不手写**：`pnpm notices` 按 npm 生产闭包 + 随包分发的素材生成，
+    // `pnpm gate` 的 --check 守着（之前手写时漏过一个 ISC）。
     {
       label: { en: "License", zh: "开源许可" },
-      name: "MIT · OFL-1.1 · BSD-3-Clause · Apache-2.0",
+      name: bundledLicenseIds.join(" · "),
       url: "https://github.com/Dustymind/touhou-music-cards-reconstructed/blob/main/THIRD-PARTY-NOTICES.md",
     },
     {
