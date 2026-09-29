@@ -9,6 +9,7 @@
  *   ③ 下载/解包失败 ⇒ **非 0 退出**，让问题在 install 阶段就炸出来，而不是等构建时报"uv: not found"。
  */
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -42,9 +43,18 @@ mkdirSync(TOOLS, { recursive: true });
 const archive = path.join(TOOLS, name);
 
 try {
-  const response = await fetch(url, { redirect: "follow" });
+  const response = await fetch(url, { redirect: "follow", signal: AbortSignal.timeout(120_000) });
   if (!response.ok) throw new Error("HTTP " + response.status);
-  writeFileSync(archive, Buffer.from(await response.arrayBuffer()));
+  const body = Buffer.from(await response.arrayBuffer());
+  // 校验和：官方 release 每个资产都配一份 `<资产名>.sha256`（内容是 `<hex>  <文件名>`）。
+  // postinstall 里下载什么就跑什么，这一步不能省。
+  const digestResponse = await fetch(url + ".sha256",
+    { redirect: "follow", signal: AbortSignal.timeout(30_000) });
+  if (!digestResponse.ok) throw new Error("拿不到校验和（HTTP " + digestResponse.status + "）");
+  const expected = (await digestResponse.text()).trim().split(/\s+/)[0].toLowerCase();
+  const actual = createHash("sha256").update(body).digest("hex");
+  if (expected !== actual) throw new Error("校验和不匹配（期望 " + expected + "，实得 " + actual + "）");
+  writeFileSync(archive, body);
   const unpack = spawnSync("tar", ["-xf", archive, "-C", TOOLS], { stdio: "inherit" });
   if (unpack.status !== 0) throw new Error("tar 解包失败（exit " + unpack.status + "）");
 } catch (error) {

@@ -72,6 +72,20 @@ function buildFromClone(mode, pkg, dir, datasetDir) {
   return true;
 }
 
+/** 带超时 + 一次重试的 GET：卡住的连接不该把构建永远挂在那儿（CI 有 job 超时，本地没有）。 */
+async function download(url, timeoutMs = 60_000) {
+  let lastError;
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    try {
+      return await fetch(url, { redirect: "follow", signal: AbortSignal.timeout(timeoutMs) });
+    } catch (error) {
+      lastError = error;
+      if (attempt === 1) console.error("[ WARN ] 下载失败，重试一次：" + url + " —— " + String(error));
+    }
+  }
+  throw lastError;
+}
+
 async function downloadSnapshot(mode, base, datasetDir) {
   mkdirSync(datasetDir, { recursive: true });
   const prefix = base.endsWith("/") ? base : base + "/";
@@ -79,7 +93,7 @@ async function downloadSnapshot(mode, base, datasetDir) {
   for (const [asset, rel] of wanted) {
     let response;
     try {
-      response = await fetch(prefix + asset, { redirect: "follow" });
+      response = await download(prefix + asset);
     } catch (error) {
       console.error("[ WARN ] " + mode + " 快照下载失败：" + asset + " —— " + String(error));
       return false;
