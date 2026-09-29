@@ -78,13 +78,29 @@ function proxy(req, res, target) {
 
 async function serveStatic(req, res) {
   const url = new URL(req.url ?? "/", "http://x");
-  let file = path.join(DIST, decodeURIComponent(url.pathname));
+  let pathname;
+  try {
+    pathname = decodeURIComponent(url.pathname);
+  } catch {
+    // 畸形百分号编码（`/%zz`）：以前这里抛 URIError，而它在 try 之外 ⇒ 未处理 rejection，整个进程退出
+    res.writeHead(400).end("bad path");
+    return;
+  }
+  // 先绝对化再判断，别直接 join：`path.join(DIST, "/../../etc/passwd")` 会爬出 dist
+  // （静态模式默认监听 0.0.0.0，这不只是"本机玩具"的问题）。前导 "." 让相对路径不会被当成绝对路径。
+  const file = path.resolve(DIST, "." + pathname);
+  const relative = path.relative(DIST, file);
+  if (relative.startsWith("..") || path.isAbsolute(relative)) {
+    res.writeHead(404).end("not found");
+    return;
+  }
   try {
     const info = await stat(file).catch(() => null);
-    if (!info || info.isDirectory()) file = path.join(DIST, "index.html");
-    const body = await readFile(file);
-    res.writeHead(200, { "content-type": MIME[path.extname(file)] ?? "application/octet-stream",
-      "accept-ranges": "bytes" });
+    const target = !info || info.isDirectory() ? path.join(DIST, "index.html") : file;
+    const body = await readFile(target);
+    // 不发 `accept-ranges`：这里不做 206 —— 音频走 `/media/*`（转发给助手，那边有 Range），
+    // 静态这批是应用资源，声明了却忽略 `Range` 反而是错的。
+    res.writeHead(200, { "content-type": MIME[path.extname(target)] ?? "application/octet-stream" });
     res.end(body);
   } catch {
     res.writeHead(404).end("not found");
