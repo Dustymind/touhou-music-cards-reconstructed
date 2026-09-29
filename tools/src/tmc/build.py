@@ -218,7 +218,11 @@ def load_mirror_tracks(source_id: str) -> list[list[str]]:
 
 
 def load_mirror_entries(source_id: str) -> list[dict]:
-    """读一张镜像源表的 ``[[track]]`` → ``[{id, album, title, url}, …]``（S2：id 键控的生成物由此重排）。"""
+    """读一张镜像源表的 ``[[track]]`` → ``[{id, album, title, url}, …]``。
+
+    S2 起生成物由它重排（当时是 id 键控表）；§2.1 起产物是 manifest，曲id 只用于校验与
+    §10 的前缀断言，运行时的键由 (专辑,曲名) 现推。
+    """
     with open(repo.DATA / "sources" / f"{source_id}.toml", "rb") as fh:
         data = tomllib.load(fh)
     return [dict(t) for t in data.get("track", [])]

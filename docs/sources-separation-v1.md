@@ -7,7 +7,7 @@
 目的：**音源层也跟数据层一个口径** —— 每个模式用自己那份源表，不需要"切模式时偷偷把某个源打开"。
 
 **用户已裁定**（2026-09）：
-1. 注册表拆成 `data/sources/originals.toml` + `data/otomads/sources/otomads.toml`（后者自 D128 起在数据 submodule 里）；
+1. 注册表拆成 `data/sources/originals.toml` + `data/otomads/sources/otomads.toml`（后者 D128 拆出，**D174 起不再是 submodule**，改为 env `OTOMADS_DATA_DIR` 指向的落点）；
    （**S1c 起原曲侧再进一步：每源一个自包含 TOML** `data/sources/{netease163,thbwiki}.toml`，注册表文件删除，见 REFACTOR-PLAN v2 §14.2）
 2. 用户的开关/顺序存档 `tmc.v1.sources` **按模式分键**（要迁移）；
 3. `effectiveSourceOverrides()` 的解释已给出 ⇒ 建议**删掉**，用构建期校验替代（见 §5）。
