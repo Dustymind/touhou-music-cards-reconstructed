@@ -213,6 +213,66 @@ def test_mirror_tables_are_manifests_not_id_keyed_tables():
         assert all(len(row) == 3 and row[2].startswith("http") for row in rows)
 
 
+# ---------------------------------------- 响度表：只从数据集里取（§11.3）
+
+#: 最小注册表：一条 local 源，声明了一张响度表（相对**数据仓库自己的根**）。
+REGISTRY_WITH_LOUDNESS = """[[source]]
+id = "local"
+label_en = "Local library"
+label_zh = "本地曲库"
+table_url = "manifest.json"
+kind = "local"
+order = 1
+enabled = true
+proxyable = false
+description_en = ""
+description_zh = ""
+loudness = "loudness/otomads.json"
+"""
+
+
+def test_loudness_tables_are_read_from_the_dataset_only(tmp_path, monkeypatch):
+    """§11.3：响度表只从 <data_dir>/dataset/ 取，不再用 path.parent.parent 反推数据仓库的目录布局。
+
+    反证：clone 里也放一份同名的表 —— 取到的仍然是 dataset 里那份（路径不同，一眼能分辨）。
+    """
+    monkeypatch.setattr(repo, "data_dir", lambda mode: tmp_path / mode)
+    root = tmp_path / "otomads"
+    (root / "sources").mkdir(parents=True)
+    (root / "sources" / "otomads.toml").write_text(REGISTRY_WITH_LOUDNESS, encoding="utf-8")
+    (root / "loudness").mkdir()
+    (root / "loudness" / "otomads.json").write_text('{"clone": true}\n', encoding="utf-8")
+
+    pairs = build.loudness_tables("otomads")
+    assert len(pairs) == 1
+    origin, target = pairs[0]
+    assert origin == root / "dataset" / "loudness" / "otomads.json"
+    assert target == build.dataset_dir("otomads") / "loudness" / "otomads.json"
+
+
+def test_missing_loudness_in_the_dataset_is_a_readable_error(tmp_path, monkeypatch):
+    """数据集在场、注册表声明了 loudness，但数据集里没有那份拷贝 ⇒ 点名报错（不去 clone 里偷看）。
+
+    补上拷贝之后同一条链子照常把它铺进产物 —— 这是 D130 的正常路径。
+    """
+    monkeypatch.setattr(repo, "data_dir", lambda mode: tmp_path / mode)
+    root = tmp_path / "otomads"
+    write_dataset(root / "dataset", make_dataset(characters=[], tracks={}))
+    (root / "sources").mkdir(parents=True)
+    (root / "sources" / "otomads.toml").write_text(REGISTRY_WITH_LOUDNESS, encoding="utf-8")
+    (root / "loudness").mkdir()
+    (root / "loudness" / "otomads.json").write_text('{"clone": true}\n', encoding="utf-8")
+    with pytest.raises(SystemExit, match="响度表不在数据集里"):
+        build.build_outputs()
+
+    copy = root / "dataset" / "loudness" / "otomads.json"
+    copy.parent.mkdir(parents=True)
+    copy.write_text('{"dataset": true}\n', encoding="utf-8")
+    _indices, outputs = build.build_outputs()
+    shipped = outputs[repo.PUBLIC_DATA / "otomads" / "loudness" / "otomads.json"]
+    assert json.loads(shipped) == {"dataset": True}
+
+
 def test_build_albums_projects_the_dataset_registry():
     """专辑注册表取自数据集的 ``albums.json``：只留契约字段（key/name/kind/pack/order
     [/showAlbumName]）并按 ``order`` 排序，数据集里的其它键不许漏进生成物。"""

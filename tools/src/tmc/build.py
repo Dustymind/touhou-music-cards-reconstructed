@@ -410,24 +410,23 @@ def dataset_dir(mode: str):
 
 
 def loudness_tables(mode: str) -> list[tuple[pathlib.Path, pathlib.Path]]:
-    """某模式各源声明的响度表 → ``[(源文件, 目标文件)]``（D130）。
+    """某模式各源声明的响度表 → ``[(数据集里那份, 目标文件)]``（D130）。
 
-    ``loudness`` 路径写在各源的注册表里、相对**注册表所在仓库的根**；数据仓库的 dataset.py 会顺手
-    把它拷进 ``<data_dir>/dataset/`` ⇒ **优先取数据集里那份**（Release 快照那条路只有它），
-    再回落到仓库里那份。表由源的所有者生成，主仓库只负责把它拷进 ``data/public/data/<mode>/``。
+    ``loudness`` 路径写在各源的注册表里、相对**那个数据仓库自己的根**；该仓库的 dataset.py 会把它
+    拷进 ``<data_dir>/dataset/`` ⇒ 主仓库**只从数据集里取**（§11.3：不再用 ``path.parent.parent``
+    反推数据仓库的目录布局 —— 那是它的内部约定，只有它自己知道；Release 快照那条路也只有这一份）。
+    表由源的所有者生成，主仓库只负责把它拷进 ``data/public/data/<mode>/``。
     """
-    path = repo.find_source_registry(mode)
-    if path is None:
+    if mode == "originals":
+        # 原曲没有数据仓库，也就没有"数据集里那份"；注册表里声明了 loudness 反而没人托管它
+        declared = sorted(e["id"] for e in load_registry(mode) or [] if e.get("loudness"))
+        if declared:
+            raise SystemExit(f"原曲源声明了 loudness，但没有数据仓库托管那份表：{declared}")
         return []
-    base = path.parent.parent                  # <仓库根>/sources/<mode>.toml → <仓库根>
-    pairs = []
-    for entry in load_registry(mode) or []:
-        rel = entry.get("loudness")
-        if not rel:
-            continue
-        origin = repo.dataset_dir(mode) / rel
-        pairs.append((origin if origin.is_file() else base / rel, dataset_dir(mode) / rel))
-    return pairs
+    if repo.find_source_registry(mode) is None:
+        return []
+    return [(repo.dataset_dir(mode) / entry["loudness"], dataset_dir(mode) / entry["loudness"])
+            for entry in load_registry(mode) or [] if entry.get("loudness")]
 
 
 def build_outputs() -> tuple[dict, dict[str, dict[str, str]]]:
@@ -440,8 +439,10 @@ def build_outputs() -> tuple[dict, dict[str, dict[str, str]]]:
     chars = load_characters()
     outputs: dict[str, str] = {}
     indices: dict[str, dict] = {}
+    datasets: dict[str, dict | None] = {}
     for mode in MODES:
         dataset = None if mode == "originals" else load_dataset(mode)
+        datasets[mode] = dataset
         if mode != "originals" and dataset is None:
             print(f"[!] {mode} 数据集不可得（没有 {repo.shown(repo.dataset_dir(mode))}，也没有 Release"
                   f" 快照）⇒ 只写空兜底，运行时回退远程清单", file=sys.stderr)
@@ -470,14 +471,17 @@ def build_outputs() -> tuple[dict, dict[str, dict[str, str]]]:
         # 源表随数据集走（音源层也按模式分，见 sources-separation-v1.md）
         outputs[base / "sources.json"] = _dumps(build_sources(mode))
 
-    # 各源的响度表（D130）：表在源的所有者那边，这里只按注册表声明的路径拷过来。
-    # 数据仓库不在场 ⇒ 注册表也找不到 ⇒ 没有可拷的（降级兜底那条路本来也不声明 loudness）。
+    # 各源的响度表（D130）：表在源的所有者那边，这里只把它从**数据集**里拷进产物。
+    # 数据集不在场 ⇒ 没有可拷的（§7.2 ③ 的空兜底本来也不声明 loudness），构建不失败。
     for mode in MODES:
+        if mode != "originals" and datasets[mode] is None:
+            continue
         for origin, target in loudness_tables(mode):
-            if not origin.exists():
+            if not origin.is_file():
                 raise SystemExit(
-                    f"响度表不存在：{repo.shown(origin)}"
-                    f"（在数据仓库跑 uv run --project tools python -m otomads.loudness）")
+                    f"响度表不在数据集里：{repo.shown(origin)}"
+                    f"（数据仓库的 dataset.py 会把它拷进 dataset/；重跑 pnpm data:datasets，"
+                    f"或在那个仓库跑 uv run --project tools python -m otomads.loudness）")
             outputs[target] = origin.read_text(encoding="utf-8")
 
     # 共享项：与模式无关，只写一份
