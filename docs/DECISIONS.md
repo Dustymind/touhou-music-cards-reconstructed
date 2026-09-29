@@ -7003,7 +7003,7 @@ firefox **635**；e2e **115 passed + 1 skipped**。S2 的数据等价性由 `bac
 
 ---
 
-## D176 复核后的三处落地：响度表只从数据集取 / 计划里三处写法与实现不符 / 文档漂移清扫（2026-09-29）
+## D176 复核后的三处落地：响度表只从数据集取 / 计划里五处写法与实现不符 / 文档漂移清扫（2026-09-29）
 
 **触发**：对 REFACTOR-PLAN v2 再做一次只读复核（"计划是否完成"），查出 4 处"计划写法 ≠ 实现"与 9 处仓库文档漂移。
 
@@ -7020,6 +7020,10 @@ firefox **635**；e2e **115 passed + 1 skipped**。S2 的数据等价性由 `bac
      `data/public/**` 永远不在 `git diff` 里，原写法不可实现；而 `data/**` 是真源、一变就必须重建。
    - §11.3 的"custom 空串特例归位自定义那套"按 §7.2 保留在共享函数里（主仓库仍要写自定义的空兜底 + 源注册表），
      计划里已注明两条冲突、以 §7.2 为准。
+   - §4 的"`sources` 另支持 `yt-dlp` 写法"仍标着【已确认】，与 §11.2 的【已被 D130 取代】矛盾 ⇒ 标为取代
+     （真正落地的是 `[[track]].source`）。
+   - §4 的 `composer` 仍标着【提议】（唯一残留的开放标记）⇒ 按 S1b `1e06afa` 标为已执行；
+     至此计划里除图例之外没有任何【提议】。
 3. **文档漂移清扫**：`docs/README.md`（测试条数、决策日志范围、`.ref/` 现状）、`docs/WINDOWS.md`（保留清单里的
    `.ref/thbwiki/` 其实 S5 已删）、`tools/README.md`（条数与 clone 路径）、`docs/custom-mode-v1.md`（custom 的
    `manifest.json` / `covers.json` 是派生物、不进提交）、`docs/sources-separation-v1.md`（不再是 submodule）、
