@@ -684,3 +684,26 @@ def test_source_table_url_problem_is_kind_aware():
     for kind in ("remote", "local", None):
         assert build.source_table_url_problem(kind, "") is not None
         assert build.source_table_url_problem(kind, "data/sources/x.json") is None
+
+
+# ---------------------------------- §7.2 快照那条路（CI / Vercel：没有 packs/、没有注册表 TOML）
+
+def test_loudness_table_comes_from_the_snapshot_without_a_registry(tmp_path, monkeypatch):
+    """只有数据集快照时，响度表照样要进产物：表名取自数据集自己的 sources.json（loudnessUrl）。
+
+    只认 TOML 注册表的话，快照那条路会少一份文件（19 → 18）—— 第一次跑 gate.yml 就是 18 个，
+    因为 CI 里既没有 clone 也没有注册表，只有快照。
+    """
+    (tmp_path / "loudness").mkdir()
+    (tmp_path / "loudness" / "otomads.json").write_text("{}", encoding="utf-8")
+    (tmp_path / "sources.json").write_text(json.dumps(
+        {"schema": 2, "sources": [{"id": "local", "loudnessUrl": "loudness/otomads.json"}]}),
+        encoding="utf-8")
+    monkeypatch.setattr(build.repo, "dataset_dir", lambda mode: tmp_path)
+    monkeypatch.setattr(build, "load_registry", lambda mode: None)
+    assert build.loudness_tables("otomads") == [
+        (tmp_path / "loudness" / "otomads.json",
+         build.dataset_dir("otomads") / "loudness" / "otomads.json")]
+    # 没有快照时仍然是"没有表"（不是报错、也不是空列表里的假条目）
+    (tmp_path / "sources.json").unlink()
+    assert build.loudness_tables("otomads") == []

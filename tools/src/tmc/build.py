@@ -460,10 +460,18 @@ def loudness_tables(mode: str) -> list[tuple[pathlib.Path, pathlib.Path]]:
         if declared:
             raise SystemExit(f"原曲源声明了 loudness，但没有数据仓库托管那份表：{declared}")
         return []
-    if repo.find_source_registry(mode) is None:
-        return []
+    entries = load_registry(mode)
+    if entries is None:
+        # 快照那条路（CI / Vercel 用 Release 快照时）：注册表 TOML 不在场，但数据集里那份
+        # sources.json 记着每个源的 loudnessUrl（数据仓库的 dataset.py 写的），表本身也在
+        # <dataset>/loudness/ 下 —— 只认 TOML 的话，那条路上产物会少一份响度表（19 → 18 个文件）。
+        snapshot = repo.dataset_dir(mode) / "sources.json"
+        if not snapshot.is_file():
+            return []
+        entries = [{"id": entry.get("id"), "loudness": entry.get("loudnessUrl")}
+                   for entry in json.loads(snapshot.read_text(encoding="utf-8")).get("sources", [])]
     return [(repo.dataset_dir(mode) / entry["loudness"], dataset_dir(mode) / entry["loudness"])
-            for entry in load_registry(mode) or [] if entry.get("loudness")]
+            for entry in entries if entry.get("loudness")]
 
 
 def build_outputs() -> tuple[dict, dict[str, dict[str, str]]]:

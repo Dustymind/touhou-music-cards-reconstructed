@@ -3,7 +3,7 @@
 
 ```bash
 pnpm data:sync                          # 建立 tools/.venv（已不再依赖 yt-dlp）
-pnpm data:test                          # 数据不变量测试（当前 88 条）
+pnpm data:test                          # 数据不变量测试（当前 90 条）
 pnpm data:datasets                      # 两个数据仓库各自生成 <data_dir>/dataset/（主仓库只取用，§7.2）
 git clone https://github.com/Dustymind/touhou-music-cards-otomads-data.git data/otomads  # 音MAD 数据（可选；或设 OTOMADS_DATA_DIR；不在场时曲包相关用例会 skip）
 git clone https://github.com/Dustymind/touhou-music-cards-custom-data.git data/custom     # 自定义数据（可选；或设 CUSTOM_DATA_DIR；自带数据集恒为空，不影响产物）

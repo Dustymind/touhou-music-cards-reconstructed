@@ -470,6 +470,12 @@ def check_datasets(albums: dict[str, dict], pack_cards: dict[str, list[str]],
         if data is None:
             p.note(f'{mode} 数据集不在场（既没有 <data_dir>/dataset/，也没有快照）⇒ 跳过它的检查')
     pack_names = {entry['name'] for entry in packs_mod.load_packs()[1]}
+    # 曲包真源不在场时（CI / Vercel 只下数据集快照，没有 packs/），下面三条"数据集 ↔ 曲包真源"
+    # 的交叉检查没有依据：专辑注册、卡面覆盖、封面。跳过它们并记 note —— 数据集自身的检查照跑。
+    pack_sources = packs_mod.available()
+    if not pack_sources:
+        p.note('曲包真源不在场（只有数据集快照）：跳过「数据集 ↔ 曲包真源」的交叉检查'
+               '（专辑注册 / 卡面覆盖 / 封面）')
     stats: dict = {}
     for mode in build_mod.MODES:
         data = generated[mode]
@@ -503,9 +509,9 @@ def check_datasets(albums: dict[str, dict], pack_cards: dict[str, list[str]],
                 where = f'{char.get("key")} / {album} / {title}'
                 if extra not in EXTRAS:
                     p.error(f'[{mode}] 附加信息非法「{extra}」（{where}）')
-                if album not in albums:
+                if pack_sources and album not in albums:
                     p.error(f'[{mode}] 专辑未注册「{album}」（{where}）')
-                if (album in pack_names) != (mode == 'otomads'):
+                if pack_sources and (album in pack_names) != (mode == 'otomads'):
                     p.error(f'[{mode}] 曲目不属于本模式（{where}）')
                 key = (char.get('key'), album, title)
                 if key in seen:
@@ -525,6 +531,8 @@ def check_datasets(albums: dict[str, dict], pack_cards: dict[str, list[str]],
             for field in ('name', 'order', 'searchNames'):
                 if left.get(field) != right.get(field):
                     p.error(f'跨模式身份不一致：{key} 的 {field}（{left.get(field)!r} vs {right.get(field)!r}）')
+            if not pack_sources:
+                continue
             if key in pack_cards:
                 if right.get('card') != list(pack_cards[key]):
                     p.error(f'音MAD 卡面覆盖没生效：{key}（{right.get("card")!r} vs {pack_cards[key]!r}）')

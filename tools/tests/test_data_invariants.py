@@ -333,3 +333,22 @@ def test_custom_source_registry_falls_back_to_the_builtin_record(monkeypatch):
     assert not any("[custom]" in e for e in problems.errors), problems.errors
 
 
+
+
+def test_dataset_cross_checks_are_skipped_without_the_pack_sources(monkeypatch):
+    """曲包真源不在场（CI 只下了数据集快照）时，「专辑未注册 / 曲目不属于本模式 / covers 多出来」
+    这三条交叉检查没有依据 ⇒ 只记 note，不报错（第一次跑 gate.yml 就是红在这三条上）。"""
+    data = {"index": {"schema": 2, "mode": "otomads", "contentHash": "x",
+                      "counts": {"characters": 1, "albums": 1, "trackEntries": 1,
+                                 "distinctTracks": 1},
+                      "source": {"repo": "r", "commit": "c"}},
+            "characters": [{"key": "cirno", "music": ["t1"], "covers": ["https://x/1.jpg"]}],
+            "tracks": {"t1": {"album": "otomads", "title": "x", "extra": "角色曲"}}}
+    monkeypatch.setattr(validate, "_load_generated",
+                        lambda mode: data if mode == "otomads" else None)
+    monkeypatch.setattr(validate.packs_mod, "available", lambda: False)
+    monkeypatch.setattr(validate.packs_mod, "load_packs", lambda: ([], [], [], {}, {}))
+    problems = validate.Problems()
+    validate.check_datasets({}, {}, {}, problems)
+    assert problems.errors == [], problems.errors
+    assert any("曲包真源不在场" in note for note in problems.notes), problems.notes
