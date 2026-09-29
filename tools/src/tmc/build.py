@@ -414,17 +414,23 @@ def content_hash(characters: dict, albums: dict, pack_audio: list[list[str]]) ->
 
 
 def build_index(mode: str, characters: dict, albums: dict, digest: str,
-                source: dict | None = None) -> dict:
+                source: dict | None = None, fallback: bool = False) -> dict:
     """生成 index.json（§7.2）。
 
     source = {repo, commit, dirty?} 是**数据集的来源版本**：数据仓库的 dataset.py 把它写进
     自己的 dataset/index.json，主仓库只搬运。**原曲不记** source —— 自指（产物里写不出包含
     它的那次提交，硬记只会指向父提交、反而误导）。它不参与 contentHash（index.json 不参与指纹）。
+
+    fallback=True 表示这份是**空兜底**（数据仓库与快照都不可得，§7.2 ③）：没有来源版本可写，
+    于是显式打标，让 `tmc.validate` 知道"缺 source"是预期的，而不是数据仓库忘了写（CI 里
+    custom 那份永远走这条路）。
     """
     chars = characters["characters"]
     index = {"schema": SCHEMA_VERSION, "mode": mode}
     if source:
         index["source"] = source
+    elif fallback:
+        index["fallback"] = True
     index["contentHash"] = digest
     index["counts"] = {
         "characters": len(chars),
@@ -484,7 +490,8 @@ def build_outputs() -> tuple[dict, dict[str, dict[str, str]]]:
         digest = content_hash(characters, albums, pack_audio)
         # 来源版本（§7.2）：数据集里那份 {repo, commit, dirty?} 原样搬进产物
         index = build_index(mode, characters, albums, digest,
-                            (dataset or {}).get("index.json", {}).get("source"))
+                            (dataset or {}).get("index.json", {}).get("source"),
+                            fallback=mode != "originals" and dataset is None)
         indices[mode] = index
         base = dataset_dir(mode)
         # 契约 §6：characters.json 的 music 只留曲id[]，曲目信息在 tracks.json（TrackIndex）

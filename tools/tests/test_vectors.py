@@ -62,10 +62,13 @@ DATASET_FILES = {
 
 # ---------------------------------------------------------------- 运行时产物（主仓库写）
 
-RUNTIME_INDEX = {"required": ["schema", "mode", "contentHash", "counts"], "optional": ["source"],
-                 "types": {"schema": int, "mode": str, "contentHash": str, "counts": dict,
-                           "source": dict}}
-#: 原曲那份 index.json **不记** source（自指，§7.2）⇒ 只要求四键，source 在可选里
+RUNTIME_INDEX = {"required": ["schema", "mode", "contentHash", "counts"],
+                "optional": ["source", "fallback"],
+                "types": {"schema": int, "mode": str, "contentHash": str, "counts": dict,
+                          "source": dict, "fallback": bool}}
+#: 原曲那份 index.json **不记** source（自指，§7.2）⇒ 只要求四键，source 在可选里。
+#: `fallback: true` = 这份是**空兜底**（数据仓库与 Release 快照都不可得，§7.2 ③）：没有来源版本
+#: 可写，于是显式打标（custom 在主仓库 CI 里永远走这条）。两个键互斥。
 RUNTIME_CHARACTERS = {"required": ["schema", "characters"],
                       "types": {"schema": int, "characters": list}}
 RUNTIME_CHARACTER = {"required": ["key", "name", "order", "card", "searchNames", "music"],

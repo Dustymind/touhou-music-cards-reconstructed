@@ -242,6 +242,20 @@ def check_source_registry(p: Problems) -> dict:
             # 音MAD 的注册表在它自己的数据仓库里：不在场就整个模式跳过（可选，见 D174）
             if mode == "otomads":
                 p.note("音MAD 数据仓库不在场：跳过 otomads 音源注册表检查")
+            elif (fallback := build_mod.FALLBACK_SOURCES.get(mode)) is not None:
+                # custom 的数据仓库默认不在场（CI 里永远不在场）⇒ 检查**构建期真正用的那份兜底**，
+                # 别把"合法的降级"当错误（§7.2 ③；build.build_sources 走的就是这条）
+                p.note(f"{mode} 数据仓库不在场：按兜底源检查（{fallback['id']}，kind={fallback['kind']}）")
+                by_mode[mode] = [{
+                    "id": fallback["id"],
+                    "label_en": fallback["label"]["en"],
+                    "label_zh": fallback["label"]["zh"],
+                    "table_url": fallback["tableUrl"],
+                    "kind": fallback["kind"],
+                    "order": fallback["order"],
+                    "enabled": fallback["enabled"],
+                    "proxyable": fallback.get("proxyable", False),
+                }]
             else:
                 p.error(f"缺少音源注册表：data/sources/{mode}.toml")
                 by_mode[mode] = []
@@ -464,13 +478,17 @@ def check_datasets(albums: dict[str, dict], pack_cards: dict[str, list[str]],
         entries, tracks, index = data['characters'], data['tracks'], data['index']
         if index.get('schema') != 2 or index.get('mode') != mode:
             p.error(f'[{mode}] index.json 的形状不对：schema={index.get("schema")!r} mode={index.get("mode")!r}')
-        # 来源版本（§7.2）：外部模式的数据集在场 ⇒ 产物必须能追到数据仓库的那次提交；原曲不记（自指）
+        # 来源版本（§7.2）：外部模式的数据集在场 ⇒ 产物必须能追到数据仓库的那次提交；原曲不记（自指）。
+        # 空兜底（数据仓库与快照都不可得）没有来源可写 ⇒ 只记 note，不能当成"数据仓库忘了写 source"。
         if mode != 'originals':
-            source = index.get('source')
-            if (not isinstance(source, dict) or not isinstance(source.get('repo'), str)
-                    or not isinstance(source.get('commit'), str)):
-                p.error(f'[{mode}] index.json 缺 source.repo/commit'
-                        f'（数据集在场时来源版本必须有，§7.2）')
+            if index.get('fallback') is True:
+                p.note(f'[{mode}] 数据集是空兜底（数据仓库/快照不可得）⇒ 跳过来源版本检查')
+            else:
+                source = index.get('source')
+                if (not isinstance(source, dict) or not isinstance(source.get('repo'), str)
+                        or not isinstance(source.get('commit'), str)):
+                    p.error(f'[{mode}] index.json 缺 source.repo/commit'
+                            f'（数据集在场时来源版本必须有，§7.2）')
         seen: set[tuple[str, str, str]] = set()
         ids: set[str] = set()
         count = 0

@@ -3,6 +3,7 @@ import pathlib
 
 import pytest
 
+from tmc import build
 from tmc import packs as pack_mod
 from tmc import validate
 
@@ -285,12 +286,50 @@ def test_external_index_must_carry_the_dataset_source(monkeypatch):
     def without_source(mode):
         data = real(mode)
         if mode == "otomads" and data is not None:
-            data = {**data, "index": {k: v for k, v in data["index"].items() if k != "source"}}
+            data = {**data, "index": {k: v for k, v in data["index"].items()
+                                      if k not in ("source", "fallback")}}
         return data
 
     monkeypatch.setattr(validate, "_load_generated", without_source)
     problems = validate.Problems()
     validate.check_datasets({}, {}, {}, problems)
     assert any("source.repo/commit" in e for e in problems.errors), problems.errors
+
+
+# ---------------------------------- §7.2 ③ 空兜底：数据仓库与快照都不可得时
+
+def test_fallback_index_is_marked_instead_of_faking_a_source():
+    """空兜底那份 index.json 带 `fallback: true`，不假装有来源版本；有来源时不打这个标。
+
+    CI 里 custom 永远走这条（仓库是私有的，主仓库 CI 拿不到它的数据集）。
+    """
+    chars, albums = {"schema": 2, "characters": []}, {"schema": 2, "albums": []}
+    marked = build.build_index("custom", chars, albums, "x", None, fallback=True)
+    assert marked["fallback"] is True and "source" not in marked
+    with_source = build.build_index("custom", chars, albums, "x",
+                                    {"repo": "r", "commit": "c"}, fallback=True)
+    assert with_source["source"] == {"repo": "r", "commit": "c"} and "fallback" not in with_source
+    assert "fallback" not in build.build_index("originals", chars, albums, "x")
+
+
+def test_fallback_dataset_only_gets_a_note_not_an_error(monkeypatch):
+    """空兜底 ⇒ validate 记 note、不报「缺 source.repo/commit」（那就是 CI 红的原因）。"""
+    index = {"schema": 2, "mode": "custom", "fallback": True, "contentHash": "x",
+             "counts": {"characters": 0, "albums": 0, "trackEntries": 0, "distinctTracks": 0}}
+    data = {"index": index, "characters": [], "tracks": {}}
+    monkeypatch.setattr(validate, "_load_generated", lambda mode: data if mode == "custom" else None)
+    problems = validate.Problems()
+    validate.check_datasets({}, {}, {}, problems)
+    assert not any("source.repo/commit" in e for e in problems.errors), problems.errors
+    assert any("空兜底" in note for note in problems.notes), problems.notes
+
+
+def test_custom_source_registry_falls_back_to_the_builtin_record(monkeypatch):
+    """custom 数据仓库不在场 ⇒ 按 `build.FALLBACK_SOURCES` 检查，而不是「缺少音源注册表」。"""
+    monkeypatch.setattr(validate.repo, "find_source_registry", lambda mode: None)
+    problems = validate.Problems()
+    validate.check_declared_sources(problems)
+    assert not any("缺少音源注册表" in e for e in problems.errors), problems.errors
+    assert not any("[custom]" in e for e in problems.errors), problems.errors
 
 
