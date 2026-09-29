@@ -20,6 +20,7 @@ S3 起生成物**不进仓库**（``data/public/`` 是 gitignored 生成目录�
 from __future__ import annotations
 
 import hashlib
+import os
 import pathlib
 import json
 import re
@@ -532,7 +533,11 @@ def main(argv: list[str] | None = None) -> int:
     indices, outputs = build_outputs()
     for path, text in outputs.items():
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(text, encoding="utf-8", newline="\n")   # §13.7 ②：显式 LF
+        # §13.7 ②：显式 LF；同目录临时文件 + `os.replace` —— 中途失败不会让 data/public
+        # 半新半旧（下次 gate 的重建比对能发现，但用户看到的是"数据坏了"而不是"构建失败"）。
+        tmp = path.with_name(path.name + ".tmp")
+        tmp.write_text(text, encoding="utf-8", newline="\n")
+        os.replace(tmp, path)
     summary = " / ".join(
         f"{mode} {indices[mode]['counts']['characters']} 角色 "
         f"{indices[mode]['counts']['distinctTracks']} 曲（{indices[mode]['contentHash'][:12]}）"
