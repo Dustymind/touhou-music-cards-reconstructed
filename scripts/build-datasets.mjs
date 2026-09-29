@@ -8,11 +8,13 @@
  *   ② `<MODE>_DATASET_URL`（Release 快照的**逐文件**下载前缀，见数据仓库的 CI）⇒ 下载那几件；
  *   ③ 都没有 ⇒ 什么都不做：`tmc.build` 写空兜底并提示，运行时回退远程清单（§7.2 ③）。
  *
- * 最新就不用重跑：`dataset/.built` 比数据仓库的真源（packs/**、sources/**、loudness/**、
- * tools/src/**）新就跳过 —— dev 反复启动不该反复跑 Python。
+ * 最新就不用重跑：`dataset/.built` 里存的是数据仓库真源（packs/**、sources/**、loudness/**、
+ * tools/src/**）的**内容指纹**，一致就跳过 —— dev 反复启动不该反复跑 Python，也不该因为
+ * 跑过一次测试（重写 `__pycache__`）就白重生成一遍。
  */
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
@@ -39,22 +41,36 @@ function dataDir(mode, dirEnv) {
   return value ? path.resolve(value) : path.join(ROOT, "data", mode);
 }
 
-/** 目录树里最新的 mtime（毫秒）。 */
-function newestMtime(target) {
-  if (!existsSync(target)) return 0;
-  const stat = statSync(target);
-  if (!stat.isDirectory()) return stat.mtimeMs;
-  return Math.max(stat.mtimeMs, ...readdirSync(target).map((name) => newestMtime(path.join(target, name))));
+/** 数据仓库真源的**内容**指纹（决定数据集要不要重跑）。
+
+为什么不是 mtime：跑一次数据仓库的 Python（测试 / 工具）就会重写 `__pycache__/*.pyc`，
+把 `tools/src` 的目录 mtime 顶到最新 —— 于是每次都会"看起来变了"、白重生成一遍数据集。
+内容指纹没有这个问题，顺带也挡住了"mtime 被 checkout/恢复备份改掉"的误判。
+`__pycache__` 与 `.pyc` 本身不进指纹（它们不是真源）。 */
+function inputsFingerprint(dir) {
+  const hash = createHash("sha256");
+  const walk = (abs) => {
+    if (!existsSync(abs)) return;
+    const stat = statSync(abs);
+    if (stat.isDirectory()) {
+      for (const name of readdirSync(abs).filter((item) => item !== "__pycache__").sort()) {
+        walk(path.join(abs, name));
+      }
+      return;
+    }
+    if (abs.endsWith(".pyc")) return;
+    hash.update(path.relative(dir, abs));
+    hash.update(readFileSync(abs));
+  };
+  for (const sub of ["packs", "sources", "loudness", "tools/src"]) walk(path.join(dir, sub));
+  return hash.digest("hex");
 }
 
-/** 数据仓库的真源（决定数据集要不要重跑）。 */
-function inputsMtime(dir) {
-  return Math.max(
-    newestMtime(path.join(dir, "packs")),
-    newestMtime(path.join(dir, "sources")),
-    newestMtime(path.join(dir, "loudness")),
-    newestMtime(path.join(dir, "tools", "src")),
-  );
+/** 数据集是不是当前真源生成的（marker 里存的是指纹，不是时间戳）。 */
+function datasetIsFresh(dir, datasetDir) {
+  const marker = path.join(datasetDir, MARKER);
+  if (!existsSync(marker) || !existsSync(path.join(datasetDir, "characters.json"))) return false;
+  return readFileSync(marker, "utf-8").trim() === inputsFingerprint(dir);
 }
 
 function buildFromClone(mode, pkg, dir, datasetDir) {
@@ -118,19 +134,18 @@ async function runMode({ mode, pkg, dirEnv, urlEnv }) {
   const marker = path.join(datasetDir, MARKER);
   const url = (process.env[urlEnv] ?? "").trim();
 
-  if (existsSync(marker) && existsSync(path.join(datasetDir, "characters.json"))
-      && statSync(marker).mtimeMs >= inputsMtime(dir)) {
+  if (datasetIsFresh(dir, datasetDir)) {
     console.log("[ SKIP ] " + mode + " 数据集是最新的：" + path.relative(ROOT, datasetDir));
     return;
   }
   if (existsSync(path.join(dir, "tools", "src"))) {
     console.log("[  ..  ] " + mode + " 用 " + path.relative(ROOT, dir) + " 的 dataset.py 现生成");
-    if (buildFromClone(mode, pkg, dir, datasetDir)) writeFileSync(marker, new Date().toISOString() + "\n");
+    if (buildFromClone(mode, pkg, dir, datasetDir)) writeFileSync(marker, inputsFingerprint(dir) + "\n");
     return;
   }
   if (url) {
     console.log("[  ..  ] " + mode + " 从快照下载：" + url);
-    if (await downloadSnapshot(mode, url, datasetDir)) writeFileSync(marker, new Date().toISOString() + "\n");
+    if (await downloadSnapshot(mode, url, datasetDir)) writeFileSync(marker, inputsFingerprint(dir) + "\n");
     return;
   }
   console.log("[ WARN ] " + mode + " 数据集不可得（" + dirEnv + " 没指向 clone，" + urlEnv
