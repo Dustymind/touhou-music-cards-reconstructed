@@ -411,8 +411,8 @@ describe("usePlayer", () => {
   it("播放失败时自动换到下一个源（运行时回退）", async () => {
     const rows = [["紅魔郷", "おてんば恋娘", "https://first/1.mp3"]];
     const tables = {
-      s1: { id: "s1", status: "ready" as const, entries: buildEntries(rows) },
-      s2: { id: "s2", status: "ready" as const, entries: buildEntries([["紅魔郷", "おてんば恋娘", "https://second/1.mp3"]]) },
+      s1: { id: "s1", status: "ready" as const, entries: buildEntries({ tracks: rows }) },
+      s2: { id: "s2", status: "ready" as const, entries: buildEntries({ tracks: [["紅魔郷", "おてんば恋娘", "https://second/1.mp3"]] }) },
     };
     const hook = await renderHook(() => usePlayer(inputs({ tables, sourceOrder: ["s1", "s2"] })));
     expect(hook.result.current.sourceId).toBe("s1");
@@ -426,7 +426,7 @@ describe("usePlayer", () => {
 
   it("候选源都失败后给出可见错误", async () => {
     const rows = [["紅魔郷", "おてんば恋娘", "https://only/1.mp3"]];
-    const tables = { s1: { id: "s1", status: "ready" as const, entries: buildEntries(rows) } };
+    const tables = { s1: { id: "s1", status: "ready" as const, entries: buildEntries({ tracks: rows }) } };
     const hook = await renderHook(() => usePlayer(inputs({ tables, sourceOrder: ["s1"] })));
     await act(async () => {
       audios[0]!.dispatchEvent(new Event("error"));
@@ -476,7 +476,7 @@ describe("逐曲音量均衡（方案 A，只对本地音MAD 生效）", () => {
       music: [{ id: "cirno_otomad_001", album: "otomads", title: "普通肥猫魔法使", extra: "角色曲", author: "川先僧" }],
     };
     const localTables = {
-      local: { id: "local", status: "ready" as const, entries: buildEntries([["otomads", "普通肥猫魔法使", "https://fake/otomad.mp3"]]) },
+      local: { id: "local", status: "ready" as const, entries: buildEntries({ tracks: [["otomads", "普通肥猫魔法使", "https://fake/otomad.mp3"]] }) },
     };
     const hook = await renderHook(() => usePlayer(inputs({
       dataset: fakeDataset([otomad], otomadAlbum),

@@ -81,37 +81,34 @@ function normalizeTitle(title: string): string {
 }
 
 /**
- * 把 `[[专辑, 曲目, URL, 版本?], …]` 收成查表用的 Map。
+ * 源清单的 payload → 查表用的 Map（REFACTOR-PLAN v2 §2.1：**只有对象这一种**，裸数组分支已退场）：
+ *
+ *   1. 构建期源表 `{schema, entries: {曲id: {url, revision?}}}`（`data/public/data/sources/*.json`）；
+ *   2. 本机助手 / CDN / 远端清单 `{schema, pack, tracks: [[专辑, 曲名, 地址, 版本?], …]}`。
  *
  *  `manifestUrl` 非空时，相对地址按 **manifest 所在的那一层**解析（D141，见 `sourceRelativeUrl`）；
  *  不传（纯函数用法 / 没加载过 manifest）时原样存 URL —— 与改前逐字一致。
  *  `revision` 是**整表兜底**版本（D144，见 `tableRevision`）：行里自带第 4 位时以行为准。 */
-export function buildEntries(rows: unknown, manifestUrl = "", revision = ""): Map<string, string> {
+export function buildEntries(payload: unknown, manifestUrl = "", revision = ""): Map<string, string> {
   const entries = new Map<string, string>();
-  // 三种形状都在这一个入口归一（**别再让调用方自己剥一层** —— S2 就是这么漏的：构建期那张
-  // id 键控表被按 `{tracks}` 剥成 undefined ⇒ 表空 ⇒ 整个曲库"所有已启用的音源都取不到"）：
-  //   1. 构建期源表 `{schema, entries: {曲id: {url, revision?}}}`（`data/public/data/sources/*.json`）；
-  //   2. 本机助手 / 远端清单 `{schema, pack, tracks: [[专辑, 曲名, 地址, 版本?], …]}`；
-  //   3. 远程镜像的裸数组 `[[专辑, 曲名, 地址, …], …]`。
-  const payload = rows !== null && typeof rows === "object" && !Array.isArray(rows)
-    ? rows as { entries?: unknown; tracks?: unknown }
+  // 形状归一都在这一处（别让调用方自己剥一层 —— S2 就是这么漏的：构建期那张 id 键控表被按
+  // `{tracks}` 剥成 undefined ⇒ 表空 ⇒ 整个曲库"所有已启用的音源都取不到"）。
+  const table = payload !== null && typeof payload === "object" && !Array.isArray(payload)
+    ? payload as { entries?: unknown; tracks?: unknown }
     : null;
-  if (payload) {
-    const table = payload.entries;
-    if (table && typeof table === "object") {
-      for (const [id, rec] of Object.entries(table as Record<string, { url?: unknown; revision?: unknown }>)) {
-        if (!rec || typeof rec.url !== "string" || rec.url.length === 0) continue;
-        const resolved = manifestUrl ? sourceRelativeUrl(manifestUrl, rec.url) : rec.url;
-        entries.set(
-          id,
-          versionedUrl(canonicalPathEncoding(resolved),
-                       typeof rec.revision === "string" ? rec.revision : revision),
-        );
-      }
-      return entries;
+  if (table?.entries && typeof table.entries === "object") {
+    for (const [id, rec] of Object.entries(table.entries as Record<string, { url?: unknown; revision?: unknown }>)) {
+      if (!rec || typeof rec.url !== "string" || rec.url.length === 0) continue;
+      const resolved = manifestUrl ? sourceRelativeUrl(manifestUrl, rec.url) : rec.url;
+      entries.set(
+        id,
+        versionedUrl(canonicalPathEncoding(resolved),
+                     typeof rec.revision === "string" ? rec.revision : revision),
+      );
     }
+    return entries;
   }
-  const list = payload ? payload.tracks : rows;
+  const list = table?.tracks;
   if (!Array.isArray(list)) return entries;
   for (const row of list) {
     if (!Array.isArray(row) || row.length < 3) continue;
@@ -121,7 +118,6 @@ export function buildEntries(rows: unknown, manifestUrl = "", revision = ""): Ma
     // 早先在这里插过"归一化别名"，结果 `entries.size` 从 24 变 48 ✗，界面上的条目数就错了（D96）
     // 路径编码收敛到 RFC 3986 的规范形式（D169）：非规范编码（`%28` 这种）会让 Cloudflare 的静态
     // 资源站先回 307，而**带 `Range`** 的跟随请求会 500 ⇒ `<audio>` 整首放不出来。
-    // 收敛后请求头一次命中；源写成哪种形式都能救回来（本机助手实测两种写法都 206）
     const resolved = manifestUrl ? sourceRelativeUrl(manifestUrl, url) : url;
     entries.set(
       trackId(album, title),
@@ -130,6 +126,7 @@ export function buildEntries(rows: unknown, manifestUrl = "", revision = ""): Ma
   }
   return entries;
 }
+
 
 /** 按顺序找第一个"有这条曲目且没失败过"的源（S2：先按曲id 直查，再走旧清单行的桥接键）。 */
 export function resolveTrack(

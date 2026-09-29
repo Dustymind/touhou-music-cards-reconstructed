@@ -128,7 +128,7 @@ export async function loadRealBundle(): Promise<DataBundle> {
 /** 造一份 `TableMap`：`tracks` 是 `[专辑, 曲目]` 列表，URL 用假地址。 */
 export function fakeTables(tracks: [string, string][][]): TableMap {
   const rows = tracks.flat().map(([album, title]) => [album, title, `https://fake/${encodeURIComponent(title)}.mp3`]);
-  return { fake: { id: "fake", status: "ready", entries: buildEntries(rows) } };
+  return { fake: { id: "fake", status: "ready", entries: buildEntries({ tracks: rows }) } };
 }
 
 export function installFakeAudio(): FakeAudio[] {

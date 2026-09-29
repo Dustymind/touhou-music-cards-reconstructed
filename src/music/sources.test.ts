@@ -9,7 +9,7 @@ const rows = [["紅魔郷", "おてんば恋娘", "https://a/1.mp3"], ["妖々�
 
 describe("sources resolver", () => {
   it("buildEntries 用 trackId 作键并跳过坏行", () => {
-    const entries = buildEntries([...rows, ["x"], null, ["a", "b", ""]]);
+    const entries = buildEntries({ tracks: [...rows, ["x"], null, ["a", "b", ""]] });
     expect(entries.get(trackId("紅魔郷", "おてんば恋娘"))).toBe("https://a/1.mp3");
     expect(entries.size).toBe(2);
   });
@@ -17,7 +17,7 @@ describe("sources resolver", () => {
   it("按顺序命中第一个有该曲目的源", () => {
     const tables = {
       s1: { id: "s1", status: "ready" as const, entries: new Map() },
-      s2: { id: "s2", status: "ready" as const, entries: buildEntries(rows) },
+      s2: { id: "s2", status: "ready" as const, entries: buildEntries({ tracks: rows }) },
     };
     const entry = { id: "th06_03", album: "紅魔郷", title: "おてんば恋娘" };
     expect(resolveTrack(tables, ["s1", "s2"], entry)?.sourceId).toBe("s2");
@@ -26,8 +26,8 @@ describe("sources resolver", () => {
 
   it("记入失败集合的源会被跳过（运行时换源）", () => {
     const tables = {
-      s1: { id: "s1", status: "ready" as const, entries: buildEntries(rows) },
-      s2: { id: "s2", status: "ready" as const, entries: buildEntries(rows) },
+      s1: { id: "s1", status: "ready" as const, entries: buildEntries({ tracks: rows }) },
+      s2: { id: "s2", status: "ready" as const, entries: buildEntries({ tracks: rows }) },
     };
     const entry = { id: "th06_03", album: "紅魔郷", title: "おてんば恋娘" };
     const failed = new Set([`s1\u0000${trackId("紅魔郷", "おてんば恋娘")}`]);
@@ -56,7 +56,7 @@ describe("sources resolver", () => {
     // 磁盘名 = `作者 - 曲名`（音MAD 数据仓库的命名口径），manifest 的键就是它
     const diskRows = shapes.map(([album, title, author], index) =>
       [album, `${author} - ${title}`, `https://a/${index}.mp3`]);
-    const tables = { local: { id: "local", status: "ready" as const, entries: buildEntries(diskRows) } };
+    const tables = { local: { id: "local", status: "ready" as const, entries: buildEntries({ tracks: diskRows }) } };
 
     for (const [album, title] of shapes) {
       expect(resolveTrack(tables, ["local"], { id: "x", album, title })?.url, title).toMatch(/^https:\/\/a\//);
@@ -68,7 +68,7 @@ describe("sources resolver", () => {
   it("加载失败的源不参与解析，状态被记录", async () => {
     const fetcher = vi.fn(async (input: RequestInfo | URL) => {
       if (String(input).includes("bad")) return new Response("no", { status: 500 });
-      return new Response(JSON.stringify(rows), { status: 200 });
+      return new Response(JSON.stringify({ schema: 1, pack: "otomads", tracks: rows }), { status: 200 });
     }) as unknown as typeof fetch;
     const result = await loadSourceTables([
       { id: "good", label: { en: "g", zh: "g" }, tableUrl: "/good.json", kind: "remote", order: 1, enabled: true, proxyable: false, description: { en: "", zh: "" } },
@@ -96,17 +96,17 @@ describe("sources resolver", () => {
     const relative = [["otomads", "a", "media/otomads/a.mp3"], ["otomads", "b", "./media/otomads/b.mp3"]];
 
     // 跨域源（CDN）：拼成源自己那台主机上的绝对地址；`./` 去掉
-    const cdn = buildEntries(relative, "https://cdn.example.com/manifest.json");
+    const cdn = buildEntries({ tracks: relative }, "https://cdn.example.com/manifest.json");
     expect(cdn.get(trackId("otomads", "a"))).toBe("https://cdn.example.com/media/otomads/a.mp3");
     expect(cdn.get(trackId("otomads", "b"))).toBe("https://cdn.example.com/media/otomads/b.mp3");
     // 源挂在子路径下时跟着 manifest 的目录走
-    expect(buildEntries(relative, "https://cdn.example.com/music/manifest.json").get(trackId("otomads", "a")))
+    expect(buildEntries({ tracks: relative }, "https://cdn.example.com/music/manifest.json").get(trackId("otomads", "a")))
       .toBe("https://cdn.example.com/music/media/otomads/a.mp3");
 
     // manifest 本身是相对路径（同源 / 子目录部署）→ 仍然是相对形式，与改前逐字一致
-    expect(buildEntries(relative, "manifest.json").get(trackId("otomads", "a"))).toBe("media/otomads/a.mp3");
+    expect(buildEntries({ tracks: relative }, "manifest.json").get(trackId("otomads", "a"))).toBe("media/otomads/a.mp3");
     // 绝对地址原样通过（本机助手就是这种）
-    expect(buildEntries(rows, "https://cdn.example.com/manifest.json").get(trackId("紅魔郷", "おてんば恋娘")))
+    expect(buildEntries({ tracks: rows }, "https://cdn.example.com/manifest.json").get(trackId("紅魔郷", "おてんば恋娘")))
       .toBe("https://a/1.mp3");
   });
 
@@ -130,7 +130,7 @@ describe("sources resolver", () => {
       ["otomads", "a", "media/otomads/a.mp3", "rev-a"],
       ["otomads", "b", "media/otomads/b.mp3"],                 // 行里没给 → 用整表兜底
     ];
-    const entries = buildEntries(withRevisions, "https://cdn.example.com/manifest.json", "whole");
+    const entries = buildEntries({ tracks: withRevisions }, "https://cdn.example.com/manifest.json", "whole");
 
     expect(entries.get(trackId("otomads", "a"))).toBe("https://cdn.example.com/media/otomads/a.mp3?v=rev-a");
     expect(entries.get(trackId("otomads", "b"))).toBe("https://cdn.example.com/media/otomads/b.mp3?v=whole");
@@ -138,7 +138,7 @@ describe("sources resolver", () => {
 
   it("没有版本的源**逐字不变**（远程镜像的裸数组就是这种）", () => {
     // 关键的一条：D144 不许顺手改掉别人的地址 —— 没声明版本就一个字节都不拼
-    expect(buildEntries(rows, "https://cdn.example.com/manifest.json").get(trackId("紅魔郷", "おてんば恋娘")))
+    expect(buildEntries({ tracks: rows }, "https://cdn.example.com/manifest.json").get(trackId("紅魔郷", "おてんば恋娘")))
       .toBe("https://a/1.mp3");
     expect(versionedUrl("https://a/1.mp3", "")).toBe("https://a/1.mp3");
     expect(versionedUrl("https://a/1.mp3", undefined)).toBe("https://a/1.mp3");
@@ -239,7 +239,7 @@ describe("sources resolver", () => {
       // 没量到的（`$ + , ; = @`）保守处理：也不动
       ["otomads", "h", "media/otomads/a%24b%2Bc%2Cd%3Be%3Df%40g.mp3"],
     ];
-    const tables = { local: { id: "local", status: "ready" as const, entries: buildEntries(rows169) } };
+    const tables = { local: { id: "local", status: "ready" as const, entries: buildEntries({ tracks: rows169 }) } };
     const of = (title: string) => tables.local.entries.get(trackId("otomads", title))!;
 
     expect(of("a")).toBe("media/otomads/%E6%A6%86%E6%9C%A8%E5%8D%8E%20-%20%E6%AD%8C(mix).mp3");
@@ -263,7 +263,7 @@ describe("sources resolver", () => {
     expect(canonicalPathEncoding("https://host")).toBe("https://host");
 
     // `?v=` 拼在收敛**之后**（版本号照旧 `encodeURIComponent`，与改前逐字一致）
-    const entries = buildEntries([["otomads", "a", "media/a%29.mp3", "rev 1"]], "", "rev");
+    const entries = buildEntries({ tracks: [["otomads", "a", "media/a%29.mp3", "rev 1"]] }, "", "rev");
     expect(entries.get(trackId("otomads", "a"))).toBe("media/a).mp3?v=rev%201");
   });
 });
@@ -400,12 +400,15 @@ describe("源自己声明的响度表：跟着源走（D139）", () => {
     expect(result.tables.local!.loudnessUrl).toBeUndefined();
   });
 
-  it("远端源表（裸数组）不会被误当成 manifest 去读字段", async () => {
+  it("裸数组（老形状）已不在支持范围：解析成空表，不炸、也不当成 manifest 去读字段", async () => {
+    // REFACTOR-PLAN v2 §2.1：源清单统一成对象 —— 裸数组那条分支已退场。留这条用例钉住退场后的行为：
+    // 形状不认识 ⇒ 空表（不抛），且绝不去读只有 manifest 才有的顶层字段。
     const fetcher = vi.fn(async () => new Response(JSON.stringify(rows), { status: 200 })) as unknown as typeof fetch;
     const remote = { ...LOCAL, id: "mirror", kind: "remote" as const, tableUrl: "data/sources/x.json" };
     const result = await loadSourceTables([remote], {}, fetcher);
+    expect(result.tables.mirror!.status).toBe("ready");
     expect(result.tables.mirror!.loudnessUrl).toBeUndefined();
-    expect(result.tables.mirror!.entries.size).toBe(2);
+    expect(result.tables.mirror!.entries.size).toBe(0);
   });
 });
 
