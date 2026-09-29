@@ -485,16 +485,64 @@ def test_key_sets_match_the_shared_vector():
     assert pack_mod.CHARACTER_KEYS == PACK_KEYS_VECTOR["character"]
 
 
+#: 与前端 `src/music/mode.ts` 共享的向量（Q1 口径：两侧各存一份字面量）。
+MODE_VECTOR = ("originals", "otomads", "custom")
+
+
+def test_mode_list_matches_the_frontend():
+    """三个模式的名字两边必须一致：`tmc.build.MODES` ↔ 前端 `MusicMode` / `MUSIC_MODES`。
+
+    加第四个模式时最省事的错法是只改一边：数据侧生成了数据集、前端不认识（或反过来）。
+    这是一条**跨语言**向量，按文本读前端那份（与 `normalize_title`、键集合那几条同一套路）。
+    """
+    assert build.MODES == MODE_VECTOR
+    frontend = (repo.ROOT / "src" / "music" / "mode.ts").read_text(encoding="utf-8")
+    union = re.search(r"export type MusicMode = ([^;]+);", frontend)
+    assert union, "mode.ts 的 MusicMode 不见了？同步这条向量"
+    assert tuple(re.findall(r'"([^"]+)"', union.group(1))) == MODE_VECTOR
+    listed = re.search(r"export const MUSIC_MODES: MusicMode\[\] = \[([^\]]+)\]", frontend)
+    assert listed, "mode.ts 的 MUSIC_MODES 不见了？同步这条向量"
+    assert tuple(re.findall(r'"([^"]+)"', listed.group(1))) == MODE_VECTOR
+
+
 #: 跨仓库口径检查的跳过原因（数据仓库是 env 落点，不再是 submodule）。
 SKIP_NO_DATA_REPO = "数据仓库不在场（OTOMADS_DATA_DIR 没指到 clone）：跳过跨仓库口径检查"
 
 
-def _data_repo_file():
-    """数据仓库的 `packformat.py`（数据仓库不在场时跳过）。"""
-    helper = repo.ROOT / "data" / "otomads" / "tools" / "src" / "otomads" / "packformat.py"
-    if not helper.is_file():
+def _data_repo_module(mode: str, filename: str):
+    """数据仓库的 `<data_dir>/tools/src/<mode>/<filename>`（仓库不在场时跳过）。
+
+    位置走 `repo.data_dir`（env 可覆盖）⇒ `OTOMADS_DATA_DIR` 指到别处也找得到。
+    """
+    path = repo.data_dir(mode) / "tools" / "src" / mode / filename
+    if not path.is_file():
         pytest.skip(SKIP_NO_DATA_REPO)
-    return helper
+    return path
+
+
+def _data_repo_file(mode: str = "otomads"):
+    """数据仓库的 `packformat.py`（= `_data_repo_module` 的固定文件名版）。"""
+    return _data_repo_module(mode, "packformat.py")
+
+
+def test_mirrored_fetch_audio_helpers_stay_identical():
+    """两份 `fetch_audio.py` 的三个 helper 是**有意保留的镜像实现**（HANDOVER §18 裁定不动）。
+
+    它们不是纯函数、没法用字面量向量钉，所以按 AST 把源码对一遍：单边改动会让这条红 ——
+    镜像漂移最典型的后果是"一边能硬链接、一边报错"这种只在对面仓库出现的行为差异。
+    """
+    import ast
+
+    names = {"installed_ytdlp", "uv_env", "link_or_copy"}
+
+    def helpers(mode: str) -> dict[str, str]:
+        tree = ast.parse(_data_repo_module(mode, "fetch_audio.py").read_text(encoding="utf-8"))
+        return {node.name: ast.unparse(node) for node in tree.body
+                if isinstance(node, ast.FunctionDef) and node.name in names}
+
+    otomads, custom = helpers("otomads"), helpers("custom")
+    assert set(otomads) == names and set(custom) == names
+    assert otomads == custom
 
 
 #: 与数据仓库 `packformat.BITRATE_RANGE` 共享的向量（Q1 口径：两侧各存一份字面量）。
