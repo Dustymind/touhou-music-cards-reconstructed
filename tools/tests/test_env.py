@@ -11,7 +11,8 @@ def test_python_supports_tomllib():
 
 def test_repo_skeleton_exists():
     # S5 起 `docs/reports/` 是 gitignored 的工作记录目录（validate --report 现写现用），不随仓库分发。
-    for rel in ("data", "docs", "tools", "src", "tests"):
+    # （根 `tests/` 那个空占位已删：Python 测试早就全在 `tools/tests/`，它唯一的作用就是让这条断言成立。）
+    for rel in ("data", "docs", "tools", "src"):
         assert (ROOT / rel).is_dir(), rel
 
 
