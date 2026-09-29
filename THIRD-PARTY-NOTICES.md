@@ -180,7 +180,7 @@
 
 ### 5.1 上游授权
 
-本仓库部分代码移植自 `lightbulb128/touhou-card-player-v3` —— 该仓库**未附任何 LICENSE**（默认保留所有权利）。本项目已就授权范围与**可按 MIT 再许可**取得作者同意，记录见 `docs/permissions/upstream-authorization.md`。
+本仓库**部分代码与文案**移植自 `lightbulb128/touhou-card-player-v3`（2026-09-29 复核：该仓库**至今未附任何 LICENSE**，HEAD 仍是 `af8b0aa` ⇒ 默认保留所有权利）。作者已就 **fork / 修改 / 自行部署**点头，原文、以及**截图没有逐字覆盖「可按 MIT 再许可」这条残余风险**，都记在 [`docs/permissions/upstream-authorization.md`](docs/permissions/upstream-authorization.md)；那份文档末尾还有一次**代码关联性实测**（逐行重合与最长连续重合：以重写为主，沿用的是少量文案与零散片段）。
 
 ### 5.2 本仓库自己的许可
 

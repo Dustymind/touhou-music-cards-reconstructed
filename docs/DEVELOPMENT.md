@@ -69,6 +69,14 @@ Vite 7 + React 19 + TypeScript + MUI 7（主题按 **Material Design 2** 写：4
 
 **位置**由你在 `rows` 里放哪儿决定（现在放在「原作」上方）。想隐藏就整块删掉。
 
+### License 行的标识符（自动，别手写）
+
+`label.en === "License"` 那一行的内容**不在 `about.ts` 里写死**：`scripts/gen-notices.mjs`
+（`pnpm notices`）按 npm 生产闭包 + 随包分发的素材（字体 `OFL-1.1`、Material Icons `Apache-2.0`，
+后者不是任何包的 `license` 字段 ⇒ 只能手写在生成器的 `ASSET_LICENSES`）生成
+`src/content/licenses.generated.ts`；`pnpm gate` 的 `--check` 与 `src/content/about.test.ts` 两处守着。
+要加一个随产物分发的许可：改生成器的 `ASSET_LICENSES`（或升依赖，让闭包自己变）后跑 `pnpm notices`。
+
 ### 弹窗的视觉规格
 
 MD2 规格（280/560 宽、4dp 圆角、elevation 24、32% 黑遮罩、150/75ms 动效、右下角「关闭」+

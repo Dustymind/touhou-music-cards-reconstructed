@@ -333,20 +333,20 @@ manifest 所在那一层解析 ⇒ 换域名/端口/协议、换宿主与子路�
 | `src/` `tools/` `e2e/` `deploy/` `docs/`，以及根目录的配置文件 | **MIT**，见 [`LICENSE`](LICENSE) |
 | `data/**` | **MIT**（本仓库自己的汇编；来源见 [`docs/data-provenance.md`](docs/data-provenance.md)） |
 | `src/assets/Inconsolata-Medium.ttf` | **SIL OFL-1.1** —— 原样分发，**不可**按 MIT 再许可 |
-| 打包进 `dist/` 的第三方 npm 包 | MIT 与 BSD-3-Clause；另有 Google Material Icons 的 Apache-2.0 |
+| 打包进 `dist/` 的第三方 npm 包 | MIT / BSD-3-Clause / **ISC**；另有 Google Material Icons 的 Apache-2.0（完整标识符与正文见 [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md)） |
+| 移植自上游 `lightbulb128/touhou-card-player-v3` 的那部分（对局核心、文案表、彩蛋等） | 上游**无 LICENSE**（保留所有权利）；已获作者 fork / 修改 / 自行部署的同意，「可按 MIT 再许可」是作者判断并接受的**残余风险**，见 [`docs/permissions/upstream-authorization.md`](docs/permissions/upstream-authorization.md) |
 | `data/otomads/`、`data/custom/` | 独立仓库（默认 clone 在 `data/<mode>/`，位置由 env 覆盖；gitignored、不随本仓库分发），许可在各自仓库里声明 |
 
-逐路径的权威映射在 [`REUSE.toml`](REUSE.toml)，可以校验：
+逐路径的权威映射在 [`REUSE.toml`](REUSE.toml)，**CI 真的会跑**（`gate.yml` 里的一步）：
 
 ```bash
-uvx --from reuse reuse lint
+pnpm license:lint        # = uvx --from reuse==6.2.0 reuse lint（REUSE 3.3）
 ```
 
-随产物分发的第三方署名在 [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md)；同一份内容
-也以纯文本放在 `pnpm notices` 产出的 `dist/THIRD-PARTY-NOTICES.txt`（构建期生成）——
-**署名必须跟着分发副本走**，页面「关于」弹窗里有入口。
-
-上游授权记录见 [`docs/permissions/upstream-authorization.md`](docs/permissions/upstream-authorization.md)。
+随产物分发的第三方署名在 [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md)；同一份内容也在
+**`pnpm build` 末尾**写成 `dist/THIRD-PARTY-NOTICES.txt`（内嵌各许可全文）——
+**署名必须跟着分发副本走**，页面「关于」弹窗里有入口。弹窗里那行许可标识符由 `pnpm notices`
+生成 `src/content/licenses.generated.ts`，`pnpm gate` 负责比对（漏一个 ISC 这种事不该靠人眼）。
 
 另外：本项目是**东方 Project 的非官方二次创作**，与 上海アリス幻樂団 / ZUN 无任何关联，
 遵循[东方Project使用规定案](https://thbwiki.cc/%E4%B8%9C%E6%96%B9Project%E4%BD%BF%E7%94%A8%E8%A7%84%E5%AE%9A%E6%A1%88)。
