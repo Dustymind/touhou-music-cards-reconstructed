@@ -228,5 +228,5 @@ console.log(`  ${path.relative(ROOT, MD)} ${next.length} 字符`);
 console.log(`  ${path.relative(ROOT, TXT)} ${dist.length} 字符`);
 if (!usedLicenses.every((id) => true) || usedLicenses.length !== groups.size) {
   const missing = [...groups.keys()].filter((id) => !usedLicenses.includes(id));
-  console.log(`  ⚠ LICENSES/ 里缺：${missing.join(", ")}`);
+  console.log(`  [!] LICENSES/ 里缺：${missing.join(", ")}`);
 }
