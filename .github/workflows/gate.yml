@@ -44,3 +44,14 @@ jobs:
           pnpm data:build
           diff -r /tmp/data-first data/public
           echo "✅ 两次构建逐字相同"
+      # §16「生成物 dist/ 清单 + 关键文件哈希一致」在执行层的等价物：产物不提交后，
+      # 唯一有意义的"与基线一致"就是**同输入两次构建逐字相同**（S0 只记了生成数据的清单与
+      # 哈希，那份由上面这一步 + contentHash 承担；dist 是它的函数，所以比 dist 本身）。
+      - name: 生成物可复现（dist 两次构建逐字比对）
+        run: |
+          set -euo pipefail
+          pnpm build
+          cp -r dist /tmp/dist-first
+          pnpm build
+          diff -r /tmp/dist-first dist
+          echo "✅ 两次构建的 dist 逐字相同"
