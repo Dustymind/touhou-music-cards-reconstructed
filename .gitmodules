@@ -1,6 +1,0 @@
-[submodule "data/otomads"]
-	path = data/otomads
-	url = https://github.com/Dustymind/touhou-music-cards-otomads-data.git
-[submodule "data/custom"]
-	path = data/custom
-	url = https://github.com/Dustymind/touhou-music-cards-custom-data.git
