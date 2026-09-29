@@ -97,7 +97,7 @@ pnpm audio:fetch          # = cd data/otomads/tools && uv run python -m otomads.
    `outputs` 登记表"认领 + 产出"在同一把锁里（同源同区间的曲目只裁一次，其余硬链接）。
 4. **顺便量响度**（用户第 9 条）：先把本次**裁过/换过**的曲目从响度表的缓存里删掉（否则会沿用
    裁剪前的 dB ✗），再整体跑一次量响度，产出新的 `loudness/<包>.json`（数据仓库，D130）。
-   实现上 `otomads.fetch_audio` 直接调用 `otomads.loudness`（`measure_loudness` 是同一核心的 CLI）。
+   实现上 `otomads.fetch_audio` 直接调用 `otomads.loudness`（量响度的 CLI 也在同一个模块：`python -m otomads.loudness`）。
    顺带修一个既有小毛病：`measuredDb` 里**已删除文件**的旧键从不清理，这次一并清掉。
 5. **汇总报告**：成功 / 跳过 / 失败各多少条；有失败则以非 0 退出（但不中断其余曲目）。
 
@@ -188,7 +188,7 @@ ffmpeg -y -ss <start-BACK> -i <原件> -ss <BACK> -t <stop-start> -c:a libmp3lam
 2. **`contentHash` 纳入裁剪与来源**（用户第 4 条决定）：`build.py` 的 `content_hash(characters, albums, pack_audio)`
    扩成把每条的 `(album, title, start_time, stop_time, source)` 也算进去 —— 于是"两端裁剪/抓取不同"
    会在**握手期**被拒绝，而不是等抢答时发现起点不一样。代价：改一条 trim 就要两端同步数据（本来也该如此）。
-3. **响度缓存必须失效**：`otomads.measure_loudness`（数据仓库）的缓存键是**文件名 stem**
+3. **响度缓存必须失效**：`otomads.loudness`（数据仓库）的缓存键是**文件名 stem**
    （`p.stem in cache` 就跳过）。裁剪后文件名不变 ⇒ 会沿用**裁剪前**的 dB，逐曲均衡就错了。
    裁剪流程要删掉该曲目的缓存键，并重跑量响度；`loudness/<包>.json`（数据仓库）是**跟踪文件**，与音频一起提交。
 4. **文件名不许改**：manifest 匹配（`sources.ts` 的 `normalizeTitle` + "以 `作者 - 曲名` 结尾"兜底）、

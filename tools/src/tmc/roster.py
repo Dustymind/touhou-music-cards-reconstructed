@@ -7,7 +7,7 @@
 
 规则：清单 = **曲包引用到的角色**（`key` / `name` / `order` 取自 `data/characters/*.toml`）
 + 手工追加的"原曲没有的角色"（保留，供将来 S2 的"音MAD 自有身份"用）。
-数据仓库的 `otomads.ingest_pack` 只认这份清单，所以它必须与真源同步。
+数据仓库的写入侧（`otomads.packformat.character_keys`）只认这份清单，所以它必须与真源同步。
 """
 from __future__ import annotations
 
@@ -114,7 +114,7 @@ def scaffold_target_dir() -> pathlib.Path:
 
 
 def scaffold_toml_str(value: str) -> str:
-    """TOML 基本字符串（与数据仓库 `otomads.ingest_pack.toml_str` 同一套转义）。"""
+    """TOML 基本字符串（与数据仓库 `otomads.packformat.toml_str` 同一套转义）。"""
     escaped = value.replace("\\", "\\\\").replace(chr(34), "\\" + chr(34))
     return chr(34) + escaped + chr(34)
 

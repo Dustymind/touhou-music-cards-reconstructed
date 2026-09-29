@@ -19,8 +19,8 @@ git -C .. submodule update --init data/otomads   # 音MAD 数据（可选；没�
 | （`--urls`） | `tmc.validate --urls` 附带远程音源实链抽查（Range 请求 + 音频嗅探，S5 起并入 validate） |
 
 **不在这里**（数据仓库 `data/otomads/tools/`，自带 uv 工程、与主仓库零 import / 零 path 依赖）：
-`otomads.local_source`（本地曲库助手）、`otomads.fetch_audio` / `loudness` / `measure_loudness`（抓取、裁剪、响度）、
-`otomads.ingest_pack` / `parse_ingest_rows` / `ingest_otomads` / `ingest_local_audio`（录入）、`otomads.packformat`（格式层）。
+`otomads.local_source`（本地曲库助手）、`otomads.fetch_audio`（抓取与裁剪）、`otomads.loudness`（逐曲响度，含量响度的 CLI）、
+`otomads.fetch_covers`（封面链接）、`otomads.packformat`（格式层）、`otomads.stage_media`（归档 / 铺盘 / 自检）。
 主仓库的 `pnpm local` / `pnpm audio:fetch` / `pnpm audio:measure` 只是**纯路径包装**（D130）。
 
 > 直接敲 `uv` 时若 `$HOME` 只读（沙箱）会失败 —— 把缓存指到仓库内即可（`UV_CACHE_DIR` 指 `.uv/cache`）。

@@ -403,7 +403,7 @@ def build_outputs() -> tuple[dict, dict[str, dict[str, str]]]:
             if not origin.exists():
                 raise SystemExit(
                     f"响度表不存在：{repo.shown(origin)}"
-                    f"（在数据仓库跑 `uv run --project tools python -m otomads.measure_loudness`）")
+                    f"（在数据仓库跑 `uv run --project tools python -m otomads.loudness`）")
             outputs[target] = origin.read_text(encoding="utf-8")
 
     # 共享项：与模式无关，只写一份
