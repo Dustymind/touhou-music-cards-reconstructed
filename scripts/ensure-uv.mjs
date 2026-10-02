@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 /**
- * 保证 `uv` 可用（REFACTOR-PLAN v2 §7.1：Vercel 的 installCommand 要装 uv）。
+ * 保证 `uv` 可用（REFACTOR-PLAN v2 §7.1：构建期需要 uv，而托管平台的 install 阶段本身不装它）。
  *
- * 为什么是 postinstall 而不是改 vercel.json 的 installCommand：仓库的跨平台纪律是"脚本走 Node"，
- * 而 `curl … | sh` / `powershell -c …` 都是平台绑定的一行。这里：
+ * 为什么挂在 postinstall 而不是写进各家平台的 install 配置：仓库的跨平台纪律是"脚本走 Node"，
+ * 而 `curl … | sh` / `powershell -c …` 都是平台绑定的一行 —— 挂 postinstall 则本机与
+ * CI / 部署链的每一次 `pnpm install` 都自动覆盖，不用为每个平台各配一遍。这里：
  *   ① PATH 上已经有 uv（本机开发、装了 uv 的 CI）⇒ 什么都不做；
  *   ② 否则下载官方发行包到仓库内 `.tools/`（gitignored），`scripts/run.mjs` 会把它加进 PATH；
  *   ③ 下载/解包失败 ⇒ **非 0 退出**，让问题在 install 阶段就炸出来，而不是等构建时报"uv: not found"。

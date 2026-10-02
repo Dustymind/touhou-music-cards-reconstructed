@@ -693,7 +693,7 @@ def test_source_table_url_problem_is_kind_aware():
         assert build.source_table_url_problem(kind, "data/sources/x.json") is None
 
 
-# ---------------------------------- §7.2 快照那条路（CI / Vercel：没有 packs/、没有注册表 TOML）
+# ---------------------------------- §7.2 快照那条路（CI / 部署链：没有 packs/、没有注册表 TOML）
 
 def test_loudness_table_comes_from_the_snapshot_without_a_registry(tmp_path, monkeypatch):
     """只有数据集快照时，响度表照样要进产物：表名取自数据集自己的 sources.json（loudnessUrl）。

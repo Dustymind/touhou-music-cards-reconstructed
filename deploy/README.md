@@ -4,32 +4,33 @@
 
 | 形态 | 用什么 | 什么时候用 |
 |---|---|---|
-| **纯静态托管**（§A） | GitHub Pages / Cloudflare Pages / Vercel / 任意静态服务器 | 只想把网页放出去；音源由访客自己在本机跑助手 |
+| **纯静态托管**（§A） | Cloudflare Workers（当前线上）/ Cloudflare Pages / GitHub Pages / 任意静态服务器 | 只想把网页放出去；音源由访客自己在本机跑助手 |
 | **单端口透传**（§B） | Caddy / `deploy/single-port-proxy.mjs` | 自用或小圈子：应用 + 本机曲库 + 联机信令一个端口出去 |
 
 ## A. 纯静态托管（无后端）
 
 应用是**纯前端**：`dist/` 里只有 JS/CSS + JSON + 字体（约 1.4 MB），音频与卡面都不在里面
-（卡面走远程 origin，音频走音源表 → 用户本机的助手）。三家平台的开箱配置都在仓库里：
+（卡面走远程 origin，音频走音源表 → 用户本机的助手）。开箱配置都在仓库里：
 
 | 平台 | 地址形态 | 配置文件 | 备注 |
 |---|---|---|---|
-| **Vercel**（**当前线上**） | `https://<project>.vercel.app/` | `vercel.json` | 框架选 Other（配置里 `framework: null`）；构建/安装命令都写死在配置里。push 到 `main` 由 Vercel 自己构建 |
-
-> ⚠️ **`ignoreCommand` 只看 tip**：`git diff HEAD^ HEAD` 全是 `docs/**` 就跳过构建 —— 一次推 60 笔
-> 也只看最后一笔。所以 tip 别放纯文档提交；真推了纯文档 tip，线上会**停在上一次构建**，
-> 要再推一笔非文档改动或在面板 Redeploy。
+| **Cloudflare Workers**（**当前线上**） | `https://touhou-music-cards-reconstructed.dustymind.cc/` | `wrangler.jsonc` + `deploy/headers.txt` | **只放静态资源的 Worker**（没有 Worker 脚本、没有 `main`）。由 `.github/workflows/deploy-app.yml` 在 Actions 里 `pnpm build` → `npx wrangler@4 deploy`。**不要**改用 CF 面板的 `Connect to Git`：那条路依赖 CF 侧 Git 连接，断连时零构建而 Deploy Hook 照样回 2xx ⇒ 静默停更（D150 素材站停了一整天） |
 | ~~GitHub Pages~~（**暂时停用**，D146） | `https://<user>.github.io/<repo>/`（**子目录**） | `.github/workflows/deploy-pages.yml`（**保留，但已摘掉 push 触发**） | 这个仓库的 Pages 从没启用过 ⇒ 每次 push 都在 `configure-pages` 失败（23 次全红）。要用就把工作流里 `push:` 那两行恢复 + Settings → Pages → Source 选 **GitHub Actions**；`base: "./"` 不用改 |
-| **Cloudflare Pages**（可选，应用本体） | `https://<project>.pages.dev/` | 无（面板填构建配置） | 构建命令 `pnpm build`、输出目录 `dist`、Node 24、包管理器 pnpm 12；响应头统一写在 `vercel.json` 的 `headers`（S3 起 `public/_headers` 已删；CF Pages 不读 vercel.json，真要上它得自备一份 `_headers`） |
+| **Cloudflare Pages**（可选，自建） | `https://<project>.pages.dev/` | 无（面板填构建配置） | 构建命令 `pnpm build`、输出目录 `dist`、Node 24、包管理器 pnpm 12。**响应头要自备**：面板不读 `wrangler.jsonc`（S3 起 `public/_headers` 已删），把 `deploy/headers.txt` 铺成 `dist/_headers` 即可 —— `scripts/gen-headers.mjs` 干的就是这件事，照抄进构建命令即可 |
 
-> 注意"Cloudflare Pages"在这个项目里有**两个不同的站点**：上面这行是**应用本体**（可选形态），
-> 而默认音源用的**素材站** `otomads-cdn.tsukinomiyako-mangesui.top` 是另一个 Pages 项目
-> （`otomads-cdn`），它由**数据仓库**的 `.github/workflows/publish.yml` 部署（默认位置 `<OTOMADS_DATA_DIR>/`，即 `data/otomads/`）
-> （`wrangler deploy`）。主仓库里早先那个 `.github/workflows/deploy-otomads-cdn.yml`
-> 已在 D150 并入数据仓库的 publish 流程，**本仓库现存的工作流只有 `deploy-pages.yml`**。
+> ⚠️ **跳过构建的规则**（`deploy-app.yml` 的「这次 push 值不值得构建」）：看的是 `before..sha` 的**整批**
+> 改动，全是 `docs/**` 才跳过。这是对 Vercel `ignoreCommand` 的**改进** —— 那只 diff `HEAD^ HEAD`，
+> 一次推 60 笔只看最后一笔，会出现"线上停在上一次构建"而没人知道。
 
-三家的构建命令都是 `pnpm build`（= 先让两个数据仓库各自生成数据集，再 `tmc.build` + `tsc --noEmit` + `vite build`，类型检查也是这一关的一部分），
-构建期需要 **Python（uv）**：`pnpm install` 的 postinstall（`scripts/ensure-uv.mjs`）会在 PATH 没有时把 uv 装到仓库内 `.tools/`（Vercel 的 `installCommand` 本身不装 uv）。
+> 注意"Cloudflare"在这个项目里有**两个不同的站点**：上面第一行是**应用本体**，
+> 而默认音源用的**素材站** `otomads-cdn.tsukinomiyako-mangesui.top` 是另一个 Worker
+> （`otomads-cdn-git`），它由**数据仓库**的 `.github/workflows/publish.yml` 部署
+> （默认位置 `<OTOMADS_DATA_DIR>/`，即 `data/otomads/`）。主仓库里早先那个
+> `.github/workflows/deploy-otomads-cdn.yml` 已在 D150 并入数据仓库的 publish 流程；
+> **本仓库现存的工作流是 `gate.yml` / `deploy-app.yml` / `deploy-pages.yml`。**
+
+构建命令是 `pnpm build`（= 先让两个数据仓库各自生成数据集，再 `tmc.build` + `tsc --noEmit` + `vite build`，类型检查也是这一关的一部分）。
+构建期需要 **Python（uv）**：`pnpm install` 的 postinstall（`scripts/ensure-uv.mjs`）会在 PATH 没有时把 uv 装到仓库内 `.tools/`。
 数据集来自两个数据仓库：env `OTOMADS_DATA_DIR` / `CUSTOM_DATA_DIR` 指向的克隆，或 `OTOMADS_DATASET_URL` / `CUSTOM_DATASET_URL` 指向的 Release 快照（逐文件下载前缀）；
 两者都没有时构建**不失败**——写空数据集 + 默认源记录，应用运行时回退远程清单（音MAD 走 CDN、自定义由用户清单驱动）。
 
@@ -46,10 +47,15 @@
 
 ### 缓存
 
-平台默认按文件类型缓存，够用。要显式控制就按平台加：响应头统一写在 `vercel.json` 的 `headers`（S3 起，
-`public/_headers` 已删）；Vercel 与 GitHub Pages 都**不认** `_headers`（会被当普通文件发出去，无害）。
-原则：带指纹的 `/assets/*` 可长缓存；`/index.html` 与 `/data/**` 要短缓存 ——
+**CF Workers 静态资源的默认 `max-age` 是 0**（不像老 Pages 项目有 zone 规则兜着），所以缓存策略必须显式给
+—— 那就是 `deploy/headers.txt`，构建期由 `scripts/gen-headers.mjs` 铺成 `dist/_headers`。
+**`/assets/*` 那条不能省**：少了它，带指纹的 bundle 会退化成每次访问都回源。
+
+原则：带指纹的 `/assets/*` 可长缓存（`immutable`）；`/index.html` 与 `/data/**` 要短缓存 ——
 数据 JSON 里的 `contentHash` 是联机握手要比的，压住旧数据会让两端哈希不一致（协议 v7 会拒）。
+
+其他平台：CF Pages 把 `deploy/headers.txt` 也铺一份即可（见上表）；GitHub Pages 与任意静态服务器
+**不认** `_headers`（会被当普通文件发出去，无害），缓存规则得按平台自己配。
 
 ### 静态托管下的音频（重要）
 
@@ -320,7 +326,7 @@ node deploy/single-port-proxy.mjs        # 默认 0.0.0.0:8080
 /sub/manifest.json → 8011      # 应用挂在 /sub/ 时
 ```
 
-只做**纯静态**托管（应用在 Pages/Vercel、素材在别处）不需要这一条 —— 默认走 CDN，或由设置页填绝对地址
+只做**纯静态**托管（应用在 CF、素材在别处）不需要这一条 —— 默认走 CDN，或由设置页填绝对地址
 （`127.0.0.1:8011` / `cards.example.com`）。
 
 ## 本机分开跑（不是单端口）怎么办

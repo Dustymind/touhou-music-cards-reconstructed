@@ -1,6 +1,7 @@
 # GitHub Pages 部署（纯静态，无后端）。
 #
-# ⚠️ **2026-09-25 起暂时停用**（D146）：应用现在由 **Vercel** 部署（`vercel.json`），而这个仓库的
+# ⚠️ **2026-09-25 起暂时停用**（D146）：应用现在由 **Cloudflare Workers** 部署
+#    （`wrangler.jsonc` + `.github/workflows/deploy-app.yml`，见 D179），而这个仓库的
 #    GitHub Pages **从没启用过** —— 每次 push 都在 `actions/configure-pages` 那一步失败
 #    （`Get Pages site failed`，本工作流 23 次运行全部失败/取消）。停用的是**触发器**，工作流本体
 #    一个字没动，将来要用 Pages 时：

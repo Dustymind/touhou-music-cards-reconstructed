@@ -25,7 +25,7 @@ def shown(path: pathlib.Path) -> str:
 #: 两个外部数据仓库的**位置来源**（REFACTOR-PLAN v2 §7.2/§11.4：不再是 submodule）。
 #: env 优先，默认 `<主仓库>/data/<mode>`：
 #:   * 本地开发：clone 到那儿，或把 env 指到工作区根的独立克隆；
-#:   * CI / Vercel：把 Release 的**数据集快照**解到那儿（`.github/workflows/gate.yml`）。
+#:   * CI / 部署链：把 Release 的**数据集快照**解到那儿（`.github/workflows/gate.yml`）。
 DATA_DIR_ENV = {"otomads": "OTOMADS_DATA_DIR", "custom": "CUSTOM_DATA_DIR"}
 
 

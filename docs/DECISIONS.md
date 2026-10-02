@@ -7078,3 +7078,70 @@ firefox **635**；e2e **115 passed + 1 skipped**。S2 的数据等价性由 `bac
 
 **没做**：文档/注释里的 `✓ / ✗ / ⚠️`（历史决策记录与契约说明）保留 —— 那不是"输出"，
 `docs/DECISIONS.md` 的历史条目按惯例不改。
+
+---
+
+## D179 主仓库从 Vercel 迁到 Cloudflare Workers：响应头自持、部署链留在 Actions（2026-10-02）
+
+**背景**（用户要求）：把应用本体从 Vercel 迁到 Cloudflare，**复用现有域名**
+`touhou-music-cards-reconstructed.dustymind.cc`。Vercel 面板里**一个环境变量都没有**，所以迁移要控制在
+"行为零差异"：音MAD 数据集继续走空兜底 + 运行时回退 CDN 清单。
+
+**为什么不用 CF 面板的 `Connect to Git`**：与 D150 同一条理由 —— 那条路依赖 CF 侧的 Git 连接，断连时
+**零构建**，而 Deploy Hook 照样回 2xx ⇒ 静默停更。构建与部署都留在 GitHub Actions：日志可查、失败可见；
+`wrangler deploy` 对静态资源按哈希**增量上传**。
+
+**改动**：
+
+- **响应头自持**：响应头原先只写在 `vercel.json` 的 `headers` 里，而 Cloudflare **不读**它；又**不能**把
+  `_headers` 放进 `publicDir`（那是 `data/public/`，gitignored 且由 `tmc.build` 每次重新生成 ⇒ 会被构建覆盖、
+  也不进版本库）。所以新增 `deploy/headers.txt`（7 条路径规则，逐条搬自 `vercel.json`）+ `scripts/gen-headers.mjs`
+  在 `build` 链**末尾**铺成 `dist/_headers` —— 必须在 `vite build` **之后**，因为那一步会清空 `dist/`。
+  两条口径不能混：`/assets/*` 带内容指纹 ⇒ `immutable`；`/index.html` 与 `/data/*` 必须短缓存 ——
+  数据 JSON 里的 `contentHash` 是联机握手要比的，压住旧数据会让协议 v7 直接拒握手（**正确性**问题，不是性能）。
+- **`wrangler.jsonc`**：只放静态资源的 Worker（没有 `main`、没有 `run_worker_first`），
+  `not_found_handling: "none"`。**不能用 `single-page-application`**：`vite.config.ts` 的 `base` 是 `./`，
+  深路径回退出去的 index.html 会把资源解析成 `/some/unknown/assets/…` ⇒ 反而全 404。
+  自定义域名写在 `routes` 里 —— `wrangler deploy` 只保证"配置里声明过的"绑定，不声明就有可能把域名摘掉。
+- **`.github/workflows/deploy-app.yml`**：`push: main` + `workflow_dispatch`（带 `dry_run`）。跳过构建的规则看
+  `before..sha` 的**整批**改动、全是 `docs/**` 才跳 —— 这是对 Vercel `ignoreCommand`（只 diff `HEAD^ HEAD`）
+  的**改进**：一次推 60 笔只看最后一笔，会出现"线上停在上一次构建"而没人知道。
+- **收尾**：删 `vercel.json`；把 `deploy-pages.yml` / `gate.yml` / `scripts/ensure-uv.mjs` / `deploy/README.md` /
+  `README.md` 里"当前由 Vercel 部署"的陈述改成 CF 口径。
+
+**实测**：
+
+- ⚠️ **必须显式关掉 Vercel 的 Git 集成 —— 只删 `vercel.json` 不够**：推完 `4b4ac38` 之后 Vercel
+  **自动构建并发布了**。现网 `/_headers` 立刻变成真文件（`200` / `application/octet-stream` / 2208 B），
+  与本地 `deploy/headers.txt` **md5 相同**（`1a8b1dee0a5876106d6915610173c77a`），响应头 `Age: 26`。
+  `ignoreCommand` 只在"整批改动全是 `docs/`"时才跳过 ⇒ 不关掉就是**每次 push 一次生产部署**。
+  （顺带：`_headers` 在 Vercel 上还会被当静态文件公开下载；CF 把 `_headers` 当保留文件消费、不对外提供，
+  所以这次迁移反而修掉了这一点。）
+- 迁移前后**三个 contentHash 与引用指纹一个都没变**（`f24566164f7e` / `d675c854bcf9` / `fe0bccdf9c80`、
+  `9eecf074138b`），`dist/assets/index-BpkKvgsj.js` 名字不变 ⇒ 换宿主不改产品。
+- `gate` 的**生成物可复现**那一步现在也覆盖 `_headers`（同输入构建两次逐字比对）。
+- **CF Workers 静态资源的默认 `max-age` 是 0**（不像老 Pages 项目有 zone 规则兜着）⇒ `/assets/*` 那条缓存
+  规则**不能省**，少了它带指纹的 bundle 会退化成每次访问都回源。
+- 安全头逐条对过：`/*` → `X-Content-Type-Options: nosniff` + `Referrer-Policy: no-referrer`；五条
+  `Cache-Control` 与 `vercel.json` 一一对应，另**多一条 `/`**（Vercel 靠 `/index.html` 覆盖根，CF 要显式写）。
+  **HSTS 刻意不写** —— 现网那个 `max-age=63072000` 是 `dustymind.cc` 这个 zone 在 CF 上的设置，
+  换宿主后自动保留，在这里重复设反而会打架。
+- 切域名前先记下并删除了 zone 里同名的那条 `touhou-music-cards-reconstructed` 记录（原为"代理开着、
+  源站 Vercel"，解析到 104.21.x / 172.67.x）—— CF 给 Worker 加自定义域名时同名记录会冲突。zone 不用迁：
+  `dustymind.cc` 本来就在 CF 上（NS = kolton/sandra.ns.cloudflare.com），与素材站同一账号。
+
+**没做的**：
+
+- `docs/DECISIONS.md` 的**历史条目不改**（照 D178 的惯例）：D146（"暂时停用 GitHub Pages，应用由 Vercel 部署"）
+  等条目里的 Vercel 是**当时的**事实，由本条取代，不回改。
+- `.github/workflows/deploy-pages.yml` **保留**：D146 明确"保留 ci 工作流文件"，只摘掉 push 触发；将来要用
+  Pages 就恢复 `push:` + Settings → Pages → Source 选 GitHub Actions 即可。它头部那句"应用由 Vercel 部署"
+  已改成 CF 口径。
+- `vite.config.ts` 里把 Vercel 与 Pages/CF 并列举例的注释**保留** —— 那是在讲 `base: "./"` 对哪些宿主成立，
+  不是在声明本仓库的部署目标（Vercel 作为第三方静态托管对 fork 依然成立）。
+- `THIRD-PARTY-NOTICES.md:116` 的 `Copyright (c) 2020 Vercel, Inc.` **一个字不动** —— 那是第三方包 `ms`
+  的版权行，动了会被 `pnpm gate` 的 `notices --check` 拦下。
+
+**待办**：Actions 的 variable `APP_SITE` 还没填 ⇒ `deploy-app.yml` 的「线上复验」那一步会打 notice 跳过，
+部署只剩"wrangler 退出码 0"这一个弱信号（素材站的教训正是"退出码 0 但线上没变"）。填上
+`https://touhou-music-cards-reconstructed.dustymind.cc` 再手动跑一次即可恢复复验。

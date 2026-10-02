@@ -1,8 +1,8 @@
 # 数据门禁（REFACTOR-PLAN v2 §14.4）：改了 data/** 真源 ⇒ 取两个数据仓库的**数据集快照**
 # → `pnpm gate`（build + validate + notices）→ 可复现性 diff（同输入构建两次必须逐字相同）。
 #
-# 三条边界：① 产物**不提交**（§7.1 默认链路）；② 本工作流**不部署**（部署是 Vercel 的事，
-# 保住 Git 集成与预览）；③ 谁的 CI 生成谁的产物 —— 数据集快照由两个数据仓库各自的 CI 发布
+# 三条边界：① 产物**不提交**（§7.1 默认链路）；② 本工作流**不部署**（部署是 `deploy-app.yml` 的事，
+# 这样门禁是只读的、也不会半途掐掉一次部署）；③ 谁的 CI 生成谁的产物 —— 数据集快照由两个数据仓库各自的 CI 发布
 #
 # 另外跑 `pnpm license:lint`（REUSE 3.3）：许可映射是"文档说能校验"没人跑过的典型，接上才算数。
 # （otomads: publish.yml 的 dataset 段；custom: tests.yml 的 dataset 段）。

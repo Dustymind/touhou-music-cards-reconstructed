@@ -21,24 +21,20 @@
     //   ② `vite.config.ts` 的 base 是 `./` ⇒ 回退出去的 index.html 在深路径下会把资源
     //      解析成 `/some/unknown/assets/…` ⇒ 反而全 404。**所以这里只能是 "none"。**
     "not_found_handling": "none"
-  }
+  },
 
-  // ── 阶段 3 才启用：自定义域名 ───────────────────────────────────────────────
+  // ── 自定义域名（2026-10-02 启用）────────────────────────────────────────────
   //
-  // `dustymind.cc` 的 zone **已经在 Cloudflare 上**（NS = kolton/sandra.ns.cloudflare.com，
-  // 与素材站同一个账号里的 zone），所以不需要迁 zone，这里直接挂就行。
+  // `dustymind.cc` 的 zone 已经在 Cloudflare 上（NS = kolton/sandra.ns.cloudflare.com，
+  // 与素材站同一个账号里的 zone），所以不需要迁 zone，直接挂。
   //
-  // ⚠️ 启用前必须先处理 zone 里**已存在**的那条 `touhou-music-cards-reconstructed` 记录
-  //    （现网解析到 104.21.x / 172.67.x，说明是"代理开着"的记录、源站是 Vercel）：
-  //    CF 加 Worker 自定义域名时同名记录会冲突。**先把那条记录的类型/值/是否代理截图记下来**
-  //    （回滚要用），删掉它，再取消下面的注释。
+  // 启用前已处理 zone 里**曾经存在**的那条 `touhou-music-cards-reconstructed` 记录
+  // （原为"代理开着、源站 Vercel"，现网解析到 104.21.x / 172.67.x）：CF 加 Worker 自定义域名时
+  // 同名记录会冲突 ⇒ **那条记录已删除**（类型/值/代理开关已记下，可回滚），然后才启用下面这段。
   //
-  // `wrangler deploy` 只保证"配置里声明过的"绑定，不声明就有可能把域名摘掉 ——
-  // 所以一旦挂上，这段就必须留在配置里（素材站吃过这个亏）。
-  //
-  // 取消注释时**记得给上面 `assets` 那个闭合的 `}` 补一个逗号**。
-  //
-  // "routes": [
-  //   { "pattern": "touhou-music-cards-reconstructed.dustymind.cc", "custom_domain": true }
-  // ]
+  // ⚠️ `wrangler deploy` 只保证"配置里声明过的"绑定，不声明就有可能把域名摘掉 ——
+  //    所以一旦挂上，这段就必须留在配置里（素材站吃过这个亏）。
+  "routes": [
+    { "pattern": "touhou-music-cards-reconstructed.dustymind.cc", "custom_domain": true }
+  ]
 }

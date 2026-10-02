@@ -470,7 +470,7 @@ def check_datasets(albums: dict[str, dict], pack_cards: dict[str, list[str]],
         if data is None:
             p.note(f'{mode} 数据集不在场（既没有 <data_dir>/dataset/，也没有快照）⇒ 跳过它的检查')
     pack_names = {entry['name'] for entry in packs_mod.load_packs()[1]}
-    # 曲包真源不在场时（CI / Vercel 只下数据集快照，没有 packs/），下面三条"数据集 ↔ 曲包真源"
+    # 曲包真源不在场时（CI / 部署链 只下数据集快照，没有 packs/），下面三条"数据集 ↔ 曲包真源"
     # 的交叉检查没有依据：专辑注册、卡面覆盖、封面。跳过它们并记 note —— 数据集自身的检查照跑。
     pack_sources = packs_mod.available()
     if not pack_sources:

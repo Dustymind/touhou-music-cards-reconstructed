@@ -113,7 +113,7 @@ pnpm local                                            # 起助手（工具在数
 ### 4. 曲包音频的抓取与裁剪（可选）
 
 音MAD 曲包的真源在独立数据仓库（`<OTOMADS_DATA_DIR>/packs/otomads/*.toml`，一角色一份；位置由 env 决定，默认 `data/otomads/`，见 D128）。
-它**不再是 submodule、也没有 pin**：主仓库直接用 env 指向的那份克隆，CI / Vercel 可以用 Release 数据集快照（`OTOMADS_DATASET_URL`）。
+它**不再是 submodule、也没有 pin**：主仓库直接用 env 指向的那份克隆，CI / 部署期可以用 Release 数据集快照（`OTOMADS_DATASET_URL`）。
 数据仓库改完跑 `pnpm data:datasets` 让它重生成数据集，再 `pnpm data:build`：
 （下面这些 `audio:*` / `local` 命令都先经 `scripts/require-data.mjs otomads` 确认数据仓库在场，再用 `uv run --project $OTOMADS_DATA_DIR/tools` 跑。）
 写了 `source` 的曲目可以自动抓，并按 `start_time` / `stop_time` 裁掉前摇。裁剪走"**解码后精确切 + 重编码**"
@@ -178,8 +178,9 @@ pnpm preview    # 本地预览 dist/
   音MAD 素材**默认从项目 CDN 取**（D141）⇒ 什么都不用做；要**站点自带素材**（同源、不依赖外网）就照
   「音MAD 素材」把素材铺进 `dist/`，并把数据里的 `table_url` 改回相对路径 `manifest.json` 再 `pnpm data:build`
   （也可以让访客在设置页「本地曲库地址」里填本站地址，例如 `cards.example.com` —— 会自动补 `/manifest.json`）。
-  三家的开箱配置都在仓库里：GitHub Pages（`.github/workflows/deploy-pages.yml`）、
-  Cloudflare Pages（设置见 `deploy/README.md`）、Vercel（`vercel.json`，响应头 S3 起统一放在它的 `headers` 里）。
+  开箱配置在仓库里：**Cloudflare Workers**（当前线上，`wrangler.jsonc` + `deploy/headers.txt`，
+  部署链见 `.github/workflows/deploy-app.yml`）、GitHub Pages（`.github/workflows/deploy-pages.yml`，
+  D146 起暂时停用）、Cloudflare Pages（设置见 `deploy/README.md`）。
 - **单端口透传**（应用 + 曲库 + 信令同端口）：见下面小节。
 - **联机**：信令默认走本机 PeerJS（`*:9100`）；音视频是 WebRTC P2P（UDP），跨 NAT 需要 STUN/TURN。
   页面参数 `?peerhost=<域名>&peerport=<端口>&peerpath=/peerjs&peersecure=`（`peersecure` 省略时跟页面协议走）。

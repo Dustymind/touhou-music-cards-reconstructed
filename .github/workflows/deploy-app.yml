@@ -9,10 +9,10 @@
 #   * secret `CLOUDFLARE_API_TOKEN` —— CF 面板 My Profile → API Tokens → Create Token，
 #     模板 **Edit Cloudflare Workers**（自定义则要 `Workers Scripts:Edit` + `Workers Routes:Edit`，
 #     后者是自定义域名要用的）。**没配就跳过部署那一步**（打一条 notice，不算失败）。
-#   * variable `APP_SITE` —— 部署后复验的目标地址。**没配就跳过复验**。
-#     ⚠️ 阶段 2 填 `https://touhou-music-cards.<账号>.workers.dev`；
-#        阶段 3 切完域名再改成 `https://touhou-music-cards-reconstructed.dustymind.cc`。
-#        **别在阶段 2 就填正式域名** —— 那时正式域名还在跑 Vercel，会验到旧站、给出假绿。
+#   * variable `APP_SITE` —— 部署后复验的目标地址：
+#       `https://touhou-music-cards-reconstructed.dustymind.cc`（2026-10-02 起域名已切到本 Worker）。
+#       **没配就跳过复验**（打一条 notice）⇒ 这个 variable 一定要填上，否则部署只剩
+#       "wrangler 退出码 0" 这一个弱信号 —— 素材站的教训正是"退出码 0 但线上没变"。
 #   * variable `OTOMADS_DATASET_URL` —— 可选，见下面 env 里的说明。
 name: deploy-app
 
@@ -35,14 +35,14 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  # ⚠️ 与 Vercel 现状的**唯一**行为差异在这个变量上（Vercel 面板里一个环境变量都没有）：
-  #   不配 ⇒ 构建走"空兜底数据集"，**与现在 Vercel 完全一致**：站点内嵌的音MAD 数据集为空，
+  # ⚠️ 与迁移前（Vercel）**唯一**的行为差异在这个变量上 —— 那时面板里一个环境变量都没有：
+  #   不配 ⇒ 构建走"空兜底数据集"，**与迁移前完全一致**：站点内嵌的音MAD 数据集为空，
   #          应用运行时会回退到 CDN 的远程清单，音MAD 模式照常能用（docs/deploy 里写明的降级路径）。
   #   配上 ⇒ 站点内嵌完整音MAD 数据集（191 首 / 80 角色），与 gate.yml 同一个口径 ——
   #          CDN 不可达时也能显示曲目表。想跟 CI 一致就加这个 variable：
   #            https://github.com/Dustymind/touhou-music-cards-otomads-data/releases/download/dataset
   OTOMADS_DATASET_URL: ${{ vars.OTOMADS_DATASET_URL }}
-  # 自定义数据仓库是私有仓库，匿名拉不动它的 Release 资产 ⇒ 默认留空，那个模式走空兜底（与 Vercel 一致）
+  # 自定义数据仓库是私有仓库，匿名拉不动它的 Release 资产 ⇒ 默认留空，那个模式走空兜底（与迁移前一致）
   CUSTOM_DATASET_URL: ${{ vars.CUSTOM_DATASET_URL }}
   CLOUDFLARE_ACCOUNT_ID: 5102f3861137b0abc1a12e2c793c19d2   # 不是机密（与素材站同一个账号），写死省一处配置
   APP_SITE: ${{ vars.APP_SITE }}
@@ -141,7 +141,7 @@ jobs:
           fi
           # 判据：线上 index.html 引用的**带哈希资源名**必须与本次构建逐字相同。
           # Vite 的资源名是内容哈希 ⇒ 名字对上就证明"线上跑的就是这一份"
-          #（素材站用归档 sha，这里用资源哈希；2026-10-02 的 Vercel 基线是 assets/index-BpkKvgsj.js）
+          #（素材站用归档 sha，这里用资源哈希；迁移前的基线是 assets/index-BpkKvgsj.js，换宿主后名字不变）
           want=$(grep -o 'assets/[A-Za-z0-9_.-]*\.js' dist/index.html | head -1)
           echo "本次构建的资源：$want"
           got=""

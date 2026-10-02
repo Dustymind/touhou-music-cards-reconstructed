@@ -462,7 +462,7 @@ def loudness_tables(mode: str) -> list[tuple[pathlib.Path, pathlib.Path]]:
         return []
     entries = load_registry(mode)
     if entries is None:
-        # 快照那条路（CI / Vercel 用 Release 快照时）：注册表 TOML 不在场，但数据集里那份
+        # 快照那条路（CI / 部署链 用 Release 快照时）：注册表 TOML 不在场，但数据集里那份
         # sources.json 记着每个源的 loudnessUrl（数据仓库的 dataset.py 写的），表本身也在
         # <dataset>/loudness/ 下 —— 只认 TOML 的话，那条路上产物会少一份响度表（19 → 18 个文件）。
         snapshot = repo.dataset_dir(mode) / "sources.json"
