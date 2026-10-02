@@ -11,8 +11,10 @@
 #     后者是自定义域名要用的）。**没配就跳过部署那一步**（打一条 notice，不算失败）。
 #   * variable `APP_SITE` —— 部署后复验的目标地址：
 #       `https://touhou-music-cards-reconstructed.dustymind.cc`（2026-10-02 起域名已切到本 Worker）。
-#       **没配就跳过复验**（打一条 notice）⇒ 这个 variable 一定要填上，否则部署只剩
-#       "wrangler 退出码 0" 这一个弱信号 —— 素材站的教训正是"退出码 0 但线上没变"。
+#       **没配 ⇒ 「线上复验」整步 skipped**，并在 step summary 顶上挂一条警告。
+#       ⚠️ 别写成"未配就 `::notice::` + `exit 0`" —— 那会让复验步骤**报 success 却一行都没验**，
+#          比不配还难发现：部署只剩 "wrangler 退出码 0" 这一个弱信号，而素材站的教训正是
+#          "退出码 0 但线上没变"。所以这里把"跳没跳"做成 UI 上看得见的状态，不是一条 annotation。
 #   * variable `OTOMADS_DATASET_URL` —— 可选，见下面 env 里的说明。
 name: deploy-app
 
@@ -131,14 +133,28 @@ jobs:
         # **不要**再带 `dist` 位置参数 —— 位置参数会被当成 Worker 脚本路径（素材站踩过）。
         run: npx --yes wrangler@4 deploy
 
-      - name: 线上复验
+      - name: 复验目标地址配了吗
+        id: site
         if: steps.token.outputs.ready == 'true' && inputs.dry_run != true
         run: |
           set -euo pipefail
-          if [ -z "${APP_SITE:-}" ]; then
-            echo "::notice::没配 variable APP_SITE ⇒ 跳过线上复验（填上地址后手动跑一次）"
-            exit 0
+          if [ -n "${APP_SITE:-}" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::没配 variable APP_SITE ⇒ 「线上复验」整步跳过，本次部署**未经线上验证**"
+            {
+              echo "## ⚠️ 本次部署未经线上验证"
+              echo ""
+              echo "没配 variable \`APP_SITE\` ⇒ 「线上复验」整步 skipped（是「没验」，不是「验过了」）。"
+              echo "填上 \`https://touhou-music-cards-reconstructed.dustymind.cc\` 后手动 dispatch 一次即可恢复。"
+            } >> "$GITHUB_STEP_SUMMARY"
           fi
+
+      - name: 线上复验
+        if: steps.token.outputs.ready == 'true' && steps.site.outputs.ready == 'true' && inputs.dry_run != true
+        run: |
+          set -euo pipefail
           # 判据：线上 index.html 引用的**带哈希资源名**必须与本次构建逐字相同。
           # Vite 的资源名是内容哈希 ⇒ 名字对上就证明"线上跑的就是这一份"
           #（素材站用归档 sha，这里用资源哈希；迁移前的基线是 assets/index-BpkKvgsj.js，换宿主后名字不变）

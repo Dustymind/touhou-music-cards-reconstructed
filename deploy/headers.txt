@@ -22,6 +22,13 @@
 #     是 `dustymind.cc` 这个 zone 在 Cloudflare 上的 HSTS 设置，换宿主后自动保留。**别在这里重复设**。
 #   * CORS —— 应用与自己的数据同源，不需要；素材站的 CORS `*` 由它自己的 Worker 负责。
 
+# 曾经有、2026-10-02 删掉的两条 —— 留个记录，别照原样加回来（两条都匹配不到任何产物）：
+#   * `/manifest.json` —— 当前 `dist/` 根下**没有**这个文件。它是本地曲库助手（:8011）的清单，
+#     只在 `vite dev` 里由 server.proxy 转发，不进静态产物。
+#   * `/loudness/*` —— 响度表以 `loudness/otomads.json` 挂在**数据集 base** 下，实际落在
+#     `/data/otomads/loudness/…`，已经被上面的 `/data/*` 覆盖。
+#   （将来真要改成"自备素材"形态、产物根下真出现这两个路径时，再加回来。）
+
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
@@ -36,10 +43,4 @@
   Cache-Control: public, max-age=31536000, immutable
 
 /data/*
-  Cache-Control: public, max-age=0, must-revalidate
-
-/manifest.json
-  Cache-Control: public, max-age=0, must-revalidate
-
-/loudness/*
   Cache-Control: public, max-age=0, must-revalidate
