@@ -25,6 +25,25 @@ test.describe("移动端布局", () => {
     }
   });
 
+  test("设置页展开音源分区后，320dp 仍不横向溢出", async ({ page }) => {
+    // 上面那条只走四个页签的**默认折叠**状态，而且跑在 Pixel 7（412dp）上 —— 音源分区那一排
+    // （编号 + 名称 + 状态 + 开关 + 上移 + 下移，六件东西）在 412dp 正好放得下（可用 330px、要 290px），
+    // 到 360dp 就要 314px + 40px 间隙 ⇒ 放不下。改前实测（chromium，`scrollWidth − clientWidth`）：
+    // en 320dp **49**、en 360dp **9**；折行之后两个宽度都是 **0**。
+    //
+    // **故意用默认的 en**：这一排的标签在 en 下最长（开关的 `Enabled` 105px vs `已启用` 90px），
+    // 是溢出最厉害的那一侧（zh 在 320dp 只差 1px，根本抓不到这条）。
+    await page.setViewportSize({ width: 320, height: 800 });
+    await page.goto("/");
+    await page.getByRole("tab", { name: "Config", exact: true }).click();
+    await expandSection(page, "source");
+    const metrics = await page.evaluate(() => {
+      const root = document.documentElement;
+      return { client: root.clientWidth, scroll: root.scrollWidth };
+    });
+    expect(metrics.scroll, "音源分区展开后的整页").toBeLessThanOrEqual(metrics.client + 1);
+  });
+
   test("设置页换行的 tag 行左边缘一致", async ({ page }) => {
     await page.goto("/?locale=zh");
     await page.getByRole("tab", { name: "设置", exact: true }).click();

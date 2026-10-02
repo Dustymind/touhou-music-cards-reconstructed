@@ -367,7 +367,16 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
             px: { xs: 1.5, md: 2 },
           }}
         >
-          <Typography variant="h6" sx={{ whiteSpace: "nowrap" }}>
+          {/* 标题在极窄屏必须能**自己缩下去**：它是 flex 项，`min-width: auto` 会把
+              "min-content" 当成收缩下限，而 `whiteSpace: "nowrap"` 又把 min-content 顶成**整串文字的宽度**
+              ⇒ 320dp 上英文标题实测 318px，比 Toolbar 的内容宽（320 − 2×12 = 296）还宽，整页被撑出一条
+              横向滚动条（`documentElement.scrollWidth − clientWidth = 10`）。
+              `minWidth: 0` + `overflow: "hidden"` 才允许它缩，`textOverflow: "ellipsis"` 收尾。
+              **只在放不下时才生效**：360dp 可用 336px、412dp 可用 388px，都 ≥ 318px ⇒ 这两个宽度下逐字不变。 */}
+          <Typography
+            variant="h6"
+            sx={{ whiteSpace: "nowrap", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis" }}
+          >
             {t(Localization.ShellAppTitle)}
           </Typography>
           {/* DOM 顺序 = 宽屏顺序：标题 → 页签 → 指纹 → 彩蛋。

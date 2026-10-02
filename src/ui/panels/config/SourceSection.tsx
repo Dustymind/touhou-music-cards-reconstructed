@@ -315,7 +315,11 @@ function SourceSectionInner({ bundle, tables }: { bundle: DataBundle; tables: Ta
                   direction="row"
                   spacing={1}
                   // MD2 行高 40dp、垂直居中：控件盒子不再比行高还高（与预设分区同一套规格）
-                  sx={{ minHeight: 40, alignItems: "center" }}
+                  // 窄屏必须允许折行：这一排是「编号 + 名称 + 状态 + 开关 + 上移 + 下移」六个东西，
+                  // 320–360dp 上放不下（实测 320dp 的上下移按钮右边缘到 366px > 视口 320），
+                  // 而不折行就会把**整页**撑出横向滚动条（`scrollWidth − clientWidth ≈ 49`）。
+                  // 折行后名称那格（`flex: 1`）自己吸收剩余宽度，按不住的部分整体落到第二行。
+                  sx={{ minHeight: 40, alignItems: "center", flexWrap: "wrap", rowGap: 1 }}
                 >
                   {/* 顺序编号：MD2 圆形头像（停用的源用灰色） */}
                   <Avatar
