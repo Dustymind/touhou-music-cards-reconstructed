@@ -27,7 +27,9 @@ def test_generated_outputs_are_exactly_the_contract():
     或少一份都由这条守住 ✓。
     """
     _indices, outputs = build.build_outputs()
-    paths = {str(path.relative_to(repo.PUBLIC_DATA)) for path in outputs}
+    # `as_posix()` 不是风格偏好：契约字符串一律正斜杠，而 `str(PurePath)` 在 Windows 上出反斜杠
+    # ⇒ 直接 str() 会让这条在 Windows 上必红（与数据无关，纯路径写法）。
+    paths = {path.relative_to(repo.PUBLIC_DATA).as_posix() for path in outputs}
     expected = {
         "cardsets.json",                                   # 共享：卡面图集
         "index.json", "characters.json", "albums.json", "sources.json", "tracks.json",  # 原曲
@@ -666,8 +668,13 @@ def test_originals_and_custom_outputs_do_not_depend_on_the_otomads_dataset(monke
     assert indices_without["otomads"]["counts"]["characters"] == 0
 
     def without_otomads(outputs):
-        return {str(path.relative_to(repo.PUBLIC_DATA)): text for path, text in outputs.items()
-                if not str(path.relative_to(repo.PUBLIC_DATA)).startswith("otomads/")}
+        # 用 `as_posix()`：Windows 上 `str(relpath)` 是 `otomads\tracks.json`，
+        # 拿它比 `"otomads/"` 前缀会导致**过滤整个失效**、音MAD 文件漏进比对。
+        def key(path):
+            return path.relative_to(repo.PUBLIC_DATA).as_posix()
+
+        return {key(path): text for path, text in outputs.items()
+                if not key(path).startswith("otomads/")}
 
     assert without_otomads(with_dataset) == without_otomads(without_dataset)
     assert "custom/index.json" in without_otomads(with_dataset)
