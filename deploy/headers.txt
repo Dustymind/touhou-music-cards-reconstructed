@@ -1,0 +1,45 @@
+# Cloudflare 的逐路径响应头 —— 构建期由 `scripts/gen-headers.mjs` 铺成 `dist/_headers`。
+#
+# 语法：一个以 `/` 开头的路径模式独占一行，缩进的行是 `名字: 值`。
+# Cloudflare 只认 `*` 通配，**不支持正则** —— 所以 vercel.json 里的 `/(.*)` 必须写成 `/*`。
+#
+# 这份文件的前身是 vercel.json 的 `headers`（迁移时逐条搬过来：Cloudflare 不读 vercel.json）。
+# 改动的两条口径，别搞混：
+#   * `/assets/*` 的文件名带内容指纹 ⇒ 可以长缓存（immutable）
+#   * `/index.html` 与 `/data/*` 必须短缓存：数据 JSON 里的 contentHash 是联机握手要比的，
+#     压住旧数据会让两端哈希不一致 ⇒ 协议 v7 会直接拒握手（不是性能问题，是正确性问题）
+#
+# ⚠️ `/assets/*` 这条**不能省**：Workers 静态资源的默认 max-age 是 0（素材站那边实测过，
+#    老 Pages 项目有 zone 规则所以不是）。少了它，带指纹的 bundle 会退化成每次访问都回源。
+#
+# 迁移基线（2026-10-02，Vercel 上线中的实测值，改完拿它对照）：
+#   /                        → cache-control: public, max-age=0, must-revalidate
+#   /assets/index-BpkKvgsj.js → cache-control: public, max-age=31536000, immutable
+#   /data/index.json         → cache-control: public, max-age=0, must-revalidate
+#
+# 不在这里写的头：
+#   * `strict-transport-security` —— 现网有 `max-age=63072000`，但它**不在 vercel.json 里**，
+#     是 `dustymind.cc` 这个 zone 在 Cloudflare 上的 HSTS 设置，换宿主后自动保留。**别在这里重复设**。
+#   * CORS —— 应用与自己的数据同源，不需要；素材站的 CORS `*` 由它自己的 Worker 负责。
+
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+
+/
+  Cache-Control: public, max-age=0, must-revalidate
+
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/data/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+/manifest.json
+  Cache-Control: public, max-age=0, must-revalidate
+
+/loudness/*
+  Cache-Control: public, max-age=0, must-revalidate

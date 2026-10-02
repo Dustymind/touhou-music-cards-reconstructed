@@ -1,0 +1,172 @@
+# 应用本体的构建与部署（Vercel → Cloudflare，见 docs/DECISIONS.md D179）。
+#
+# **为什么不用 CF 面板的 "Connect to Git"**（D150 真踩到）：那条路依赖 CF 侧的 Git 连接，
+# 一断就**零构建**，而 Deploy Hook 照样回 2xx ⇒ 静默失败，站点停在旧构建上没人知道。
+# 这里把构建与部署都放在 Actions：日志在 GitHub、失败看得见；`wrangler deploy` 对静态资源
+# 按哈希**增量上传**（首次全量，之后只传变化的文件）。形态与素材站 `publish.yml` 第④段一致。
+#
+# 一次性配置（Settings → Secrets and variables → Actions）：
+#   * secret `CLOUDFLARE_API_TOKEN` —— CF 面板 My Profile → API Tokens → Create Token，
+#     模板 **Edit Cloudflare Workers**（自定义则要 `Workers Scripts:Edit` + `Workers Routes:Edit`，
+#     后者是自定义域名要用的）。**没配就跳过部署那一步**（打一条 notice，不算失败）。
+#   * variable `APP_SITE` —— 部署后复验的目标地址。**没配就跳过复验**。
+#     ⚠️ 阶段 2 填 `https://touhou-music-cards.<账号>.workers.dev`；
+#        阶段 3 切完域名再改成 `https://touhou-music-cards-reconstructed.dustymind.cc`。
+#        **别在阶段 2 就填正式域名** —— 那时正式域名还在跑 Vercel，会验到旧站、给出假绿。
+#   * variable `OTOMADS_DATASET_URL` —— 可选，见下面 env 里的说明。
+name: deploy-app
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 只构建 + 自检，不部署
+        type: boolean
+        default: false
+
+permissions:
+  contents: read          # 只读仓库：不换 Release 资产、不写任何东西
+
+# 与素材站一致：**不取消进行中的那一次**（避免半途掐掉一次部署）
+concurrency:
+  group: deploy-app
+  cancel-in-progress: false
+
+env:
+  # ⚠️ 与 Vercel 现状的**唯一**行为差异在这个变量上（Vercel 面板里一个环境变量都没有）：
+  #   不配 ⇒ 构建走"空兜底数据集"，**与现在 Vercel 完全一致**：站点内嵌的音MAD 数据集为空，
+  #          应用运行时会回退到 CDN 的远程清单，音MAD 模式照常能用（docs/deploy 里写明的降级路径）。
+  #   配上 ⇒ 站点内嵌完整音MAD 数据集（191 首 / 80 角色），与 gate.yml 同一个口径 ——
+  #          CDN 不可达时也能显示曲目表。想跟 CI 一致就加这个 variable：
+  #            https://github.com/Dustymind/touhou-music-cards-otomads-data/releases/download/dataset
+  OTOMADS_DATASET_URL: ${{ vars.OTOMADS_DATASET_URL }}
+  # 自定义数据仓库是私有仓库，匿名拉不动它的 Release 资产 ⇒ 默认留空，那个模式走空兜底（与 Vercel 一致）
+  CUSTOM_DATASET_URL: ${{ vars.CUSTOM_DATASET_URL }}
+  CLOUDFLARE_ACCOUNT_ID: 5102f3861137b0abc1a12e2c793c19d2   # 不是机密（与素材站同一个账号），写死省一处配置
+  APP_SITE: ${{ vars.APP_SITE }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # 下面那步要 diff `before..sha`（看整批改动，不是只看 tip）
+          fetch-depth: 0
+
+      - name: 这次 push 值不值得构建
+        id: changed
+        run: |
+          set -euo pipefail
+          before="${{ github.event.before }}"
+          # 手动触发 / 首次推送 / 强推之后 before 可能为空或全 0 ⇒ 一律照构建
+          if [ "${{ github.event_name }}" != "push" ] || [ -z "$before" ] \
+             || [ "$before" = "0000000000000000000000000000000000000000" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          files=$(git diff --name-only "$before" "${{ github.sha }}")
+          echo "本次推了 $(printf '%s\n' "$files" | grep -c . || true) 个文件"
+          # 整批全是 docs/** 才跳过 —— 这正是 Vercel `ignoreCommand` 只看 tip 那个坑的反面
+          if [ -n "$files" ] && ! printf '%s\n' "$files" | grep -qv '^docs/'; then
+            echo "全是 docs/** ⇒ 跳过构建（真要上线就再推一笔非文档改动，或手动触发本工作流）"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: astral-sh/setup-uv@v5
+        if: steps.changed.outputs.changed == 'true'
+        with:
+          python-version: "3.12"
+      # ⚠️ 顺序不能动：`pnpm/action-setup` 必须在 `setup-node`（cache: pnpm）**之前** ——
+      # 否则 setup-node 找不到 pnpm 来算缓存 key。次序与 gate.yml 完全一致。
+      - uses: pnpm/action-setup@v6
+        if: steps.changed.outputs.changed == 'true'
+        with:
+          version: 12
+      - uses: actions/setup-node@v7
+        if: steps.changed.outputs.changed == 'true'
+        with:
+          node-version: 24        # 仓库本地口径（STATUS.md §7）；仓库没有 .nvmrc，所以写在这里
+          cache: pnpm
+      - name: 装依赖
+        if: steps.changed.outputs.changed == 'true'
+        # postinstall（scripts/ensure-uv.mjs）只在 PATH 没有 uv 时自举下载；上面 setup-uv 之后它什么都不做
+        run: pnpm install --frozen-lockfile
+      - name: 构建
+        if: steps.changed.outputs.changed == 'true'
+        # = 数据集 + tmc.build + tsc --noEmit + vite build + notices + _headers
+        run: pnpm build
+
+      - name: 产物自检（_headers 必须跟着 dist 走）
+        if: steps.changed.outputs.changed == 'true'
+        run: |
+          set -euo pipefail
+          test -f dist/index.html
+          test -f dist/_headers || { echo "::error::dist/_headers 不在 —— gen-headers 没挂进 build 链"; exit 1; }
+          grep -q '^/assets/\*' dist/_headers || { echo "::error::_headers 缺 /assets/* 规则"; exit 1; }
+          echo "dist：$(du -sh dist | cut -f1)，$(find dist -type f | wc -l) 个文件"
+
+      - name: 有没有部署令牌
+        id: token
+        env:
+          TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -n "${TOKEN:-}" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::没配 secret CLOUDFLARE_API_TOKEN ⇒ 跳过部署（配置方法见本文件头）"
+          fi
+
+      - name: 部署
+        if: steps.token.outputs.ready == 'true' && inputs.dry_run != true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        # 读仓库根的 `wrangler.jsonc`（assets.directory = ./dist）。
+        # **不要**再带 `dist` 位置参数 —— 位置参数会被当成 Worker 脚本路径（素材站踩过）。
+        run: npx --yes wrangler@4 deploy
+
+      - name: 线上复验
+        if: steps.token.outputs.ready == 'true' && inputs.dry_run != true
+        run: |
+          set -euo pipefail
+          if [ -z "${APP_SITE:-}" ]; then
+            echo "::notice::没配 variable APP_SITE ⇒ 跳过线上复验（填上地址后手动跑一次）"
+            exit 0
+          fi
+          # 判据：线上 index.html 引用的**带哈希资源名**必须与本次构建逐字相同。
+          # Vite 的资源名是内容哈希 ⇒ 名字对上就证明"线上跑的就是这一份"
+          #（素材站用归档 sha，这里用资源哈希；2026-10-02 的 Vercel 基线是 assets/index-BpkKvgsj.js）
+          want=$(grep -o 'assets/[A-Za-z0-9_.-]*\.js' dist/index.html | head -1)
+          echo "本次构建的资源：$want"
+          got=""
+          for attempt in 1 2 3 4 5 6; do
+            got=$(curl -fsS "$APP_SITE/" | grep -o 'assets/[A-Za-z0-9_.-]*\.js' | head -1 || true)
+            echo "第 $attempt 次：线上 ${got:-（取不到）}"
+            [ "$got" = "$want" ] && break
+            sleep 15
+          done
+          [ "$got" = "$want" ] || { echo "::error::线上资源与本次构建不一致（${got:-空} ≠ $want）"; exit 1; }
+
+          # 响应头：CF 的 `_headers` 只在**静态资源那条路**生效，这是它有没有真的上线的唯一硬判据
+          head_of() { curl -fsS -D - -o /dev/null "$1" | tr -d '\r' \
+            | awk -F': *' 'tolower($1)=="cache-control"{print $2; exit}'; }
+          cc_index=$(head_of "$APP_SITE/")
+          cc_asset=$(head_of "$APP_SITE/$want")
+          echo "index  Cache-Control: $cc_index"
+          echo "asset  Cache-Control: $cc_asset"
+          case "$cc_index" in *immutable*) echo "::error::首页被长缓存了（index.html 必须 max-age=0）"; exit 1;; esac
+          case "$cc_asset" in *immutable*) ;; *) echo "::error::/assets/* 没拿到长缓存 ⇒ _headers 没生效"; exit 1;; esac
+
+          {
+            echo "### 应用已部署"
+            echo ""
+            echo "- 站点：$APP_SITE"
+            echo "- 资源：\`$want\`"
+            echo "- 头：index \`$cc_index\` / asset \`$cc_asset\`"
+          } >> "$GITHUB_STEP_SUMMARY"
