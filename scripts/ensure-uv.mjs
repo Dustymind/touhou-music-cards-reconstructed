@@ -8,6 +8,13 @@
  *   ① PATH 上已经有 uv（本机开发、装了 uv 的 CI）⇒ 什么都不做；
  *   ② 否则下载官方发行包到仓库内 `.tools/`（gitignored），`scripts/run.mjs` 会把它加进 PATH；
  *   ③ 下载/解包失败 ⇒ **非 0 退出**，让问题在 install 阶段就炸出来，而不是等构建时报"uv: not found"。
+ *
+ * **为什么不钉版本**（2026-10-02 明确过）：这套工具链只要求 `requires-python = ">=3.11"`
+ * （`tomllib` 是唯一硬依赖），uv 自己的版本差异至今没碰到过任何影响 —— 所以这里跟 CI 的
+ * `astral-sh/setup-uv@v5`（同样不带 `version:`）保持一致，取 `releases/latest`。
+ * 本机与 CI 的 uv 版本**可以不同**（例如本机 0.11.7、CI 装到当时的最新），这不是问题；
+ * 真哪天需要对齐，就在这一处加版本号（校验和那步已经在了，钉版本是安全的），别去改 CI。
+ * 完整性靠下面的 `.sha256` 校验兜：**下载什么就跑什么，这一步不能省**。
  */
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";

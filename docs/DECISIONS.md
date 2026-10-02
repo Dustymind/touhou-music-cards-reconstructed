@@ -5167,6 +5167,11 @@ if is_anthology:
 - 数据仓库 pytest **112 passed**（109 → +3）；主仓库 `pnpm test` **752 passed**（+10 = 5 条 × 双引擎）、
   `pnpm typecheck` ✓。`_headers` 给自托管形态的 `/manifest.json` 与 `/loudness/*` 补了
   `max-age=0, must-revalidate`（清单被压住的话，换不换 URL 都白搭）。
+  > ⚠️ **已被 D180 取代**：那两条响应头规则**已在 2026-10-02 删掉** —— 它们是**空规则**
+  > （产物根下既没有 `/manifest.json`、也没有 `/loudness/*`；响度表实际落在 `/data/otomads/loudness/…`，
+  > 已被 `/data/*` 覆盖）。"清单不能被压住"这条**需求本身**仍然成立，只是不再靠这两条实现。
+  > 另外 `public/_headers` 这个路径本身也已于 2026-09-29 随 `public/` 退场（`b0f4ce8`），
+  > 现在写在 `deploy/headers.txt` → `dist/_headers`。
 - **真起助手实测**：`/manifest.json` → `Cache-Control: no-store`、顶层 `revision = c754325a2dd4794c`、
   86 行全是 4 位、逐曲版本号两两不同。
 - `pnpm media:pack` 重打的归档：manifest 顶层 `743231decd5f6a44`，示例行 `v=d1e9c1dd60836f3b`。
@@ -7145,3 +7150,104 @@ firefox **635**；e2e **115 passed + 1 skipped**。S2 的数据等价性由 `bac
 **待办**：Actions 的 variable `APP_SITE` 还没填 ⇒ `deploy-app.yml` 的「线上复验」那一步会打 notice 跳过，
 部署只剩"wrangler 退出码 0"这一个弱信号（素材站的教训正是"退出码 0 但线上没变"）。填上
 `https://touhou-music-cards-reconstructed.dustymind.cc` 再手动跑一次即可恢复复验。
+
+> ⚠️ **已被 D180 取代**：变量已填、那条"打 notice 后 `exit 0`"也换成了**显式 `skipped`**，
+> 并且实测复验真的跑了。另外本节写的 `deploy/headers.txt`「7 条路径规则」在 D180 里减到 **5 条**。
+> 上面的正文与"实测"数字都按**落地当时**读。
+
+---
+
+## D180 Cloudflare 迁移收尾两条：复验不再"假绿"、删掉两条匹配不到产物的响应头规则（2026-10-02）
+
+**背景**（用户要求）：D179 迁移落地后还剩两处不干净 —— ① 部署后的「线上复验」在**没配
+variable `APP_SITE`** 时会 `echo ::notice::… ; exit 0`，步骤结论仍是 **success**（"没验"伪装成"验过了"，
+比不配还难发现：Vercel → CF 换宿主那次真正暴露问题的正是"退出码 0 但线上没变"）；② `deploy/headers.txt`
+里有两条规则**匹配不到任何产物**，白占着会让人以为那两个路径是受管的。
+
+**改动**：
+
+- **`deploy-app.yml` 新增一步「复验目标地址配了吗」**（`id: site`），并在 `GITHUB_STEP_SUMMARY` 顶上
+  挂一条警告；真正的「线上复验」改成 `if: steps.token.outputs.ready == 'true' &&
+  steps.site.outputs.ready == 'true' && …` —— 做法照抄同文件里「有没有部署令牌」那一步。
+  没配时那一步在界面上是**灰色的 `skipped`**，不是绿色的 success。
+- **删掉两条死规则**，规则数 7 → **5**（`/*`、`/`、`/index.html`、`/assets/*`、`/data/*`）：
+  - `/manifest.json` —— 当前 `dist/` 根下**没有**这个文件。它是本地曲库助手（:8011）的清单，
+    只在 `vite dev` 里由 `server.proxy` 转发，**不进静态产物**；
+  - `/loudness/*` —— 响度表以 `loudness/otomads.json` 挂在**数据集 base** 下，实际落在
+    `/data/otomads/loudness/…`，已被 `/data/*` 覆盖。
+  两条都按"留个记录、别照原样加回来"写在文件注释里（将来真改成"自备素材"形态、产物根下出现这两个路径时再加回）。
+
+**实测**（`f1ad642`，push 后自动触发的那次 `deploy-app` run `36995052353`）：
+
+- 第 11 步「部署」、**第 12 步「复验目标地址配了吗」= success（不是 skipped）**、第 13 步「线上复验」= success。
+  复验的**执行输出**（不是脚本回显）：
+  `本次构建的资源：assets/index-BpkKvgsj.js` / `第 1 次：线上 assets/index-BpkKvgsj.js` /
+  `index Cache-Control: public, max-age=0, must-revalidate` / `asset Cache-Control: public, max-age=31536000, immutable`。
+- 日志里 `::warning::没配 variable APP_SITE` 只以**脚本回显**形式出现 1 次、没有 `##[warning]` 标注
+  ⇒ 警告分支**没走**。（这条是判"跳没跳"的决定性证据：日志把脚本正文与执行输出混在一起印。）
+- 线上逐条复核：`/`、`/data/*` 短缓存、`/assets/*` immutable、`Server: cloudflare`、未知路径 404、
+  `/_headers` 404；**`/manifest.json` 与 `/loudness/otomads.json` 都是 404** ⇒ 删掉的两条确实是空规则。
+  `/index.html` 是 **307 到 `/`**（CF 对静态资产的 index 归一化），响应上仍带短缓存。
+- 三个 contentHash 与引用指纹**逐字未变**（`f24566164f7e` / `d675c854bcf9` / `fe0bccdf9c80`、`9eecf074138b`）；
+  `pnpm license:lint` **346/346**；`pnpm gate` 与 `gate.yml`（含两条可复现性比对）全绿。
+
+**没做的**：`docs/packs-audio-v1.md` §15（D144）那张表里"主仓库 `public/_headers` | 自托管形态下
+`/manifest.json` 与 `/loudness/*` 明确 `max-age=0, must-revalidate`"**原文一字不动** —— 那一行是
+D144 落地当时的事实（`public/_headers` 直到 2026-09-29 的 `b0f4ce8` 才随 `public/` 退场），
+按 D171 的三条处置规则加"落地当时"横幅 + 指向本条，不回改。
+
+---
+
+## D181 窄屏横向溢出：页头标题能自己缩、音源分区那一排能折行（2026-10-02）
+
+**背景**：`e2e/custom-mode.spec.ts` 的「窄屏（320 / 412dp）：模式 3 的设置页不横向溢出」在本机
+一直红（`Expected <= 1, Received 10`），而它在 Linux 基线（`8af156b`，115 passed / 1 skipped / 0 failed）
+是绿的。查清之后发现**并不是** `STATUS.md` §8.17 记的那条债：
+
+- **真元凶是页头标题**：`AppShell.tsx` 的 `Typography h6` 用了 `whiteSpace: "nowrap"`，
+  而它作为 flex 项的 `min-width: auto` 会把 min-content 当成收缩下限 ⇒ 英文标题
+  `Forgotten Harmonic Frequencies` 在 320dp 上实测 **318px**，比 Toolbar 的内容宽
+  （`320 − 2×12 = 296`）还宽，整页被撑出 `scrollWidth − clientWidth = 10`。
+  **只在 320dp 出现**：360dp 可用 336px、412dp 可用 388px，都 ≥ 318px。
+- **§8.17 那条债是真的、且另外存在**：音源分区展开后那一排是六件东西
+  （编号 + 名称 + 状态 + 开关 + 上移 + 下移），412dp 正好放得下（可用 330px、要 290px），
+  360dp 要 314px + 40px 间隙 ⇒ 放不下。改前实测整页溢出：**en 320dp 49px、en 360dp 9px**
+  （zh 因为标签短，320dp 只差 1px）。**这条没有任何用例覆盖** —— `mobile.spec.ts` 的
+  "四个页面都没有横向溢出"走的是**默认折叠**状态、而且只跑 Pixel 7（412dp）。
+
+**改动**（两处，都是纯排布，零逻辑）：
+
+- `src/ui/shell/AppShell.tsx`：标题加 `minWidth: 0` + `overflow: "hidden"` + `textOverflow: "ellipsis"`
+  —— 允许它缩、放不下时省略号收尾。`whiteSpace: "nowrap"` 保留（≥360dp 的观感一字不变）。
+- `src/ui/panels/config/SourceSection.tsx`：源行那一排加 `flexWrap: "wrap"` + `rowGap: 1`
+  —— 与同文件里另外两处已经在折行的行（"本地曲库地址"下面的状态行、回退顺序行）同一套规格；
+  也正好是 `custom-mode.spec.ts` 里写下的那条口径「三元行在窄屏允许折行，但不许把页面撑宽」。
+
+**实测**（chromium；`scrollWidth − clientWidth`，改前/改后）：
+
+| | 改前 | 改后 |
+|---|---|---|
+| en 320dp | **49** | **0** |
+| en 360dp | **9** | **0** |
+| en 412dp | 0 | 0 |
+| zh 320dp | 1 | 0 |
+| zh 360dp | 0 | 0 |
+| zh 412dp | 0 | 0 |
+
+- **412dp 一切照旧**（源行仍是单行 40dp、标题完整）—— 这是 Pixel 7 / 桌面窄窗的宽度。
+- 320–360dp 源行会折行（en 320dp 40 → 70dp、360dp → 78dp；zh 本来就已经是 100dp，320dp 变 138dp）。
+  这是"折行换掉横向滚动条"的取舍，与本仓库既有的窄屏口径一致。
+- 三个宽度 × en/zh × 三个模式（原曲 / 预设 / 自定义）+ 四个页签，`doc` 全部为 **0**。
+- **完整 `pnpm e2e`（chromium + firefox + mobile 三 project）**：**116 passed / 1 skipped / 0 failed**（12.9m）。
+  那条 skipped 是既有的条件跳过（`multiplayer.spec.ts` 只在 chromium 跑一次），不是本轮引入的。
+  新加的「设置页展开音源分区后，320dp 仍不横向溢出」**passed**；原先在本机红掉的
+  `custom-mode.spec.ts` 窄屏用例也回到绿（单跑该文件 8 passed）。之前 `mobile.spec.ts` 里那条
+  「关于弹窗…（音MAD + 助手在跑）」需要 `:8011` 曲库助手在跑 —— 起 `pnpm local` 后即通过。
+- `pnpm typecheck` ✓。
+- **新加回归用例**：`mobile.spec.ts` 的「设置页展开音源分区后，320dp 仍不横向溢出」——
+  故意用**默认的 en**（开关标签 `Enabled` 105px vs `已启用` 90px，是溢出最厉害的一侧；zh 在 320dp 只差 1px，
+  根本抓不到这条）。标题那条已经由 `custom-mode.spec.ts` 原来那条用例锁住（也是 en + 320dp）。
+
+**没做的**：`STATUS.md` §8.17 / §9.4 里"源行窄屏溢出**未修**"的记录已改成"已修"；
+但**没有**顺手去优化 320dp 上源行折成 3 行时的观感（例如窄屏隐藏开关文字标签、或收掉编号头像）——
+那要改的是信息层级，不是排布，超出"修掉横向溢出"的范围。

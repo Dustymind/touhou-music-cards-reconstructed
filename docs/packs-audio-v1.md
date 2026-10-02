@@ -477,6 +477,10 @@ if is_anthology:
 ### 5. 验证
 
 > 本节数字是**落地当时**的实测值，不是现状 —— 现状条数只在 [`README.md`](README.md) 的现状表维护。
+> 表里那个 **`public/_headers` 路径也是那时的**：`public/` 已于 2026-09-29 退场（`b0f4ce8`），响应头现在写在
+> `deploy/headers.txt`、构建期由 `scripts/gen-headers.mjs` 铺成 `dist/_headers`；
+> 而当时那两条 —— **`/manifest.json` 与 `/loudness/*` —— 已在 2026-10-02 删掉**（D180：两条都匹配不到任何产物，
+> 响度表实际落在 `/data/otomads/loudness/…`、已被 `/data/*` 覆盖）。
 
 - 数据仓库 pytest **112 passed**（109 → +3：助手两条、stage_media 一条）；主仓库 `pnpm test` **752 passed**（+10 = 5 条 × 双引擎）、`pnpm typecheck` ✓。
 - **真起了一次助手**（`pnpm local`）实测：`/manifest.json` 返回 `Cache-Control: no-store`，
