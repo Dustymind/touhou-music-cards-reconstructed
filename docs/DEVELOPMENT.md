@@ -9,8 +9,11 @@
 | `pnpm typecheck` | 类型检查（`tsc --noEmit`） |
 | `pnpm test` | 单测：chromium + firefox 两个引擎，真实浏览器里跑 |
 | `pnpm test:chromium` / `pnpm test:firefox` | 只跑其中一个引擎（调试用） |
+| `pnpm test:file <文件>` | 只跑**指定**的单测文件（见下「迭代时怎么快跑」） |
+| `pnpm test:related <文件>` | 按 import 图跑**会被这个文件影响**的单测 —— 改完一个模块、不确定牵动谁时用这条 |
 | `pnpm e2e` | 浏览器端到端：chromium + firefox + 移动端（Pixel 7） |
 | `pnpm e2e:chromium` / `pnpm e2e:firefox` / `pnpm e2e:mobile` | 只跑其中一端（调试用） |
+| `pnpm e2e:file <spec>` | 只跑**指定**的 e2e 文件（默认只 chromium） |
 | `pnpm e2e:perf` | 单独跑「点击长任务」性能守卫（对机器负载敏感，不进全量） |
 | `pnpm audio:fetch` | 抓取并裁剪曲包音频（见主 README 部署指南 §4） |
 | `pnpm gate` / `pnpm data:validate` | 数据门禁（先跑 `pnpm data:datasets`，再 build + validate + 署名检查）/ 只跑不变量校验（`tools/` 是 Python，用 `uv` 管环境） |
@@ -24,21 +27,63 @@
 
 ## 迭代时怎么快跑（全量很慢，别每次都全量）
 
-全量那两条是**提交前**的闸门，不是写代码时的循环：`pnpm test` 约 **110 秒**、`pnpm e2e` 约
-**9 分钟**（三个 project 串行）。改一处就想看一眼时，按"范围从小到大"来：
+全量那两条是**提交前**的闸门，不是写代码时的循环：`pnpm test` 约 **4 分钟**（两个引擎、真实浏览器，
+本机实测 254 秒）、`pnpm e2e` 约 **13 分钟**（三个 project 串行）。改一处就想看一眼时，按"范围从小到大"来：
 
 | 想确认什么 | 命令 | 实测耗时 |
 |---|---|---|
-| 某个单测文件 | `npx vitest run src/content/about.test.ts src/ui/components/AboutDialog.test.tsx` | **~3.5 秒** |
-| 全部单测但只一个引擎 | `pnpm test:chromium` | **~35 秒**（全量的一半） |
-| 出第一条红就停 | `npx vitest run --bail=1` | 视情况 |
-| 某个 e2e 用例（两端） | `npx playwright test e2e/smoke.spec.ts --project=chromium --project=firefox -g "关于弹窗"` | **~12 秒** |
-| 某个 e2e 用例（只手机） | `npx playwright test --project=mobile -g "关于弹窗"` | **~7 秒** |
-| 某个 e2e 文件（只一端） | `npx playwright test e2e/smoke.spec.ts --project=chromium` | **~40 秒** |
-| 提交前 | `pnpm typecheck && pnpm test && pnpm e2e` | **~12 分钟**（含 e2e 前置的 `pnpm local`） |
+| 某个单测文件 | `pnpm test:file src/content/notices.test.ts` | **~15 秒** |
+| **某个模块改了、不知道会牵动谁** | `pnpm test:related src/content/notices.ts` | **~42 秒** |
+| 全部单测但只一个引擎 | `pnpm test:chromium` | **~2.5 分钟**（实测 154 秒；全量的一半） |
+| 出第一条红就停 | `pnpm test:file <文件> --bail=1` | 视情况 |
+| 某个 e2e 文件（只一端） | `pnpm e2e:file e2e/smoke.spec.ts` | **~40 秒** |
+| 某个 e2e 用例（只一端） | `pnpm e2e:file e2e/smoke.spec.ts -g "关于弹窗"` | **~12 秒** |
+| 某个 e2e 用例（只手机） | `pnpm e2e:mobile -g "关于弹窗"` | **~7 秒** |
+| 提交前 | `pnpm typecheck && pnpm test && pnpm e2e` | **~18 分钟**（含 e2e 前置的 `pnpm local`） |
 
-两个省时间的细节：① e2e 的 dev server 配了 `reuseExistingServer`，**先自己起 `pnpm dev`**（或
-`pnpm local` 起助手）就不会每次重开；② `-g` 是**按用例名过滤**，中文用例名也能匹配 —— 排错时先跑那一条。
+三个省时间的细节：① e2e 的 dev server 配了 `reuseExistingServer`，**先自己起 `pnpm dev`**（或
+`pnpm local` 起助手）就不会每次重开；② `-g` 是**按用例名过滤**，中文用例名也能匹配 —— 排错时先跑那一条；
+③ e2e **一次只跑一个实例**（几个 project 共享 `:5190` 那个 dev server，两个实例会互相抢），
+且跑之前先把上一轮的 `test-results/` 移走（Playwright 会 `rm -rf` 它，撞上本机沙箱的删除守卫会整轮失败）。
+
+> 上面那几个 `*:file` / `*:related` 脚本的额外参数是**追加到命令末尾**的 —— pnpm 就是这么传参的。
+> 所以 `pnpm test:file src/x.test.ts` 展开成 `… vitest run --project=chromium src/x.test.ts`
+> （`--project` 在前、文件在后，vitest 认这个顺序）。
+>
+> ⚠️ **末尾再写一个 `--project=firefox` 是"再加上"、不是"换成"** —— 脚本里那个 `chromium` 还在，
+> 实测**两个引擎都会跑**（同一文件 9 条 → 18 条）。只想跑 firefox 就别用这几个脚本，走
+> `node scripts/run.mjs vitest run --project=firefox src/x.test.ts`。
+
+### 改哪个模块 → 跑哪些测试
+
+单测**和被测代码同目录、同名**（`src/foo/bar.ts` ↔ `src/foo/bar.test.ts`），所以"改哪个模块"基本就等于
+"跑同目录那一批"。**不确定牵动谁时优先 `pnpm test:related <你改的那个文件>`** —— 它按 import 图反查，
+比人记得全（实测改 `src/content/notices.ts` 会带上 `content` / `store` / `ui/components` / `ui/shell`
+和 App 冒烟共 **6** 个文件；改 `src/store/notices.ts` 是 **4** 个）。
+
+| 改了这儿 | 单测 | e2e（**按覆盖的功能**判断，不是自动推导的） |
+|---|---|---|
+| `src/content/**`（公告/关于的文案与 `.md` 正文） | `src/content/*.test.ts` | `smoke`、`mobile` |
+| `src/store/**`（zustand 状态） | `src/store/*.test.ts` | `smoke`、`mode-separation`、`pack-snapshot` |
+| `src/ui/**`（组件与排版） | 同目录 `*.test.tsx` | `smoke`、`mobile` |
+| `src/game/**`（规则、CPU、回合循环） | `src/game/*.test.ts*` | `smoke` |
+| `src/music/**`（曲目、筛选、作者序） | `src/music/*.test.ts` | `custom-mode`、`pack-snapshot` |
+| `src/data/**`（数据集载入、卡面、快照） | `src/data/*.test.ts` | `pack-snapshot` |
+| `src/net/**`（联机协议与意图） | `src/net/*.test.ts*` | `multiplayer`（只 chromium） |
+| `src/audio/**`（播放、铃声、淡入淡出） | `src/audio/*.test.ts*` | `smoke` |
+| `src/rng/**`（随机权威与种子） | `src/rng/*.test.ts` | — |
+| `src/theme/**`（主题、画幅比） | `src/theme/*.test.ts` | — |
+| `src/i18n/**`（语言开关） | `src/i18n/*.test.ts` | `smoke` |
+| `src/persist.ts`（本地存储） | `src/persist.test.ts` | — |
+| `src/App.tsx`（装配） | `src/App.test.tsx` | **全部** |
+| `tools/**`（数据管线，Python） | **不走 vitest**：`pnpm data:test` | `pack-snapshot` |
+| `scripts/**`、`deploy/**`、`.github/**` | — | 靠 `pnpm gate` + 一次全量 `pnpm e2e` |
+
+**为什么 e2e 没有"按依赖图选"**：Playwright 的 `--only-changed` 只看**改过的 spec 文件本身**，
+它**不建** `spec → src` 的依赖图 —— 改了 `src/store/notices.ts` 而没碰 spec，`--only-changed` 会
+**一条都不跑**（假绿）。反过来，e2e spec 本身也几乎不 import `src`（实测只 import
+`src/content/*` 与 `src/music/manifestUrl`，其余全靠**驱动真实界面**），所以"改了哪个 src 模块 ⇒ 该跑哪个 spec"
+这层关系**推不出来**、只能靠上表人工维护。单测那边 vitest 有 `related`（真依赖图），所以不用这张表。
 
 ## 技术栈
 
@@ -151,7 +196,7 @@ Playwright 自己转译的**（不经过 Vite）：spec 只要（直接或间接
 | 想找什么 | 去哪 |
 |---|---|
 | 文档全景（哪份是契约、哪份是历史） | [`README.md`](README.md) |
-| 决策与来龙去脉（**为什么**、实测数字、踩过的坑） | [`DECISIONS.md`](DECISIONS.md)（D1–D178） |
+| 决策与来龙去脉（**为什么**、实测数字、踩过的坑） | [`DECISIONS.md`](DECISIONS.md)（D1–D184） |
 | 契约（改实现前先读，改了要同步） | [`README.md`](README.md) 的契约表 |
 | 数据从哪来、许可边界在哪 | [`data-provenance.md`](data-provenance.md) |
 | 阶段产物与历史快照 | `docs/reports/`（不进 git；里面只有 `pnpm data:validate` 现写的 `validation-report.md`，阶段报告已在 S5 删除） |

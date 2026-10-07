@@ -19,6 +19,8 @@
     "test:watch": "node scripts/run.mjs vitest",
     "test:chromium": "node scripts/run.mjs vitest run --project=chromium",
     "test:firefox": "node scripts/run.mjs vitest run --project=firefox",
+    "test:related": "node scripts/run.mjs vitest related --project=chromium",
+    "test:file": "node scripts/run.mjs vitest run --project=chromium",
     "data:build": "node scripts/build-datasets.mjs && node scripts/run.mjs uv run --project tools python -m tmc.build",
     "data:datasets": "node scripts/build-datasets.mjs",
     "data:ensure": "node scripts/gen-data.mjs",
@@ -34,6 +36,7 @@
     "e2e": "node scripts/run.mjs playwright test --project=chromium --project=firefox --project=mobile",
     "e2e:chromium": "node scripts/run.mjs playwright test --project=chromium",
     "e2e:firefox": "node scripts/run.mjs playwright test --project=firefox",
+    "e2e:file": "node scripts/run.mjs playwright test --project=chromium",
     "e2e:peer": "node e2e/peer-server.mjs",
     "e2e:mobile": "node scripts/run.mjs playwright test --project=mobile",
     "e2e:perf": "node scripts/run.mjs playwright test --project=perf"

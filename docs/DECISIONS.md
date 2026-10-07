@@ -7500,3 +7500,53 @@ expect(parsed.toISOString().slice(0, 10)).toBe(value); // ← 按【UTC】取日
 **没做的**：正文**不按语言分**（要中英各一份就得引 i18n 目录结构，用户没要）；没做"公告草稿预览页"
 （改 `from` 已经是最短路径）。
 
+## D184 增量测试：`test:related` / `test:file` / `e2e:file` + 「改哪个模块跑哪些测试」映射表（2026-10-07）
+
+**背景**（用户要求）："以及后续能否增量测试（如果某模块修改不会影响其它模块）"。
+全量 `pnpm test` 两个引擎要 **4 分钟**、`pnpm e2e` **十几分钟**（三个 project 串行），改一行就全量一遍不现实。
+
+**做法**：三个 pnpm 脚本 + 一张**人工维护**的映射表（写进 `DEVELOPMENT.md` 的「迭代时怎么快跑」）。
+
+| 脚本 | 展开成 |
+|---|---|
+| `pnpm test:related <文件>` | `node scripts/run.mjs vitest related --project=chromium <文件>` |
+| `pnpm test:file <文件>` | `node scripts/run.mjs vitest run --project=chromium <文件>` |
+| `pnpm e2e:file <spec>` | `node scripts/run.mjs playwright test --project=chromium <spec>` |
+
+**脚本里不写 `$1` / `%1` 这类占位**：pnpm 把额外参数**追加到脚本命令末尾**，而 `scripts/run.mjs`
+本来就是 `const [file, ...args] = argv` 原样转发。所以 `--project=chromium` 可以**写死在脚本里**、
+"文件"由使用者接在后面 —— **实测 vitest 认"旗标在前、位置参数在后"这个顺序**。
+
+⚠️ **两个坑，都实测过**：
+
+1. **`--related` 不是旗标，`related` 是一个命令**。写成 `vitest --related <文件>` 直接
+   `CACError: Unknown option '--related'`（vitest 3.2.7）；要 `vitest related <文件>`。
+2. **在末尾追加 `--project=firefox` 是"再加上"、不是"换成"** —— 脚本里那个 `chromium` 还在，
+   实测同一个文件 **9 条 → 18 条，两个引擎都跑**。只想跑 firefox 得绕过脚本、直接
+   `node scripts/run.mjs vitest run --project=firefox <文件>`。
+
+**为什么单测能按依赖图选、e2e 不能**（这是"映射表"存在的唯一理由）：
+
+- 单测侧，vitest 的 `related` 是**真依赖图**：给一个文件，反查哪些用例（直接或间接）会被牵动。
+- e2e 侧，Playwright 的 `--only-changed [ref]` **只看改过的 spec 文件本身**，**不建** `spec → src` 的依赖图。
+  改了 `src/store/notices.ts` 而没碰 spec ⇒ `--only-changed` **一条都不跑**（**假绿**）。
+  反过来，e2e spec 也几乎不 import `src`（实测全仓库只 import 了 `src/content/*` 与 `src/music/manifestUrl`，
+  其余全靠**驱动真实界面**）⇒ "改了哪个 src 模块 ⇒ 该跑哪个 spec"这层关系**推不出来**，只能人工维护。
+
+**实测耗时**（本机、chrome；`:8011` 的曲库助手在跑）：
+
+| 命令 | 范围 | 实测 |
+|---|---|---|
+| `pnpm test:file src/content/notices.test.ts` | 1 文件 / 9 用例 | **14.7 秒** |
+| `pnpm test:related src/store/notices.ts` | 4 文件 / 36 用例 | **42 秒** |
+| `pnpm test:related src/content/notices.ts` | 6 文件 / 62 用例 | **42.5 秒** |
+| `pnpm test:chromium`（全量单引擎，对照） | 56 文件 / 702 用例 | **154 秒** |
+
+`related` 的价值在"**自动**"：改 `src/content/notices.ts` 时它自己带上了 `src/content/notices.test.ts`、
+`src/store/notices.test.ts`、`src/ui/components/NoticeDialog.test.tsx`、`src/ui/shell/AppShell.test.tsx`
+和 App 冒烟 —— **这几条靠人记得住是很难的**（`notices.ts` 只是被 `AppShell` 间接引用）。
+代价是它**偏保守**（可能带多），但"宁可多跑几条"是对的：**假绿的代价远大于多花 30 秒**。
+
+**没做的**：没给 `--bail` / `--last-failed` 做脚本封装（直接 `pnpm test:file <文件> --bail=1` 就行，
+`run.mjs` 会原样转发）；**没有**为 firefox 做增量（两个引擎跑的是**同一批**用例，firefox 只多守浏览器差异，
+在提交前的全量里覆盖即可）。
