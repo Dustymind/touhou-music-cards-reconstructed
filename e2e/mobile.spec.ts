@@ -7,9 +7,18 @@
 import { expect, test } from "@playwright/test";
 
 import { aboutContent } from "../src/content/about";
-import { expandSection } from "./ui";
+import { noticeContent } from "./noticeContent";
+import { clearNoticeRecords, expandSection, shouldAutoSuppressNotice, suppressNotice } from "./ui";
 
 const TABS = ["播放", "列表", "设置", "游戏"];
+
+// 站内公告弹窗是模态的，会在每次 page.goto 时自动打开并抢焦点（每个测试的 context 都是新的
+// ⇒ localStorage 也是空的）。本文件只有一条公告用例，它自己管存储（`clearNoticeRecords`）；
+// 其余用例一律先压制掉，免得被弹窗挡住触摸目标 —— 放行规则见 `shouldAutoSuppressNotice`。
+test.beforeEach(async ({ page }) => {
+  if (!shouldAutoSuppressNotice()) return;
+  await suppressNotice(page, noticeContent.notices);
+});
 
 test.describe("移动端布局", () => {
   test("四个页面都没有横向溢出", async ({ page }) => {
@@ -176,6 +185,68 @@ test.describe("移动端布局", () => {
 
     await page.getByTestId("about-close").tap();
     await expect(dialog).toHaveCount(0);
+  });
+
+  test("站内公告弹窗：窄屏放得下、关闭键与勾选框都在屏内且触摸目标达标", async ({ page }) => {
+    // 文件级 `beforeEach` 按标题放过了这条用例（`shouldAutoSuppressNotice`）—— 它**要**公告弹。
+    // 这里再清一次记录，保证进站时 `localStorage` 是干净的 ⇒ 一定自动弹出。
+    await clearNoticeRecords(page);
+    await page.goto("/?locale=zh");
+
+    const dialog = page.getByTestId("notice-dialog");
+    await expect(dialog).toBeVisible();
+
+    // 入场是 MD2 的 Grow（scale 0.75 → 1，150ms），挂在 `.MuiDialog-container` 上 ——
+    // 动画没落位就量尺寸会小一圈（与「关于弹窗」那条用例同一个口径：poll 到缩放归 1）。
+    await expect.poll(async () => page.evaluate(() => {
+      const matrix = new DOMMatrix(getComputedStyle(document.querySelector(".MuiDialog-container")!).transform);
+      return matrix.a === 1 && matrix.d === 1 && matrix.e === 0 && matrix.f === 0;
+    })).toBe(true);
+
+    const metrics = await page.evaluate(() => {
+      const paper = document.querySelector(".MuiDialog-paper")!.getBoundingClientRect();
+      const close = document.querySelector('[data-testid="notice-close"]')!.getBoundingClientRect();
+      const dismiss = document.querySelector('[data-testid="notice-dismiss"]')!.getBoundingClientRect();
+      const root = document.documentElement;
+      return {
+        width: Math.round(paper.width),
+        viewport: root.clientWidth,
+        viewportHeight: root.clientHeight,
+        closeHeight: Math.round(close.height),
+        dismissHeight: Math.round(dismiss.height),
+        dismissBottom: Math.round(dismiss.bottom),
+        closeTop: Math.round(close.top),
+        closeBottom: Math.round(close.bottom),
+        scroll: root.scrollWidth,
+        client: root.clientWidth,
+      };
+    });
+    // MD2：最小宽 280；两侧各留 24dp 边距
+    expect(metrics.width).toBeGreaterThanOrEqual(280);
+    expect(metrics.width).toBeLessThanOrEqual(metrics.viewport - 48 + 1);
+    // 关闭键 ≥32dp（MD2 文字按钮 small）；勾选框整行 ≥40dp（MD2 最小触摸目标）
+    expect(metrics.closeHeight).toBeGreaterThanOrEqual(32);
+    expect(metrics.dismissHeight).toBeGreaterThanOrEqual(40);
+    // 不横向溢出；关闭键与勾选框都在屏内
+    expect(metrics.scroll).toBeLessThanOrEqual(metrics.client + 1);
+    expect(metrics.dismissBottom).toBeLessThanOrEqual(metrics.viewportHeight);
+    expect(metrics.closeBottom).toBeLessThanOrEqual(metrics.viewportHeight);
+    // 方案 B 的三段式：勾选框在关闭键上方
+    expect(metrics.dismissBottom).toBeLessThanOrEqual(metrics.closeTop + 1);
+
+    // 勾选框与关闭键都点得到
+    await page.getByTestId("notice-dismiss").tap();
+    await page.getByTestId("notice-close").tap();
+    await expect(dialog).toHaveCount(0);
+
+    // 入口按钮在窄屏也在（48dp 触控区），点它还能打开
+    const openBox = await page.evaluate(() => {
+      const box = document.querySelector('[data-testid="notice-open"]')!.getBoundingClientRect();
+      return { w: Math.round(box.width), h: Math.round(box.height) };
+    });
+    expect([openBox.w, openBox.h]).toEqual([48, 48]);
+    await page.getByTestId("notice-open").tap();
+    await expect(dialog).toBeVisible();
   });
 
   test("应用栏在窄屏折成两行：页签独占一行、彩蛋用短文案", async ({ page }) => {

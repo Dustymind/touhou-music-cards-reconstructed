@@ -6,7 +6,13 @@
  * 期望值一律**跟着数据走**（D97 的教训：写死 121 / 24 会随数据漂移）。
  */
 import { expect, test, type Page } from "@playwright/test";
-import { expandSection } from "./ui";
+import { noticeContent } from "./noticeContent";
+import { expandSection, suppressNotice } from "./ui";
+
+// 站内公告弹窗是模态的，会在每次 page.goto 时自动打开并抢焦点。本文件不测公告 ⇒ 先压制掉。
+test.beforeEach(async ({ page }) => {
+  await suppressNotice(page, noticeContent.notices);
+});
 
 
 interface Loaded {

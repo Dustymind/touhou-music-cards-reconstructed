@@ -1,5 +1,6 @@
-/** 应用外壳：页签栏（含 Alice 彩蛋按钮与「关于」弹窗入口）+ 当前页。 */
+/** 应用外壳：页签栏（含 Alice 彩蛋按钮、「提示」与「关于」弹窗入口）+ 当前页。 */
 import InfoRounded from "@mui/icons-material/InfoRounded";
+import NotificationsNoneRounded from "@mui/icons-material/NotificationsNoneRounded";
 import {
   AppBar, Box, Button, Container, IconButton, Stack, Tab, Tabs, Toolbar, Typography, useMediaQuery,
 } from "@mui/material";
@@ -36,7 +37,9 @@ import { ConfigPanel } from "../panels/ConfigPanel";
 import { GamePanel } from "../panels/GamePanel";
 import { ListPanel } from "../panels/ListPanel";
 import { AboutDialog } from "../components/AboutDialog";
+import { NoticeDialog } from "../components/NoticeDialog";
 import { aboutContent } from "../../content/about";
+import { activeNotice, noticeOpen, useNotices } from "../../store/notices";
 import { packAuthorsFor } from "../../music/packAuthors";
 
 const ALICE_LABELS = [
@@ -80,6 +83,18 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
   const isSmallScreen = useMediaQuery("(max-width: 599.95px)");
   /** 「关于」弹窗的开合：纯界面状态（不落盘、不进联机快照），所以留在组件里 */
   const [aboutOpen, setAboutOpen] = useState(false);
+  /**
+   * 站内公告（`src/content/notices.ts`）：**首帧自动弹**（有一条没被「不再显示」过且在当前时间窗内）、
+   * 关掉之后靠应用栏的「提示」按钮随时能翻出来看。是否弹过的记录在 `localStorage`（每条一个键），
+   * 不属于联机快照，也不进 `SessionConfigWire`。
+   *
+   * 选择器分成三次取**稳定引用**（对象/布尔/对象）—— 不要合成一个对象返回：
+   * zustand 默认用 `Object.is` 比对，每次新建对象会让组件每渲染一次就自转一次。
+   * `active` 要么是 `noticeContent` 里的那个**常量对象**、要么是 `null`，身份是稳的。
+   */
+  const activeNoticeContent = useNotices(activeNotice);
+  const noticeIsOpen = useNotices(noticeOpen);
+  const noticeDismissChecked = useNotices((slice) => slice.dismissChecked);
   const session = useSession();
   const {
     tab, setTab, locale, cardCollection, musicMode, localMusicUrl,
@@ -419,6 +434,17 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
           <Button color="secondary" onClick={jumpToAlice} disabled={gameActive} sx={{ minWidth: 0 }}>
             {aliceLabel(isSmallScreen)}
           </Button>
+          {/* 站内公告的**常驻入口**：关掉弹窗之后（尤其勾了「不再显示」）随时能翻出来看。
+              放在「关于」旁边、并在它**之前**（用户 2026-10-04 指定）。规格与 about-open 逐字相同。 */}
+          <IconButton
+            color="inherit"
+            onClick={() => useNotices.getState().openManually()}
+            aria-label={t(Localization.ShellNoticeOpen)}
+            data-testid="notice-open"
+            sx={{ width: MD2.iconButton.size, height: MD2.iconButton.size, flexShrink: 0 }}
+          >
+            <NotificationsNoneRounded fontSize="small" sx={{ fontSize: MD2.iconButton.icon }} />
+          </IconButton>
           {/* MD2 应用栏的"关于"入口：48dp 触控区 + 24dp 图标（`MD2.iconButton` 的规格） */}
           <IconButton
             color="inherit"
@@ -434,6 +460,16 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
 
       {/* 「关于」弹窗：内容真源 `src/content/about.ts`，Esc / 点遮罩 / 「关闭」按钮都能关 */}
       <AboutDialog open={aboutOpen} onClose={() => setAboutOpen(false)} packAuthors={packAuthors} />
+
+      {/* 站内公告：内容真源 `src/content/notices.ts`。首帧自动弹（`useNotices` 里算的），
+          关掉之后由应用栏的「提示」按钮手动打开。勾选框受控，值在关闭时才落盘。 */}
+      <NoticeDialog
+        notice={activeNoticeContent}
+        open={noticeIsOpen}
+        dismissChecked={noticeDismissChecked}
+        onDismissCheckedChange={(value) => useNotices.getState().setDismissChecked(value)}
+        onClose={() => useNotices.getState().close()}
+      />
 
       {/* MD2 响应式页边距：移动 16dp / 桌面 24dp */}
       <Container maxWidth={false} sx={{ px: { xs: 2, md: 3 }, py: 3 }}>

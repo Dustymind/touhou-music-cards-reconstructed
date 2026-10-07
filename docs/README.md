@@ -16,9 +16,9 @@
 | 角色曲目条目 / 去重曲目 | 569 / 559（**三份数据集**：原曲 121 角色 378 条 + 音MAD 80 角色 191 条 + 自定义 0，前两份互斥） | 同上（各份 `index.json` 的 `counts`） |
 | 卡面集 / 注册音源 | 8 / 4（含 1 套音MAD **本地图集**：素材用户自己放进仓库根 `cards-otomads/`；1 套音MAD 封面集 `source_only`；自定义模式用代码里的合成图集 + 用户在「卡面设置」里选的**常规 / 16:9 / 4:3** 档位 —— D167 起画幅纯前端裁、数据侧只有一条链接，都不进这张表） | 同上 |
 | 音MAD 曲包 | 1 包：191 首 / 80 个角色；**191 条带 `source`**（可自动抓取）、**36 条带裁剪区间**（前导静音已裁） | 真源在数据仓库（`OTOMADS_DATA_DIR`，默认 `data/otomads/`）：清单 `<OTOMADS_DATA_DIR>/packs/otomads.toml` + 一角色一份 `<OTOMADS_DATA_DIR>/packs/otomads/*.toml`（D128；不再是 submodule）；`pnpm audio:fetch --dry-run`（数据仓库的 `otomads.fetch_audio`，D130） |
-| 前端单测 | **1272 passed**（chromium 与 firefox **各 636**；真实浏览器，vitest 浏览器模式；双引擎同跑偶发一条 flaky，稳跑法见 `DEVELOPMENT.md`） | `pnpm test:chromium` / `pnpm test:firefox` |
+| 前端单测 | **1404 passed**（chromium 与 firefox **各 702**；真实浏览器，vitest 浏览器模式；双引擎同跑偶发一条 flaky，稳跑法见 `DEVELOPMENT.md`） | `pnpm test:chromium` / `pnpm test:firefox` |
 | 数据管线测试 | **90 passed**（主仓库）+ **240 passed**（音MAD 数据仓库 `tools/`）+ **386 passed**（自定义数据仓库 `tools/`） | `cd tools && uv run pytest` / `uv run --project tools pytest`（在各自的数据仓库）。音MAD 那套 222 → 211 是随录入链删除的 13 条；之后的增量是收尾用例（D175 共享向量 / 内容哈希 / 响度表只从数据集取）、两侧各一条 bitrate 范围向量、缓存助手白名单的回归用例，以及**快照/空兜底**那几条用例（数据仓库不在场时的 `fallback: true`、源注册表降级、快照里取响度表、曲包真源缺席时的交叉检查跳过） |
-| 端到端 | **115 passed + 1 skipped**（chromium 52 + firefox 51，mobile 12；含模式 3 的 **8** 条 × 两个桌面引擎；skip 的那条是联机用例只在 chromium 跑）。整跑负载下 firefox 偶发一条超时（`pack-snapshot`，单跑 ✓）。**前置：先 `pnpm local` 起本地曲库助手** | `pnpm e2e` |
+| 端到端 | **123 passed + 1 skipped**（chromium 55 + firefox 54，mobile 14；含模式 3 的 **8** 条 × 两个桌面引擎、站内公告 **3** 条 × 两个桌面引擎 + **1** 条 mobile；skip 的那条是联机用例只在 chromium 跑）。整跑负载下偶发：firefox 的 `pack-snapshot`、chromium 的 `custom-mode`「逐卡禁用」（都是 `expect.poll` 超时，**单跑 ✓**）。**前置：先 `pnpm local` 起本地曲库助手** | `pnpm e2e` |
 | 数据漂移 | 无（S3 起生成物不进仓库） | `pnpm gate`（先跑 `pnpm data:datasets`，再 build + validate + notices；可复现性由 CI 的两次构建比对承担） |
 | 数据校验 | 通过 | `pnpm data:validate` |
 | 联机协议版本 | **7** | `src/net/protocol.ts`（D168 起 `GameState` 带 `perTrackFaces` / `currentCardIndex` —— "这一回合放哪一首"由答案卡决定；`SessionConfigWire` = 音乐模式 + 会话种子 + 自定义源链接；`dataHash` = 三个模式各一个；**7** = 曲id 身份 + 生成物 schema 2，硬切，见 `protocol-v1.md` / D173） |

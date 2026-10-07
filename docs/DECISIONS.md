@@ -7251,3 +7251,252 @@ D144 落地当时的事实（`public/_headers` 直到 2026-09-29 的 `b0f4ce8` �
 **没做的**：`STATUS.md` §8.17 / §9.4 里"源行窄屏溢出**未修**"的记录已改成"已修"；
 但**没有**顺手去优化 320dp 上源行折成 3 行时的观感（例如窄屏隐藏开关文字标签、或收掉编号头像）——
 那要改的是信息层级，不是排布，超出"修掉横向溢出"的范围。
+
+---
+
+## D182 站内公告弹窗：手写零依赖 Markdown 渲染 + 每条一个存档键 + 内容指纹判"值不值得再提醒"（2026-10-03）
+
+**背景**（用户要求）：进站时弹一个提示窗。三段式排布——正文在上、「不再显示」勾选框在中、
+底部**单个**「关闭」键（用户明确选的是"勾选框在关闭键上方"这个方案）。内容用 **Markdown** 写、后续可追加；
+「不再显示」**本地存储、且每条提示各自独立记录**；关掉之后（尤其勾了「不再显示」之后）仍要有个入口
+——放在「关于」键旁边。遵循 MD2，桌面优先、移动端排版也要能看。
+
+**为什么 Markdown 渲染器是手写的**（`src/ui/markdown.tsx`，零依赖）：这不是"造轮子"的偏好，是被仓库约束推出来的：
+
+- **许可口径会炸**：`REUSE.toml` 是按**路径**逐条声明的，没有单一 SPDX 表达式兜底。加一个 npm 运行时依赖
+  ⇒ 生产闭包变大 ⇒ `scripts/gen-notices.mjs` 的产物变 ⇒ `pnpm gate --check` 直接红。
+  为了一屏公告去推动整个许可清单，代价不成比例。
+- **少一个 XSS 面**：`marked` 之类默认产出 HTML 字符串，还得再引一个消毒库（又多一个依赖），
+  而且要靠 `dangerouslySetInnerHTML` 才塞得进去。手写版**只产 React 节点、全程不碰 `dangerouslySetInnerHTML`**
+  ⇒ 就算内容里写了 `<script>` / `<b>`，也一律当**纯文本**渲染（`src/ui/markdown.test.tsx` 有专门的用例锁住）。
+- 支持的子集刚好覆盖"一屏公告"：`##`/`###` 标题、段落、`-`/`*` 无序、`1.` 有序、
+  `**粗体**`/`*斜体*`/`` `行内代码` ``、`[文字](https://…)`、`<!-- 注释 -->`（丢弃）。
+  链接**只认 `http`/`https`**（用 `new URL(href).protocol` 判），其余协议降级成普通文字 —— 不引 `javascript:` 之类。
+
+**"每条独立记录"= 每条公告一个存储键**：`src/persist.ts` 的 `defineStore` **每次调用都产出一个新句柄**，
+所以键名可以动态拼：`notice.<id>` 前缀 + `STORAGE_PREFIX` ⇒ 实际键 `tmc.v1.notice.<id>`。
+记录形如 `{ closed, dismissed, fingerprint, at }`。删掉 A 的记录**不影响** B —— `src/store/notices.test.ts`
+专门有用例锁这一点（只写它自己的键；删一个另一个还在）。运行时把句柄按 id 记忆在 `Map` 里，别每次现建。
+
+**内容指纹**：`noticeFingerprint(notice)` = `stableHash([id, title.en, title.zh, body].join("\u0000"))`
+（复用现成的 `src/rng/index.ts` 的 `stableHash`，不新引哈希）。自动弹出的判据是
+"**在显示窗口内** 且 （**没勾过「不再显示」** 或 **指纹跟当时记的不一样**）"：
+
+- 只关了没勾 ⇒ 下次进站**还会弹**（这是"关闭"与"不再显示"的语义差别，用户要的就是这个）；
+- 勾了「不再显示」⇒ 之后不弹；**但改了标题或正文** ⇒ 指纹变 ⇒ **再弹一次**（改过内容就该重新告知）；
+- 只动 `from`/`until`（没碰标题正文）⇒ 指纹不变 ⇒ 不打扰。
+
+指纹**只读 `id`/`title`/`body`**（入参类型就是 `Pick<NoticeContent, "id"|"title"|"body">`）—— 窗口字段天然进不来，
+所以"改窗口不算改内容"是**类型层面**的保证，不靠注释提醒。
+
+**入口键**：`AppShell.tsx` 头部「关于」键**左边**再加一个 `IconButton`（MD2 48dp 触控区、24dp 图标），
+点它走 `useNotices.getState().openManually()` —— 打开时**回填**存储里的 `dismissed` 到勾选框状态
+（勾过的打开时就是勾着的，使用者一眼看得见"这条我已经设过不再显示"）。**不做**未读角标（用户明确不要）。
+
+**视觉**：与「关于」弹窗同规格（MD2，见 D133），唯一复用既有取法是「关闭」键的白字
+（`color="inherit"`，D133 的同一处刻意偏离）。勾选框整行 `minHeight: 40`（MD2 最小触摸目标），
+关闭键是 MD2 文字按钮 small（≥32dp）。
+
+**踩到的四个坑**（都验证过、都已修）：
+
+1. **MUI `Grow` 入场动画会把量出来的 rect 缩小**：`getBoundingClientRect()` 在 150ms 动画期间读到的
+   是**被 scale 过**的尺寸（勾选框那行实测 22.5px = 40 × 0.75 × 0.75），与 `AboutDialog.test.tsx`
+   里记的"8dp 量成 5px / 关闭键 27px = 36 × 0.75"是同一个陷阱。**结论**：断言触摸目标高度要用
+   `getComputedStyle(...).minHeight` / `.height`，或者先 poll 到 `.MuiDialog-container` 的 transform 归位
+   （`a === 1 && d === 1 && e === 0 && f === 0`）再量 —— e2e 里两种都用上了。
+2. **模态弹窗会挡住约 70 条既有 e2e**：Playwright **每个用例一个全新 `context`** ⇒ `localStorage` 是空的
+   ⇒ 公告在**每一次 `page.goto("/")` 后都自动弹**，而它是**模态**、抢焦点 ⇒ `getByRole("tab", …)`
+   直接找不到元素。**解法**是在 e2e 层面显式压制：`e2e/ui.ts` 出了三个辅助函数 ——
+   `clearNoticeRecords`（只清 `tmc.v1.notice.*`）、`dismissNotice`（幂等收掉）、
+   `suppressNotice`（在页面脚本跑起来**之前**把每条公告记成"已勾不再显示"、指纹写成**与当前内容一致** ⇒ 一条都不弹，
+   一次 `addInitScript` 之后该用例里所有 `goto`/`reload` 都安静）。除 `mobile.spec.ts` 外每个 spec 文件
+   加文件级 `beforeEach` 调 `suppressNotice`。`suppressNotice` 里的指纹**直接调应用自己的**
+   `noticeFingerprint`，不在这里重抄一份哈希 —— 那样一改算法就会静默失真。
+3. **`addInitScript` 的作用域是"那个 page / 那个 context"，够不着别的 context**：
+   `multiplayer.spec.ts` 的用例**全部**自己 `browser.newContext()`（或 `chromium.launch()`）另开 context，
+   用的是 `{ browser }` 而不是 `page` 夹具 ⇒ 压在**夹具**上的 `suppressNotice` **到不了**它们，
+   公告在那些新 context 里照弹 ⇒ `getByRole("tab", { name: "Match" })` 超时（**实测 5 条联机用例全红**）。
+   **解法**：① 本文件**删掉**文件级 `beforeEach`（它对这里的用例既无效、又白白强制创建 `page` 夹具）；
+   ② `suppressNotice` 的入参放宽成 `Page | BrowserContext`（`NoticeTarget`），每条用例在**自建的
+   context / page** 上各调一次 —— 传 context 可以一次覆盖它开出来的所有页面。
+   ⚠️ 教训：给 e2e 加"全局压制"之前，先 grep 一遍 `newContext()` / `launch(` / `newPage()`。
+4. **文件级压制会在 `reload` 时把"已看过"写回去，和"刷新后还会不会弹"的用例打架**：
+   `addInitScript` **每次导航都重跑**。公告用例要验的恰恰是"刷新后还会弹 / 不再弹"这两条相反预期，
+   而文件级那段会在 reload 时重新写回"已看过" ⇒ 「不勾『不再显示』⇒ 刷新后还会弹」**永远红**（实测确实红了）。
+   **解法**：`shouldAutoSuppressNotice()` —— 文件级 `beforeEach` 按**用例标题**（含"站内公告"）放行，
+   这几条用例自己控存储。配套地，`clearNoticeRecords` 必须是**一次性**的（用 `sessionStorage` 当闸门，
+   只在本次 context 的第一跳清）：无条件清会让 reload 也把记录抹掉，于是「勾了不再显示 ⇒ 刷新不再弹」
+   那条**永远红**。两条用例要的 reload 行为**相反**，所以"一次性清 + 按标题放行"两个机制**缺一不可**。
+
+**同日复查修正：勾选框是双向的（"取消勾选"曾经是个假开关）**：
+
+落到实现之后复查才发现：`close()` 原先写的是
+
+```js
+dismissed: get().dismissChecked ? true : readNoticeRecord(notice.id).dismissed,
+```
+
+**未勾时取存里的旧值**。于是 `openManually()` 把勾选框回填成"已勾"（这是它该做的）之后，
+用户**取消勾选再关闭**，`dismissed` 仍是 `true` ⇒ 下次照样不弹 —— 而 `openManually` 上面那行注释
+（"用户可以顺手取消勾选，下次就又会自动弹"）和界面那个正常外观的 `Checkbox` 都**承诺了相反的行为**。
+连带一个怪相：同一行下面 `fingerprint` 在未勾时也保留旧值 ⇒ 若是"内容改过才重弹"的那条，
+手动开 + 取消勾 + 关 之后 `dismissed=true` 且指纹还是旧的 ⇒ **它以后每次都弹**；取消勾选**两边都不生效**。
+
+**范围**：只在**手动打开**这条路径上。**自动弹**那条是自洽的 —— `dismissChecked` 初值固定 `false`
+（`useNotices` 初始态 + `close()` 末尾都置 false），自动弹**不回填**；所以"自动弹 + 不勾 + 关"
+⇒ `dismissed` 保持原值、下次照弹，与用户看到的"未勾"一致。**只有 `openManually()` 会回填**，才暴露出来。
+
+**修法**：未勾时直接写 `false`（取消勾选 = 撤销），指纹仍保留旧值（`dismissed=false` 时它不参与判断，
+下次勾上会被当前指纹覆盖）。**回归守卫**：`src/store/notices.test.ts` 原先**只测了"打开时回填 dismissed"**，
+没测反向 —— 现在补了"取消勾选再关闭 ⇒ 下次又会自动弹"，以及"没勾过的情形不受影响"两条；
+e2e 那条也顺势延长到"入口打开 → 取消勾选 → 关闭 → 刷新 ⇒ 又弹"（复用同一条用例的现场，不新开 context）。
+
+**实测**：
+
+- `src/ui/markdown.test.tsx` **17**、`src/content/notices.test.ts` **5**、`src/store/notices.test.ts` **22**、
+  `src/ui/components/NoticeDialog.test.tsx` **17** 全绿。
+- **`pnpm typecheck`** ✓。
+- **完整 `pnpm test`（两引擎）**：**1394 passed / 112 files**＝**每引擎 697 passed / 56 files**
+  （基线 636 → 697 = 新增 61：59 条新功能用例 + 2 条"取消勾选 = 撤销"的修正回归）。
+- `pnpm license:lint` **354/354**（**346 → 354 = 正好 +8 个新文件**，每个都带 SPDX 头；**依赖闭包一字未变** ——
+  因为零新依赖，这正是手写渲染器要保住的东西）。`pnpm gate` ✓（`gen-notices --check` 绿、
+  三个 `contentHash` 与引用指纹逐字未变）。
+- **e2e（chromium + firefox + mobile）**：**123 passed + 1 skipped / 0 failed**（`pnpm e2e`，先起 `pnpm local`）。
+  收集 124 条（chromium 55 + firefox 55 + mobile 14），skip 的那条仍是"跨浏览器联机只在 chromium 跑"
+  ⇒ 通过数 55 + 54 + 14 = **123**。
+  新增 4 条声明（`smoke.spec.ts` 3 + `mobile.spec.ts` 1）⇒ 因为 3 条跑两个桌面引擎，**收集数 +7**（117 → 124）。
+  `docs/README.md` 的「端到端」一行已同步（原先写的 115/52/51/12 就已经对不上 HEAD）。
+  给全部既有 spec 加了公告压制（见上面第 2/3/4 个坑）。
+
+**没做的**：没引 Markdown 库（上面已说明理由）；**不做**未读角标（用户明确不要）；
+**不做**"公告列表页"—— 现在只有"下次自动弹"与"入口手动开当前第一条"两种入口
+（`pickAutoNotice` / `pickManualNotice` 都只取**第一条**在窗口内的；多条公告同时有效时，第二条要等第一条
+被勾掉或改掉才轮到它 —— 用户确认"一条够用"，所以没做轮播/队列）。
+
+## D183 站内公告的正文外置成真 `.md` 文件（应用走 `?raw`、e2e 走 `node:fs`）+ 一份"空壳草稿"；顺手挖出一个时区脆弱的日期校验（2026-10-07）
+
+**背景**（用户要求）："放置个空壳公告 md 文档，后续我编辑，本地测试用。"
+
+原实现（D182）把正文当 **TS 里的模板字符串**写在 `src/content/notices.ts` 里 —— 用户改文案得在 TS 里编辑
+（要转义、要躲反引号），而且没法"先放个空壳占位、之后再填"。这次把正文外置成真正的 Markdown 文件。
+
+**做法**：正文**一条一稿**放 `src/content/notices/`，Vite 侧用 `?raw` 读进来：
+
+```ts
+import draftBody from "./notices/draft.md?raw";
+import welcomeBody from "./notices/welcome-2026-10.md?raw";
+```
+
+- **为什么是 `?raw` 而不是 `fs.readFileSync`**：应用是**前端**代码，`fs` 在浏览器里不存在。`?raw` 由打包器
+  在构建期把文件内联成字符串，**类型声明**来自 `vite/client`（`tsconfig.json` 的 `types` 里本来就有）
+  ⇒ **零新依赖**、`tsc --noEmit` 直接认、`pnpm dev` 存盘即热更新。
+- 正文进数组前过一道 `normalizeNoticeBody(raw)`，**只做两件事**：**行尾统一成 LF** + 去掉首尾空行。
+  行尾这一步不是为了好看：渲染器按 `\n` 切行，文件里混进 `\r\n`（Windows 编辑器、`core.autocrlf`、
+  从别处粘进来的片段）会让 `\r` 变成正文里**看不见**的杂字符，还会把"行尾两个空格 = 硬换行"的判断
+  一并弄坏（行尾变成 `\r` 而不是空格）。中间的空行与缩进**原样保留** —— 那是 Markdown 自己的事。
+- **空壳草稿** `notices/draft.md`：整份只有一个 HTML 注释 ⇒ **渲染出来是空的**；在 `noticeMeta` 里带
+  `from: "2099-01-01"` ⇒ **默认不生效、不会上线**。本地想看效果就把那个 `from` 删掉或改成今天
+  （`draft.md` 第一段就写着这句）。它同时是"加一条新公告"的模板 —— 文件里列了支持的 Markdown 子集、
+  不支持的（图片 / 表格 / 引用块 / 原始 HTML）、以及"改完怎么验"。
+- 顺带写清一条以前含糊的事：**正文只有一份、不按语言分**（中英混排时 en / zh 两个界面显示同一段字）。
+  要写两份的是 `title` / `close` / `dismiss`。
+
+**⚠️ 踩到的坑（一）：Playwright 不认 `?raw` ⇒ 7 个 spec 全红、一条用例都收不上来**
+
+`?raw` 是 **Vite 专有语法**，而 **e2e 的 spec 是 Playwright 自己转译的**（不经过 Vite）。
+D182 那轮为了让公告不挡住别的用例，每个 spec 都 `import { noticeContent } from "../src/content/notices"`
+（要拿 id 与指纹去 `suppressNotice`）—— 于是 Playwright 顺着这条 import 走到 `…/draft.md?raw`，
+**把 `.md` 当 JS 模块解析**：
+
+```
+SyntaxError: …\src\content\notices\draft.md: Unexpected token (1:0)
+> 1 | <!--
+    | ^
+   at smoke.spec.ts:1        ← 每个 spec 各报一条
+…
+Error: No tests found
+```
+
+`.md` 的首字符是 `<!--`（`welcome-2026-10.md` 是汉字）⇒ 7 个 spec 全炸、**一条用例都收不上来**。
+**vitest 走 Vite，所以单测这边一点症状都没有** —— 这是最坏的一类坑：`pnpm test` 全绿、`pnpm e2e` 全红，
+而且报的是 `No tests found`（像"没找到文件"，不像"模块加载失败"）。
+
+**修法：把"元数据 + 纯逻辑"与"取正文"拆开，两边各取一次、拼装共用一份。**
+
+| 谁 import | 从哪儿拿公告内容 | 正文怎么来 |
+|---|---|---|
+| 应用 / 单测（Vite） | `src/content/notices.ts` | `?raw`（构建期内联） |
+| e2e（Playwright / Node） | `e2e/noticeContent.ts`（新） | `node:fs` 读**同一批** `.md` |
+
+- `src/content/noticeMeta.ts`（新，**纯 TS**：没有 `?raw`、不碰 `fs`）：`NoticeContent` 类型、
+  `normalizeNoticeBody`、默认文案、**`noticeFingerprint`（从 `src/store/notices.ts` 搬过来）**、
+  元数据数组 `noticeMeta`（`id` / `title` / 时间窗 / **`bodyFile`**），以及 `buildNoticeContent(bodies)`。
+- `src/content/notices.ts`（Vite）：`?raw` 读 `.md` → 调 `buildNoticeContent` → 导出 `noticeContent`，
+  再 `export *` 把纯 TS 那套透出去 ⇒ 应用与单测的 import 路径**一个都不用改**。
+- `e2e/noticeContent.ts`（Node）：`node:fs.readFileSync` 读同一批 `.md` → 调**同一个** `buildNoticeContent`。
+- `e2e/ui.ts` 的 `noticeFingerprint` 改从 `../src/content/noticeMeta` 取（原先是 `../src/store/notices`，
+  那条路会顺藤摸到 `.md`）。
+
+两条路**共用同一份元数据与同一个拼装函数**，所以不存在"正文抄两遍"的漂移；`buildNoticeContent` 在
+`bodyFile` 找不到正文时**直接抛**（`notices.test.ts` 有专门用例锁它）—— 否则症状是"公告一片空白"或
+"根本不弹"，很难查到只是文件名写错了一个字。
+
+> **以后判断 e2e 加载正不正常，最快的办法是 `--list`**：`node scripts/run.mjs playwright test --list`
+> 只收集不执行，几秒钟就能看出"一条都没收到"（正常是 `Total: 125 tests in 7 files`）。
+> 别等 13 分钟的全量跑完才发现。
+>
+> **不止 `?raw`**：`import.meta.env` / `import.meta.glob` / virtual module 同样是 Vite 专有。
+> 全仓库目前有 4 个文件用了 `import.meta.env`（`src/game/useGame.ts`、`src/net/useNet.ts`、
+> `src/store/seeds.ts`、`src/ui/components/LazyRow.tsx`）—— 它们现在没被 e2e 碰到（**改动后也一样别碰**）。
+> 修完之后 e2e 对 `src` 的引用面只剩 3 个**纯**模块：`content/about`、`content/noticeMeta`、`music/manifestUrl`。
+> 往 e2e 加 import 之前，`grep -n "^import .*from \"../src/" e2e` 看一眼总没错。
+
+**⚠️ 踩到的坑（二）：那条日期校验测试是时区脆弱的**。
+
+`src/content/notices.test.ts`（D182 那轮新写的）校验 `from` / `until` 是不是真实日历日时，写的是：
+
+```js
+const parsed = new Date(`${value}T00:00:00`);          // ← 按【本机时区】解析
+expect(parsed.toISOString().slice(0, 10)).toBe(value); // ← 按【UTC】取日期
+```
+
+**"本地口径解析 + UTC 口径输出"混搭**。CI 跑在 UTC 上 ⇒ 一直绿；本机 `Asia/Shanghai`(UTC+8) 下
+`2099-01-01` 解析成 `2098-12-31T16:00:00Z` ⇒ `slice` 出 `2098-12-31` ⇒ **假红**。
+
+**为什么现在才炸**：D182 那条 `welcome` 公告**没有** `from` / `until`，那个 `for` 循环体**一次都没进去过**；
+这次 `draft` 带了 `from: "2099-01-01"`，才第一次走进这个分支 —— 也就是说那条守卫**先前等于没被执行过**。
+
+**修法**：**不用 `Date`**，改成纯算术的 `isRealCalendarDate(value)` —— 正则取 年 / 月 / 日，
+再用 `daysInMonth` 按公历 4/100/400 判闰年。
+
+**为什么不是"加个 `Z` 就完事"**：`new Date(\`${value}T00:00:00Z\`)` 两端都是 UTC，确实能在**本机**修好 ——
+但 CI 在 UTC 上，**去掉 `Z` 照样绿** ⇒ 没有任何自动化能拦住它。纯算术版在**结构上**就没有时区这个面，
+在哪种环境下结论都一样。另配了一条用例专门锁校验器（该绿：`2024-02-29` / `2099-01-01` / `2000-02-29`；
+该红：`2026-02-31`（`Date` 会悄悄滚到 3 月）、`2026-02-29`、`2026-13-01`、`2026-00-10`、`2026-01-32`、
+`2099-1-1`、`2099/01/01`、`2100-02-29`（百年不闰））。
+
+**实测**：
+
+- `pnpm typecheck` ✓（`?raw` 的类型由 `vite/client` 提供，**没有新增任何类型声明文件**）。
+- `src/content/notices.test.ts` **5 → 10**（+3 条 `.md` 真源守卫：`normalizeNoticeBody` 的 CRLF/CR/trim 行为、
+  每条正文无残留 `\r`、正文不是 `.ts` 内联长串；+1 条日期校验器用例；+1 条"某条取不到正文就**直接抛**"）；
+  `src/store/notices.test.ts` 仍 **22**。
+- **完整 `pnpm test`（两引擎）**：**1404 passed / 112 files** = 每引擎 **702 / 56**
+  （D182 那轮是 1394 / 697 ⇒ **每引擎 +5**；`pnpm test:chromium` 单跑 154 秒）。
+- `pnpm license:lint` **358 / 358**（354 → 358 = 正好 **+4** 个新文件：两份 `.md` + `src/content/noticeMeta.ts` +
+  `e2e/noticeContent.ts`）。**没有改 `REUSE.toml`** —— 它的 `path = "**"` 兜底已经是 MIT，新文件自动落进去
+  （**依赖闭包一字未变**）。
+- `pnpm gate` ✓（`gen-notices --check` 绿、引用集合指纹 **`9eecf074138b`** 逐字未变、
+  "署名与许可文件同生产闭包一致"）。
+- **e2e 加载自检**（就是被坑（一）打掉的那个）：`node scripts/run.mjs playwright test --list`
+  = `Total: 125 tests in 7 files`。**修之前这条直接报 `No tests found`。**
+- **e2e（chromium + firefox + mobile）**：**123 passed + 1 skipped / 0 failed**（与 D182 那轮逐字一致；
+  前置照旧先起 `pnpm local`）。公告那 **7** 条（3 条 × 两个桌面引擎 + 1 条 mobile）全过 —— 含"取消勾选 = 撤销"。
+  ⚠️ 中间有**一次**整跑负载下的偶发：`custom-mode.spec.ts:147 逐卡禁用…` 在一个 20s 的 `expect.poll`
+  上超时（计数差 1、等满 20s 没变；那条整跑里跑了 28.7s）。**单跑 7.0s ✓、整文件 8/8 ✓、再整跑全绿** ⇒
+  判为负载偶发、与这次改动无关（它验的是"切到别的模式再切回来时状态还原"，碰不到公告）。
+  记在这里，免得下次撞上又从头查一遍。
+
+**没做的**：正文**不按语言分**（要中英各一份就得引 i18n 目录结构，用户没要）；没做"公告草稿预览页"
+（改 `from` 已经是最短路径）。
+

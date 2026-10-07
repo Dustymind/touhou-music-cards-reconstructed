@@ -9,8 +9,14 @@
  * （源现在会带 `albums` / `characters`），音频仍指向真清单里的真文件 ⇒ "能选中并出声"也是真的。
  */
 import { expect, test, type Page } from "@playwright/test";
-import { expandSection } from "./ui";
+import { noticeContent } from "./noticeContent";
+import { expandSection, suppressNotice } from "./ui";
 import { captureAudio, waitForPlaying } from "./audio";
+
+// 站内公告弹窗是模态的，会在每次 page.goto 时自动打开并抢焦点。本文件不测公告 ⇒ 先压制掉。
+test.beforeEach(async ({ page }) => {
+  await suppressNotice(page, noticeContent.notices);
+});
 // 应用建媒体地址时会做一层路径编码收敛（D169）⇒ 断言也按同一个函数比，而不是比清单里的原字符串
 import { canonicalPathEncoding } from "../src/music/manifestUrl";
 

@@ -1,9 +1,16 @@
 /** 联机端到端：同浏览器双标签页（BroadcastChannel）与跨浏览器（本地 PeerServer + WebRTC）。 */
 import { chromium, expect, firefox, test, type Page } from "@playwright/test";
 
+import { noticeContent } from "./noticeContent";
 import { BASE_URL } from "../playwright.config";
 import { captureAudio, waitForPlaying } from "./audio";
+import { suppressNotice } from "./ui";
 
+// ⚠️ 本文件**不能**用文件级 `beforeEach` 来压制公告：这里的用例全都自己 `browser.newContext()`
+// 或自己 `chromium.launch()` 另开 context/page（用的是 `{ browser }` 而不是 `page` 夹具），
+// 而 `addInitScript` 的作用域就是"那个 page / 那个 context" —— 夹具上压制**够不着**它们，
+// 公告会在新 context 里照弹、把 `getByRole("tab", { name: "Match" })` 挡到超时。
+// 所以每条用例在**自建的 context / page** 上各调用一次 `suppressNotice`。
 const PEER_QUERY = "?peerhost=127.0.0.1&peerport=9100&peerpath=/&peersecure=0";
 
 async function openGame(page: Page, url: string): Promise<void> {
@@ -54,6 +61,7 @@ async function seeds(page: Page): Promise<{ ownSeed: number; adoptedSeed: number
 
 test("联机：主机发种子、客户端采用；客户端「重新抽选」由主机换种子后下发（D104）", async ({ browser }) => {
   const context = await browser.newContext();
+  await suppressNotice(context, noticeContent.notices);
   const host = await context.newPage();
   const guest = await context.newPage();
   await openGame(host, "/");
@@ -93,6 +101,7 @@ test("联机：主机发种子、客户端采用；客户端「重新抽选」�
 
 test("访客页的音乐模式由主机决定：单选禁用，提示换成主机口径（D119）", async ({ browser }) => {
   const context = await browser.newContext();
+  await suppressNotice(context, noticeContent.notices);
   const host = await context.newPage();
   const guest = await context.newPage();
   await openGame(host, "/");
@@ -118,6 +127,7 @@ test("访客页的音乐模式由主机决定：单选禁用，提示换成主�
 
 test("握手期拒绝：数据哈希不同的一端进不来（协议 v5：三个模式各比一次）", async ({ browser }) => {
   const context = await browser.newContext();
+  await suppressNotice(context, noticeContent.notices);
   const host = await context.newPage();
   await openGame(host, "/");
   const code = await hostRoom(host);
@@ -145,6 +155,7 @@ test("握手期拒绝：数据哈希不同的一端进不来（协议 v5：三�
 
 test("同浏览器两个标签页联机：握手 / 聊天 / 快照同步", async ({ browser }) => {
   const context = await browser.newContext();
+  await suppressNotice(context, noticeContent.notices);
   const host = await context.newPage();
   const guest = await context.newPage();
   await captureAudio(host);
@@ -206,6 +217,9 @@ test("跨浏览器联机：Chromium 主机 + Firefox 客户端（本地 PeerServ
   });
   const host = await browserA.newPage();
   const guest = await browserB.newPage();
+  // 两个浏览器都是这里现开的 ⇒ 各自的默认 context 也是新的，公告会在里面自动弹 ⇒ 各压一次
+  await suppressNotice(host, noticeContent.notices);
+  await suppressNotice(guest, noticeContent.notices);
   await captureAudio(host);
   await captureAudio(guest);
   await openGame(host, `${BASE_URL}/${PEER_QUERY}`);

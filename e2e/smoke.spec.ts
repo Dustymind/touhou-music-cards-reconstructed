@@ -1,10 +1,20 @@
-/** 双引擎冒烟：数据加载、页签切换、关于弹窗、预设交互、对战回合。 */
+/** 双引擎冒烟：数据加载、页签切换、关于弹窗、站内公告、预设交互、对战回合。 */
 import { captureAudio, waitForPlaying } from "./audio";
 import { dragCard } from "./dnd";
-import { expandSection } from "./ui";
+import { noticeContent } from "./noticeContent";
+import { clearNoticeRecords, dismissNotice, expandSection, shouldAutoSuppressNotice, suppressNotice } from "./ui";
 import { aboutContent } from "../src/content/about";
 import { expect, test, type Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
+
+// 站内公告是**模态**且进站自动弹：不处理它，下面每一条用例都会被它挡住（`getByRole("tab", …)`
+// 找不到元素）。这里统一在初始化脚本里把每条公告记成"已看过"，于是**本文件里所有用例都不弹**。
+// **例外**：三条「站内公告」用例自己管存储（`clearNoticeRecords` 清一次、再靠 `reload` 验证
+// "还会不会弹"），文件级这段会在每次导航重跑、把"已看过"写回去 ⇒ 必须放行，见 `shouldAutoSuppressNotice`。
+test.beforeEach(async ({ page }) => {
+  if (!shouldAutoSuppressNotice()) return;
+  await suppressNotice(page, noticeContent.notices);
+});
 
 test("加载数据并渲染页签与播放页", async ({ page }) => {
   await page.goto("/");
@@ -113,8 +123,100 @@ test("关于弹窗：外置曲库（音MAD）署名自动列出，且在「原�
   await expect(auto.locator("a")).toHaveCount(0);
 });
 
-test("设置页：秘封父项是批量控制，三态开关改变统计", async ({ page }) => {
+// ---- 站内公告（`src/content/notices.ts`）----
+//
+// e2e 的每个用例一个全新 `context`（`localStorage` 是空的），而站内公告**进站就会自动弹**、
+// 且是**模态**（挡住页签等控件）。所以：
+//   - 整个文件开头有一个 `beforeEach`：把每条公告都记成"已看过"，本文件里**一条都不弹**，
+//     别让后来的用例被挡住；
+//   - 下面这几条"专门测公告"的用例**按标题被那段放行**（`shouldAutoSuppressNotice`），
+//     它们自己用 `clearNoticeRecords` 拿到"进站就会弹"的前置。
+//     **不能**让文件级那段继续生效：它是 `addInitScript`、**每次导航都重跑**，
+//     会在 `reload` 时把"已看过"写回去，而这两条用例要验的恰恰是"刷新后还会不会弹"。
+
+/** 真源里的第一条公告（e2e 默认 en 界面）。 */
+const FIRST_NOTICE = noticeContent.notices[0]!;
+
+test("站内公告：首次进站自动弹，点「关闭」关得掉；不勾「不再显示」⇒ 刷新后还会弹", async ({ page }) => {
+  await clearNoticeRecords(page);
   await page.goto("/");
+
+  const dialog = page.getByTestId("notice-dialog");
+  await expect(dialog).toBeVisible();
+  // 内容跟着**内容真源**走（用户改了标题/正文，这里不会假红）
+  await expect(dialog).toContainText(FIRST_NOTICE.title.en);
+  await expect(dialog).toContainText("Close");
+
+  // 「不再显示」勾选框在关闭键**上方**（方案 B 的三段式：内容 → 勾选框 → 关闭）
+  const order = await page.evaluate(() => {
+    const dismiss = document.querySelector('[data-testid="notice-dismiss"]')!.getBoundingClientRect();
+    const close = document.querySelector('[data-testid="notice-close"]')!.getBoundingClientRect();
+    return { dismissBottom: dismiss.bottom, closeTop: close.top };
+  });
+  expect(order.dismissBottom).toBeLessThanOrEqual(order.closeTop + 1);
+
+  // 不勾，直接关 ⇒ 下次进站**还会弹**（`closed` 不影响自动弹出判据，只有 `dismissed` 才影响）
+  await page.getByTestId("notice-close").click();
+  await expect(dialog).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByTestId("notice-dialog")).toBeVisible();
+});
+
+test("站内公告：勾「不再显示」后刷新不再自动弹，入口仍能打开；取消勾选 = 撤销", async ({ page }) => {
+  await clearNoticeRecords(page);
+  await page.goto("/");
+
+  const dialog = page.getByTestId("notice-dialog");
+  await expect(dialog).toBeVisible();
+  await page.getByTestId("notice-dismiss").locator('input[type="checkbox"]').check();
+  await page.getByTestId("notice-close").click();
+  await expect(dialog).toHaveCount(0);
+
+  // 刷新：**不再自动弹**
+  await page.reload();
+  await expect(page.getByRole("tab", { name: "Player", exact: true })).toBeVisible();
+  await expect(page.getByTestId("notice-dialog")).toHaveCount(0);
+
+  // 入口按钮仍在（在「关于」旁边），点它还能翻出来看 —— 且勾选框保留"已勾"的状态
+  await page.getByTestId("notice-open").click();
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toContainText(FIRST_NOTICE.title.en);
+  const dismissBox = page.getByTestId("notice-dismiss").locator('input[type="checkbox"]');
+  await expect(dismissBox).toBeChecked();
+
+  // **取消勾选再关闭 = 撤销「不再显示」** ⇒ 下次进站**又自动弹**。
+  //（勾选框是双向的；修之前"取消勾选"是个假开关 —— 见 D182 的修正记录。）
+  await dismissBox.uncheck();
+  await page.getByTestId("notice-close").click();
+  await expect(dialog).toHaveCount(0);
+  await page.reload();
+  await expect(page.getByTestId("notice-dialog")).toBeVisible();
+  await expect(page.getByTestId("notice-dialog")).toContainText(FIRST_NOTICE.title.en);
+});
+
+test("站内公告：应用栏入口在「关于」之前，且与它同规格（48dp 触控区）", async ({ page }) => {
+  await clearNoticeRecords(page);
+  await page.goto("/");
+  // 先把自动弹的那条关掉，免得挡着应用栏
+  await dismissNotice(page);
+
+  const metrics = await page.evaluate(() => {
+    const notice = document.querySelector('[data-testid="notice-open"]')!.getBoundingClientRect();
+    const about = document.querySelector('[data-testid="about-open"]')!.getBoundingClientRect();
+    return {
+      noticeLeft: Math.round(notice.left), aboutLeft: Math.round(about.left),
+      noticeW: Math.round(notice.width), noticeH: Math.round(notice.height),
+      aboutW: Math.round(about.width), aboutH: Math.round(about.height),
+    };
+  });
+  // 在「关于」**左边**（DOM 顺序在它之前）
+  expect(metrics.noticeLeft).toBeLessThan(metrics.aboutLeft);
+  // 与「关于」同规格：MD2 48dp 触控区
+  expect([metrics.noticeW, metrics.noticeH]).toEqual([48, 48]);
+  expect([metrics.noticeW, metrics.noticeH]).toEqual([metrics.aboutW, metrics.aboutH]);
+});
+
+test("设置页：秘封父项是批量控制，三态开关改变统计", async ({ page }) => {  await page.goto("/");
   await page.getByRole("tab", { name: "Config", exact: true }).click();
   await expandSection(page, "preset");
   const stats = page.getByTestId("preset-stats");

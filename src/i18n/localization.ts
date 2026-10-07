@@ -86,6 +86,8 @@ export const Localization = {
   ShellLoading: u("Loading data…", "正在载入数据…"),
   ShellLoadFailed: u("Failed to load data", "数据载入失败"),
   ShellAppTitle: u("Forgotten Harmonic Frequencies", "东方谐频拾遗"),
+  // 公告入口按钮的无障碍名字（图标按钮没有可见文字，必须给一个）
+  ShellNoticeOpen: u("Notices", "提示"),
   ShellDataSummary: u("Data", "数据"),
   ShellCharacters: u("characters", "角色"),
   ShellAlbums: u("albums", "专辑"),

@@ -82,6 +82,70 @@ Vite 7 + React 19 + TypeScript + MUI 7（主题按 **Material Design 2** 写：4
 MD2 规格（280/560 宽、4dp 圆角、elevation 24、32% 黑遮罩、150/75ms 动效、右下角「关闭」+
 点遮罩 + Esc；「关闭」按用户要求取**白字**、不走主色）见 [`DECISIONS.md`](DECISIONS.md) D133。
 
+## 改站内公告（进站自动弹的那条）
+
+**正文是真正的 `.md` 文件**，一条一稿，放在 `src/content/notices/` 下（如 `welcome-2026-10.md`）；
+**元数据**（`id` / 标题 / 时间窗 / 正文文件名）在 `src/content/noticeMeta.ts`。
+`src/content/notices.ts` 用 Vite 的 `?raw` 把 `.md` 原文读成字符串（所以它就是个普通 Markdown 文件，
+**不是** TS 里的模板字符串 —— 不用转义、不用管反引号，追加内容就在后面接着写）。改完存盘即热更新（`pnpm dev`）。
+
+**字段规则以 `src/content/notices.ts` 开头的注释为准**，`src/content/notices.test.ts` 逐条把关
+（id 唯一且 `^[a-z0-9-]+$`、标题/关闭键/勾选框文案要么双语要么不写、`from`/`until` 是真实存在的日期且 `from <= until`、
+`.md` 里不残留 `\r`、某条取不到正文会**直接抛**）。
+
+**本地测试用的空壳**：`src/content/notices/draft.md` 是一份**整份只有注释**的空壳（⇒ 渲染出来是空的），
+在 `noticeMeta` 里带着 `from: "2099-01-01"` ⇒ **默认不生效、不会出现在线上**。想在本机看效果，
+把那个 `from` 删掉或改成今天即可（就这一处）。
+
+**加一条新公告**（三处，漏了第一处就"直接抛"、漏了第三处就"永远不出现"）：
+
+1. 复制 `notices/draft.md` 成 `notices/<新id>.md`，写正文；
+2. `src/content/notices.ts` 顶上的 `bodies` 里挂上 `"<新id>.md": <那份 import>`；
+3. `src/content/noticeMeta.ts` 的 `noticeMeta` 里加一条（`bodyFile: "<新id>.md"`，`title` 写双语）。
+
+`id` 起个短的英文小写串，**别改已有的** —— 那是它的存档键。`from` / `until` 可选，用来限定显示窗口
+（不写就是一直有效）。
+
+**内容用 Markdown 写**，支持一个小到够用的子集：`##` / `###` 标题、段落、`-` / `*` 无序列表、
+`1.` 有序列表、`**粗体**` / `*斜体*` / `` `行内代码` ``、`[文字](https://…)` 链接、
+行尾两个空格 = 硬换行、`<!-- 注释 -->`（整段丢掉）。**不支持**图片、表格、引用块、原始 HTML ——
+写了会**原样显示**。**渲染器是自己手写的**（`src/ui/markdown.tsx`，零依赖、
+纯 React 节点、**不走 `dangerouslySetInnerHTML`**）—— 为什么不用 `marked` + 消毒库见 `DECISIONS.md` D182。
+链接只认 `http` / `https`，其余协议（`javascript:` 等）当普通文字渲染。
+
+> ⚠️ 正文**只有一份、不按语言分**：中英混排时 en / zh 两种界面显示的是同一段字。
+> 要写两份的是 `title` / `close` / `dismiss`（它们走界面右上角的语言开关）。
+
+### ⚠️ 正文要"两个环境各取一次"（动这块之前必读）
+
+`notices.ts` 用了 **Vite 专有语法**（`?raw`）⇒ **只有 Vite 能加载它**。而 **e2e 的 spec 是被
+Playwright 自己转译的**（不经过 Vite）：spec 只要（直接或间接）import 到 `?raw`，Playwright 就会把
+`.md` 当 **JS 模块**解析 —— 而 `.md` 开头是 `<!--` 或汉字 ⇒ `SyntaxError: Unexpected token (1:0)` ⇒
+**一个用例都收不上来**（`Error: No tests found`）。vitest 走 Vite，所以**单测毫无症状**：
+典型的"本地全绿、`pnpm e2e` 全红"。
+
+所以拆成两条路：
+
+| 谁 import | 从哪儿拿公告内容 | 正文怎么来 |
+|---|---|---|
+| 应用 / 单测（Vite） | `src/content/notices.ts` | `?raw`（构建期内联） |
+| e2e（Playwright / Node） | `e2e/noticeContent.ts` | `node:fs` 读**同一批** `.md` |
+
+两边都调**同一个** `buildNoticeContent`（在 `src/content/noticeMeta.ts`，纯 TS）⇒ 元数据、正文文件、
+指纹算法、规整口径都只有一份，不会漂移。**往 e2e 加 import 时别指向 `src/content/notices.ts`**；
+纯逻辑与类型（含 `noticeFingerprint`）从 `src/content/noticeMeta.ts` 取。
+
+> 这不是理论风险：D183 落地时就是这么炸的（7 个 spec 全红）。**想看 e2e 加载正不正常，最快的一条：
+> `node scripts/run.mjs playwright test --list`** —— 只收集不执行，几秒钟出结果。
+
+**"不再显示"是按内容指纹记的**（`src/content/noticeMeta.ts` 的 `noticeFingerprint`，取 `id + 标题 + 正文` 的哈希）：
+
+- 使用者点过「不再显示」后，**再改这条公告的标题或正文** ⇒ 指纹变了 ⇒ **会再弹一次**（改了东西就该让人知道）；
+- 只改 `from` / `until`（没动标题正文）⇒ 指纹不变 ⇒ 不打扰。
+
+存档按**每条公告一个键**（`tmc.v1.notice.<id>`，各自 `closed` / `dismissed` / `fingerprint` / `at`），
+互不干扰。行为出处见 `DECISIONS.md` D182。
+
 ## 文档在哪
 
 | 想找什么 | 去哪 |

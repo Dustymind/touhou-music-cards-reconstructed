@@ -8,9 +8,16 @@
  */
 import { expect, test, type Page } from "@playwright/test";
 
-import { expandSection } from "./ui";
+import { noticeContent } from "./noticeContent";
+import { expandSection, suppressNotice } from "./ui";
 
 const SOURCE = "/e2e/fixtures/custom/manifest.json";
+
+// 站内公告弹窗是模态的，会在每次 page.goto 时自动打开并抢焦点（每个测试的 context 都是新的
+// ⇒ localStorage 也是空的）。本文件不测公告，先在初始化脚本里把每条公告标成"已不再显示"。
+test.beforeEach(async ({ page }) => {
+  await suppressNotice(page, noticeContent.notices);
+});
 
 interface FixtureCard {
   id: string;

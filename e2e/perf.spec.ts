@@ -7,6 +7,14 @@
  */
 import { expect, test } from "@playwright/test";
 
+import { noticeContent } from "./noticeContent";
+import { suppressNotice } from "./ui";
+
+// 站内公告弹窗是模态的，会在每次 page.goto 时自动打开并抢焦点。本文件不测公告 ⇒ 先压制掉。
+test.beforeEach(async ({ page }) => {
+  await suppressNotice(page, noticeContent.notices);
+});
+
 /** 阈值取 250ms：这条用例跑在 **dev server** 上（未压缩 React + StrictMode 双渲染，
  *  实测同一批操作在**生产构建**里一次 ≥50ms 的长任务都没有）。dev 下的阈值只要能抓住
  *  "上千毫秒"这类回归即可，不必按生产标准要求 dev。
