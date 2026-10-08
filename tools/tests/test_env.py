@@ -17,8 +17,11 @@ def test_repo_skeleton_exists():
 
 
 def test_decision_records_present():
-    for rel in ("docs/DECISIONS.md", "docs/data-provenance.md"):
-        assert (ROOT / rel).stat().st_size > 1000, rel
+    # 2026-10-08：`docs/DECISIONS.md` 是维护者本机的历史日志，已移出仓库（存工作区 `local-docs/`），
+    # 不再随 clone 分发 ⇒ 这里只断言**随仓库分发**的那份数据来源文档还在。
+    # 想核决策日志请去工作区 `local-docs/DECISIONS.md`，别在本仓库里找。
+    rel = "docs/data-provenance.md"
+    assert (ROOT / rel).stat().st_size > 1000, rel
 
 
 def test_tools_project_parses():

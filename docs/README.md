@@ -1,8 +1,13 @@
 # 文档全景
 
-一句话：**现状看本页，规则看契约，来龙去脉看 DECISIONS，怎么改看 DEVELOPMENT，过程产物看 reports。**
+一句话：**现状看本页，规则看契约，怎么改看 DEVELOPMENT，过程产物看 reports。**
 
 用户向的内容（怎么跑起来 / 怎么玩 / 联机 / 许可）在主 [`README.md`](../README.md)，不在本目录。
+
+> **本目录只放随仓库分发的文档**（契约 + 开发指南）。
+> 面向维护者本机 / AI 的历史日志与运维笔记**不随仓库分发**，保存在工作区根的 `local-docs/`：
+> `DECISIONS.md`（决策日志）、`WINDOWS.md`（Windows 迁移清单）、`card-hosting-r2.md`（自建图床运维）。
+> 这几份从仓库移出（2026-10-08），**内容照样有效，只是不再随 clone 分发** —— 要查就去看工作区那份。
 
 ## 现状（最近一次实测：2026-09-29，Linux）
 
@@ -22,7 +27,7 @@
 | 数据漂移 | 无（S3 起生成物不进仓库） | `pnpm gate`（先跑 `pnpm data:datasets`，再 build + validate + notices；可复现性由 CI 的两次构建比对承担） |
 | 数据校验 | 通过 | `pnpm data:validate` |
 | 联机协议版本 | **7** | `src/net/protocol.ts`（D168 起 `GameState` 带 `perTrackFaces` / `currentCardIndex` —— "这一回合放哪一首"由答案卡决定；`SessionConfigWire` = 音乐模式 + 会话种子 + 自定义源链接；`dataHash` = 三个模式各一个；**7** = 曲id 身份 + 生成物 schema 2，硬切，见 `protocol-v1.md` / D173） |
-| 决策日志 | 编号 D1–D190 中**实有 189 条**（**D165 未使用**，是编号空洞，见该处的编号说明）；最近六条：D185 给公告加展示排序（`date` / `pinned`）、把入口改成可翻看的列表、开屏一次摆出**全部**该弹的（顺带修掉 `draft.md` 的注释被非贪婪匹配截断、后半段漏进界面的 bug），D186 把公告的「不再显示」勾选框弃用（改成"关闭 = 永久不再自动弹" + 一行告知，入口文案统一叫「公告」），D187 把公告元数据从 TS 搬进 `.md` 开头的 **YAML frontmatter**（加 `yaml` 运行时依赖，生产闭包 86 个包不变 ⇒ `pnpm notices` 后 `--check` 仍绿；`noticeMeta.ts` 只剩 `NOTICE_FILES` 文件名清单 + 带行号的解析报错），D188 给公告加 `draft: true`（构建期就把草稿摘掉，且只校验结构、不校验字段），D189 把 Markdown **解析**换成固化进仓库的 `marked` **`Lexer`**（渲染仍自写、只产 React 节点 ⇒ XSS 面保持为零）、并补齐全部语法（表格 / 引用块 / 代码块 / 图片 / 删除线 / 水平线 / 任务列表），D190 把卡面图集的图床改成**自建 R2 桶可插拔**（两个常量在构建期统一注入六套，不再各抄一遍 —— 顺带修掉 `zun` 那套抄成连字符、实测 000 的域名笔误）；**带 supersede 标记的有 16 条**（口径：`## D…` 标题后 4 行内出现一句 `> ⚠️ **已被 Dxxx 取代**` 或 `> ⚠️ **前提已变**`；那是「结论已变」标记，**不是待办**。D189 使 D182 的"手写渲染器"结论部分失效，D190 使 D10 的"origins 逐套手写"写法失效） | [`DECISIONS.md`](DECISIONS.md) |
+| 决策日志 | 编号 D1–D190 中**实有 189 条**（**D165 未使用**，是编号空洞）；**不随仓库分发**，见工作区 `local-docs/DECISIONS.md` | 工作区根的 `local-docs/`（不在本仓库内） |
 
 > **e2e 的前置条件**：音MAD 相关用例会取同源的 `/manifest.json`（开发服务器代理到本地曲库助手），
 > 必须先起助手再跑，否则那几条会红 —— 这是环境问题，不是代码问题（D105 记过这个坑）。
@@ -41,26 +46,18 @@
 另有 [`otomads-separation-v1.md`](otomads-separation-v1.md)（音MAD 与原曲的数据/运行时分离）与
 [`sources-separation-v1.md`](sources-separation-v1.md)（音源层按模式拆），两者都已实现，改动同源时一并读。
 
-运维性质（非契约）：[`card-hosting-r2.md`](card-hosting-r2.md) —— 把卡面图床迁到自己的
-Cloudflare R2 桶的完整步骤（建桶 / 凭据 / rclone / 公开访问 / CORS / 验证）。
-
 ## 开发
 
 [`DEVELOPMENT.md`](DEVELOPMENT.md)：日常命令、迭代时怎么快跑、改「关于」弹窗、技术栈。
 环境搭建与部署在主 [`README.md`](../README.md)。
-**Windows 上跑**（迁移清单、长路径、行尾；脚本已跨平台）见 [`WINDOWS.md`](WINDOWS.md)。
-
-## 决策日志
-
-[`DECISIONS.md`](DECISIONS.md)：一个决定一条（D1–D188），写**为什么**、实测数字与踩过的坑。
-同一轮工作的最新条目会就地补全，更早的条目不再改 —— 要查"这个功能怎么来的、这个数字怎么量的"，grep 它。
+**Windows 上跑**（迁移清单、长路径、行尾；脚本已跨平台）见工作区 `local-docs/WINDOWS.md`（不随仓库分发）。
 
 ## 阶段产物与历史快照
 
 本目录的 `reports/` **不进 git**（S5：工作记录不随仓库分发），写入路径由 `tmc.repo.REPORTS` 定义，只此一处。
 里面现在只有 `validation-report.md` —— 由 `pnpm data:validate`（`pnpm gate` 的一步）现写现用。
 M1 / M2a / M2b / M9 等阶段报告与 `upstream-*` 盘点在 S5 一并删除 —— 要看历史就翻 git 记录与
-[`DECISIONS.md`](DECISIONS.md)。
+工作区 `local-docs/DECISIONS.md`。
 
 ## 工作区笔记（不进版本库）
 

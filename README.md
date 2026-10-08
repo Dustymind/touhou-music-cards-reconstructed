@@ -218,7 +218,7 @@ manifest 用 `loudness` 键声明它 —— **表跟着源走**，D139）+ 可�
 所以同一份归档在域名根与子目录下**都能用**，不必按部署形态重打；`pnpm media:pack` 是**可复现**的
 （同一份曲库打两次逐字节相同）。
 口径与坑（归档按不可信输入处理、`dist` 会被重建清空、素材不入库）见数据仓库 `README.ai.MD`
-的「静态部署」一节与 `docs/DECISIONS.md` D138。
+的「静态部署」一节与 `DECISIONS.md` D138（该文件已移出仓库，见工作区 `local-docs/`）。
 **预览时注意**：`pnpm preview` 会**继承 dev 的代理**（`/manifest.json` 与 `/media` 转发给 8011 助手），
 所以它**不能**用来验静态素材 —— 请用 `python3 -m http.server --directory dist` 或任意静态服务器
 （实测：真静态服务器上 `/manifest.json` 200、音频 200；`pnpm preview` 在助手没跑时是 500）。
@@ -322,7 +322,7 @@ manifest 所在那一层解析 ⇒ 换域名/端口/协议、换宿主与子路�
 改这个仓库先读 [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)：日常命令、迭代时怎么快跑、
 改「关于」弹窗的内容、技术栈都在那儿。
 
-设计取舍与每个决定的实测数字在 [`docs/DECISIONS.md`](docs/DECISIONS.md)；
+设计取舍与每个决定的实测数字在 `DECISIONS.md`（**已移出仓库**，见工作区 `local-docs/`，不随 clone 分发）；
 契约（随机数 / 联机协议 / 自定义模式 / 曲包音频等）见 [`docs/README.md`](docs/README.md) 的契约表。
 
 ## 许可

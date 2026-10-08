@@ -129,7 +129,7 @@ Vite 7 + React 19 + TypeScript + MUI 7（主题按 **Material Design 2** 写：4
 ### 弹窗的视觉规格
 
 MD2 规格（280/560 宽、4dp 圆角、elevation 24、32% 黑遮罩、150/75ms 动效、右下角「关闭」+
-点遮罩 + Esc；「关闭」按用户要求取**白字**、不走主色）见 [`DECISIONS.md`](DECISIONS.md) D133。
+点遮罩 + Esc；「关闭」按用户要求取**白字**、不走主色）见 `DECISIONS.md` D133（`DECISIONS.md` 已移出仓库，见工作区 `local-docs/`，下同）。
 
 ## 改站内公告（进站自动弹的那批 / 入口打开的那份列表）
 
@@ -314,7 +314,7 @@ origin_upstream_r2 = "https://r2bucket-touhou.hgjertkljw.org/"  # 上游作者�
 
 > **2026-10-08 现状：已接上自建桶**（上面的域名）。六套齐备 —— 实测各 139~141 个对象、
 > `characters.json` 引用的 **127 个文件名零缺失**；自定义域实测 `200 image/png`。
-> 迁移步骤（建桶 / 凭据 / rclone / 公开访问 / 验证）见 [`card-hosting-r2.md`](card-hosting-r2.md)。
+> 迁移步骤（建桶 / 凭据 / rclone / 公开访问 / 验证）见工作区 `local-docs/card-hosting-r2.md`（不随仓库分发）。
 
 ⚠️ **结尾必须带 `/`**（会拼成 `<origin>/<dir>/<文件名>`）。填完跑 `pnpm gate` 重新生成，
 `pnpm dev` 会自动热更（但 `cardsets.json` 是启动时 fetch 的，刷一下页面更保险）。
@@ -344,14 +344,14 @@ origin_upstream_r2 = "https://r2bucket-touhou.hgjertkljw.org/"  # 上游作者�
 
 改这个**不影响**联机握手：进 `packHash` 的是 `covers`（源封面），内置图集的 `origins` 不进。
 决策与验证见 `DECISIONS.md` **D190**；**从建桶到上传到开公开访问的完整迁移步骤**（含
-Cloudflare 官方三条路径的可行性比对）见 [`card-hosting-r2.md`](card-hosting-r2.md)。
+Cloudflare 官方三条路径的可行性比对）见工作区 `local-docs/card-hosting-r2.md`。
 
 ## 文档在哪
 
 | 想找什么 | 去哪 |
 |---|---|
 | 文档全景（哪份是契约、哪份是历史） | [`README.md`](README.md) |
-| 决策与来龙去脉（**为什么**、实测数字、踩过的坑） | [`DECISIONS.md`](DECISIONS.md)（D1–D188） |
+| 决策与来龙去脉（**为什么**、实测数字、踩过的坑） | 工作区 `local-docs/DECISIONS.md`（D1–D190，不随仓库分发） |
 | 契约（改实现前先读，改了要同步） | [`README.md`](README.md) 的契约表 |
 | 数据从哪来、许可边界在哪 | [`data-provenance.md`](data-provenance.md) |
 | 阶段产物与历史快照 | `docs/reports/`（不进 git；里面只有 `pnpm data:validate` 现写的 `validation-report.md`，阶段报告已在 S5 删除） |
