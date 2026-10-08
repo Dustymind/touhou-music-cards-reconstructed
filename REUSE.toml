@@ -37,6 +37,16 @@ path = ["data/**"]
 SPDX-FileCopyrightText = "2026 multimode_Liu"
 SPDX-License-Identifier = "MIT"
 
+# ---- 固化的第三方代码：marked（原样分发，不能按 MIT 再许可为本项目的作品）-----------
+# `src/vendor/marked/` 下是上游 `marked` 18.1.0 的原样拷贝（只剥了一行 sourceMappingURL）。
+# **版权归上游**，所以要显式声明 —— 否则上面 `**` 那条 MIT 兜底会把它错记成
+# "2026 multimode_Liu"，那是**署名错误**（把别人的代码说成自己写的），比漏声明更糟。
+# 溯源 / 升级步骤 / 为什么固化：`src/vendor/marked/PROVENANCE.md`；决策：D189。
+[[annotations]]
+path = "src/vendor/marked/**"
+SPDX-FileCopyrightText = "2018-2026 MarkedJS, 2011-2018 Christopher Jeffrey"
+SPDX-License-Identifier = "MIT"
+
 # ---- 授权凭据：截图里有他人（上游作者）的文字，不能按 MIT 再许可 --------------------
 # 这是"留档"性质的证据文件，不是本项目的作品，所以用一个自定义的 LicenseRef 标明，
 # 而不是让上面 `**` 的 MIT 兜底把它吃掉。说明见 LICENSES/LicenseRef-Permission-Evidence.txt。

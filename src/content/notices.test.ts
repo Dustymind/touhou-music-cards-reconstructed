@@ -21,6 +21,7 @@ import {
   type NoticeContent,
 } from "./notices";
 import type { Localized } from "../i18n/localization";
+import { parseMarkdown, type MarkdownBlock } from "../ui/markdown";
 
 /** id 会拼进本地存储键（`tmc.v1.notice.<id>`），所以字符集必须收窄。 */
 const ID_PATTERN = /^[a-z0-9-]+$/;
@@ -385,5 +386,36 @@ describe("`draft: true` —— 构建期摘掉，且只校验结构不校验字�
     const built = buildNoticeContent(listed);
     expect(built.notices.map((notice) => notice.id)).not.toContain("shadow");
     expect(built.notices).toHaveLength(NOTICE_FILES.length - 1);
+  });
+});
+
+describe("渲染守卫：注释别把后半段漏出来", () => {
+  /** 把解析出来的块拼成纯文本（只为"有没有漏出某段字"这类断言）。 */
+  function plainText(blocks: MarkdownBlock[]): string {
+    return blocks
+      .map((block) => {
+        if (block.kind === "heading") return block.text;
+        if (block.kind === "paragraph") return block.lines.join("\n");
+        if (block.kind === "list") return block.items.join("\n");
+        if (block.kind === "code") return block.text;
+        if (block.kind === "blockquote") return plainText(block.blocks);
+        if (block.kind === "table")
+          return [...block.header, ...block.rows.flat()]
+            .map((cell) => cell.text)
+            .join("\n");
+        return ""; // hr：没有文字
+      })
+      .join("\n");
+  }
+
+  it("渲染出来的文字里不该有孤零零的 `-->`（注释被提前截断的症状）", () => {
+    // `<!--` 到结束标记是**非贪婪**匹配：注释正文里再出现一次结束标记，注释会在那里**提前收尾**，
+    // 后半段当场漏到界面上 —— 而在 `.md` 里看着完全正常，只有渲染出来才看得出来。
+    // （这个坑真踩过：`draft.md` 的注释里写了那三个字面字符，于是"空壳"并不空；
+    //   默认它不生效所以一直没被看见，而"每条正文非空"那条反倒因为漏出来的尾巴才通过。）
+    const leaked = notices
+      .filter((notice) => plainText(parseMarkdown(notice.body)).includes("-->"))
+      .map((notice) => notice.id);
+    expect(leaked).toEqual([]);
   });
 });

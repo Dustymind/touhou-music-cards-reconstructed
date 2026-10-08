@@ -7256,6 +7256,11 @@ D144 落地当时的事实（`public/_headers` 直到 2026-09-29 的 `b0f4ce8` �
 
 ## D182 站内公告弹窗：手写零依赖 Markdown 渲染 + 每条一个存档键 + 内容指纹判"值不值得再提醒"（2026-10-03）
 
+> ⚠️ **已被 D189 取代**（部分）—— "**手写** Markdown 渲染器"这一半作废：解析改成固化的 `marked`
+> 的 `Lexer`（渲染仍自写）。**其余结论全部仍然有效**：每条一个存档键、内容指纹判"值不值得再提醒"、
+> "为什么不用 npm 依赖"的那条约束（⇒ 所以是**固化进仓库**而不是 `pnpm add`）、以及弹窗的三段式初衷
+> （那部分已被 D186 改过一次，见 D186）。下面关于"手写"的理由保留原文，作为**当时**的取舍记录。
+
 **背景**（用户要求）：进站时弹一个提示窗。三段式排布——正文在上、「不再显示」勾选框在中、
 底部**单个**「关闭」键（用户明确选的是"勾选框在关闭键上方"这个方案）。内容用 **Markdown** 写、后续可追加；
 「不再显示」**本地存储、且每条提示各自独立记录**；关掉之后（尤其勾了「不再显示」之后）仍要有个入口
@@ -8059,4 +8064,168 @@ xxx.md：`draft` 只能是 `true` / `false`（不带引号）。
 - 不让 `draft` 进指纹（与 `date` 同理：它不是内容）。
 - 不校验草稿的字段（见 (c) 的取舍）—— 这是**有意**留的缺口，不是漏了。
 
+
+## D189 Markdown 渲染器：解析交给**固化的权威实现**（`marked` 的 Lexer），渲染仍自写；并补齐全部语法（2026-10-08）
+
+### 背景
+
+D182 起，公告正文的 Markdown 是**手写的 267 行渲染器**。它有两个长期问题：
+
+1. **"权威性"存疑**：手写的"受限子集"里，边界（何时是列表、何时是段落、硬换行怎么算）
+   全是我们自己拍的，与 CommonMark 差在哪、差多少，没人能一眼说清。
+2. **功能不全**：表格、引用块、代码块、图片、删除线、水平线、任务列表**一律按纯文本显示**
+   —— 用户照着 Markdown 习惯写，界面上却是一串带 `|` 和 `>` 的字。
+
+用户的诉求有两句，**第二句推翻了第一句的一个前提**，两句话都要留在决策里：
+
+- 先问："**能否使用一个权威的（不易产生供应链风险的）、轻量的 markdown 实现**"；
+- 再补："**现有 markdown 未解析的也解析，功能完全**"。
+
+### 决策
+
+**(a) 用 `marked`，但只取它的 `Lexer`**
+
+选它的理由：**MIT**、**零运行时依赖**（`dependencies: undefined`）、单入口 ESM、
+`engines: node >= 20`、`tar` 体积小；上游默认分支是 **`master`**（`main` 404，别按 `main` 拉）。
+
+⚠️ **但不能用 `marked.parse()`**：它产出 **HTML 字符串**，上游 README 自己写着
+*"Marked does not sanitize the output HTML. Please use … DOMPurify"* —— 用它就得配 sanitizer，
+配错就是 XSS。⇒ **只调 `Lexer.lex` / `Lexer.lexInline` 拿 token AST，渲染仍是我们自己写的**
+（只产 React 节点、从不 `dangerouslySetInnerHTML`）⇒ **XSS 面保持为零**。
+
+一句话：**"怎么切"交给权威实现，"产出什么"仍攥在自己手里。**
+
+**(b) 固化（vendor）进仓库，不加 npm 依赖**
+
+`src/vendor/marked/` 下只留 **2 个文件**：`marked.esm.js`（仅删掉末尾那行
+`//# sourceMappingURL=`，46345 → 46306 字节）与上游 `LICENSE`；另加我们写的 `PROVENANCE.md`
+（版本 / 许可 / 日期 / 仓库 / 分支 / tarball 完整性 / 两个 sha256 / 升级步骤）与
+**手写的最小类型** `marked.esm.d.ts`。
+
+为什么固化而不是 `pnpm add`：本仓库是 REUSE 聚合仓，`pnpm gate --check` 会比对**生产闭包**
+—— 引一个 npm 运行时依赖，闭包就变、`gen-notices.mjs` 的产出就变、gate 直接红。
+**固化之后它是"仓库自己的源码"，闭包不变。**
+
+⚠️ 固化的代价写进了 `PROVENANCE.md`：**上游的安全修复不会再自动送到我们手里**，
+升级要照那份步骤手动做。
+
+**(c) 补齐语法：`marked` 认得出的，基本都渲染**
+
+| 语法 | 渲染成 |
+|---|---|
+| 标题 `#`~`######` | 一级**降级**成二级（弹窗标题已是 `DialogTitle`），其余如实 |
+| 无序 / 有序列表 | `<ul>` / `<ol>`（**忽略 `start`**，从 1 重编 —— D182 以来的既有约定，刻意保留） |
+| 任务列表 `- [ ]` / `- [x]` | `<li>` + **只读**复选框；勾上的加删除线、转次要色 |
+| 粗体 / 斜体 / 删除线 | `<strong>` / `<em>` / `<del>` |
+| 行内代码 / 代码块 | `<code>` / `<pre><code>`（空白原样保留） |
+| 链接 / 图片 | `<a target="_blank" rel="noreferrer noopener">` / `<img loading="lazy">`，**都只认 http(s)** |
+| 引用块 | 左侧竖线的容器，内部**递归**成块（可放列表 / 代码块 / 嵌套引用） |
+| GFM 表格 | 真 `<table>`，对齐跟 `:--:` / `:-:` / `--:`；窄屏 `overflowX: auto` 横向滚 |
+| 水平线 `---` / `***` / `___` | `<hr>` |
+| 硬换行（行尾两个空格） | `<br>` |
+
+**仍不渲染成元素**：原始 HTML、脚注、定义列表、自动链接、行内标记的嵌套 —— 写了**原样显示**，
+不报错、也**不会**变成 DOM。
+
+### 两条不能破的安全铁律（写进了 `markdown.tsx` 开头的文件注释）
+
+1. **绝不 `dangerouslySetInnerHTML`、绝不产 HTML 字符串。** 别给 `html` token 加"当元素渲染"
+   的分支 —— 一加，XSS 面就从零变成非零，而这正是这个文件存在的全部意义。
+2. **链接的 `href` 与图片的 `src` 都过 `safeProtocol` 白名单（只 `http` / `https`）。**
+   ⚠️ **`marked` 自己不做这个过滤** —— 探针实测它照给 `javascript:` 的 href
+   ⇒ 过滤在**我们**这边。**图片别漏**：图片比链接隐蔽（"看起来不像能执行的东西"），
+   但 `src` 同样是远程请求、同样能做隐私信标。
+
+### 实施中踩到并修掉的
+
+**(1) `marked` 会把"普通列表"和"任务列表"合成一个 token**
+
+`- 甲\n- 乙\n\n- [ ] 待办\n- [x] 已办` 在 CommonMark / `marked` 里是**一个** 4 项的 `list`
+（前两项 `task: false`）。若整块当任务列表渲染，`- 甲` 也会长出一个空复选框 —— 明显不对。
+⇒ 解析层加 `splitListRuns()`，**按 `item.task` 切成连续段**，普通段不带 `tasks`、任务段才带。
+
+**边界取舍**：混合列表（`- 甲` 紧跟 `- [ ] 乙`、中间无空行）也会切成两块。
+"普通项绝不带复选框"比"保住同一个 `<ul>`"更重要（后者只是观感差异）。
+
+**(2) HTML 注释必须继续整段丢弃**
+
+D185 修过"注释漏进界面"（非贪婪匹配提前截断）。`marked` 把注释切成 `{type:"html"}`，
+我们**主动跳过**它（`isHtmlComment`），并在 `splitSourceLines` / 标题 / 列表项三处也剥一遍。
+非注释的 HTML **不丢** —— 让它原样显示成字，"看得见"比"被偷偷吞掉"好排查。
+
+**(3) TS 联合的两个坑**
+
+- **别加"兜底成员"**（`TokenBase & { type: string; [key: string]: unknown }`）：它能匹配**任何**
+  对象 ⇒ 整个联合的判别被打散、`token.depth` 之类全变 `unknown`（实测 12 个类型错）。
+- **块级 token 与行内 token 是两个联合**：`checkbox` 只会出现在行内，塞进块级联合会让
+  `switch (token.type)` 报 `Type '"checkbox"' is not comparable to …`。
+  ⇒ 拆出 `Token`（块级）与 `TagToken`（行内），`tokensToText` 这种"兜底拍平器"两者都收。
+
+**(4) `marked` 的 `token.raw` 保留了原始 Markdown**
+
+这是**关键**：段落/列表项要**传 `raw`（不是 `text`）**给渲染层再走一次行内词法 ——
+`text` 已被拍平，用它会把 `**粗体**` 和 `[链接](url)` 整个丢掉（实测踩过）。
+
+**(5) REUSE 署名**
+
+`REUSE.toml` 里 `**` → `2026 multimode_Liu` / MIT 的兜底会**错误归属**固化进来的 marked。
+⇒ 加显式 `[[annotations]] path = "src/vendor/marked/**"`，署 `2018-2026 MarkedJS, 2011-2018
+Christopher Jeffrey` / `MIT`。`reuse lint` ⇒ **361/361**（改前 359）。
+
+> 许可口径留档：上游 `LICENSE` 里同时含 MIT 与 John Gruber 的 BSD "Markdown" 许可，
+> 但 `package.json` 写 `MIT`、代码文件头写 MIT、源码里**零**处引用 Gruber / daringfireball / BSD
+> ⇒ 我们按 **MIT** 声明。
+
+**(6) 文档里一句过时的话**
+
+`example.md` 曾写"中间空一行会被切成**两个**列表" —— 这在 CommonMark 下**不成立**
+（仍是同一个 `loose` 列表）。已改写，并把那一节扩成"普通项 vs 任务项**相邻时**才会切成两个"。
+
+### 测试
+
+`src/ui/markdown.test.tsx` 从 **18** 条扩到 **33** 条：
+
+- `parseMarkdown` 新增：代码块（带/不带语言）、引用块（递归出列表）、GFM 表格（含对齐）、
+  水平线（`---` / `***` / `___`）、任务列表（`tasks` 数组、普通列表**没有**该字段）、
+  以及"普通列表 + 任务列表相邻 ⇒ 切回两块"。
+- `renderInline` 新增：`~~删~~` → `<del>`；图片 `https:` → `<img alt loading="lazy">`；
+  **`javascript:` / `data:` / 相对地址的图片都不是 `<img>` 且原样显示文字**。
+- 渲染层新增：`<pre><code>` 且**空白原样保留**、引用块内部块照常渲染、
+  `<table>` 的 `th`/`td` 与计算样式对齐、`<hr>`、
+  任务列表的**只读**复选框（`disabled` + `checked`）、普通列表**零个框**、相邻两块列表分开。
+
+**一条断言在实施中改了**（不是回归，且**改了两次**）：
+
+- `- 甲\n\n- 乙` 从"两个列表"改成"**一个** `loose` 列表两项" —— D189 选了跟随权威实现。
+  外观无差别（都是同一个 `<ul>` 里两个 `<li>`），所以**改断言而不是给解析器打补丁**
+  （打补丁 = 在权威实现外面叠一层自己的怪规则，正是这次要摆脱的东西）。
+
+**一条断言改成查计算样式**：表格对齐是 MUI/Emotion 打在 **CSS 类**上的、不是行内 `style`，
+所以用 `getComputedStyle(th).textAlign` 而不是 `th.style.textAlign`（后者恒为空串）。
+
+### 验证状态（诚实记录）
+
+| 项 | 结果 |
+|---|---|
+| `tsc --noEmit` | ✓ 干净 |
+| `pnpm test:file src/ui/markdown.test.tsx` | ✓ **1 file / 33 passed**（18 ⇒ 33） |
+| `pnpm test:file src/content/notices.test.ts` | ✓ **1 file / 34 passed**（含注释漏出守卫，改 `example.md` 后仍绿） |
+| `pnpm test:related src/ui/markdown.tsx` | ✓ **6 files / 107 passed** |
+| 块级语法探针（临时，已删） | ✓ 12 种块 / 行内写法实渲一遍，逐条核对 DOM 与安全边界 |
+| `node scripts/run.mjs playwright test --list` | ✓ **125 tests / 7 files**（`?raw` 陷阱没复发） |
+| `node scripts/gen-notices.mjs --check` | ✓ 署名与许可同生产闭包一致 |
+| `reuse lint` | ✓ **361/361** |
+| `pnpm e2e` / `pnpm test:chromium` / `pnpm license:lint` / `pnpm gate` | **未跑** —— 用户明确"先不要全量测试"，等发话 |
+
+**一个本机坑（又踩了一次）**：vitest 跑起来若遇到"新依赖被 Vite 优化"会**重载并 `rm -rf`
+`.vite/vitest/deps_temp_*`**，撞上 harness 的**每轮 50 次删除守卫** ⇒ 整套报
+`SAFE_DELETE_BULK_CONFIRM_REQUIRED`。别在探针里用 `react-dom/server`（会触发优化）；
+真触发了就手动清 `node_modules/.vite/`。
+
+### 没做的
+
+- 不引 `DOMPurify`、不用 `marked.parse()` —— 我们根本不产 HTML，没有要"消毒"的对象。
+- 不做代码**高亮**（`lang` 只是标记，不换肤色）—— 公告里贴长代码不是主场景。
+- 不渲染原始 HTML（铁律 1）。
+- 不做"公告列表里显示草稿 / 预览" —— 与本决策无关，草稿仍然构建期就摘掉（D188）。
 

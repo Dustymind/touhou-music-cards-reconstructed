@@ -45,7 +45,7 @@
 |---|---|---|
 | `@msgpack/msgpack` | 2.8.0 | Copyright 2019 The MessagePack Community. |
 | `picocolors` | 1.1.1 | Copyright (c) 2021-2024 Oleksii Raspopov, Kostiantyn Denysov, Anton Verinov |
-| `yaml` | 1.10.3 | Copyright 2018 Eemeli Aro <eemeli@gmail.com> |
+| `yaml` | 2.9.1 | Copyright Eemeli Aro <eemeli@gmail.com> |
 
 许可正文：`LICENSES/ISC.txt`
 
