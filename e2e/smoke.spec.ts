@@ -809,8 +809,8 @@ test("卡片大小按钮按 0.01 步进并夹在 0.04~0.40", async ({ page }) =>
   const max = await width();
   expect(max).toBeGreaterThan(larger);
 
-  // 设置会落盘（上游同样存在 localStorage 的 gameSetting 里）
-  const stored = await page.evaluate(() => window.localStorage.getItem("gameSetting"));
+  // 设置会落盘（走 persist.ts 的版本化信封）
+  const stored = await page.evaluate(() => window.localStorage.getItem("tmc.v1.game-setting"));
   expect(stored).toContain("cardWidthPercentage");
 });
 

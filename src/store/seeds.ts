@@ -13,7 +13,7 @@
  */
 import { create } from "zustand";
 
-import { STORAGE_PREFIX, defineStore, isRecord, pickNumber } from "../persist";
+import { defineStore, isRecord, pickNumber } from "../persist";
 import { SEED_MAX, deriveSeed, newSeed, type Seed, type SeedLabel } from "../rng";
 
 /** 权威端（联机主机 / 单机本机）或副本端（联机客户端）。 */
@@ -34,33 +34,20 @@ const seedStore = defineStore<Persisted>({
   },
 });
 
-/** D104 迁移：D104 之前轮播种子存在 queue 存档里（`{order, …, seed}`）。
- *  搬过来，老用户的曲目选择与"重新抽选"结果不会因为升级突然变一套。 */
-function legacyQueueSeed(): Seed | null {
-  try {
-    const raw = globalThis.localStorage?.getItem(`${STORAGE_PREFIX}queue`);
-    if (!raw) return null;
-    const data = (JSON.parse(raw) as { data?: unknown })?.data;
-    return isRecord(data) ? pickNumber(data.seed, 1, SEED_MAX) : null;
-  } catch {
-    return null;
-  }
-}
-
 /** 只接受合法种子；线上/存档来的脏值一律拒掉，不回落到"半随机"。 */
 function toSeed(raw: unknown): Seed | null {
   return typeof raw === "number" && Number.isInteger(raw) && raw >= 0 && raw <= SEED_MAX ? raw : null;
 }
 
-/** 首次运行的种子引导：读存档 → 没有就用 D104 之前存在 queue 里的那个 → 都没有就现抽一个，并落盘。
+/** 首次运行的种子引导：读存档 → 没有就现抽一个，并落盘。
  *
  * 模块加载时执行一次；**也是测试入口** —— 测试跑在真实浏览器里，`vi.resetModules()` 不会重跑
- * ESM 的顶层副作用，所以这段逻辑必须能被直接调用，否则这两条只能靠"重载模块"来测。
+ * ESM 的顶层副作用，所以这段逻辑必须能被直接调用，否则这些用例只能靠"重载模块"来测。
  */
 export function bootstrapSeed(): Seed {
   const stored = seedStore.load();
   if (stored.ownSeed !== 0) return stored.ownSeed;
-  const ownSeed = legacyQueueSeed() ?? newSeed();
+  const ownSeed = newSeed();
   seedStore.save({ ownSeed });
   return ownSeed;
 }

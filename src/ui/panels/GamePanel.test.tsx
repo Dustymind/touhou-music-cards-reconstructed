@@ -593,8 +593,8 @@ describe("GamePanel", () => {
     // 夹在 0.04~0.40：上下限之比 ≈ 10 倍（同一容器宽度下）
     expect(ceiling / floor).toBeGreaterThan(9);
     expect(ceiling / floor).toBeLessThan(11);
-    // 设置落盘（上游同样存在 localStorage 的 gameSetting）
-    expect(localStorage.getItem("gameSetting")).toContain("cardWidthPercentage");
+    // 设置落盘（走 persist.ts 的版本化信封）
+    expect(localStorage.getItem("tmc.v1.game-setting")).toContain("cardWidthPercentage");
   });
 
   it("卡片大小与牌库尺寸会记住：改过的设置下次进游戏页自动恢复", async () => {

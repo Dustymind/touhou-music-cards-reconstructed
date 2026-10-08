@@ -2,8 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import type { MusicEntry } from "../data/types";
 import { defineStore } from "../persist";
-import { presetSpec } from "./preset";
-import { installPinIndex, singleStoreFor, singleTrackSpec } from "./single";
+import { singleStoreFor, singleTrackSpec } from "./single";
 import { useSession } from "./session";
 
 const fresh = { enabled: false, pins: {}, disabledCharacters: {} };
@@ -97,15 +96,15 @@ describe("single track store", () => {
     expect(useSession.getState().entryRequest).toEqual({ key: "cirno", entry: requested });
   });
 
-  it("损坏的存档逐项丢弃，合法项保留（v2 走 validate 不走 migrate）", () => {
+  it("损坏的存档逐项丢弃，合法项保留", () => {
     localStorage.setItem("tmc.v1.single-track.originals", JSON.stringify({
-      v: 2,
+      v: 1,
       data: {
         enabled: true,
         pins: {
           good: { id: "th06_03", album: "紅魔郷", title: "おてんば恋娘", extra: "角色曲" },
           withAuthor: { id: "cirno_otomad_001", album: "音MAD", title: "音MAD 一首", extra: "角色曲", author: "作者" },
-          bad: ["a"],                       // 元组在 v2 里是坏形状：validate 直接丢（migrate 只认 v1）
+          bad: ["a"],                       // 元组是坏形状：validate 直接丢
           worse: ["a", "b", "非法"],
           badAuthor: { id: "x", album: "a", title: "b", extra: "角色曲", author: 7 },
         },
@@ -122,58 +121,5 @@ describe("single track store", () => {
   it("整体不是对象时回落默认值", () => {
     localStorage.setItem("tmc.v1.single-track.originals", JSON.stringify({ v: 1, data: 42 }));
     expect(defineStore(singleTrackSpec("originals")).load()).toEqual(fresh);
-  });
-});
-
-describe("v1 → v2 迁移（S4）", () => {
-  const PIN_A: MusicEntry = { id: "th06_03", album: "紅魔郷", title: "おてんば恋娘", extra: "角色曲" };
-  const PIN_B: MusicEntry = { id: "cirno_otomad_001", album: "音MAD", title: "音MAD 一首", extra: "角色曲", author: "作者" };
-
-  const saveV1 = (pins: unknown): void => {
-    localStorage.setItem("tmc.v1.single-track.originals", JSON.stringify({
-      v: 1, data: { enabled: true, pins, disabledCharacters: { x: true } },
-    }));
-  };
-
-  beforeEach(() => localStorage.clear());
-
-  it("① v1 三元组 pins 正常迁移（查 TrackIndex 换成对象）", () => {
-    installPinIndex([PIN_A, PIN_B]);
-    saveV1({ cirno: ["紅魔郷", "おてんば恋娘", "角色曲"] });
-    const loaded = defineStore(singleTrackSpec("originals")).load();
-    expect(loaded.enabled).toBe(true);
-    expect(loaded.pins.cirno).toEqual(PIN_A);
-    expect(loaded.disabledCharacters).toEqual({ x: true });
-  });
-
-  it("② 查不到的 pin 被丢弃（不猜）", () => {
-    installPinIndex([PIN_A]);
-    saveV1({ cirno: ["紅魔郷", "おてんば恋娘", "角色曲"], gone: ["不存在", "没这首", "角色曲"] });
-    const loaded = defineStore(singleTrackSpec("originals")).load();
-    expect(Object.keys(loaded.pins)).toEqual(["cirno"]);
-  });
-
-  it("③ 坏数据逐项丢弃、不抛", () => {
-    installPinIndex([PIN_A]);
-    saveV1({ bad: ["a"], worse: 42, mixed: ["紅魔郷", "おてんば恋娘", "道中曲"] });  // extra 不一致也丢
-    const loaded = defineStore(singleTrackSpec("originals")).load();
-    expect(loaded).toEqual({ enabled: true, pins: {}, disabledCharacters: { x: true } });
-  });
-
-  it("④ v:2 走 validate 不走 migrate（元组在 v2 里是坏形状，逐项丢弃）", () => {
-    installPinIndex([PIN_A]);
-    localStorage.setItem("tmc.v1.single-track.originals", JSON.stringify({
-      v: 2, data: { enabled: true, pins: { good: PIN_A, legacy: ["紅魔郷", "おてんば恋娘", "角色曲"] }, disabledCharacters: {} },
-    }));
-    const loaded = defineStore(singleTrackSpec("originals")).load();
-    expect(loaded.pins).toEqual({ good: PIN_A });
-  });
-
-  it("⑤ 版本号没变的其它键读 v1 仍成功", () => {
-    localStorage.setItem("tmc.v1.preset.originals", JSON.stringify({
-      v: 1, data: { albums: { "紅魔郷": true }, hifuu: {}, category: {} },
-    }));
-    const loaded = defineStore(presetSpec("originals")).load();
-    expect(loaded.albums["紅魔郷"]).toBe(true);
   });
 });

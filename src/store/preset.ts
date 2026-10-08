@@ -1,8 +1,7 @@
 /** 选曲预设状态（M6 的配置页只负责把它接上界面）。
  *
  * **按音乐模式分键**（B）：`tmc.v1.preset.originals` 与 `tmc.v1.preset.otomads` 各一把。
- * 两个模式是两套专辑表，共用一张表会让"取消勾选"在切模式后莫名生效或失效；
- * 老存档（单键 `tmc.v1.preset`）归**原曲**（`legacyName`），音MAD 侧从默认值长起。
+ * 两个模式是两套专辑表，共用一张表会让"取消勾选"在切模式后莫名生效或失效。
  */
 import { create } from "zustand";
 
@@ -29,13 +28,9 @@ function validatePreset(raw: unknown): PresetState | null {
   return { albums: pickBooleanMap(raw.albums), hifuu: pickBooleanMap(raw.hifuu), category };
 }
 
-/** 某个音乐模式的存档规格（测试直接用它验校验与迁移）。 */
+/** 某个音乐模式的存档规格（测试直接用它验校验）。 */
 export function presetSpec(mode: MusicMode): StoreSpec<PresetState> {
-  const base: StoreSpec<PresetState> = {
-    name: `preset.${mode}`, version: 1, fallback: FALLBACK, validate: validatePreset,
-  };
-  // 老存档没有模式维度：归原曲（内容形状没变，所以不动版本号）
-  return mode === "originals" ? { ...base, legacyName: "preset" } : base;
+  return { name: `preset.${mode}`, version: 1, fallback: FALLBACK, validate: validatePreset };
 }
 
 interface PresetSlice extends PresetState {

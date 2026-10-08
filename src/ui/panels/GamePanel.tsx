@@ -1,7 +1,7 @@
 /** 对战页：模式/规则设置 + 双方牌库 + 收集数 + 计时器 + 回合操作。 */
 import {
   Alert, Box, Card, CardContent, CardHeader, Chip, Divider, FormControlLabel, RadioGroup, Stack,
-  Switch, TextField, Typography,
+  Switch, Typography,
 } from "@mui/material";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -39,7 +39,7 @@ import { DECK_GAP, DeckGrid } from "../game/DeckGrid";
 import { UnusedCardsTray } from "../game/UnusedCardsTray";
 import { useCurrentDataset } from "../../data/useDataset";
 import { Reveal } from "../game/Reveal";
-import { GameGroupLabel, GameRadioOption, NumberSelect } from "../game/GameControls";
+import { GameGroupLabel, GameRadioOption, NumberField, NumberSelect } from "../game/GameControls";
 import { buildSongConflicts } from "../../music/songConflicts";
 import { DECK_LIMITS } from "../../game/gameSetting";
 import { MD2 } from "../../theme/theme";
@@ -503,35 +503,24 @@ function GamePanelInner({ bundle, cardKeys }: GamePanelProps) {
         </Stack>
 
         {game.mode === "cpu" && (
-          /* 三个参数用带 label 的 filled 输入框：filled 变体会为浮动标签留出上方空间，
-             标签直接用 caption 写在旁边就会留出多余空位（用户反馈） */
           <Stack direction="row" spacing={2} sx={{ mt: 1, alignItems: "center", flexWrap: "wrap" }}>
-            <TextField
-              size="small"
-              type="number"
+            <NumberField
               label={t(Localization.GameOpponentSettingMean)}
               value={cpu.meanSeconds}
-              sx={{ width: "10em" }}
-              onChange={(event) => setCpu({ meanSeconds: Number(event.target.value) || 0 })}
-              slotProps={{ htmlInput: { "aria-label": "cpu-mean" } }}
+              ariaLabel="cpu-mean"
+              onChange={(meanSeconds) => setCpu({ meanSeconds })}
             />
-            <TextField
-              size="small"
-              type="number"
+            <NumberField
               label={t(Localization.GameOpponentSettingStdDev)}
               value={cpu.stdDevSeconds}
-              sx={{ width: "10em" }}
-              onChange={(event) => setCpu({ stdDevSeconds: Number(event.target.value) || 0 })}
-              slotProps={{ htmlInput: { "aria-label": "cpu-sigma" } }}
+              ariaLabel="cpu-sigma"
+              onChange={(stdDevSeconds) => setCpu({ stdDevSeconds })}
             />
-            <TextField
-              size="small"
-              type="number"
+            <NumberField
               label={t(Localization.GameOpponentSettingMistake)}
               value={cpu.mistakeRate}
-              sx={{ width: "10em" }}
-              onChange={(event) => setCpu({ mistakeRate: Number(event.target.value) || 0 })}
-              slotProps={{ htmlInput: { "aria-label": "cpu-mistake" } }}
+              ariaLabel="cpu-mistake"
+              onChange={(mistakeRate) => setCpu({ mistakeRate })}
             />
           </Stack>
         )}

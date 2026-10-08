@@ -16,7 +16,7 @@
 **用户已裁定**（2026-09）：
 1. 注册表拆成 `data/sources/originals.toml` + `data/otomads/sources/otomads.toml`（后者 D128 拆出，**D174 起不再是 submodule**，改为 env `OTOMADS_DATA_DIR` 指向的落点）；
    （**S1c 起原曲侧再进一步：每源一个自包含 TOML** `data/sources/{netease163,thbwiki}.toml`，注册表文件删除，见 REFACTOR-PLAN v2 §14.2）
-2. 用户的开关/顺序存档 `tmc.v1.sources` **按模式分键**（要迁移）；
+2. 用户的开关/顺序存档按模式分键（`tmc.v1.sources.originals` / `.otomads`）；
 3. `effectiveSourceOverrides()` 的解释已给出 ⇒ 建议**删掉**，用构建期校验替代（见 §5）。
 
 前置：D109（曲包一角色一份文件）、D110（运行状态按模式分键）、D112（两份数据集 + 协议 v4）。
@@ -86,14 +86,15 @@ data/public/data/sources/*.json       # 两份镜像表：**manifest 形状**（
 - 消费侧：`useSources(dataset.sources, …)`、`SourceSection` 用 `dataset.sources`；
   `AppShell` 不再把"源"从共享项传下去。
 
-## 4. 存档分键与迁移
+## 4. 存档分键
 
 | 键 | 内容 |
 |---|---|
-| `tmc.v1.sources.originals` | 原曲那三个镜像的开关/顺序（**老键 `tmc.v1.sources` 迁到这里**，沿用 B 的 `legacyName` 机制） |
+| `tmc.v1.sources.originals` | 原曲那三个镜像的开关/顺序 |
 | `tmc.v1.sources.otomads` | 音MAD 那份：**默认不写覆盖**（注册表里 local 已 `enabled = true`，无需覆盖） |
 
-迁移只发生在"新键不存在、老键存在"时；老键不删（回退旧版本还读得到）。
+老键 `tmc.v1.sources`（分键之前的单键）与一次性迁移机制**已废弃**：新的分键结构没有兼容负担，
+`persist.ts` 不再有"单键 → 分键"的老键搬运分支。
 
 ## 5. 删补丁，换构建期不变量
 
@@ -134,7 +135,7 @@ data/public/data/sources/*.json       # 两份镜像表：**manifest 形状**（
 `pnpm e2e`（三端）+ `pnpm e2e:perf`；另加一条 e2e：**音MAD 模式下不请求那两份镜像表**
 （用 `page.on("request")` 抓 `/data/sources/*.json`，断言 0 次）—— 这就是这次拆分最直接的可观测收益。
 
-**回滚**：只动数据与前端（**不动协议**），回滚 = 回退一个提交；`tmc.v1.sources.*` 两个新键退回老键即可。
+**回滚**：只动数据与前端（**不动协议**），回滚 = 回退一个提交；两把 `tmc.v1.sources.*` 键跟着改回原状即可。
 
 ## 8. 待裁定
 
@@ -144,7 +145,7 @@ data/public/data/sources/*.json       # 两份镜像表：**manifest 形状**（
 | **Q2** | 源表归属：`dataset.sources`（随数据集）/ 留在 `shared` 加 mode 字段 | **随数据集 ✅** | 留 shared 等于"数据分离了、源没分离" |
 | **Q3** | 两份镜像表是否跟着挪到某个模式目录下 | **不挪 ✅** | 挪了要改 `table_url` 与部署代理，收益为零 |
 | **Q4** | 音MAD 下本地源**可不可以被用户关掉**（关了那个模式就没源） | **可以，但给一行提示 ✅**（`source-none-enabled`） | 强制不可点会与"存档分键、用户说了算"的口径打架；完全不管则用户可能自己把自己弄哑 |
-| **Q5** | 老存档 `tmc.v1.sources` 归哪个模式 | **归原曲 ✅**（同 B/D110） | 归音MAD 会让原曲的镜像顺序丢 |
+| **Q5** | （历史）分键之前的老存档 `tmc.v1.sources` 归哪个模式 | 归原曲（同 B/D110）；**该迁移已废弃** —— 分键结构没有兼容负担 | — |
 | **Q6** | `SourceSection` 在音MAD 下是否保留"曲目只存在于本机"的提示行 | **保留 ✅**（`music-mode-local-hint`） | 去掉会让"为什么这里只有一个源"没人解释 |
 
 ---
@@ -174,7 +175,7 @@ data/public/data/sources/*.json       # 两份镜像表：**manifest 形状**（
 | 位置 | 改动 |
 |---|---|
 | `src/data/types.ts` / `load.ts` | `ModeDataset.sources`（随数据集取 `sources.json`）；`SharedData` 只剩 `cardSets` |
-| `src/store/sources.ts`（新） | 音源开关/顺序按模式分键：`tmc.v1.sources.originals`（老键迁入）/ `.otomads`；`effectiveOrder` 一并搬来 |
+| `src/store/sources.ts`（新） | 音源开关/顺序按模式分键：`tmc.v1.sources.originals` / `.otomads`；`effectiveOrder` 一并搬来 |
 | `src/store/session.ts` | 不再持有音源开关/顺序（搬去上面那把） |
 | `src/music/mode.ts` | **删掉 `effectiveSourceOverrides()`** —— 音源层按模式拆之后没有"临时强制打开"这回事了 |
 | `src/ui/shell/AppShell.tsx` | `useSources(dataset.sources, 当前模式那把覆盖, …)` |

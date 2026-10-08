@@ -1,21 +1,20 @@
-/** B：运行状态按音乐模式分键 —— 老存档迁移、两模式互不干扰、钩子跟着会话模式换表。
+/** B：运行状态按音乐模式分键 —— 两模式互不干扰、点播不跨模式、钩子跟着会话模式换表。
  *
  * 分键的目标（用户）：切模式不再互相污染 —— 预设 / 单曲手选 / 禁用角色 / 队列顺序 / 当前角色
- * 各归各的；老存档（单键 `tmc.v1.<name>`）归**原曲**。
+ * 各归各的，落盘也各占一把键 `tmc.v1.<name>.<mode>`。
  */
 import { act } from "react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { create } from "zustand";
 
-import { defineStore } from "../persist";
 import { renderHook } from "../test-utils";
 import type { MusicEntry } from "../data/types";
 import type { MusicMode } from "../music/mode";
 import type { PresetState } from "../music/selection";
 import { makeModeStores } from "./modeScope";
-import { presetSpec, presetStoreFor, usePreset } from "./preset";
-import { queueSpec, queueStoreFor } from "./queue";
-import { singleStoreFor, singleTrackSpec } from "./single";
+import { presetStoreFor, usePreset } from "./preset";
+import { queueStoreFor } from "./queue";
+import { singleStoreFor } from "./single";
 import { useSession } from "./session";
 
 const ALBUM = "東方紅魔郷 ～ the Embodiment of Scarlet Devil";
@@ -54,36 +53,6 @@ beforeEach(() => {
   queue.otomads.setState(FRESH_QUEUE);
   probe.storeFor("originals").setState({ hits: 0 });
   probe.storeFor("otomads").setState({ hits: 0 });
-});
-
-describe("老存档迁移（单键 → .originals）", () => {
-  it("预设/单曲/队列的老键都搬到 .originals，音MAD 从默认值长起，老键不删", () => {
-    localStorage.setItem("tmc.v1.preset", JSON.stringify({ v: 1, data: { ...FRESH_PRESET, albums: { [ALBUM]: false } } }));
-    // 单曲那把是 v2（S4 起）：这条用例验的是**键名迁移**，不是 v1 元组 pin 的迁移（那在 single.test.ts）
-    localStorage.setItem("tmc.v1.single-track", JSON.stringify({ v: 2, data: { ...FRESH_SINGLE, enabled: true, pins: { cirno: PIN } } }));
-    localStorage.setItem("tmc.v1.queue", JSON.stringify({ v: 1, data: { ...FRESH_QUEUE, order: ["cirno"], currentKey: "cirno" } }));
-
-    expect(defineStore(presetSpec("originals")).load().albums[ALBUM]).toBe(false);
-    expect(defineStore(singleTrackSpec("originals")).load()).toMatchObject({ enabled: true, pins: { cirno: PIN } });
-    expect(defineStore(queueSpec("originals")).load()).toMatchObject({ order: ["cirno"], currentKey: "cirno" });
-
-    // 新键已经写好（下次不再搬），老键保留（回退旧版本还读得到）
-    expect(localStorage.getItem("tmc.v1.preset.originals")).toContain(ALBUM);
-    expect(localStorage.getItem("tmc.v1.single-track.originals")).toContain("cirno");
-    expect(localStorage.getItem("tmc.v1.queue.originals")).toContain("cirno");
-    expect(localStorage.getItem("tmc.v1.preset")).toContain(ALBUM);
-
-    // 音MAD 那把没有老键可继承 → 默认值
-    expect(defineStore(presetSpec("otomads")).load()).toEqual(FRESH_PRESET);
-    expect(defineStore(singleTrackSpec("otomads")).load()).toEqual(FRESH_SINGLE);
-    expect(defineStore(queueSpec("otomads")).load()).toEqual(FRESH_QUEUE);
-  });
-
-  it("新键已存在时不被老键覆盖", () => {
-    localStorage.setItem("tmc.v1.preset.originals", JSON.stringify({ v: 1, data: { ...FRESH_PRESET, albums: { [ALBUM]: true } } }));
-    localStorage.setItem("tmc.v1.preset", JSON.stringify({ v: 1, data: { ...FRESH_PRESET, albums: { [ALBUM]: false } } }));
-    expect(defineStore(presetSpec("originals")).load().albums[ALBUM]).toBe(true);
-  });
 });
 
 describe("两模式互不干扰", () => {

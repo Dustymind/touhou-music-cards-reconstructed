@@ -5,8 +5,7 @@
  * 于是"重新抽选"在客户端不再是各抽各的 ✗，而是发意图让主机换种子（见 `useNet`）。
  *
  * **按音乐模式分键**（B）：`tmc.v1.queue.originals` / `.otomads` 各一把。两个模式能播的角色不同
- * （音MAD 只有 35 个），共用一条顺序会让"切模式就把队列收窄、切回来又要重排"变成常态；
- * 分键之后每个模式各自记住自己的顺序、临时禁用与当前角色。老存档（单键 `tmc.v1.queue`）归**原曲**。
+ * （音MAD 只有 35 个），分键之后每个模式各自记住自己的顺序、临时禁用与当前角色。
  */
 import { create } from "zustand";
 
@@ -20,8 +19,6 @@ interface Persisted {
   order: string[];
   temporaryDisabled: Record<string, boolean>;
   currentKey: string | null;
-  /** D104 之前这里存过 `seed`（轮播种子）；现在归 `src/store/seeds.ts`，迁移代码在那边 */
-  seed?: number;
 }
 
 const FRESH: Persisted = { order: [], temporaryDisabled: {}, currentKey: null };
@@ -39,8 +36,7 @@ function validateQueue(raw: unknown): Persisted | null {
 
 /** 某个音乐模式的存档规格。 */
 export function queueSpec(mode: MusicMode): StoreSpec<Persisted> {
-  const base: StoreSpec<Persisted> = { name: `queue.${mode}`, version: 1, fallback: FRESH, validate: validateQueue };
-  return mode === "originals" ? { ...base, legacyName: "queue" } : base;
+  return { name: `queue.${mode}`, version: 1, fallback: FRESH, validate: validateQueue };
 }
 
 interface QueueState extends Persisted {

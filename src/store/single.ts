@@ -3,11 +3,10 @@
  * **按音乐模式分键**（B）：`tmc.v1.single-track.originals` / `.otomads` 各一把。
  * 手选的是"某个角色唱哪首"，而两个模式的曲目集合不同 —— 共用一份会让音MAD 侧
  * 手选的曲目在原曲模式里"存在但不合法"，只能靠回退逻辑兜着。
- * 老存档（单键 `tmc.v1.single-track`）归**原曲**（`legacyName`）。
  */
 import { create } from "zustand";
 
-import { trackId, type MusicEntry } from "../data/types";
+import { type MusicEntry } from "../data/types";
 import { EXTRAS } from "../data/types";
 import { defineStore, isRecord, pickBoolean, type StoreSpec } from "../persist";
 import type { MusicMode } from "../music/mode";
@@ -25,7 +24,7 @@ const EXTRAS_SET = new Set<string>(EXTRAS);
 const FRESH: SingleTrackState = { enabled: false, pins: {}, disabledCharacters: {} };
 
 /** 手选条目（S2：对象）：`id / album / title / extra`，`author` 是**可选作者**（音MAD 那批基本都有）、
- *  `authors` 是字符串数组（D135 起跟着存档走）。旧元组存档由 S4 的 `migrate` 钩子一次性迁移。 */
+ *  `authors` 是字符串数组（D135 起跟着存档走）。 */
 function isEntry(raw: unknown): raw is MusicEntry {
   return isRecord(raw)
     && typeof raw.id === "string" && raw.id.length > 0
@@ -67,53 +66,11 @@ function validateSingleTrack(raw: unknown): SingleTrackState | null {
   return { enabled, pins, disabledCharacters };
 }
 
-/** (专辑, 曲名) → MusicEntry 的查表索引：数据载入后由 `installPinIndex` 安装，
- *  v1 → v2 的存档迁移靠它把旧元组 pin 换成对象（查不到的直接丢弃，不猜）。 */
-let pinIndex: Map<string, MusicEntry> | null = null;
-/** 已建 store 的「重新读档」入口（索引安装后要把三把按新索引重读一遍）。 */
-const reloaders: (() => SingleTrackState)[] = [];
-
-/** 数据载入后调用：安装索引并重读三把 store（旧 v1 存档经 migrate 一次性转换）。 */
-export function installPinIndex(entries: Iterable<MusicEntry>): void {
-  pinIndex = new Map();
-  for (const entry of entries) pinIndex.set(trackId(entry.album, entry.title), entry);
-  for (const reload of reloaders) reload();
-}
-
-/** v1 → v2 一次性迁移：pins 的旧元组 [专辑, 曲名, extra, …] 换成对象。
- *  查表 = TrackIndex；查不到的条目直接丢弃、不猜（REFACTOR-PLAN v2 §15）。 */
-function migrateSingleTrack(raw: unknown, fromVersion: number): SingleTrackState | null {
-  if (fromVersion !== 1 || pinIndex === null || !isRecord(raw)) return null;
-  const enabled = pickBoolean(raw.enabled) ?? false;
-  const pins: Record<string, MusicEntry> = {};
-  if (isRecord(raw.pins)) {
-    for (const [key, value] of Object.entries(raw.pins)) {
-      if (isEntry(value)) {                        // 已是新形状（罕见）⇒ 原样保留
-        pins[key] = copyEntry(value);
-        continue;
-      }
-      if (!Array.isArray(value) || typeof value[0] !== "string" || typeof value[1] !== "string") continue;
-      const entry = pinIndex.get(trackId(value[0], value[1]));
-      if (!entry || entry.extra !== value[2]) continue;   // 查不到 / 附加信息不一致 ⇒ 丢弃
-      pins[key] = copyEntry(entry);
-    }
-  }
-  const disabledCharacters: Record<string, boolean> = {};
-  if (isRecord(raw.disabledCharacters)) {
-    for (const [key, value] of Object.entries(raw.disabledCharacters)) {
-      if (pickBoolean(value)) disabledCharacters[key] = true;
-    }
-  }
-  return { enabled, pins, disabledCharacters };
-}
-
-/** 某个音乐模式的存档规格（测试直接用它验校验与迁移）。 */
+/** 某个音乐模式的存档规格（测试直接用它验校验）。 */
 export function singleTrackSpec(mode: MusicMode): StoreSpec<SingleTrackState> {
-  const base: StoreSpec<SingleTrackState> = {
-    name: `single-track.${mode}`, version: 2, fallback: FRESH, validate: validateSingleTrack,
-    migrate: migrateSingleTrack,
+  return {
+    name: `single-track.${mode}`, version: 1, fallback: FRESH, validate: validateSingleTrack,
   };
-  return mode === "originals" ? { ...base, legacyName: "single-track" } : base;
 }
 
 interface SingleTrackSlice extends SingleTrackState {
@@ -144,7 +101,7 @@ function makeSlice(mode: MusicMode) {
   });
   const persist = (state: SingleTrackState): void => { handle.save(pick(state)); };
 
-  const store = create<SingleTrackSlice>((set, get) => ({
+  return create<SingleTrackSlice>((set, get) => ({
     ...initial,
 
     setEnabled(enabled) {
@@ -194,15 +151,6 @@ function makeSlice(mode: MusicMode) {
       persist({ ...pick(get()), pins, disabledCharacters });
     },
   }));
-
-  // 数据载入后（installPinIndex）按新索引重新读档：旧 v1 存档会经 migrate 一次性转换，
-  // 转换结果直接落回 state（不写盘 —— 用户下一次改动才写，与 load 的口径一致）。
-  reloaders.push(() => {
-    const reloaded = handle.load();
-    store.setState(pick(reloaded));
-    return reloaded;
-  });
-  return store;
 }
 
 const singleStores = makeModeStores<SingleTrackSlice>(makeSlice);

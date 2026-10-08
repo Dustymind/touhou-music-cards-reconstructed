@@ -11,12 +11,10 @@ import {
   type DataIndex,
   EXTRAS,
   type ModeDataset,
-  type MusicEntry,
   type SourceRecord,
   type TrackRecord,
 } from "./types";
 import { MUSIC_MODES, type MusicMode } from "../music/mode";
-import { installPinIndex } from "../store/single";
 import { isCardRatio } from "../theme/cardRatio";
 
 export class DataLoadError extends Error {
@@ -220,12 +218,6 @@ export async function loadDataBundle(base = "./data"): Promise<DataBundle> {
     fetchJson(url("cardsets.json")),
   ]);
   const cardSets = validateCardSets(rawCardSets);
-  // S4：single-track 存档的 v1 → v2 迁移要靠 TrackIndex 查表 ⇒ 数据一就位就把索引装进 store 层
-  const entries: MusicEntry[] = [];
-  for (const dataset of [originals, otomads, custom]) {
-    for (const character of dataset.characters) entries.push(...character.music);
-  }
-  installPinIndex(entries);
   return { shared: { cardSets }, datasets: { originals, otomads, custom } };
 }
 

@@ -81,13 +81,13 @@ const sessionStore = defineStore<SessionPrefs>({
     const locale = pickString(raw.locale, LOCALES) as Locale | null;
     const tab = pickString(raw.tab, TAB_ORDER) as TabId | null;
     const cardCollection = pickString(raw.cardCollection);
-    // 老存档没有 musicMode → 用默认值（原曲），不因为缺字段就丢弃整份偏好
+    // 缺 musicMode 字段 → 用默认值（原曲），不因为少一个键就丢弃整份偏好
     const musicMode = (pickString(raw.musicMode, MUSIC_MODES) as MusicMode | null) ?? DEFAULT_MUSIC_MODE;
     if (!locale || !tab || !cardCollection) return null;
     const localMusicUrl = pickString(raw.localMusicUrl) ?? "";
-    // 老存档没有 customSourceUrl → 空串（= 还没填），不因为缺字段就丢弃整份偏好
+    // 缺 customSourceUrl → 空串（= 还没填），不因为少一个键就丢弃整份偏好
     const customSourceUrl = pickString(raw.customSourceUrl) ?? "";
-    // 画幅同理：老存档没有 / 值认不得 → 空串（= 跟着每套图集自己的默认档），
+    // 画幅同理：缺字段 / 值认不得 → 空串（= 跟着每套图集自己的默认档），
     // 不因为这一项就丢弃整份偏好
     const cardRatio = (pickString(raw.cardRatio, CARD_RATIOS) as CardRatio | null) ?? "";
     return { locale, tab, cardCollection, musicMode, localMusicUrl, customSourceUrl, cardRatio };

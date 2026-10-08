@@ -1,10 +1,11 @@
-/** 游戏页的少量共用控件：分组标题、单选行、数字下拉框。
+/** 游戏页的少量共用控件：分组标题、单选行、数字下拉框、数字输入框。
  *
- * 抽出来是为了不再在 `GamePanel` 里重复五段几乎一样的单选 JSX，以及两段一样的下拉 JSX。
+ * 抽出来是为了不再在 `GamePanel` 里重复五段几乎一样的单选 JSX、两段一样的下拉 JSX，
+ * 以及三段一样的数字输入 JSX。
  */
 import type { SvgIconComponent } from "@mui/icons-material";
 import {
-  Box, FormControl, FormControlLabel, InputLabel, MenuItem, Radio, Select, Stack, Typography,
+  Box, FormControl, FormControlLabel, InputLabel, MenuItem, Radio, Select, Stack, TextField, Typography,
   type SxProps,
 } from "@mui/material";
 
@@ -67,5 +68,32 @@ export function NumberSelect({ testId, label, value, min, max, onChange }: Numbe
         ))}
       </Select>
     </FormControl>
+  );
+}
+
+interface NumberFieldProps {
+  label: string;
+  value: number;
+  /** `aria-label`：e2e 按它取输入框 */
+  ariaLabel: string;
+  onChange: (value: number) => void;
+}
+
+/** 带浮动标签的 filled 数字输入框（CPU 三个参数）。
+ *
+ * 用带 label 的 filled 变体：filled 会为浮动标签留出上方空间，标签若改用 caption 写在旁边
+ * 就会多出一块空位（用户反馈过）。宽度固定 `10em`，与同排的几个框对齐。
+ */
+export function NumberField({ label, value, ariaLabel, onChange }: NumberFieldProps) {
+  return (
+    <TextField
+      size="small"
+      type="number"
+      label={label}
+      value={value}
+      sx={{ width: "10em" }}
+      onChange={(event) => onChange(Number(event.target.value) || 0)}
+      slotProps={{ htmlInput: { "aria-label": ariaLabel } }}
+    />
   );
 }

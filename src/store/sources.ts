@@ -1,12 +1,12 @@
 /** 音源开关与回退顺序（用户存档），**按音乐模式分键**。
  *
  * 契约 `docs/sources-separation-v1.md` §3/§4：每个模式的注册表与它的开关/顺序各归各的 ——
- * `tmc.v1.sources.originals`（老键 `tmc.v1.sources` 迁到这里）与 `tmc.v1.sources.otomads`。
- * 音MAD 那份**默认不写任何覆盖**：它注册表里的本地源本来就 `enabled = true`（由 `tmc.validate` 守）。
+ * `tmc.v1.sources.originals` 与 `tmc.v1.sources.otomads`。音MAD 那份**默认不写任何覆盖**：
+ * 它注册表里的本地源本来就 `enabled = true`（由 `tmc.validate` 守）。
  */
 import { create } from "zustand";
 
-import { defineStore, isRecord, pickBoolean, pickNumber, pickString, type StoreSpec } from "../persist";
+import { defineStore, isRecord, pickBoolean, pickNumber, type StoreSpec } from "../persist";
 import type { MusicMode } from "../music/mode";
 import { makeModeStores, type ModeHook } from "./modeScope";
 
@@ -39,19 +39,9 @@ function validateSources(raw: unknown): Overrides | null {
   return out;
 }
 
-/** v0 曾经只存一个"启用的音源 id"（单选）；迁移成开关表。 */
-function migrateLegacy(raw: unknown): Overrides | null {
-  const legacy = pickString(raw);
-  return legacy ? { [legacy]: { enabled: true, order: 1 } } : null;
-}
-
-/** 某个模式的存档规格（测试直接用它验校验与迁移）。 */
+/** 某个模式的存档规格（测试直接用它验校验）。 */
 export function sourceSpec(mode: MusicMode): StoreSpec<Overrides> {
-  const base: StoreSpec<Overrides> = {
-    name: `sources.${mode}`, version: 1, fallback: {}, validate: validateSources, migrate: migrateLegacy,
-  };
-  // 老存档（单键 `tmc.v1.sources`）没有模式维度：归原曲（内容形状没变，所以不动版本号）
-  return mode === "originals" ? { ...base, legacyName: "sources" } : base;
+  return { name: `sources.${mode}`, version: 1, fallback: {}, validate: validateSources };
 }
 
 interface SourceSlice {

@@ -153,17 +153,3 @@ describe("音乐源顺序与开关（用户反馈后的回归）", () => {
     expect(localStorage.getItem("tmc.v1.sources.otomads")).toBeNull();
   });
 });
-
-describe("老存档迁移（单键 → .originals）", () => {
-  beforeEach(() => localStorage.clear());
-
-  it("老键搬到 .originals，音MAD 从空表长起，老键不删", () => {
-    localStorage.setItem("tmc.v1.sources", JSON.stringify({
-      v: 1, data: { thbwiki: { enabled: false, order: 1 } },
-    }));
-    expect(defineStore(sourceSpec("originals")).load()).toEqual({ thbwiki: { enabled: false, order: 1 } });
-    expect(localStorage.getItem("tmc.v1.sources.originals")).toContain("thbwiki");
-    expect(localStorage.getItem("tmc.v1.sources")).toContain("thbwiki");     // 老键保留
-    expect(defineStore(sourceSpec("otomads")).load()).toEqual({});           // 音MAD 是空表
-  });
-});

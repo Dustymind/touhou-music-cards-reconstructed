@@ -131,7 +131,7 @@ welcome / snapshot（SessionConfigWire，协议 v3）
 ## 存档
 
 - `tmc.v1.seed` → `{ ownSeed }`（本机自己的种子，落盘；**采用来的种子不落盘**，离开房间就回自己的）
-- D104 之前轮播种子存在 `tmc.v1.queue` 的 `seed` 字段里，首次启动会迁移过来（`legacyQueueSeed()`）。
+- D104 之前轮播种子曾存在 `tmc.v1.queue` 的 `seed` 字段里；一次性迁移**已废弃**，队列存档里不再有这个字段。
 
 ## 自检
 

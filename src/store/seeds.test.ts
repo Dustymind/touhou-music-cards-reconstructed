@@ -88,16 +88,6 @@ describe("种子权威", () => {
     expect(useSeeds.getState().ownSeed).toBe(1000);
   });
 
-  it("D104 迁移：旧 queue 存档里的轮播种子会被搬进种子商店", () => {
-    localStorage.clear();
-    localStorage.setItem("tmc.v1.queue", JSON.stringify({
-      v: 1, data: { order: ["a"], temporaryDisabled: {}, currentKey: "a", seed: 424242 },
-    }));
-    // 直接调引导函数，而不是 resetModules + 重新 import（浏览器模式下顶层副作用不会重跑）
-    expect(bootstrapSeed()).toBe(424242);
-    expect(localStorage.getItem("tmc.v1.seed")).toContain("424242");
-  });
-
   it("首次运行：没有存档就生成一个权威种子并落盘", () => {
     localStorage.clear();
     const seed = bootstrapSeed();

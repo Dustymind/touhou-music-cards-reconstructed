@@ -243,8 +243,7 @@ describe("App 冒烟（真实数据）", () => {
     const sources = sourceStoreFor("originals");
     await act(async () => {
       useSession.setState({ musicMode: "originals" });
-      // 走**真实落盘路径**：S4 起数据一就位 `installPinIndex` 会把三把 store 按索引重读一遍，
-      // 只 setState 不写盘的死条目会被那次重读抹掉，prune 就永远看不到它（这条用例要守的正是"清完落盘"）。
+      // 走**真实落盘路径**：这条用例要守的是"数据就位后把死条目清掉并落盘"。
       single.getState().setPin("gone-key", { id: "x_1", album: "专辑", title: "曲目", extra: "角色曲" });
       sources.setState({ overrides: { gone: { enabled: false, order: 9 } } });
     });

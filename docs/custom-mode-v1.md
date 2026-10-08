@@ -119,7 +119,7 @@ sourceOnly: true, dir: "", origins: [], localPrefix: "./", ratios: ["16x9","4x3"
 协议 **v7**（`docs/protocol-v1.md`；下面这些字段是 **v5** 引入的）：`DataHashes` 三项、`MusicModeWire` 三项、
 `SessionConfigWire.customSourceUrl`、`hello.customSourceUrl`、`reject.customSourceUrl`。
 v6 另加了 `perTrackFaces` / `currentCardIndex`，**对模式 3 同样生效**（`src/data/cardFaces.ts` 的 `sourceOnly`）；
-v7（曲id 身份 + 生成物 `schema` 2）只改哈希取值与存档迁移，**对模式 3 的字段没有增删**。
+v7（曲id 身份 + 生成物 `schema` 2）只改哈希取值（早期实现带过一次存档迁移，**后续已废弃** —— 存档只认当前形状），**对模式 3 的字段没有增删**。
 
 ## 7. C7 空源与联机采用（F3）
 
