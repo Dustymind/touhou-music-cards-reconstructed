@@ -137,6 +137,13 @@ PLAYWRIGHT_BROWSERS_PATH="$PWD/.playwright-browsers" pnpm exec playwright instal
 set PLAYWRIGHT_BROWSERS_PATH=%CD%\.playwright-browsers && pnpm exec playwright install
 ```
 
+> ⚠️ **跑 e2e 一律走 `pnpm e2e` / `pnpm e2e:file` / `pnpm e2e:mobile`，不要手敲 `pnpm exec playwright test`。**
+> `pnpm exec` **绕过** `scripts/run.mjs` ⇒ `PLAYWRIGHT_BROWSERS_PATH` 没被设上 ⇒ 回落到系统默认目录
+> `%LOCALAPPDATA%\ms-playwright`。那里装的是**别版本**的浏览器（revision 对不上），于是**全部用例秒红**、
+> 报 `browserType.launch: Executable doesn't exist at …chromium_headless_shell-<rev>\…`
+> —— 看着像"代码全坏了"，其实只是找不到浏览器。非要手敲就自己带上那个环境变量。
+> 判断依据：报错路径在 `AppData\Local\ms-playwright`（系统那份）而不是仓库里的 `.playwright-browsers`。
+
 ### 2.5 装完却报 `ERR_MODULE_NOT_FOUND`（pnpm 退化成目录联接）
 
 **症状**：`pnpm install` 成功，但 `pnpm build` / `pnpm dev` 报
