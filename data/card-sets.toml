@@ -3,9 +3,33 @@
 #
 # r2 参数（?r2=1）等价于"把 origins 的第一项提到最前"（上游的语义）。
 # default = 首次进入使用的图集（上游是 dairi-sd）。
+#
+# ---- ⚠️ 自建 R2 桶（自己的图床）----
+#
+# `origin_r2` 是**自己那个桶的公开域名**，构建时会被**自动插到下面每套内置图集的 origins 最前面**
+# （见 `tools/src/tmc/build.py` 的 `build_card_sets`）——所以换桶**只需要改下面这一行**，
+# 不用去六个 `[[card_set]]` 里各改一遍（那样迟早漏掉一处）。
+#
+# 上游那三个镜像（GitHub Pages / jsDelivr / raw.githubusercontent）**留在后面当兜底**：
+# 桶还没部署、或哪天挂了，`CharacterCard` 的 `onError` 会依次切到它们，界面不会变白图。
+# 所以这个值**故意留空也能构建**（留空 = 不插入，行为与没有它时一字不差）。
+#
+# 填法：**结尾必须带 `/`**（会拼成 `<桶>/<dir>/<文件名>`）。
+#   例：origin_r2 = "https://cards.example.com/"
+# 部署步骤与桶内目录结构见 `docs/DECISIONS.md` 的 D190（逐步操作见 `docs/card-hosting-r2.md`）。
+#
+# 2026-10-08 已接上自建桶：六套齐备（实测各 139~141 个对象、应用引用的 127 个文件名零缺失）。
+origin_r2 = "https://touhou-music-cards-storage.dustymind.cc/"
+
+# 上游作者的桶（**不是我们的**）。它仍在各套 origins 里当第一手来源 —— 自建桶填上之后
+# 它自动退到第二位。**别删**：它是"自建桶还没好"这段时间的现实图源。
+origin_upstream_r2 = "https://r2bucket-touhou.hgjertkljw.org/"
 
 default = "dairi-sd"
 
+# 下面每套内置图集的 origins，构建时统一拼成：
+#   [origin_r2（若已填）, origin_upstream_r2, GitHub Pages, jsDelivr, raw.githubusercontent]
+# ⇒ 所以这里**只列上游那三个镜像**，两个 R2 由顶部那两个常量统一注入。
 [[card_set]]
 id = "dairi-sd"
 dir = "cards"
@@ -13,7 +37,6 @@ label_en = "dairi (super-deformed)"
 label_zh = "dairi（Q 版）"
 local_prefix = "./"
 origins = [
-  "https://r2bucket-touhou.hgjertkljw.org/",
   "https://lightbulb128.github.io/touhou-card-player-v3/",
   "https://cdn.jsdelivr.net/gh/lightbulb128/touhou-card-player-v3@main/public/",
   "https://raw.githubusercontent.com/lightbulb128/touhou-card-player-v3/main/public/",
@@ -26,7 +49,6 @@ label_en = "dairi (full body)"
 label_zh = "dairi（全身）"
 local_prefix = "./"
 origins = [
-  "https://r2bucket-touhou.hgjertkljw.org/",
   "https://lightbulb128.github.io/touhou-card-player-v3/",
   "https://cdn.jsdelivr.net/gh/lightbulb128/touhou-card-player-v3@main/public/",
   "https://raw.githubusercontent.com/lightbulb128/touhou-card-player-v3/main/public/",
@@ -39,7 +61,6 @@ label_en = "Enbu (RPG tachie)"
 label_zh = "幻想人形演舞"
 local_prefix = "./"
 origins = [
-  "https://r2bucket-touhou.hgjertkljw.org/",
   "https://lightbulb128.github.io/touhou-card-player-v3/",
   "https://cdn.jsdelivr.net/gh/lightbulb128/touhou-card-player-v3@main/public/",
   "https://raw.githubusercontent.com/lightbulb128/touhou-card-player-v3/main/public/",
@@ -52,7 +73,6 @@ label_en = "Enbu (dolls)"
 label_zh = "幻想人形演舞（人偶）"
 local_prefix = "./"
 origins = [
-  "https://r2bucket-touhou.hgjertkljw.org/",
   "https://lightbulb128.github.io/touhou-card-player-v3/",
   "https://cdn.jsdelivr.net/gh/lightbulb128/touhou-card-player-v3@main/public/",
   "https://raw.githubusercontent.com/lightbulb128/touhou-card-player-v3/main/public/",
@@ -65,12 +85,14 @@ label_en = "THBWiki"
 label_zh = "THBWiki"
 local_prefix = "./"
 origins = [
-  "https://r2bucket-touhou.hgjertkljw.org/",
   "https://lightbulb128.github.io/touhou-card-player-v3/",
   "https://cdn.jsdelivr.net/gh/lightbulb128/touhou-card-player-v3@main/public/",
   "https://raw.githubusercontent.com/lightbulb128/touhou-card-player-v3/main/public/",
 ]
 
+# ⚠️ 这里原来写的是 `r2bucket-touhou-hgjertkljw.org`（**连字符**），实测解析不了（curl 000）——
+# 是 `hgjertkljw.org` 的笔误。现在两个 R2 都由顶部常量注入，这个手写字符**已经删掉**，
+# 笔误不会再复现（且以后要换桶只改一处）。
 [[card_set]]
 id = "zun"
 dir = "cards-zun"
@@ -78,7 +100,6 @@ label_en = "ZUN art"
 label_zh = "ZUN 原画"
 local_prefix = "./"
 origins = [
-  "https://r2bucket-touhou-hgjertkljw.org/",
   "https://lightbulb128.github.io/touhou-card-player-v3/",
   "https://cdn.jsdelivr.net/gh/lightbulb128/touhou-card-player-v3@main/public/",
   "https://raw.githubusercontent.com/lightbulb128/touhou-card-player-v3/main/public/",

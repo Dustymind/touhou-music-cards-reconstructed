@@ -180,6 +180,12 @@ type SourceDef = {
 | `https://cdn.jsdelivr.net/gh/lightbulb128/touhou-card-player-v3@main/public/` | CDN 兜底 |
 | `https://raw.githubusercontent.com/lightbulb128/touhou-card-player-v3/main/public/` | 最后兜底 |
 
+> ⚠️ **已被 D190 部分取代（2026-10-08）**：表格里这四个地址**仍然有效**（D190 把它们全留着当兜底），
+> 被取代的是**写法** —— 以前这四个要在六个 `[[card_set]]` 里**各抄一遍**，于是 `zun` 那套把
+> R2 桶域名抄成了连字符（`r2bucket-touhou-hgjertkljw.org`，实测 000，一直靠 `onError` 兜底没被发现）。
+> D190 起前两个由 `card-sets.toml` 顶部的 `origin_r2` / `origin_upstream_r2` **统一注入**，
+> 后两个才逐套手写。**加自建桶 = 填 `origin_r2`，不再逐个改。**
+
 **理由**：6 套卡面共 178 MB；用户选择不入库。**代价**：离线不可用、依赖第三方托管 —— 已记入 README 的"外部依赖"。
 
 **影响**：图集选择**持久化**（修上游 `cardCollection` 刷新即丢）；`?r2=` / `?cards=` 查询参数保留且优先于存储值；卡面加载失败必须有可见提示（不允许静默空白）。
@@ -8229,3 +8235,124 @@ Christopher Jeffrey` / `MIT`。`reuse lint` ⇒ **361/361**（改前 359）。
 - 不渲染原始 HTML（铁律 1）。
 - 不做"公告列表里显示草稿 / 预览" —— 与本决策无关，草稿仍然构建期就摘掉（D188）。
 
+
+## D190 卡面图集的图床改成"自建 R2 桶可插拔"：两个常量统一注入，六套不再各写一遍（2026-10-08）
+
+**背景**（用户要求）："能否将现有卡面源替换成我的 cloudflare r2 桶（注：源卡面上游原版有）"。
+
+补充说明两条：**桶还没部署**；**只放非音MAD 图集**（音MAD 那套继续走 B 站封面直链）。
+
+### 落地前的事实（实测，不是读代码猜的）
+
+内置六套图集的 `origins` **本来就以 R2 桶开头** —— 但那是**上游作者的桶**
+`https://r2bucket-touhou.hgjertkljw.org/`，不是用户的。`curl` 六个目录逐个探过：
+
+| origin | 结果 |
+|---|---|
+| `https://r2bucket-touhou.hgjertkljw.org/<dir>/チルノ.png` | **200**（六个 dir 全通） |
+| `https://r2bucket-touhou-hgjertkljw.org/...`（**连字符**） | **000**（解析不了） |
+| `https://lightbulb128.github.io/touhou-card-player-v3/<dir>/チルノ.png` | 200 |
+
+⇒ 顺手挖出**一处笔误**：`zun` 那套的 origins 首项把域名写成了
+`r2bucket-touhou-hgjertkljw.org`（`hgjertkljw` 前后是**连字符**而非点号），实测返 000。
+它排在第一位，意味着 **ZUN 原画那套的第一手来源一直是死的**，只是靠 `onError` 兜底切到
+GitHub Pages，所以**界面上看不出来**。
+
+### 做法
+
+**(a) 桶地址提成两个顶层常量，构建期统一注入**
+
+```toml
+origin_r2          = ""                                      # 自己的桶（留空 = 不插入）
+origin_upstream_r2 = "https://r2bucket-touhou.hgjertkljw.org/"  # 上游的桶，留着
+```
+
+`tools/src/tmc/build.py` 的 `build_card_sets()` 把它们拼成
+`[origin_r2?, origin_upstream_r2?, ...这套自己写的镜像]`，**六套共用一处**。
+
+为什么不是直接在每个 `[[card_set]]` 里改：**手写六处迟早漏一处** —— 上面那个连字符笔误
+就是这么来的（写六遍，错一遍，没人发现）。现在换桶**只改一行**，且不可能只改到一半。
+
+**(b) 留空即"与没有这段逻辑逐字节等价"**
+
+桶没部署时 `origin_r2 = ""` ⇒ 该值被过滤掉，产物与改造前**完全一致**。
+所以这个改动**可以先合、先推**，等桶好了再填域名（有测试守着这条）。
+
+**(c) 源封面与本地图集**不注入 origin
+
+`source_only`（音MAD 的 B 站封面：每张卡面本身就是一条绝对 URL）与 `local_only`
+（本地图集：只走 `localPrefix`）两种图集**保持 `origins = []`**。往里塞 origin 会让
+"这套图集到底靠什么取图"变含糊，而前端本来也不读它们的 `origins`。
+
+**(d) 上游三个镜像全部保留**
+
+用户明确要"保留作兜底"。所以自建桶排第一，挂了/没部署就 `onError` 依次切到上游
+（`CharacterCard` 的 `originIndex` 递进，D153 起就是这个机制）⇒ 不会白图。
+
+### 不改的东西（重要）
+
+- **前端一行没动**：`CharacterCard.cardUrl()` 只做 `<origin>/<dir>/<encodeURIComponent(文件名)>`，
+  与桶的域名无关；`isCardUrl()` 判完整 URL 的分支也照旧。
+- **握手哈希不受影响**：`covers`（源封面）才进 `packHash`；内置图集的 `origins` 不进。
+  实测 `pnpm gate` 的引用集合指纹**仍是 `9eecf074138b`**（与改造前一致）⇒ 联机协议不受影响。
+- **`referrerPolicy="no-referrer"` 保留**：自建桶不按 Referer 拦，但音MAD 那套的 B 站图床**按 Referer 拦**
+  （带外部 Referer 返 403，D153 实测）⇒ 这个属性是**全局**写在 `<img>` 上的，不能因为"换了桶"就删。
+
+### 用户侧：要把桶接上要做的事
+
+1. 在 Cloudflare R2 建桶，**开公开访问**（绑自定义域，或开 `r2.dev` 子域）。
+2. 按**与上游完全相同的目录结构**放图（`<桶>/<dir>/<文件名>`，文件名是 `characters.json` 里
+   那个 `card` 字段的**原文**，含日文，前端会 `encodeURIComponent`）：
+
+   | 桶内目录 | 图集 | 对应界面选项 |
+   |---|---|---|
+   | `cards/` | dairi-sd | dairi（Q 版） |
+   | `cards-dairi/` | dairi | dairi（全身） |
+   | `cards-enbu/` | enbu | 幻想人形演舞 |
+   | `cards-enbu-dolls/` | enbu-dolls | 幻想人形演舞（人偶） |
+   | `cards-thwiki/` | thbwiki-sd | THBWiki |
+   | `cards-zun/` | zun | ZUN 原画 |
+
+3. **不必放全**：只放你有的那几套即可。缺的那几套，浏览器请求自建桶会 404 ⇒
+   `onError` 自动切到上游镜像。**桶里放一半也是能用的**（只是那一半多一次 404 往返）。
+4. 把 `data/card-sets.toml` 的 `origin_r2` 填成桶地址，**结尾必须带 `/`**，然后 `pnpm gate`
+   重新生成 `cardsets.json`（生成物不进仓库，改动本身只是那一行 TOML + 开发者的 `pnpm dev` 热更）。
+
+### 验证
+
+| 项 | 结果 |
+|---|---|
+| `pnpm gate` | ✓ `GATE_EXIT=0`，引用集合指纹 `9eecf074138b` **未变** |
+| 主仓 Python 测试 | ✓ **95 passed**（原 90 + 新增 5 条） |
+| 前端 `cardFaces.test.ts` | ✓ 28 passed |
+| 六个 `<dir>/チルノ.png` 对上游桶 | ✓ 全 200（目录结构确认） |
+| `zun` 那处连字符域名 | ✓ 已随改造删除（不再手写域名） |
+
+### 落地（2026-10-08 当晚，桶已部署）
+
+用户把桶建好、传完六套后，把 `origin_r2` 填成公开域名
+**`https://touhou-music-cards-storage.dustymind.cc/`**。实测：
+
+| 项 | 结果 |
+|---|---|
+| 桶内对象 | ✓ **836 个 / 175.058 MiB**（六套目录各 139~141 个） |
+| 应用引用的 **127 个**文件名 | ✓ **六套全部零缺失**（用 `rclone lsf` 全量比对，不是抽样） |
+| 自定义域取图 | ✓ `200` + `Content-Type: image/png`，字节数与上游桶一致（`チルノ.png` 148212 B） |
+| 生成产物 `origins` | ✓ 六套各 **5 项**、`[0]` 均为自建桶；`otomads`/`otomads-cover` 仍 **0** 项 |
+| `pnpm gate` | ✓ **`GATE_EXIT=0`**，指纹仍 `9eecf074138b` |
+| 主仓 Python 测试 | ✓ **95 passed** |
+
+> 注意桶里是 **836 个对象而非 762** —— 因为上游每套除应用引用的 127 个外还有若干额外文件
+> （实测 `cards/` 141 个、其余五套各 139 个）。**判定标准是"应用引用的文件名是否齐备"**，
+> 不是总数对不对 —— 多出来的不影响运行。
+
+逐步操作（含 rclone 的对象级 token 必须加 `--s3-no-check-bucket` 这个实测坑）见
+[`card-hosting-r2.md`](card-hosting-r2.md)。
+
+### 不做
+
+- **不把音MAD 的 covers 也搬进桶** —— 用户明确说"只存放非音MAD图集"。真要做的话要动数据仓库的
+  `fetch_covers`（目前只产 B 站直链、**不下载图片**）+ 握手哈希口径，是另一件事。
+- **不加"运行时切桶"的开关**（如 `?r2=<url>`）—— 桶地址是**构建期**常量。上游那个 `?r2=1`
+  参数在本仓库不复存在（`docs/DECISIONS.md` 早前记过：`?r2=` / `?cards=` 是上游语义）。
+  真要临时换源，用户有 `?local=1`（本地图集）那条路。

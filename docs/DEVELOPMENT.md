@@ -300,6 +300,52 @@ Playwright 自己转译的**（不经过 Vite）：spec 只要（直接或间接
 互不干扰。行为出处见 `DECISIONS.md` D182（原始设计）、**D186**（关闭语义那次改动）、
 **D187**（frontmatter 化，加 `yaml` 依赖）与 **D188**（`draft` 草稿字段）。
 
+## 换卡面图床（把内置六套指到自己的 R2 桶）
+
+卡面素材**不进仓库**（6 套共约 178 MB，见 D10），运行时按 `origins` 顺序远程取。
+注册表是 [`../data/card-sets.toml`](../data/card-sets.toml)，构建成 `cardsets.json`（生成物不进仓库）。
+
+**换桶只需要改一行** —— 顶部的 `origin_r2`：
+
+```toml
+origin_r2          = "https://touhou-music-cards-storage.dustymind.cc/"  # ← 改这里；留空 = 用上游的
+origin_upstream_r2 = "https://r2bucket-touhou.hgjertkljw.org/"  # 上游作者的桶，别删（兜底第一手）
+```
+
+> **2026-10-08 现状：已接上自建桶**（上面的域名）。六套齐备 —— 实测各 139~141 个对象、
+> `characters.json` 引用的 **127 个文件名零缺失**；自定义域实测 `200 image/png`。
+> 迁移步骤（建桶 / 凭据 / rclone / 公开访问 / 验证）见 [`card-hosting-r2.md`](card-hosting-r2.md)。
+
+⚠️ **结尾必须带 `/`**（会拼成 `<origin>/<dir>/<文件名>`）。填完跑 `pnpm gate` 重新生成，
+`pnpm dev` 会自动热更（但 `cardsets.json` 是启动时 fetch 的，刷一下页面更保险）。
+
+**为什么只改一处**：这两个常量由 `tools/src/tmc/build.py` 的 `build_card_sets()`
+**统一插到每套内置图集的 origins 最前面**。以前这两个地址要在**六个 `[[card_set]]` 里各抄一遍**，
+于是 `zun` 那套把桶域名抄成了连字符（`r2bucket-touhou-hgjertkljw.org` → 实测 000），
+一直靠 `onError` 兜底切到 GitHub Pages，**界面上完全看不出来**。现在不可能再只改一半。
+
+**桶里的目录结构照抄上游**（文件名是 `characters.json` 里那个 `card` 字段的**原文**，含日文；
+前端会 `encodeURIComponent`，所以桶里存**原文件名**即可）：
+
+| 桶内目录 | 图集 id | 界面选项 |
+|---|---|---|
+| `cards/` | `dairi-sd` | dairi（Q 版） |
+| `cards-dairi/` | `dairi` | dairi（全身） |
+| `cards-enbu/` | `enbu` | 幻想人形演舞 |
+| `cards-enbu-dolls/` | `enbu-dolls` | 幻想人形演舞（人偶） |
+| `cards-thwiki/` | `thbwiki-sd` | THBWiki |
+| `cards-zun/` | `zun` | ZUN 原画 |
+
+**不必放全**：缺的那几套请求自建桶会 404 ⇒ `onError` 自动切到下一个 origin。**放一半也能用**。
+音MAD 那两套（`otomads` 本地图集 / `otomads-cover` B 站封面）**不走 origin**，与本机制无关。
+
+**别删 `referrerPolicy="no-referrer"`**：那是给音MAD 的 B 站图床用的（按 Referer 拦，带外部 Referer 返 403），
+写在 `CharacterCard` 的 `<img>` 上是**全局**的 —— 换了自建桶也不能因为"我们的桶不拦"就删掉。
+
+改这个**不影响**联机握手：进 `packHash` 的是 `covers`（源封面），内置图集的 `origins` 不进。
+决策与验证见 `DECISIONS.md` **D190**；**从建桶到上传到开公开访问的完整迁移步骤**（含
+Cloudflare 官方三条路径的可行性比对）见 [`card-hosting-r2.md`](card-hosting-r2.md)。
+
 ## 文档在哪
 
 | 想找什么 | 去哪 |

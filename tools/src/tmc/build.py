@@ -373,10 +373,29 @@ def build_sources(mode: str) -> dict:
     return {"schema": SCHEMA_VERSION, "sources": sources}
 
 
+def _card_set_origins(entry: dict, r2: list[str]) -> list[str]:
+    """一套图集最终的 origins：**R2（自建的在前、上游的在后）→ 这套自己写的镜像**。
+
+    R2 那两个是从 `card-sets.toml` 顶部的常量**统一注入**的，不再逐个 `[[card_set]]` 手写 ——
+    手写六个地方迟早漏一个（`zun` 那套就曾经把桶域名写成连字符、一直没人发现）。
+    留空的常量直接跳过，所以"还没部署"时这里与没有这段逻辑时**逐字节等价**。
+    """
+    # 源封面图集（D153）**没有目录、没有 origin**：每张卡面本身就是一条绝对 URL（B 站直链）。
+    # 往里塞 origin 没有意义，还会让"这套图集到底靠什么取图"变得含糊。
+    if entry.get("source_only"):
+        return []
+    # 本地图集只走 localPrefix，本来就不该有远程 origin（前端 `cardSet.localOnly` 也不会读它）。
+    if entry.get("local_only"):
+        return list(entry.get("origins", []))
+    return [*r2, *entry.get("origins", [])]
+
+
 def build_card_sets() -> dict:
     """卡面图集注册表 → 运行时 JSON（素材不入库，前端按 origins 顺序远程取）。"""
     with open(repo.DATA / "card-sets.toml", "rb") as fh:
         data = tomllib.load(fh)
+    # 自建桶排第一（填了才生效），上游作者的桶排第二 —— 两者都是"整份 origins 的最前面"。
+    r2 = [u for u in (data.get("origin_r2"), data.get("origin_upstream_r2")) if u]
     sets = []
     for entry in data.get("card_set", []):
         record = {
@@ -384,7 +403,7 @@ def build_card_sets() -> dict:
             "dir": entry["dir"],
             "label": {"en": entry["label_en"], "zh": entry["label_zh"]},
             "localPrefix": entry.get("local_prefix", "./"),
-            "origins": list(entry.get("origins", [])),
+            "origins": _card_set_origins(entry, r2),
         }
         # 本地图集（素材由用户自己放进仓库根 gitignored 目录，如 cards-otomads/）：没有远程 origin，前端只用 localPrefix
         if entry.get("local_only"):

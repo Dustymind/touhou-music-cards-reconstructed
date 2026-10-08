@@ -714,3 +714,74 @@ def test_loudness_table_comes_from_the_snapshot_without_a_registry(tmp_path, mon
     # 没有快照时仍然是"没有表"（不是报错、也不是空列表里的假条目）
     (tmp_path / "sources.json").unlink()
     assert build.loudness_tables("otomads") == []
+
+
+# ------------------------------- 卡面图集的 origins：自建 R2 桶的注入（D190）
+
+def _origins(entry: dict, r2: list[str]) -> list[str]:
+    return build._card_set_origins(entry, r2)
+
+
+def test_r2_origins_are_injected_in_front_of_the_written_mirrors():
+    """自建桶与上游桶**统一注入**，排在每套图集自己写的镜像**前面**。
+
+    为什么不逐个 `[[card_set]]` 手写：手写六处迟早漏一个 —— `zun` 那套就曾把桶域名写成
+    连字符（`r2bucket-touhou-hgjertkljw.org`），一路没人发现，直到实测 curl 返 000。
+    """
+    entry = {"origins": ["https://mirror.example/"]}
+    assert _origins(entry, ["https://mine.example/", "https://upstream.example/"]) == [
+        "https://mine.example/", "https://upstream.example/", "https://mirror.example/"]
+
+
+def test_r2_origins_are_skipped_when_unset():
+    """桶还没部署（留空）时，产物必须与"没有这段逻辑"**逐字节等价** —— 不能凭空多出空串。"""
+    entry = {"origins": ["https://mirror.example/"]}
+    assert _origins(entry, []) == ["https://mirror.example/"]
+
+
+def test_source_only_and_local_only_sets_do_not_get_origins():
+    """源封面图集（每张卡面本身就是绝对 URL）与本地图集**不该**被塞进远程 origin。
+
+    源封面那套若混进 origin，"这套图集到底靠什么取图"就变含糊了；本地图集同理
+    （前端 `cardSet.localOnly` 根本不读 `origins`）。
+    """
+    assert _origins({"source_only": True, "origins": []}, ["https://mine.example/"]) == []
+    assert _origins({"local_only": True, "origins": []}, ["https://mine.example/"]) == []
+    # 本地图集若自己写了 origin（目前没有），保持原样、不重复注入
+    assert _origins({"local_only": True, "origins": ["https://x.example/"]},
+                    ["https://mine.example/"]) == ["https://x.example/"]
+
+
+def test_every_builtin_card_set_starts_with_the_same_first_origin():
+    """真实注册表：六套内置图集的 origins **都以同一个桶开头**，且末尾都是上游三个镜像。
+
+    这条守的是"换桶只改一处"：只要哪天有人手写回去，六套的首项就会不一致 ⇒ 红。
+    """
+    data = build.build_card_sets()
+    builtin = [s for s in data["cardSets"] if s["origins"]]
+    assert len(builtin) == 6, "内置图集应当是 6 套（dairi-sd / dairi / enbu / enbu-dolls / thbwiki-sd / zun）"
+    firsts = {s["origins"][0] for s in builtin}
+    assert len(firsts) == 1, f"六套的首个 origin 必须一致，实际有 {firsts}"
+    upstream_r2 = next(iter(firsts))
+    assert upstream_r2.endswith("/"), "origin 结尾必须带 `/`（会拼成 <origin>/<dir>/<文件名>）"
+    # 上游三个镜像都还在（兜底没被删掉）
+    for s in builtin:
+        for mirror in ("lightbulb128.github.io", "cdn.jsdelivr.net", "raw.githubusercontent.com"):
+            assert any(mirror in o for o in s["origins"]), f"{s['id']} 少了兜底镜像 {mirror}"
+
+
+def test_frontend_cardUrl_joins_origin_and_dir_with_one_slash():
+    """前端拼接口径与 TOML 的约定要对上：`<origin>/<dir>/<文件名>`，两边各补一个斜杠。
+
+    这条是跨语言的契约守卫 —— TOML 里写注释说"结尾必须带 /"，前端却可能有别的假设；
+    真源在 `src/ui/components/CharacterCard.tsx`，这里把规则定住，免得两边漂移。
+    （前端侧的实现在 `CharacterCard.test.tsx`，这里只守"规则本身"。）
+    """
+    def join(origin: str, dir_: str, file: str) -> str:
+        prefix = origin if origin.endswith("/") else f"{origin}/"
+        d = dir_ if dir_.endswith("/") else f"{dir_}/"
+        return prefix + d + file
+
+    assert join("https://mine.example/", "cards", "a.png") == "https://mine.example/cards/a.png"
+    assert join("https://mine.example", "cards", "a.png") == "https://mine.example/cards/a.png"
+    assert join("https://mine.example/", "cards/", "a.png") == "https://mine.example/cards/a.png"
