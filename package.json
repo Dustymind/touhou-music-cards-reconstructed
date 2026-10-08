@@ -34,6 +34,7 @@
     "media:stage": "node scripts/require-data.mjs otomads && node scripts/data-tool.mjs otomads -m otomads.stage_media stage --from .music --cards cards-otomads --out dist",
     "media:pull": "node scripts/require-data.mjs otomads && node scripts/require-env.mjs OTOMADS_MEDIA_URL && node scripts/data-tool.mjs otomads -m otomads.stage_media stage --archive $OTOMADS_MEDIA_URL --out dist",
     "e2e": "node scripts/run.mjs playwright test --project=chromium --project=firefox --project=mobile",
+    "e2e:quick": "node scripts/run.mjs playwright test --project=chromium",
     "e2e:chromium": "node scripts/run.mjs playwright test --project=chromium",
     "e2e:firefox": "node scripts/run.mjs playwright test --project=firefox",
     "e2e:file": "node scripts/run.mjs playwright test --project=chromium",
@@ -49,6 +50,7 @@
     "peerjs": "^1.5.5",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "yaml": "^2.9.1",
     "zustand": "^5.0.8"
   },
   "devDependencies": {

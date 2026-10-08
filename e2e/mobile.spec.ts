@@ -187,7 +187,7 @@ test.describe("移动端布局", () => {
     await expect(dialog).toHaveCount(0);
   });
 
-  test("站内公告弹窗：窄屏放得下、关闭键与勾选框都在屏内且触摸目标达标", async ({ page }) => {
+  test("站内公告弹窗：窄屏放得下、告知行与关闭键都在屏内、触摸目标达标", async ({ page }) => {
     // 文件级 `beforeEach` 按标题放过了这条用例（`shouldAutoSuppressNotice`）—— 它**要**公告弹。
     // 这里再清一次记录，保证进站时 `localStorage` 是干净的 ⇒ 一定自动弹出。
     await clearNoticeRecords(page);
@@ -203,20 +203,26 @@ test.describe("移动端布局", () => {
       return matrix.a === 1 && matrix.d === 1 && matrix.e === 0 && matrix.f === 0;
     })).toBe(true);
 
+    // 开屏可能是**多条**（D185），正文比「关于」长 ⇒ 底部那行告知会被折在内容区的滚动带下面。
+    // 它在内容区**内部滚动**（`DialogContent dividers`），先滚进可视区再量位置。
+    const hint = page.getByTestId("notice-hint");
+    await hint.scrollIntoViewIfNeeded();
+
     const metrics = await page.evaluate(() => {
       const paper = document.querySelector(".MuiDialog-paper")!.getBoundingClientRect();
       const close = document.querySelector('[data-testid="notice-close"]')!.getBoundingClientRect();
-      const dismiss = document.querySelector('[data-testid="notice-dismiss"]')!.getBoundingClientRect();
+      const hintBox = document.querySelector('[data-testid="notice-hint"]')!.getBoundingClientRect();
       const root = document.documentElement;
       return {
         width: Math.round(paper.width),
         viewport: root.clientWidth,
         viewportHeight: root.clientHeight,
         closeHeight: Math.round(close.height),
-        dismissHeight: Math.round(dismiss.height),
-        dismissBottom: Math.round(dismiss.bottom),
         closeTop: Math.round(close.top),
         closeBottom: Math.round(close.bottom),
+        hintBottom: Math.round(hintBox.bottom),
+        // 范围收在弹窗内（别把断言寄托在"页面上恰好没有复选框"上）
+        checkboxes: document.querySelectorAll('.MuiDialog-paper input[type="checkbox"]').length,
         scroll: root.scrollWidth,
         client: root.clientWidth,
       };
@@ -224,18 +230,21 @@ test.describe("移动端布局", () => {
     // MD2：最小宽 280；两侧各留 24dp 边距
     expect(metrics.width).toBeGreaterThanOrEqual(280);
     expect(metrics.width).toBeLessThanOrEqual(metrics.viewport - 48 + 1);
-    // 关闭键 ≥32dp（MD2 文字按钮 small）；勾选框整行 ≥40dp（MD2 最小触摸目标）
+    // 关闭键 ≥32dp（MD2 文字按钮 small）
     expect(metrics.closeHeight).toBeGreaterThanOrEqual(32);
-    expect(metrics.dismissHeight).toBeGreaterThanOrEqual(40);
-    // 不横向溢出；关闭键与勾选框都在屏内
+    // **D186**：弹窗上只有一个动作 —— 勾选框已弃用（也不再要求它 ≥40dp），这里只留"一个都没有"的守卫
+    expect(metrics.checkboxes).toBe(0);
+    // 不横向溢出；告知行与关闭键都在屏内
     expect(metrics.scroll).toBeLessThanOrEqual(metrics.client + 1);
-    expect(metrics.dismissBottom).toBeLessThanOrEqual(metrics.viewportHeight);
+    expect(metrics.hintBottom).toBeLessThanOrEqual(metrics.viewportHeight);
     expect(metrics.closeBottom).toBeLessThanOrEqual(metrics.viewportHeight);
-    // 方案 B 的三段式：勾选框在关闭键上方
-    expect(metrics.dismissBottom).toBeLessThanOrEqual(metrics.closeTop + 1);
+    // 三段式：告知行在关闭键**上方**（原来是"勾选框在关闭键上方"，D186 换成了这行字）
+    expect(metrics.hintBottom).toBeLessThanOrEqual(metrics.closeTop + 1);
+    // 那句话在窄屏也在，且指向右上角的入口（中文界面 ⇒ 两个关键词都取自 i18n 真源）
+    await expect(hint).toContainText("右上角");
+    await expect(hint).toContainText("公告");
 
-    // 勾选框与关闭键都点得到
-    await page.getByTestId("notice-dismiss").tap();
+    // 关闭键点得到（D186：关闭 = 不再自动弹）
     await page.getByTestId("notice-close").tap();
     await expect(dialog).toHaveCount(0);
 

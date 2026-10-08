@@ -137,61 +137,55 @@ test("关于弹窗：外置曲库（音MAD）署名自动列出，且在「原�
 /** 真源里的第一条公告（e2e 默认 en 界面）。 */
 const FIRST_NOTICE = noticeContent.notices[0]!;
 
-test("站内公告：首次进站自动弹，点「关闭」关得掉；不勾「不再显示」⇒ 刷新后还会弹", async ({ page }) => {
+/** 弹窗里 `notice-item-<id>` 的出现顺序（= 展示顺序）。弹窗没开时返回空数组。 */
+function noticeItemIds(page: Page): Promise<string[]> {
+  return page.evaluate(() => [...document.querySelectorAll('[data-testid^="notice-item-"]')]
+    .map((node) => node.getAttribute("data-testid")!.replace("notice-item-", "")));
+}
+
+test("站内公告：首次进站把**该弹的全弹出来**，底部一行告知 + 单个「关闭」；关掉后刷新不再弹（D185/D186）", async ({ page }) => {
   await clearNoticeRecords(page);
   await page.goto("/");
 
   const dialog = page.getByTestId("notice-dialog");
   await expect(dialog).toBeVisible();
+  await expect(dialog).toHaveAttribute("data-notice-mode", "auto");
   // 内容跟着**内容真源**走（用户改了标题/正文，这里不会假红）
   await expect(dialog).toContainText(FIRST_NOTICE.title.en);
   await expect(dialog).toContainText("Close");
+  // 条目顺序 = **内容真源顺序**里它们出现的那一段（子序列 ⇒ 顺序一致）。
+  // 不在这里重抄"什么算在生效窗口内"：那是 `src/store/notices.ts` 的口径，
+  // 而 e2e **不能** import 它 —— 它链到 `src/content/notices` 的 `?raw`，Playwright 解析不了。
+  const idsInOrder = await noticeItemIds(page);
+  const sourceOrder = noticeContent.notices.map((notice) => notice.id);
+  expect(idsInOrder.length).toBeGreaterThan(0);
+  expect(idsInOrder).toEqual(sourceOrder.filter((id) => idsInOrder.includes(id)));
 
-  // 「不再显示」勾选框在关闭键**上方**（方案 B 的三段式：内容 → 勾选框 → 关闭）
+  // **D186**：弹窗上只有一个动作。「不再显示」勾选框已弃用 ⇒ 弹窗里一个复选框、一个旧 testid 都不该有。
+  //（范围收在弹窗内：播放页本身没有复选框，但别把这条断言寄托在"页面上恰好没有"这种巧合上。）
+  await expect(dialog.locator('input[type="checkbox"]')).toHaveCount(0);
+  await expect(dialog.locator('[data-testid^="notice-dismiss"]')).toHaveCount(0);
+
+  // 三段式仍是「内容 → 告知 → 关闭」：那行告知在关闭键**上方**，且说的是"去右上角的「公告」看"。
+  // ⚠️ 开屏一次摆出**全部**该弹的（D185）⇒ 内容可能超过一屏，内容区在**内部滚动**，
+  // 底部那行告知的布局位置会落在可视区**之外**（实测过 bottom 998 vs 关闭键 top 645）。
+  // 所以必须先把它滚进可视区再量 —— 直接量 rect 会得到"它在关闭键下面"这个假象。
+  await page.getByTestId("notice-hint").scrollIntoViewIfNeeded();
   const order = await page.evaluate(() => {
-    const dismiss = document.querySelector('[data-testid="notice-dismiss"]')!.getBoundingClientRect();
+    const hint = document.querySelector('[data-testid="notice-hint"]')!;
     const close = document.querySelector('[data-testid="notice-close"]')!.getBoundingClientRect();
-    return { dismissBottom: dismiss.bottom, closeTop: close.top };
+    return { hintBottom: hint.getBoundingClientRect().bottom, closeTop: close.top, hintText: hint.textContent ?? "" };
   });
-  expect(order.dismissBottom).toBeLessThanOrEqual(order.closeTop + 1);
+  expect(order.hintBottom).toBeLessThanOrEqual(order.closeTop + 1);
+  // 那句话取自 i18n 真源（本文件默认 en）⇒ 改文案这里不会假红
+  expect(order.hintText).toContain("Notices");
 
-  // 不勾，直接关 ⇒ 下次进站**还会弹**（`closed` 不影响自动弹出判据，只有 `dismissed` 才影响）
+  // 关掉 = **永久不再自动弹**（D186 的一扇单向门：不再有"只关不勾 ⇒ 下次还弹"这条路）⇒ 刷新后安静
   await page.getByTestId("notice-close").click();
   await expect(dialog).toHaveCount(0);
-  await page.reload();
-  await expect(page.getByTestId("notice-dialog")).toBeVisible();
-});
-
-test("站内公告：勾「不再显示」后刷新不再自动弹，入口仍能打开；取消勾选 = 撤销", async ({ page }) => {
-  await clearNoticeRecords(page);
-  await page.goto("/");
-
-  const dialog = page.getByTestId("notice-dialog");
-  await expect(dialog).toBeVisible();
-  await page.getByTestId("notice-dismiss").locator('input[type="checkbox"]').check();
-  await page.getByTestId("notice-close").click();
-  await expect(dialog).toHaveCount(0);
-
-  // 刷新：**不再自动弹**
   await page.reload();
   await expect(page.getByRole("tab", { name: "Player", exact: true })).toBeVisible();
   await expect(page.getByTestId("notice-dialog")).toHaveCount(0);
-
-  // 入口按钮仍在（在「关于」旁边），点它还能翻出来看 —— 且勾选框保留"已勾"的状态
-  await page.getByTestId("notice-open").click();
-  await expect(dialog).toBeVisible();
-  await expect(dialog).toContainText(FIRST_NOTICE.title.en);
-  const dismissBox = page.getByTestId("notice-dismiss").locator('input[type="checkbox"]');
-  await expect(dismissBox).toBeChecked();
-
-  // **取消勾选再关闭 = 撤销「不再显示」** ⇒ 下次进站**又自动弹**。
-  //（勾选框是双向的；修之前"取消勾选"是个假开关 —— 见 D182 的修正记录。）
-  await dismissBox.uncheck();
-  await page.getByTestId("notice-close").click();
-  await expect(dialog).toHaveCount(0);
-  await page.reload();
-  await expect(page.getByTestId("notice-dialog")).toBeVisible();
-  await expect(page.getByTestId("notice-dialog")).toContainText(FIRST_NOTICE.title.en);
 });
 
 test("站内公告：应用栏入口在「关于」之前，且与它同规格（48dp 触控区）", async ({ page }) => {
@@ -214,6 +208,58 @@ test("站内公告：应用栏入口在「关于」之前，且与它同规格�
   // 与「关于」同规格：MD2 48dp 触控区
   expect([metrics.noticeW, metrics.noticeH]).toEqual([48, 48]);
   expect([metrics.noticeW, metrics.noticeH]).toEqual([metrics.aboutW, metrics.aboutH]);
+});
+
+test("站内公告：入口打开的是**列表**，与开屏那份同一批同一序；关过之后仍能再翻开（D185/D186）", async ({ page }) => {
+  await clearNoticeRecords(page);
+  await page.goto("/");
+
+  // 开屏那份（`auto`）：D185 修正后**该弹的都一起摆出来**（用户反馈的那个问题）。
+  //
+  // ⚠️ 这里**不再断言"真源里 ≥2 条"** —— 那是"内容编排"，会随 `draft` / 有效期变，
+  // 让测试跟着红是本末倒置（D188 加 `draft` 后就真的只剩一条生效，这条用例当场失去前提）。
+  // 现在**只用"真源里实际有几条生效公告"这个事实**（`noticeContent.notices` 就是应用自己的口径），
+  // 验的是**结构**：开屏那批 == 入口那批、顺序一致、版式正确。
+  // 真源只有一条时，本用例照样覆盖 D185/D186 的全部行为（版式分支由下面的 `asList` 判据覆盖）。
+  const expectedIds = noticeContent.notices.map((notice) => notice.id);
+  expect(expectedIds.length, "真源里至少要有一条生效公告，否则弹窗根本不会出现").toBeGreaterThan(0);
+
+  const dialog = page.getByTestId("notice-dialog");
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toHaveAttribute("data-notice-mode", "auto");
+  const autoIds = await noticeItemIds(page);
+  expect(autoIds).toEqual(expectedIds);
+
+  // 关掉（D186：关闭 = 不再自动弹）再点入口 ⇒ 列表版式；两批的**集合与顺序**必须一模一样 ——
+  // 关掉只影响"还自动弹不弹"，**不影响入口里看得到的东西**。
+  await page.getByTestId("notice-close").click();
+  await expect(dialog).toHaveCount(0);
+  await page.getByTestId("notice-open").click();
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toHaveAttribute("data-notice-mode", "manual");
+
+  const listIds = await noticeItemIds(page);
+  expect(listIds).toEqual(autoIds);
+
+  // 顺序 = **内容真源顺序**里它们出现的那一段（子序列 ⇒ 顺序一致）。
+  // 不在这里重抄一遍"什么算在生效窗口内"：那是 `src/store/notices.ts` 的口径，
+  // 而 e2e **不能** import 它 —— 它链到 `src/content/notices` 的 `?raw`，Playwright 解析不了。
+  const sourceOrder = noticeContent.notices.map((notice) => notice.id);
+  expect(listIds).toEqual(sourceOrder.filter((id) => listIds.includes(id)));
+
+  // 列表版式同样是「只有一个动作」（D186）：没有勾选框，只有底部那一行告知 + 单个「关闭」
+  await expect(dialog.locator('input[type="checkbox"]')).toHaveCount(0);
+  await expect(dialog.getByTestId("notice-hint")).toHaveCount(1);
+
+  await page.getByTestId("notice-close").click();
+  await expect(dialog).toHaveCount(0);
+
+  // **列表不会被"关过"消耗掉** —— 关掉之后想再看，靠的就是这个入口 + 那行告知（D186 的退路）
+  await page.getByTestId("notice-open").click();
+  await expect(dialog).toBeVisible();
+  expect(await noticeItemIds(page)).toEqual(autoIds);
+  await page.getByTestId("notice-close").click();
+  await expect(dialog).toHaveCount(0);
 });
 
 test("设置页：秘封父项是批量控制，三态开关改变统计", async ({ page }) => {  await page.goto("/");

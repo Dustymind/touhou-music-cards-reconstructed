@@ -86,8 +86,16 @@ export const Localization = {
   ShellLoading: u("Loading data…", "正在载入数据…"),
   ShellLoadFailed: u("Failed to load data", "数据载入失败"),
   ShellAppTitle: u("Forgotten Harmonic Frequencies", "东方谐频拾遗"),
-  // 公告入口按钮的无障碍名字（图标按钮没有可见文字，必须给一个）
-  ShellNoticeOpen: u("Notices", "提示"),
+  // 公告入口按钮的无障碍名字（图标按钮没有可见文字，必须给一个）。
+  // D185 起**同时**当作「入口打开的公告列表」那个弹窗的标题（同一件事的两种入口）。
+  // 中文曾叫「提示」，D186 统一成「公告」—— 弹窗里那句"去右上角的「公告」重新查看"必须指得准。
+  ShellNoticeOpen: u("Notices", "公告"),
+  // 弹窗底部那行**告知**（D186：取代了原来的「不再显示」勾选框）。
+  // 说清"关掉 = 不再自动弹"与"关掉之后上哪儿再看"，两个意思都得有，缺一个用户就懵。
+  ShellNoticeHint: u("You can view this message again from “Notices” at the top right.",
+    "你可以在右上角的“公告”重新查看此消息"),
+  // 列表里给置顶的那条一个小徽章（D185：置顶 = 排在最前面，得让人看出"为什么它在最上面"）
+  ShellNoticePinned: u("Pinned", "置顶"),
   ShellDataSummary: u("Data", "数据"),
   ShellCharacters: u("characters", "角色"),
   ShellAlbums: u("albums", "专辑"),

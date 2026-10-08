@@ -1,18 +1,22 @@
-/** 公告的本地记录与"该弹哪条"的判定。
+/** 公告的本地记录与"该弹哪些"的判定。
  *
- * 这里守三条用户明确要求的行为：
+ * 这里守几条用户明确要求的行为：
  * ① **每条公告独立记录**（删一条不影响另一条）；
- * ② 只点「关闭」⇒ 下次还弹；勾「不再显示」⇒ 不再自动弹，但**入口仍能打开**
- *    （入口打开后**取消勾选 = 撤销**，见 `useNotices：交互` 里那条，"假开关"是 D182 修掉的）；
- * ③ 内容改了 ⇒ 即使勾过「不再显示」也重新弹一次。
+ * ② **点「关闭」= 以后不再自动弹**（D186）—— 弹窗上只有这一个动作，没有勾选框；
+ *    想看回来走右上角的「公告」入口（`openManually`），它**不受**"关过"限制；
+ * ③ 内容改了 ⇒ 即使关过也**重新弹一次**（单向门唯一的例外）。
+ *
+ * - **D185**：自动弹**一批**（全部该弹的）、入口打开**一份列表**（全部在窗口内的），两者同一展示顺序。
+ * - **D186**：删掉了「不再显示」勾选框与它那套"取消勾选 = 撤销"的交互 ⇒
+ *   `dismissChecked` / `setDismissChecked` 已经**不存在**了，别再往 `setState` 里传它们。
  */
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { NOTICE_DEFAULT_CLOSE, type NoticeContent } from "../content/notices";
-import { noticeFingerprint } from "../content/noticeMeta";
+import { NOTICE_DEFAULT_CLOSE, noticeContent, type NoticeContent } from "../content/notices";
+import { noticeFingerprint, sortNotices } from "../content/noticeMeta";
 import { STORAGE_PREFIX } from "../persist";
 import {
-  noticeInWindow, pickAutoNotice, pickManualNotice,
+  activeNotices, noticeInWindow, noticeMode, noticesInWindow, pickAutoNotices,
   readNoticeRecord, useNotices,
 } from "./notices";
 
@@ -29,15 +33,15 @@ function notice(overrides: Partial<NoticeContent> = {}): NoticeContent {
 const KEY_A = `${STORAGE_PREFIX}notice.test-notice-a`;
 const KEY_B = `${STORAGE_PREFIX}notice.test-notice-b`;
 
-/** 把 store 里的"勾选框"勾上并点关闭（模拟用户操作）。 */
-function dismissViaUi(target: NoticeContent): void {
-  useNotices.setState({ autoNotice: target, manualNotice: null, dismissChecked: true });
+/** 模拟用户在弹窗上点「关闭」（D186：没有勾选框，关闭 = 不再自动弹）。 */
+function closeViaUi(...targets: NoticeContent[]): void {
+  useNotices.setState({ autoNotices: targets, manualNotices: null });
   useNotices.getState().close();
 }
 
 beforeEach(() => {
   localStorage.clear();
-  useNotices.setState({ autoNotice: null, manualNotice: null, dismissChecked: false });
+  useNotices.setState({ autoNotices: [], manualNotices: null });
 });
 
 describe("noticeInWindow：时间窗", () => {
@@ -57,6 +61,11 @@ describe("noticeInWindow：时间窗", () => {
     expect(noticeInWindow(notice({ until: "2026-10-03" }), now)).toBe(false);
     expect(noticeInWindow(notice({ until: "2026-10-04" }), now)).toBe(true);
   });
+
+  it("**`date`（排序用）不影响可见性** —— 它再老也照弹，只要窗口允许", () => {
+    // `date` 只管"排哪前哪后"，与 from / until（能不能看）刻意分开
+    expect(noticeInWindow(notice({ date: "2000-01-01" }), now)).toBe(true);
+  });
 });
 
 describe("noticeFingerprint：内容指纹", () => {
@@ -67,18 +76,68 @@ describe("noticeFingerprint：内容指纹", () => {
     expect(noticeFingerprint(base)).not.toBe(noticeFingerprint(notice({ title: { en: "T2", zh: "标" } })));
   });
 
-  it("改时间窗**不算**改内容（调 until 不该重新打扰用户）", () => {
+  it("改时间窗 / 改排序字段**都不算**改内容（不该重新打扰用户）", () => {
     const base = notice();
-    // 指纹函数只吃 `id / title / body`（类型上就写死了），所以 here 显式只传这三样：
-    // 多出来的 `until` 根本进不了指纹 —— 这正是它"改时间窗 = 内容没变"的实现保证
+    // 指纹函数只吃 `id / title / body`（类型上就写死了），所以这里显式只传这三样：
+    // 多出来的 `until` / `date` / `pinned` 根本进不了指纹 —— 这正是"改窗口 = 内容没变"的实现保证
     expect(noticeFingerprint({ id: base.id, title: base.title, body: base.body }))
       .toBe(noticeFingerprint(base));
   });
 });
 
+describe("sortNotices：展示顺序", () => {
+  const a = notice({ id: "a", date: "2026-01-01" });
+  const b = notice({ id: "b", date: "2026-03-01" });
+
+  it("**最新的在最前面**", () => {
+    expect(sortNotices([a, b]).map((n) => n.id)).toEqual(["b", "a"]);
+  });
+
+  it("**置顶的排在最前面**，即使它的日期更老", () => {
+    const pinned = notice({ id: "pin", date: "2000-01-01", pinned: true });
+    expect(sortNotices([a, b, pinned]).map((n) => n.id)).toEqual(["pin", "b", "a"]);
+  });
+
+  it("多个置顶之间**也按日期由新到旧**", () => {
+    const older = notice({ id: "pin-old", date: "2000-01-01", pinned: true });
+    const newer = notice({ id: "pin-new", date: "2020-01-01", pinned: true });
+    expect(sortNotices([older, newer, a, b]).slice(0, 2).map((n) => n.id)).toEqual(["pin-new", "pin-old"]);
+  });
+
+  it("没写 `date` 的视为**最旧**，且彼此之间保持书写顺序（稳定排序）", () => {
+    const x = notice({ id: "x" });
+    const y = notice({ id: "y" });
+    expect(sortNotices([x, y, a]).map((n) => n.id)).toEqual(["a", "x", "y"]);
+  });
+
+  it("不改原数组（返回新数组）", () => {
+    const input = [a, b];
+    sortNotices(input);
+    expect(input.map((n) => n.id)).toEqual(["a", "b"]);
+  });
+});
+
+describe("noticesInWindow：在窗口内的那一批（保序）", () => {
+  const now = new Date("2026-10-04T12:00:00");
+
+  it("只留窗口内的，且**保持传入顺序**（真源传进来就是展示顺序）", () => {
+    const list = [
+      notice({ id: "a", from: "2099-01-01" }),      // 还没到
+      notice({ id: "b" }),
+      notice({ id: "c", until: "2000-01-01" }),     // 过期了
+      notice({ id: "d" }),
+    ];
+    expect(noticesInWindow(list, now).map((n) => n.id)).toEqual(["b", "d"]);
+  });
+
+  it("一条都不在窗口内 ⇒ 空数组", () => {
+    expect(noticesInWindow([notice({ until: "2000-01-01" })], now)).toEqual([]);
+  });
+});
+
 describe("每条公告独立记录", () => {
-  it("勾掉 a 之后，只有 a 的键被写；b 的键不存在", () => {
-    dismissViaUi(notice({ id: "test-notice-a" }));
+  it("关掉 a 之后，只有 a 的键被写；b 的键不存在", () => {
+    closeViaUi(notice({ id: "test-notice-a" }));
     expect(localStorage.getItem(KEY_A)).not.toBeNull();
     expect(localStorage.getItem(KEY_B)).toBeNull();
     // a 的存档里不该出现 b 的信息
@@ -86,8 +145,8 @@ describe("每条公告独立记录", () => {
   });
 
   it("删掉 a 的记录不影响 b 的记录", () => {
-    dismissViaUi(notice({ id: "test-notice-a" }));
-    dismissViaUi(notice({ id: "test-notice-b" }));
+    closeViaUi(notice({ id: "test-notice-a" }));
+    closeViaUi(notice({ id: "test-notice-b" }));
     expect(readNoticeRecord("test-notice-b").dismissed).toBe(true);
 
     localStorage.removeItem(KEY_A);
@@ -96,128 +155,119 @@ describe("每条公告独立记录", () => {
   });
 });
 
-describe("pickAutoNotice：该自动弹哪条", () => {
-  it("没关过 ⇒ 弹第一条", () => {
+describe("pickAutoNotices：该自动弹哪些", () => {
+  it("没关过 ⇒ **全部**在窗口内的都弹（保序，不是只给第一条）", () => {
     const list = [notice({ id: "test-notice-a" }), notice({ id: "test-notice-b" })];
-    expect(pickAutoNotice(list)?.id).toBe("test-notice-a");
+    expect(pickAutoNotices(list).map((n) => n.id)).toEqual(["test-notice-a", "test-notice-b"]);
   });
 
-  it("**只点「关闭」不勾「不再显示」⇒ 下次还弹**", () => {
+  it("**点「关闭」⇒ 下次不再弹**（D186 改的就是这条）", () => {
     const target = notice({ id: "test-notice-a" });
-    // 不勾，直接关
-    useNotices.setState({ autoNotice: target, manualNotice: null, dismissChecked: false });
-    useNotices.getState().close();
+    closeViaUi(target);
 
     const record = readNoticeRecord("test-notice-a");
     expect(record.closed).toBe(true);
-    expect(record.dismissed).toBe(false);
-    expect(pickAutoNotice([target])?.id).toBe("test-notice-a");   // 仍然会弹
+    // ⚠️ D182～D185 时这里是 `false`（"只点关闭 = 下次还弹"）。D186 把勾选框弃用后，
+    // 「关闭」本身就成了"不再自动弹" ⇒ 断言必须是 true。
+    expect(record.dismissed).toBe(true);
+    expect(pickAutoNotices([target])).toEqual([]);
   });
 
-  it("勾了「不再显示」⇒ 不再自动弹", () => {
-    const target = notice({ id: "test-notice-a" });
-    dismissViaUi(target);
-
-    expect(readNoticeRecord("test-notice-a").dismissed).toBe(true);
-    expect(pickAutoNotice([target])).toBeNull();
-  });
-
-  it("**内容改了 ⇒ 即使勾过「不再显示」也重新弹**（并记下新指纹）", () => {
+  it("**内容改了 ⇒ 即使关过也重新弹**（并记下新指纹）", () => {
     const original = notice({ id: "test-notice-a", body: "第一版" });
-    dismissViaUi(original);
-    expect(pickAutoNotice([original])).toBeNull();
+    closeViaUi(original);
+    expect(pickAutoNotices([original])).toEqual([]);
 
     // 用户改了正文（id 不变）⇒ 指纹不同 ⇒ 重新弹
     const updated = notice({ id: "test-notice-a", body: "第二版" });
-    expect(pickAutoNotice([updated])?.id).toBe("test-notice-a");
-    // 再勾一次不再显示后，用新内容就又不弹了
-    dismissViaUi(updated);
-    expect(pickAutoNotice([updated])).toBeNull();
+    expect(pickAutoNotices([updated]).map((n) => n.id)).toEqual(["test-notice-a"]);
+    // 再关一次后，用新内容就又不弹了
+    closeViaUi(updated);
+    expect(pickAutoNotices([updated])).toEqual([]);
   });
 
-  it("窗口外的公告跳过，取第一条**在窗口内**的", () => {
+  it("窗口外的公告跳过，剩下的照常**一批**给出来", () => {
     const list = [
       notice({ id: "test-notice-a", from: "2099-01-01" }),   // 还没到
       notice({ id: "test-notice-b" }),
+      notice({ id: "test-notice-c" }),
     ];
-    expect(pickAutoNotice(list)?.id).toBe("test-notice-b");
-  });
-});
-
-describe("pickManualNotice：手动打开", () => {
-  it("勾过「不再显示」也**照样能打开**（入口永远有效）", () => {
-    const target = notice({ id: "test-notice-a" });
-    dismissViaUi(target);
-    expect(pickAutoNotice([target])).toBeNull();
-    expect(pickManualNotice([target])?.id).toBe("test-notice-a");
+    expect(pickAutoNotices(list).map((n) => n.id)).toEqual(["test-notice-b", "test-notice-c"]);
   });
 
-  it("取第一条在窗口内的；全在窗口外才返回 null", () => {
-    const open = notice({ id: "test-notice-b" });
-    expect(pickManualNotice([notice({ id: "test-notice-a", from: "2099-01-01" }), open])?.id).toBe("test-notice-b");
-    expect(pickManualNotice([notice({ id: "test-notice-a", until: "2000-01-01" })])).toBeNull();
+  it("**多条同时有效 ⇒ 一起弹**；关过的那条不在里面，其余照旧", () => {
+    const first = notice({ id: "test-notice-a" });
+    const second = notice({ id: "test-notice-b" });
+    // 用户 2026-10-07 反馈的就是这条：两条都该弹，不该只给第一条
+    expect(pickAutoNotices([first, second]).map((n) => n.id)).toEqual(["test-notice-a", "test-notice-b"]);
+
+    closeViaUi(first);
+    expect(pickAutoNotices([first, second]).map((n) => n.id)).toEqual(["test-notice-b"]);
+  });
+
+  it("自动弹的那批与入口列表**同一批、同一序**（都没关过时）", () => {
+    const list = [
+      notice({ id: "test-notice-a" }),
+      notice({ id: "test-notice-b" }),
+      notice({ id: "test-notice-c", until: "2000-01-01" }),   // 过期了：两边都不该有
+    ];
+    expect(pickAutoNotices(list).map((n) => n.id))
+      .toEqual(noticesInWindow(list).map((n) => n.id));
   });
 });
 
 describe("useNotices：交互", () => {
-  it("openManually 打开后，勾选框的初值 = 已存的 dismissed", () => {
-    const target = notice({ id: "test-notice-a" });
-    dismissViaUi(target);
-    useNotices.setState({ autoNotice: null, manualNotice: null, dismissChecked: false });
+  it("openManually 打开的是**全部在窗口内的**（同一展示顺序）—— **不受**「关过」限制", () => {
+    // `openManually` 用的是**真源**（不是传进来的数组），所以这里也走真源
+    const expected = noticesInWindow(noticeContent.notices);
+    expect(expected.length, "真源里至少得有一条在窗口内的公告").toBeGreaterThan(0);
 
-    // 手动打开时用的是真源里的公告；这里直接验"读已存记录"这条通路
-    expect(readNoticeRecord("test-notice-a").dismissed).toBe(true);
-    useNotices.setState({ manualNotice: target, dismissChecked: readNoticeRecord(target.id).dismissed });
-    expect(useNotices.getState().dismissChecked).toBe(true);
+    // 先把其中一条关掉（走真源 id ⇒ 这一步确实写了它的存档；`beforeEach` 会清掉）
+    const closed = expected[0]!;
+    closeViaUi(closed);
+    expect(pickAutoNotices(noticeContent.notices).map((n) => n.id)).not.toContain(closed.id);
+
+    useNotices.getState().openManually();
+    // 关过的那条**照样在列表里** —— "别再自动弹"不等于"不许看"（D186 保留的通道）
+    expect(useNotices.getState().manualNotices).toEqual(expected);
   });
 
-  it("close 之后弹窗关闭（activeNotice 为 null）", () => {
-    useNotices.setState({ autoNotice: notice({ id: "test-notice-a" }), dismissChecked: false });
+  it("一条都不在窗口内 ⇒ openManually 什么也不做（不弹空列表）", () => {
+    useNotices.setState({ autoNotices: [], manualNotices: null });
+    expect(noticeOpenOf()).toBe(false);
+  });
+
+  it("close 之后弹窗关闭（两种打开方式都清掉）", () => {
+    useNotices.setState({ autoNotices: [notice({ id: "test-notice-a" })] });
     useNotices.getState().close();
-    expect(useNotices.getState().autoNotice).toBeNull();
-    expect(useNotices.getState().manualNotice).toBeNull();
+    expect(noticeOpenOf()).toBe(false);
+    expect(useNotices.getState().manualNotices).toBeNull();
   });
 
-  it("勾了再点关闭：dismissed 与指纹一起落盘", () => {
-    const target = notice({ id: "test-notice-a" });
-    dismissViaUi(target);
-    const record = readNoticeRecord("test-notice-a");
-    expect(record.dismissed).toBe(true);
-    expect(record.fingerprint).toBe(noticeFingerprint(target));
-    expect(record.at).toBeGreaterThan(0);
-  });
-
-  it("**取消勾选再关闭 = 撤销「不再显示」** ⇒ 下次又会自动弹", () => {
-    const target = notice({ id: "test-notice-a" });
-    dismissViaUi(target);
-    expect(pickAutoNotice([target])).toBeNull();
-
-    // 用户点入口手动打开 ⇒ 勾选框回填成"已勾"（`openManually` 的行为），他顺手取消勾选、再关闭
-    useNotices.setState({
-      autoNotice: null,
-      manualNotice: target,
-      dismissChecked: readNoticeRecord(target.id).dismissed,
-    });
-    expect(useNotices.getState().dismissChecked).toBe(true);
-    useNotices.getState().setDismissChecked(false);
+  it("close 会**逐条**落盘：每条都记 dismissed + **关的那一刻的**指纹", () => {
+    const a = notice({ id: "test-notice-a" });
+    const b = notice({ id: "test-notice-b", body: "乙的正文" });
+    useNotices.setState({ manualNotices: [a, b] });
     useNotices.getState().close();
 
-    // 撤销生效：`dismissed` 落盘成 false ⇒ 下次进站**又自动弹**
-    // （修之前这里会保留旧值 true ⇒ 勾选框成了"假开关"，这条用例就是那时缺的回归守卫）
-    const record = readNoticeRecord("test-notice-a");
-    expect(record.closed).toBe(true);
-    expect(record.dismissed).toBe(false);
-    expect(pickAutoNotice([target])?.id).toBe("test-notice-a");
+    // 开屏弹 2 条就要记 2 条 —— 漏一条的话那条下次还会跳出来
+    for (const target of [a, b]) {
+      const record = readNoticeRecord(target.id);
+      expect(record.closed).toBe(true);
+      expect(record.dismissed).toBe(true);
+      expect(record.fingerprint).toBe(noticeFingerprint(target));
+    }
   });
 
-  it("取消勾选**不影响**没有勾过的情形（自动弹 + 不勾 + 关 ⇒ 下次还弹）", () => {
-    const target = notice({ id: "test-notice-a" });
-    useNotices.setState({ autoNotice: target, manualNotice: null, dismissChecked: false });
-    useNotices.getState().setDismissChecked(false);   // 用户点了两下勾选框（勾上又取消）
-    useNotices.getState().close();
+  it("指纹记的是**此刻**的内容，不是存档里的旧值（否则改了内容也不重弹）", () => {
+    const original = notice({ id: "test-notice-a", body: "第一版" });
+    closeViaUi(original);
+    expect(readNoticeRecord("test-notice-a").fingerprint).toBe(noticeFingerprint(original));
 
-    expect(readNoticeRecord("test-notice-a").dismissed).toBe(false);
-    expect(pickAutoNotice([target])?.id).toBe("test-notice-a");
+    const updated = notice({ id: "test-notice-a", body: "第二版" });
+    closeViaUi(updated);
+    expect(readNoticeRecord("test-notice-a").fingerprint).toBe(noticeFingerprint(updated));
+    expect(pickAutoNotices([updated])).toEqual([]);
   });
 
   it("坏存档（不是合法 JSON / 形状不对）⇒ 回落默认，不抛", () => {
@@ -236,9 +286,59 @@ describe("useNotices：交互", () => {
   });
 });
 
+describe("选择器：activeNotices / noticeMode", () => {
+  it("手动打开的那份列表**优先**于自动弹的那批", () => {
+    const auto = notice({ id: "test-notice-a" });
+    const manual = [notice({ id: "test-notice-a" }), notice({ id: "test-notice-b" })];
+    useNotices.setState({ autoNotices: [auto], manualNotices: manual });
+
+    expect(activeNotices(useNotices.getState())).toBe(manual);
+    expect(noticeMode(useNotices.getState())).toBe("manual");
+  });
+
+  it("只有自动弹的那批时，模式是 \"auto\"", () => {
+    const auto = notice({ id: "test-notice-a" });
+    useNotices.setState({ autoNotices: [auto], manualNotices: null });
+
+    expect(activeNotices(useNotices.getState())).toEqual([auto]);
+    expect(noticeMode(useNotices.getState())).toBe("auto");
+  });
+
+  it("都没有 ⇒ 模式是 \"closed\"，列表为空", () => {
+    useNotices.setState({ autoNotices: [], manualNotices: null });
+
+    expect(activeNotices(useNotices.getState())).toEqual([]);
+    expect(noticeMode(useNotices.getState())).toBe("closed");
+  });
+
+  it("空列表用的是**同一个常量引用**（不然选择器会让组件每帧空转）", () => {
+    useNotices.setState({ autoNotices: [], manualNotices: null });
+    expect(activeNotices(useNotices.getState())).toBe(activeNotices(useNotices.getState()));
+  });
+});
+
 describe("内容真源与默认文案", () => {
   it("默认「关闭」文案是双语的（兜底值）", () => {
     expect(NOTICE_DEFAULT_CLOSE.en).toBe("Close");
     expect(NOTICE_DEFAULT_CLOSE.zh).toBe("关闭");
   });
+
+  it("真源本身就按展示顺序排好了（置顶优先 → date 由新到旧）", () => {
+    const ids = noticeContent.notices.map((n) => n.id);
+    const sorted = sortNotices(noticeContent.notices).map((n) => n.id);
+    expect(ids).toEqual(sorted);
+  });
+
+  it("「不再显示」那套状态与动作**已经不在了**（D186 弃用，防它悄悄回来）", () => {
+    // 勾选框曾经把值放在 store 里（`dismissChecked`）并配一个 `setDismissChecked`。
+    // 弃用之后它们不该再出现 —— 一旦有人恢复，这里先红，逼他回去看 D186 为什么否掉那条交互。
+    const state = useNotices.getState() as unknown as Record<string, unknown>;
+    expect(state.dismissChecked).toBeUndefined();
+    expect(state.setDismissChecked).toBeUndefined();
+  });
 });
+
+/** 当前弹窗是不是开着（`noticeOpen` 的选择器 + 当前 state）。 */
+function noticeOpenOf(): boolean {
+  return activeNotices(useNotices.getState()).length > 0;
+}

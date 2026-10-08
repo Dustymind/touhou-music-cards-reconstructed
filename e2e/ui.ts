@@ -20,7 +20,7 @@ export async function expandSection(page: Page, id: string): Promise<void> {
 export const NOTICE_KEY_PREFIX = "tmc.v1.notice.";
 
 /**
- * 进站前**清掉"公告已读/不再显示"的记录**（只清公告的键，别动别的存档）。
+ * 进站前**清掉"公告已读/关过"的记录**（只清公告的键，别动别的存档）。
  *
  * 为什么每个用例都要：Playwright 每个用例一个全新的 `context` ⇒ `localStorage` 是空的 ⇒
  * 站内公告会在**每一次 `page.goto("/")` 之后自动弹出**，而它是**模态**（会挡住页签等控件，
@@ -30,9 +30,9 @@ export const NOTICE_KEY_PREFIX = "tmc.v1.notice.";
  * - **专门测公告的用例**：只调它（保留"进站就会弹"这个前置），别急着关。
  *
  * ⚠️ **只在"这个 context 的第一次导航"清**（用 `sessionStorage` 当一次性闸门）。
- * 这不是洁癖：`addInitScript` 是**每次导航都会跑**的，而无条件清键会把"点了「不再显示」之后
+ * 这不是洁癖：`addInitScript` 是**每次导航都会跑**的，而无条件清键会把"点了「关闭」之后
  * 刷新"这件事**测反** —— 刷新时脚本又把记录抹了，于是公告照弹，
- * 「勾了不再显示 ⇒ 刷新不再弹」这条用例永远红。
+ * 「关过一次 ⇒ 刷新不再弹」这条用例永远红。
  */
 export async function clearNoticeRecords(page: Page): Promise<void> {
   await page.addInitScript((prefix) => {
@@ -60,8 +60,8 @@ export async function dismissNotice(page: Page): Promise<void> {
 }
 
 /**
- * **让公告别弹**：在页面脚本跑起来之前，就把每条公告都记成"已勾不再显示"，
- * 且指纹写成**与当前内容一致** —— 于是自动弹出判据判定"看过了、内容也没变" ⇒ 一条都不弹。
+ * **让公告别弹**：在页面脚本跑起来之前，就把每条公告都记成"**关过**"（`closed` + `dismissed`），
+ * 且指纹写成**与当前内容一致** —— 于是自动弹出判据判定"关过了、内容也没变" ⇒ 一条都不弹。
  *
  * 给"完全不关心公告"的用例用（一次 `addInitScript`，之后这个用例里所有 `goto` / `reload` 都安静），
  * 比在每个 `goto` 后面补一句 `dismissNotice` 稳得多。
@@ -111,7 +111,7 @@ export const NOTICE_TEST_MARKER = "站内公告";
  * 所以各 spec 文件开头都有一段 `beforeEach` 调 `suppressNotice`。但**测公告的用例**恰恰要
  * "进站就会弹"这个前置，而且得自己控存储：先清一次、再靠 `reload` 验证"是还会弹还是不再弹"。
  * 文件级那段是 `addInitScript`、**每次导航都会重跑** —— 它会在 reload 时把"已看过"重新写回去，
- * 于是「不勾不再显示 ⇒ 刷新后还会弹」这条**永远红**（实测就是这个现象）。
+ * 于是「关过一次 ⇒ 刷新不再弹」这条**永远红**（实测就是这个现象）。
  * 所以这类用例按标题放行，公告的两条相反预期（会弹 / 不会弹）都交给用例自己。
  */
 export function shouldAutoSuppressNotice(): boolean {

@@ -7550,3 +7550,513 @@ expect(parsed.toISOString().slice(0, 10)).toBe(value); // ← 按【UTC】取日
 **没做的**：没给 `--bail` / `--last-failed` 做脚本封装（直接 `pnpm test:file <文件> --bail=1` 就行，
 `run.mjs` 会原样转发）；**没有**为 firefox 做增量（两个引擎跑的是**同一批**用例，firefox 只多守浏览器差异，
 在提交前的全量里覆盖即可）。
+> ⚠️ **上面这套「关闭 vs 不再显示」的语义已被 D186 取代（2026-10-07）**：勾选框整个**弃用**了。
+> 现在**关闭 = 永久不再自动弹**（不再有"只关不勾 ⇒ 下次还弹"），弹窗上只剩一个「关闭」+ 一行告知
+> （`ShellNoticeHint`）。**唯一保留**下来的是本节最后那条"内容指纹变了会重新弹"。
+> 下面「入口键…回填 `dismissed` 到勾选框状态」一段也随之失效。原文一字未动，留作历史。
+
+> ⚠️ **已被 D185 取代**：入口那份**不再只开第一条**（改成了可翻看的列表），开屏也**不再只弹一条**
+> （该弹的一次全摆出来）。`pickAutoNotice` / `pickManualNotice` 这两个函数名都已不存在
+> （现在是 `pickAutoNotices` / `noticesInWindow`）。上面这段保留原文，作为 **D182 当时**的记录 ——
+> "一条够用"是那时的结论，用户 2026-10-07 明确改了口径。
+
+> ⚠️ **已被 D187 部分取代（2026-10-08）**：**正文外置**这一半仍然有效（`.md` 一条一稿、`?raw` 装载、
+> e2e 走 `node:fs`、三文件拆分、以及"e2e 里绝不要 import `src/content/notices.ts`"全部照旧）；
+> 被取代的是**元数据那一半** —— 下方提到的 `noticeMeta` 数组与每条一个 `bodyFile` 已删掉，
+> `id` / `title` / `date` / `from` / `until` / `pinned` / `close` 全部搬进 `.md` 开头的 `---` frontmatter，
+> `noticeMeta.ts` 只剩一张 `NOTICE_FILES` 文件名清单 + 解析器。下文相关原文一字未动，就地加此标记。
+
+
+## D185 公告的展示排序（`date` / `pinned`）+ 入口改成可翻看的列表 + 开屏一次摆出**全部**该弹的（2026-10-07）
+
+**背景**（用户逐字要求）：
+
+1. "多重公告则最新的在最前面，然后按时间顺序排。置顶的在最前面，多个置顶也按时间顺序排。手动打开的公告页面也是。"
+2. "新增一个 date 字段"
+3. "改成一个可翻看的列表"
+4. 落地之后又反馈："主页开屏未能同时显示多个公告"
+
+第 4 条**推翻了 D182 的"一条够用"**（当时用户说"一条够用"，所以自动弹只取第一条）。
+
+**做法**
+
+**(a) 排序只在一处定义：content 层**
+
+- `NoticeContent` 加 `date?: string`（`YYYY-MM-DD`）与 `pinned?: boolean`。
+- `src/content/noticeMeta.ts` 新增纯函数 `sortNotices`，规则三条：置顶优先 → `date` 由新到旧 → 同档保持书写顺序
+  （`Array.prototype.sort` 从 ES2019 起**保证稳定**，所以"同档保持书写顺序"是免费的，不用额外塞序号）。
+- **`sortNotices` 只在 `buildNoticeContent` 里调一次** ⇒ `noticeContent.notices` 取出来就是展示顺序，
+  下游（开屏弹哪批、入口列哪些）**只按数组顺序读**，谁都不再排第二次。
+
+为什么放 content 层而不是 store：**两处入口必须同序**。排序若放 store，"开屏排一次、列表又排一次"
+迟早漂移；放 content 层则是**同一份数组**喂给两处，顺序不可能不一致。
+
+**(b) `date` 与 `from` / `until` 刻意分开**
+
+- `from` / `until` 管**能不能看**（生效时间窗）；`date` 只管**排哪前哪后**。
+- 分开的收益：调排序不动可见性、调窗口不动排序，两件事互不牵连。
+- `date` **可选**，不写视为**最旧**（实现上取 `""` —— 字典序里比任何 `YYYY-MM-DD` 都小，正好落在最后）。
+- `date` **不进内容指纹**：`noticeFingerprint` 的入参类型是 `Pick<NoticeContent, "id" | "title" | "body">`
+  ⇒ **改排序 / 改窗口都不算"新内容"**，不会重新打扰用户。这是**类型层面**的保证，不靠注释提醒。
+- 为什么**不拿 `date` 兼当窗口**：那样"把公告日期往前挪一周"会连带改可见性 —— 两个概念，别复合。
+
+**(c) `pinned`**
+
+- 可选布尔。置顶排最前，**置顶之间仍按 `date` 由新到旧**（照用户原话"多个置顶也按时间顺序排"）。
+- 界面上置顶那几条带一个 `Chip`（「置顶 / Pinned」，新 i18n 键 `ShellNoticePinned`），
+  并把 `date` 以 `caption` 显示出来 —— **排序键不写出来就是个黑箱**，用户看不出"为什么它排在前面"。
+
+**(d) 开屏从"一条"改成"一批"**
+
+- `pickAutoNotice`（`NoticeContent | null`）→ **`pickAutoNotices`**（`NoticeContent[]`）：
+  `noticesInWindow(...)` 再 `.filter(没勾过「不再显示」|| 指纹变了)`，**保序**。
+- store 的 `autoNotices` 本来就是数组，这次只是**内容**从"0 或 1 条"变成"0..n 条"；
+  空的时候仍换成同一个 `NONE` 常量（选择器引用要稳定，否则组件每帧空转）。
+
+**(e) 版式的分水岭改成"几条"，不是"哪种打开方式"**
+
+`NoticeDialog` 里就一句：`const asList = mode === "manual" || notices.length > 1;`
+
+- **1 条**：仍是**方案 B**（D182 确认的那套三段式）—— 弹窗标题 = 那条公告的标题、无逐条小标题、无分隔线。
+  所以"只有一条公告"的观感与改动前**逐字一致**。
+- **2 条以上**：列表版式（通用标题「提示 / Notices」+ 每条自带 `h3` 小标题 + 分隔线 + 每条自己的勾选框）。
+
+为什么不干脆全用列表版式：单条时把标题写成通用文案是**信息损失**（那条公告的标题本来就在标题栏里）。
+为什么多条时必须换：两条以上还只把第一条的名字写进标题栏，其余几条等于**被藏了** —— 那正是第 4 条反馈。
+`mode` 因此只影响 `data-notice-mode`（e2e 用来区分"这次是哪来的"），**不再决定版式**。
+
+> ⚠️ **(e) 里"列表版式含每条自己的勾选框"与整个 (f)、(g) 已被 D186 取代（2026-10-07）**。
+> 勾选框弃用后，`(e)` 的**版式分水岭**（`asList = mode === "manual" || notices.length > 1`）与
+> `notice-item-<id>` / 逐条小标题**都还在**；少掉的只有"每条一个勾选框"。
+> 于是 D185 引以为据的"撤销通路"换了走法：现在**关闭就是永久关闭**，"想再看"交给入口 + 那行告知。
+> (g) 那条"勾了 1 条另外 2 条照弹"的连带语义**随勾选框一起消失** —— 关闭作用于**整批**。
+> 原文一字未动，留作历史。
+
+**(f) 列表里**每条各自的勾选框**是硬要求，不是排版偏好**
+
+- 「勾不再显示 → 之后在入口里**取消勾选** = 撤销」是 D182 定下的**唯一撤销通路**。只读的列表会让它消失
+  （用户勾错了就再也救不回来）⇒ 列表必须可勾。
+- 共享 testid（原 `notice-dismiss`）在**多条**时会撞 Playwright 的 strict mode（"匹配到 2 个元素"直接失败）
+  ⇒ testid 全部改成带 id：`notice-dismiss-<id>`、`notice-item-<id>`。
+
+**(g) 开屏能弹多条之后的连带语义**（第 4 条要求最容易漏的地方）
+
+- 「不再显示」**按条**生效：开屏若弹 3 条，勾了其中 1 条再关，**另外 2 条下次照弹**。
+  这是对的（每条公告各自独立），但使用者要静音就得逐条勾 —— e2e 那条"勾不再显示后刷新不再弹"
+  因此必须**把每条都勾上**，只勾第一条会让用例假红。
+- 「只点关闭、不勾」仍然是"下次还弹"（`closed` 不参与自动弹出判据，只有 `dismissed` 参与），行为未变。
+- 已知的既有语义（本轮**没有**改，也不是本轮引入）：勾过「不再显示」而**内容后来变了** ⇒ 会重新弹一次；
+  若这次用户只关不勾，`dismissed` 落盘成 `false` ⇒ 之后每次进站都会再弹，直到他勾一次。
+  D182 起就是这个行为（"只点关闭 = 下次还弹"），本轮多条化只是让它**更容易被撞见**。
+
+**顺手修掉的一个真 bug：`draft.md` 的注释把自己截断了**
+
+`draft.md` 的注释正文里原本**真的写着 `-->` 那三个字符**。渲染器剥离注释用的是**非贪婪**匹配
+（`/<!--[\s\S]*?-->/g`）⇒ 遇到第一个 `-->` 就收尾、注释**提前截断**，后半段（"改完怎么验 …`pnpm test:related`…"）
+当场漏进界面。这种错在 `.md` 里看着完全正常，**只有渲染出来才看得见**。
+
+- 修：注释正文里不再出现那三个字符（并在文件里写明原因）。
+- 回归守卫：`src/content/notices.test.ts` 新增「渲染守卫：注释别把后半段漏出来」——
+  把每条正文过一遍渲染器的**纯文本输出**，断言不含 `-->`。
+- 附带后果：`draft.md` 之前**并不是空的**（漏出来的那段就是内容），"整份只有注释 ⇒ 渲染为空"这个承诺
+  当时并不成立；修完才真的空。既有的「每条正文非空」用例之所以能过，恰恰是因为漏了那一段。
+
+**验证状态（诚实记录）**
+
+| 项 | 结果 |
+|---|---|
+| `pnpm typecheck` | ✓ 干净（含 e2e 侧 spec，`tsconfig` 覆盖到） |
+| `pnpm test:file src/store/notices.test.ts src/ui/components/NoticeDialog.test.tsx` | ✓ **2 files / 64 passed**（store 35 → 36：6 条改写成 7 条；NoticeDialog 25 → 28，+3 条"自动弹多条"的版式守卫） |
+| `pnpm test:related src/content/notices.ts` | ✓ 6 files / 85 passed —— **改动前的中间态**，本轮改完未重跑 |
+| `playwright test --list` | ✓ **127 tests / 7 files**（只收集不执行；用来确认 Playwright 的 TS 加载器仍收得上 spec） |
+| `pnpm e2e` / `pnpm test:chromium` / `pnpm license:lint` / `pnpm gate` | **未跑** —— 用户 2026-10-07 明确"先不要全量测试"，等发话 |
+
+**本机环境坑（跑 e2e 时撞到的，与代码无关）**
+
+`pnpm exec playwright …` **绕过** `scripts/run.mjs` ⇒ 拿不到 `PLAYWRIGHT_BROWSERS_PATH`，
+会回落到系统默认目录 `%LOCALAPPDATA%\ms-playwright`（那里只有旧版浏览器）⇒ **全部用例秒红**，
+报 `Executable doesn't exist at …chromium_headless_shell-1243…`。仓库的浏览器装在**仓库内**
+`.playwright-browsers/`，所以跑 e2e **一律走 `pnpm e2e` / `pnpm e2e:file` / `pnpm e2e:mobile`**。
+
+**没做的**
+
+- 不做公告轮播 / 逐条翻页（列表可滚动，条目自带小标题已经够读）。
+- 不做未读角标（D182 起用户明确不要）。
+- 不做"只弹指定某一条"的调试开关 —— 要试某条就调它的 `date` / `pinned`。
+
+## D186 公告弹窗：弃用「不再显示」勾选框，改成"关闭 = 不再自动弹" + 一行告知（2026-10-07）
+
+**背景**（用户逐字要求）：
+
+> 弃用"不再显示"勾选框，改成提示 `你可以在右上角的"公告"重新查看此消息`
+
+追问后确认两件事：
+
+- **关闭的语义**：「关掉 = 不再自动弹（**永久**）」—— 不是"只是关掉这一次"；
+- **按钮文案**：把入口那个键从「提示」**统一改成「公告」**（中/英 = 公告 / Notices）。
+
+这条**推翻了 D182 的三段式**（"正文 → 勾选框 → 关闭"）与 **D185(f)**（"列表里每条一个勾选框是硬要求"）。
+被推翻的那些原文一字未动，就地加了「已被取代」标记（D171 那三条文档口径规则）。
+
+**做法**
+
+**(a) `close()` 一律落盘 `dismissed: true` —— 一扇单向门**
+
+- `src/store/notices.ts` 的 `close()` 不再看任何勾选框状态（那个状态已经不存在了），
+  直接对**当前显示的整批**逐条写 `{ closed: true, dismissed: true, fingerprint: 此刻的指纹, at }`。
+- "逐条"是**必须**的：开屏一次弹 2 条时，只记第一条的话，第二条下次进站照跳（D185(g) 的连带语义在此收口）。
+- 于是 `pickAutoNotices` 的判据从"没勾过「不再显示」"简化成"**没关过**"，
+  **唯一例外**是内容指纹变了（见下）。
+- 代价是**明确接受的**：UI 上再没有"让它重新自动弹"的通路。这是有意的一扇单向门 ——
+  「不想被打扰」比「想被再打扰一次」更常见；要看回来永远有入口。
+
+**(b) 弹窗底部一行告知（`ShellNoticeHint`）**
+
+- 勾选框留下的空白由**一行 `caption`（12sp）**填上：正文之后、动作区之前，**只放一次**（不是每条一份）。
+  - 中：`你可以在右上角的"公告"重新查看此消息`
+  - 英：`You can view this message again from "Notices" at the top right.`
+- 为什么用 `caption` 而不是正文字号：它是**辅助说明**，不该跟公告正文抢注意力。
+- 为什么必须写"**关闭 = 不再自动弹**"这半句：单向门如果不告诉用户，他关掉后只会以为"是不是坏了"。
+  所以这一行承担**两件事**：解释关闭的后果 + 指出回来的路。
+
+**(c) 入口文案统一成「公告」**
+
+`Localization.ShellNoticeOpen` 的中文从**「提示」改成「公告」**（英文本来就是 `Notices`）。
+理由是那句话（b）里已经要把用户指向"右上角的公告"，两处叫法不一致就白指了。
+
+**(d) 一起删干净的东西**（都留了"别再回来"的墓碑注释）
+
+| 删掉 | 位置 |
+|---|---|
+| `NoticeContent.dismiss?: Localized` 字段 | `src/content/noticeMeta.ts` |
+| `NOTICE_DEFAULT_DISMISS` 常量 | 同上（旁边留注释指向 `ShellNoticeHint`） |
+| `dismissChecked` / `setDismissChecked` / `checksFor` | `src/store/notices.ts` |
+| `Checkbox` / `FormControlLabel` 引入与整个勾选框区块 | `src/ui/components/NoticeDialog.tsx` |
+| `dismiss` 相关的 props 与选择器 | `src/ui/shell/AppShell.tsx` |
+
+`NoticeDialog` 的 props 因此瘦成 `{ notices, mode, open, onClose }`。
+
+**版式没有变**（这一点值得单独说）
+
+(a)～(d) 只动了"怎么关"，**没动"长什么样"**：`asList = mode === "manual" || notices.length > 1` 不变、
+逐条小标题 / 置顶徽章 / `date` caption / `D185` 的排序**全部保持**。
+单条公告的观感与 D185 之后**逐字一致**，区别只有底部那一行从勾选框换成了一句话。
+
+**验证状态（诚实记录）**
+
+| 项 | 结果 |
+|---|---|
+| `pnpm typecheck` | ✓ 干净（`tsc --noEmit`，含 e2e 侧 spec） |
+| `pnpm test:file src/store/notices.test.ts src/ui/components/NoticeDialog.test.tsx` | ✓ **2 files / 61 passed**（store 35 + NoticeDialog 26；两份都是本轮重写的） |
+| `node scripts/run.mjs playwright test --list` | ✓ **125 tests / 7 files**（D185 时是 127 —— 本轮删掉一条纯验勾选框的用例，两个桌面引擎各 −1） |
+| 定向 e2e（**只跑公告那几条**，非全量） | ✓ chromium **3/3 ok**（`--grep 站内公告`）+ mobile **1/1 ok** |
+| `pnpm e2e` / `pnpm test:chromium` / `pnpm license:lint` / `pnpm gate` | **未跑** —— 用户 2026-10-07 明确"先不要全量测试"，等发话 |
+
+**测试怎么改的（一并记下，都是容易漏的点）**
+
+- **`src/store/notices.test.ts` 整份重写**：删掉 `setDismissChecked` 相关的准备；
+  新增 `pickAutoNotices` 一组（都在窗口内 ⇒ 全弹 / 关掉 ⇒ 不再弹 / 内容变了 ⇒ 再弹 / 与入口列表同批同序）；
+  末尾加**反向守卫**：断言 `state.dismissChecked` 与 `state.setDismissChecked` **都是 `undefined`**
+  —— 防它日后被"顺手加回来"。
+- **`NoticeDialog.test.tsx` 整份重写**：三段式断言从"正文 → 勾选框 → 关闭"改成"正文 → 告知行 → 关闭"；
+  新增守卫断言弹窗里 `input[type=checkbox]` 与 `[data-testid^="notice-dismiss"]` **都是 0 个**。
+- **e2e 删掉一条**：原来那条「勾『不再显示』后刷新不再自动弹；取消勾选 = 撤销」整个失效（勾选框没了），
+  它的覆盖面被并进另两条：①「首次进站自动弹多条…**关掉后刷新不再弹**」②「入口打开的是列表，
+  与开屏同一批同一序；**关过之后仍能再翻开**」。
+- **e2e 里那行告知要"先滚进可视区再量"**（真踩到的坑）：开屏是 2 条、正文加起来超过一屏 ⇒
+  `DialogContent dividers` 在**内部滚动**，告知行的 `getBoundingClientRect().bottom` 是 **998**，
+  而关闭键的 `top` 只有 **645** —— 直接量会得出"告知行在关闭键**下面**"这个假象，
+  `expect(hintBottom).toBeLessThanOrEqual(closeTop)` 当场红。加一句
+  `await page.getByTestId("notice-hint").scrollIntoViewIfNeeded()` 之后才是真实位置。
+  **这不是测试写错，是"滚动容器里的元素坐标不等于屏幕坐标"**，任何量"内容区末尾元素"的用例都得注意。
+
+**没做的**
+
+- 不保留"重新自动弹"的开关（见 (a)，有意为之）。
+- 不把"关闭 = 不再自动弹"做成可配置 —— 两种语义并存会让"关闭"这个动作变得要解释。
+- 不在关闭时给 toast / 二次确认（一行告知已经把后果说清了，再弹一层反而烦）。
+
+## D187 公告改成 YAML frontmatter 承载元数据：`.md` 一条一稿、TS 里一个字段都不留（2026-10-08）
+
+**背景**（用户逐字要求）：
+
+> 公告能否支持 yaml frontmatter
+
+追问后确认三件事：
+
+- **字段优先级**：「**只 frontmatter，TS 里彻底不留**」—— `noticeMeta.ts` 收缩成"读哪些 `.md`"一张清单，
+  `title` 也搬进 `.md`；
+- **支持哪些字段**：「只需『排序 + 可见性』」—— `title`（双语）/ `date` / `pinned` / `from` / `until` /
+  `close`（双语）；明确**不做**每条的图标/颜色/宽度之类的展示字段；
+  （⚠️ **后被 D188 追加 `draft`** —— 起草中的公告用 `draft: true` 在构建期摘掉，见 D188。）
+- **解析器**：「用现成的 `yaml` 包」—— 明知这会**改变 npm 生产闭包**，用户接受。
+
+这条**推翻了 D183 的一半**：正文早就是真 `.md` 了，但**元数据仍在 TS**（`noticeMeta` 数组 +
+每条一个 `bodyFile`）。D183 的正文侧一字未动。
+
+**(a) `src/content/noticeMeta.ts`：从"元数据数组"变成"文件名清单 + 解析器"**
+
+- 删掉 `interface NoticeMeta`（`NoticeContent` 去掉 `body` 再挂 `bodyFile`）与 `noticeMeta` 数组。
+- 新增 `NOTICE_FILES: readonly string[]` —— **只是文件名**，顺序 = 同档时的书写顺序（稳定排序的兜底）。
+- 新增 `splitFrontmatter` / `stripFrontmatter` / `parseNoticeFile` / `parseFrontmatterFields`，
+  `buildNoticeContent` 的入参从"`文件名 → 正文`"改成"**`文件名 → 整个文件原文（含 frontmatter）**"。
+- 语义**保持不变**的：`NoticeContent` 形状、`sortNotices` 的三条规则、`noticeFingerprint` 只算
+  `id + 标题 + 正文`、`NOTICE_DEFAULT_CLOSE`、`normalizeNoticeBody` 的 CRLF/trim 两件事。
+- `normalizeNoticeBody` **多了第三件事**：先 `stripFrontmatter`。放这儿而不是放渲染器里，是因为
+  `src/ui/markdown.tsx` 不认 `---`（它只认 `<!-- -->`），frontmatter 漏进去会渲染成界面顶上一段
+  `id: xxx` 的乱码。剥在最前面，两个环境就都干净了。
+
+**(b) 三条填写规则从注释搬进 `.md`，并且**错误要炸**
+
+原先"id 唯一 / 双语两份 / 日期合法"只靠 `notices.test.ts` 在测试期把关；现在 frontmatter 解析在**构建期**
+就跑（`notices.ts` 顶层 `buildNoticeContent`），所以**手写错误会当场抛**，报错一律带**文件名 + 行号**：
+
+| 症状 | 报错 |
+|---|---|
+| 没有 `---` 开头 | `xxx.md：缺少 frontmatter —— 文件第一行必须是 \`---\`` |
+| `---` 开了没收尾 | `xxx.md：公告 frontmatter 没有结束` |
+| YAML 语法错 | `xxx.md：frontmatter 不是合法 YAML（第 N 行） —— <yaml 的原始信息>` |
+| 拼错字段名（`tilte` / `pin`） | `xxx.md：frontmatter 里有不认识的字段 \`tilte\` —— 只支持 \`id\` / \`title\` / …` |
+| `id` / `title` 缺或只写一半 | `xxx.md：\`id\` 必填…` / `\`title\` 必填，且必须是 \`{ en: …, zh: … }\`` |
+| `pinned: yes` | `xxx.md：\`pinned\` 只能是 \`true\` / \`false\`` |
+| `date: 12345` | `xxx.md：\`date\` 必须是字符串形式的日期…` |
+
+**"不认识的字段"必须报错**（而不是忽略）：拼错字段名的症状是"我明明设置了却没生效"，
+在一个只会被偶尔编辑的文件里，这是最难查的一类错。
+
+**行号换算**：`yaml` 报的 `linePos` 是**相对 YAML 片段**的（1 起），片段从文件的第 2 行开始
+（第 1 行是 `---`）⇒ 真实行号 = `yaml 行号 + 1`。报的是"出问题的构造**从哪开始**"，
+不是"到哪结束"——对没闭合的 `{` / `[` 就是开括号那一行，这对定位反而更有用（已落成用例）。
+
+**(c) 加了 `yaml`（2.9.1）到 `dependencies` —— 明说许可代价**
+
+- 这是**运行时**依赖（不是 dev），因为 `buildNoticeContent` 在浏览器里跑。
+- 仓库的硬约束是：**加一个运行时依赖就会改变生产闭包** ⇒ `scripts/gen-notices.mjs` 的产物变 ⇒
+  `pnpm gate --check` 直接红。所以必须重跑 `pnpm notices`。
+- **实测结果：包数 86 → 86，没变**。原因：`yaml` 本来就在闭包里（`vite.config.ts` 之类经 `pnpm` 的
+  传递依赖早已带进来），这次只是从"传递"变成"直接"。变的只有 `THIRD-PARTY-NOTICES.md` 表格里那一行
+  （`yaml` 的版本/署名进表：`| yaml | 2.9.1 | Copyright Eemeli Aro <eemeli@gmail.com> |`）。
+- `node scripts/gen-notices.mjs --check` 重跑后 ✓「署名与许可文件同生产闭包一致」。
+- **若要选一条更省事的替代**：自己写个 20 行的 frontmatter 子集解析器（只支持 `key: value` 与
+  行内 `{ en, zh }`）就能零依赖。**没选**是因为用户明确要"用现成的包"、且 frontmatter 是
+  用户会手写的地方，成熟的解析器在"引号 / 多行 / 注释 / 转义"上的边界处理比手写可靠。
+
+**(d) 三份 `.md` 的元数据搬迁（顺序与可见性保持一致）**
+
+| 文件 | 搬进 frontmatter 的字段 | 原来在 TS 里的 |
+|---|---|---|
+| `welcome-2026-10.md` | `id: welcome-2026-10` / `title: { en: Welcome, zh: 欢迎 }` / `date: "2026-10-01"` | 同左 |
+| `example.md` | `id: example` / `title: { en: Markdown sample, zh: Markdown 示例 }` / `date: "2026-09-01"` | 同左 |
+| `draft.md` | `id: draft` / `title: { en: Draft, zh: 草稿 }` / `from: "2099-01-01"` | 同左 |
+
+**搬迁后顺序与窗口逐条核对过、与迁移前完全一致**（用临时探针 dump 过一遍，见下"验证状态"）：
+`welcome-2026-10`（date 2026-10-01）→ `example`（date 2026-09-01）→ `draft`（无 date ⇒ 视为最旧，
+且 `from: 2099-01-01` ⇒ 不在窗口内、不进开屏）。三份文件里正文**一字未动**，
+`draft.md` / `example.md` 里那句"在 `noticeMeta` 里带着 from…"的路标改成了指 frontmatter。
+
+**(e) e2e 侧跟着改用 `NOTICE_FILES` 读盘**
+
+`e2e/noticeContent.ts` 从 `noticeMeta.map(meta => [meta.bodyFile, read(meta.bodyFile)])` 改成
+`NOTICE_FILES.map(file => [file, read(file)])` —— **仍然是读同一批文件、调同一个 `buildNoticeContent`**，
+所以两边口径不会漂。**D183 那条"e2e 里绝不要 import `src/content/notices.ts`"依然成立**，
+而且这次的风险更高了一点：`.md` 现在开头是 `---`，Playwright 的 TS 加载器会把它当
+"`---` 开头的一段 JS"解析，一样是 `SyntaxError`。
+
+**验证状态（诚实记录）**
+
+| 项 | 结果 |
+|---|---|
+| `pnpm typecheck` | ✓ 干净 |
+| `pnpm test:file src/content/notices.test.ts` | ✓ **1 file / 27 passed**（原 20 条 + 新增 frontmatter 用例组） |
+| `pnpm test:file src/store/notices.test.ts src/ui/components/NoticeDialog.test.tsx` | ✓ **2 files / 61 passed** |
+| `node scripts/run.mjs playwright test --list` | ✓ **125 tests / 7 files**（与 D186 一致 ⇒ e2e 仍收得上用例，`?raw` 没炸） |
+| 定向 e2e（**只跑公告那几条**，非全量） | ✓ chromium **3/3 ok** + mobile **1/1 ok** |
+| `node scripts/gen-notices.mjs --check` | ✓ 一致（包数 86 → 86，`yaml` 入表） |
+| 迁移等价比对 | ✓ 临时探针 dump：顺序 / date / from / pinned / 正文开头与迁移前逐字相同（探针已删） |
+| `pnpm e2e` / `pnpm test:chromium` / `pnpm license:lint` / `pnpm gate` | **未跑** —— 用户明确"先不要全量测试"，等发话 |
+
+**本机踩到的两个坑（都不是代码问题）**
+
+- **dev server 起不来**：加了 `yaml` 之后 `vite.config.ts` 的依赖图变了 ⇒ Vite 要
+  `rm -rf node_modules/.vite/deps`（163 项）⇒ 撞 harness 的**批量删除守卫**（每轮 50 项上限），
+  `error when starting dev server`。解法：手工 `rm -rf node_modules/.vite/deps node_modules/.vite/deps_temp_*`
+  再起。**症状伪装成"配置/代码坏了"**，实际是守卫。
+- **Node 裸跑 `--experimental-strip-types` 加载 `noticeMeta.ts` 失败**
+  （`ERR_UNSUPPORTED_DIR_IMPORT`：`../rng` 是目录 import）。临时探针改用 vitest 跑
+  （走 Vite 的解析）才通 —— 这也反过来印证了"这个模块只该经 Vite / Playwright 其中之一加载"。
+
+**测试怎么改的（容易漏的点）**
+
+- `notices.test.ts` 里原来那条「某条取不到正文 ⇒ 直接抛」改成按 `NOTICE_FILES`（不再是
+  `noticeMeta[0].bodyFile`）指出第一个缺的；新增「入参里多出来的文件被忽略」。
+- **新增一整组 frontmatter 用例**（15 条）：正常解析 / 缺 frontmatter / 未闭合 / YAML 语法错带行号 /
+  缺 `id` / 缺 `title` / title 只写一半 / 拼错字段名 / `pinned` 非布尔 / 日期非字符串 /
+  `close` 非双语 / frontmatter 非映射 / frontmatter 为空。
+- **日期那条用例最后按实测改了断言**：`yaml` v2 走 **YAML 1.2 核心 schema**，
+  `date: 2026-10-01` **不会**被当时间戳（是字符串）⇒ 我们的日期字段天然没有时区脆性；
+  会变成非字符串的是 `12345`（number）/ `true`（boolean）/ `{a: 1}`（map），这几种必须报错。
+
+**没做的**
+
+- 不做每条的展示字段（图标 / 颜色 / 宽度）—— 用户明确"只需排序 + 可见性"。
+- 不做多文件包含 / frontmatter 里的 Markdown 插值 —— 一条公告一个文件，保持简单。
+- 不改已有的 `id`（那是存档键）。
+
+## D188 公告加 `draft: true`：构建期就把草稿摘掉，且**只校验结构、不校验字段**（2026-10-08）
+
+**背景**（用户逐字要求）：
+
+> 现有frontmatter有什么，功能是什么。能否加入 `draft: <true|false>`，为true不显示
+
+先回答了"现有 frontmatter 有什么"（D187 的 7 个字段与各自作用，见表），再确认：
+
+- **`draft: true` 从哪一层消失**：「**构建期直接踢出列表**」⇒ 不是运行时过滤，是 `buildNoticeContent` 里滤掉；
+- **要不要统一"不显示"的表达**：「**要，加 `draft` 并保留 `from` 用法**」⇒ 两个都留，分工见下；
+- **草稿里 frontmatter 写错要不要照常报错**：「**不校，直接跳过**」⇒ 但**只在字段这一档跳过**，理由见下面 (c)；
+- **e2e 要不要跟着踢草稿**：「**自动跟随后端（推荐）**」⇒ e2e 侧**一行没改**，因为两边共用 `buildNoticeContent`。
+
+### 先回答"现有 frontmatter 有什么"
+
+D187 落地的 7 个字段，以及它们各自的**唯一职责**：
+
+| 字段 | 类型 | 作用 | 不写的默认 |
+|---|---|---|---|
+| `id` | 字符串（必填，`^[a-z0-9-]+$`） | **存储键的一部分**（`tmc.v1.notice.<id>`），发布后不能改 | 无（必填） |
+| `title` | `{ en, zh }`（必填，两份都要非空） | 弹窗标题 | 无（必填） |
+| `close` | `{ en, zh }` | 「关闭」按钮文案 | `Close` / `关闭` |
+| `from` | `YYYY-MM-DD` | **生效起点**（含当天，本地时间） | 立即生效 |
+| `until` | `YYYY-MM-DD` | **生效终点**（含当天） | 不过期 |
+| `date` | `YYYY-MM-DD` | **只决定排序**（谁在前），**不决定能不能看** | 视为最旧 |
+| `pinned` | 布尔 | 排到所有非置顶之前（置顶之间仍按 `date` 新→旧） | 不置顶 |
+
+其中**最容易搞混的一条**（D187 就特意分开、并有用例守着）：`date` 与 `from`/`until` 是两件事。
+`date` 动的是"排哪儿"，`from`/`until` 动的是"能不能看"。调排序不该顺手改变生效窗口，反之亦然。
+`noticeFingerprint` 只吃 `id + title + body`（`Pick<NoticeContent, "id" | "title" | "body">`），
+所以**改 `date` / `from` / `pinned` / `draft` 都不会让用户被重新打扰** —— 这是类型层面的保证。
+
+### `draft` 与 `from: 未来` 的分工（两个都能"让用户看不到"，别混用）
+
+| 手段 | 语义 | 在哪一层生效 | 下游能不能拿到 |
+|---|---|---|---|
+| `draft: true` | **这篇还没写好** | **构建期**（`buildNoticeContent`） | **拿不到** —— 条目被摘掉 |
+| `from: 未来` | **写好了、排期上线** | 运行时（`noticesInWindow`） | 拿得到，只是在窗口外 |
+
+结论：**起草中用 `draft: true`**（连 e2e 夹具都不会被它影响）；**已定稿、只是不想立刻发**的用 `from`。
+
+### (a) 实现：一行短路 + 一处过滤
+
+`parseNoticeFile` 在**字段校验之前**短路（`noticeMeta.ts`）：
+
+```ts
+// ---- 先看 draft：是草稿就直接交差，且**跳过下面所有的字段校验** ----
+if (record.draft === true) {
+  return null;
+}
+```
+
+`buildNoticeContent` 把 `null` 滤掉，且**过滤放在排序之前**：
+
+```ts
+const notices = sortNotices(parsed.filter((notice): notice is NoticeContent => notice !== null));
+```
+
+**为什么放构建期而不是运行时**（用户选的）：`noticesInWindow` / `pickAutoNotices` / `openManually` /
+e2e 夹具**全都在 `buildNoticeContent` 的下游**，在源头摘掉 ⇒ 下游**没有一处需要知道 `draft` 的存在**，
+也就不可能"某个下游忘了判 `draft`"。这是把"不变量"尽可能往上游推的老套路。
+
+**`NoticeContent` 里留了 `draft?: boolean`**（可选字段），但 **`parseFrontmatterFields` 不往结果里塞它**：
+能走到那里的 `draft` 只可能是 `false` / 没写，而"非草稿"就是默认状态 ⇒
+塞一个恒为 `false` 的字段只会让下游多一条无意义的判断。字段留在类型里是为了让 `draft: true`
+在 `.md` 侧**有据可查**（类型即文档），不是因为运行时用得到。
+
+### (b) `draft` 只认**布尔 `true`** —— 故意不宽容
+
+`record.draft === true` 是**严格比较**。写 `draft: yes` / `draft: 1` / `draft: "true"` **都不算草稿**，
+会走正常校验、然后被这条拦下：
+
+```
+xxx.md：`draft` 只能是 `true` / `false`（不带引号）。
+```
+
+**为什么宁可报错也不宽容**：若把 `yes` 也认成草稿，一个**拼错/写歪**的 `draft` 就会**静默把公告藏起来**
+—— 公告"设置了却看不见"是这套系统里最难查的症状。报错至少当场告诉你。
+
+⚠️ **边界由 YAML 1.2 决定，不是我们挑的**（探针实测，见"验证状态"）：
+
+| 写法 | YAML 解析结果 | 类型 | 算草稿？ |
+|---|---|---|---|
+| `true` / `True` / `TRUE` | `true` | boolean | ✓ **算**（YAML 1.2 布尔大小写不敏感） |
+| `false` / `False` / `FALSE` | `false` | boolean | ✗（正常公告） |
+| `yes` / `no` / `on` / `off` | `"yes"` … | **string** | ✗ ⇒ 报错 |
+| `1` | `1` | number | ✗ ⇒ 报错 |
+| `"true"` / `"TRUE"` | `"true"` … | string | ✗ ⇒ 报错 |
+| 空值 / `null` | `null` | object | ✗ ⇒ 报错 |
+
+**`True` 大写算草稿**这条最反直觉，也**正是被真实失败揪出来的**：我原本的用例断言
+`["yes","1","\"true\"","True"]` 全该报错，跑出来 `True` 那条红 —— 探针一跑才知道
+**YAML 1.2 规定布尔就 `true`/`True`/`TRUE`/`false`/`False`/`FALSE` 六种写法、大小写不敏感**，
+`True` 就是真布尔 `true`。**代码是对的，用例是错的**（详见 (e)）。
+`yes`/`no`/`on` 在 YAML **1.2 里是字符串**（1.1 才当布尔，即所谓"挪威问题"，1.2 改名就是为消除它）。
+
+### (c) 两档校验：**结构照报，字段跳过** —— 这是我把用户的"不校"收窄了，在此说明
+
+用户选的是「**不校，直接跳过**」。落地时我把它**收窄成"只跳过字段校验，结构性错误照报"**，
+理由是后者没有"先凑合写"的余地：
+
+| 校验档 | 例子 | 草稿里 |
+|---|---|---|
+| **结构**：`---` 缺失/未闭合、YAML 语法错、frontmatter 不是映射 | `title: { en: A` 少个 `}` | **照报** |
+| **字段**：必填项缺失、字段名拼错、类型不对、值不合法 | `tilte: x`、缺 `title`、`pinned: yes` | **跳过** |
+
+- 结构档不放过：这类错的后果是"**连正文都取不出来**"（`---` 没闭合 ⇒ **整份文件**都被当 frontmatter），
+  与"字段写没写好不好"无关，没有"写一半先存着"的解释空间。
+- 字段档放过：这是用户明确要的 —— 草稿要能"写一半先存着"（可以只有 `draft: true` 一个字段）。
+
+⚠️ **代价（已知并接受）**：草稿里的字段错**不会在草稿期暴露**，会在你把 `draft` 去掉的那一刻**一起爆**，
+而那时通常是你最想发公告的时候。这个取舍写在 `DRAFT_NOTE` 常量里（只是文档，无运行时作用）。
+
+### (d) 三份 `.md` 的改动
+
+- `src/content/notices/draft.md`：`from: "2099-01-01"` → **`draft: true`**（语义更准：这是草稿，
+  不是"排期到 2099 年"）。这是**唯一**一条改了 frontmatter 的公告，另两条一字未动。
+- 该文件现在**只靠 `draft: true` 就能藏住**，所以它从一个"靠远离时间窗躲起来"的样本，
+  变成"构建期就摘掉"的样本 —— 用途更纯粹（仍挂在 `NOTICE_FILES` 里，顺便吃到结构校验）。
+- `src/content/notices.ts`：`NOTICE_FILES` 上的说明补了一句"列了草稿是安全的"，表格加了一行
+  `起草中、先别让人看到 | draft: true（构建期摘掉，比 from 更彻底）`。
+- `e2e/noticeContent.ts`：**一行未改** —— 它本来就经 `NOTICE_FILES` + `buildNoticeContent`，
+  草稿自动被摘（正是"自动跟随后端"的意思）。
+
+### (e) 测试：新增 7 条，其中 1 条是"按实测纠正我自己的假设"
+
+`src/content/notices.test.ts` 新增一整组（7 条）：返回 `null` / 跳过字段校验 / 结构错仍报 /
+非布尔报错 / **`True` 算草稿** / `false` 与不写等价 / 拼装时草稿不出现在结果里。
+
+**"按实测纠正假设"这一条的经过值得留档**：我最初的用例断言 `True` 该报错，跑出来红。
+**诊断顺序是"先探针后改码"而不是"先改码"** —— 用一个临时 `src/content/__probe_draft.test.ts`
+把 `draft:` 后面十几种写法各跑一遍、打印值与 `typeof`，确认 `True` 在 YAML 1.2 下**就是布尔 `true`**。
+于是结论是**测试的期望错了、解析器没错**，改测试（拆成"非布尔报错" + "`True`/`TRUE` 算草稿"两条），
+**代码一个字符没动**。探针用完即删。
+
+> 这条留档的意义：`draft` 的判定边界"看起来像我们定的业务规则"，其实是 **YAML 规范定的**。
+> 下次有人想改这段，先想到去查 YAML 1.2，而不是去改 `=== true`。
+
+### 验证状态（诚实记录）
+
+| 项 | 结果 |
+|---|---|
+| `tsc --noEmit` | ✓ 干净 |
+| `pnpm test:file src/content/notices.test.ts` | ✓ **1 file / 34 passed**（33 + 拆出并新增的 1 条） |
+| `pnpm test:related src/content/noticeMeta.ts` | ✓ **6 files / 109 passed**（改前 102 ⇒ +7） |
+| YAML 行为探针 | ✓ 实测 12 种写法的值与类型（含 `True`=boolean），探针已删 |
+| `pnpm e2e` / `pnpm test:chromium` / `pnpm license:lint` / `pnpm gate` | **未跑** —— 用户明确"先不要全量测试"，等发话 |
+
+**一个本机坑（再犯了一次）**：vitest 的 `include` 是 **`src/**/*.test.{ts,tsx}`** ⇒ 探针必须放进 `src/`
+才收得上（放 `%TEMP%` 会被静默忽略、报告"没有测试"）。用完记得删 —— 它会被 `tsc` 一起检。
+
+**没做的**
+
+- 不做"草稿列表 / 草稿预览界面" —— 草稿就是不该出现在任何界面里。
+- 不让 `draft` 进指纹（与 `date` 同理：它不是内容）。
+- 不校验草稿的字段（见 (c) 的取舍）—— 这是**有意**留的缺口，不是漏了。
+
+

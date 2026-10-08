@@ -39,7 +39,7 @@ import { ListPanel } from "../panels/ListPanel";
 import { AboutDialog } from "../components/AboutDialog";
 import { NoticeDialog } from "../components/NoticeDialog";
 import { aboutContent } from "../../content/about";
-import { activeNotice, noticeOpen, useNotices } from "../../store/notices";
+import { activeNotices, noticeMode, noticeOpen, useNotices } from "../../store/notices";
 import { packAuthorsFor } from "../../music/packAuthors";
 
 const ALICE_LABELS = [
@@ -84,17 +84,19 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
   /** 「关于」弹窗的开合：纯界面状态（不落盘、不进联机快照），所以留在组件里 */
   const [aboutOpen, setAboutOpen] = useState(false);
   /**
-   * 站内公告（`src/content/notices.ts`）：**首帧自动弹**（有一条没被「不再显示」过且在当前时间窗内）、
-   * 关掉之后靠应用栏的「提示」按钮随时能翻出来看。是否弹过的记录在 `localStorage`（每条一个键），
+   * 站内公告（`src/content/notices.ts`）：**首帧自动弹**（有一条**没关过**且在当前时间窗内）、
+   * 关掉之后靠应用栏的「公告」按钮随时能翻出来看 —— D185 起入口打开的是**列表**，
+   * 按展示顺序列出全部在生效窗口内的公告。是否弹过的记录在 `localStorage`（每条一个键），
    * 不属于联机快照，也不进 `SessionConfigWire`。
    *
-   * 选择器分成三次取**稳定引用**（对象/布尔/对象）—— 不要合成一个对象返回：
+   * 选择器各取**稳定引用**（数组/布尔/字符串字面量/对象）—— 不要合成一个对象返回：
    * zustand 默认用 `Object.is` 比对，每次新建对象会让组件每渲染一次就自转一次。
-   * `active` 要么是 `noticeContent` 里的那个**常量对象**、要么是 `null`，身份是稳的。
+   * 那两份数组都是 store 里**存着的常量引用**（空表那个 `NONE`，或点入口时算一次的那个数组），
+   * 所以 `useNotices(activeNotices)` 每次拿到的是同一个身份。
    */
-  const activeNoticeContent = useNotices(activeNotice);
+  const noticeList = useNotices(activeNotices);
   const noticeIsOpen = useNotices(noticeOpen);
-  const noticeDismissChecked = useNotices((slice) => slice.dismissChecked);
+  const noticeIsList = useNotices(noticeMode) === "manual";
   const session = useSession();
   const {
     tab, setTab, locale, cardCollection, musicMode, localMusicUrl,
@@ -434,8 +436,9 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
           <Button color="secondary" onClick={jumpToAlice} disabled={gameActive} sx={{ minWidth: 0 }}>
             {aliceLabel(isSmallScreen)}
           </Button>
-          {/* 站内公告的**常驻入口**：关掉弹窗之后（尤其勾了「不再显示」）随时能翻出来看。
-              放在「关于」旁边、并在它**之前**（用户 2026-10-04 指定）。规格与 about-open 逐字相同。 */}
+          {/* 站内公告的**常驻入口**：关掉弹窗之后（D186 起"关闭 = 不再自动弹"）随时能翻出来看。
+              放在「关于」旁边、并在它**之前**（用户 2026-10-04 指定）。规格与 about-open 逐字相同。
+              D185：点开的是一份**列表**（全部在生效窗口内的公告，按置顶→日期由新到旧）。 */}
           <IconButton
             color="inherit"
             onClick={() => useNotices.getState().openManually()}
@@ -461,13 +464,13 @@ export function AppShell({ bundle }: { bundle: DataBundle }) {
       {/* 「关于」弹窗：内容真源 `src/content/about.ts`，Esc / 点遮罩 / 「关闭」按钮都能关 */}
       <AboutDialog open={aboutOpen} onClose={() => setAboutOpen(false)} packAuthors={packAuthors} />
 
-      {/* 站内公告：内容真源 `src/content/notices.ts`。首帧自动弹（`useNotices` 里算的），
-          关掉之后由应用栏的「提示」按钮手动打开。勾选框受控，值在关闭时才落盘。 */}
+      {/* 站内公告：内容真源 `src/content/notices.ts`。首帧自动弹（`useNotices` 里算的，可能多条），
+          关掉之后由应用栏的「公告」按钮手动打开 —— 手动打开时是一份**列表**（D185）。
+          弹窗上只有「关闭」一个动作，落盘全在 `useNotices.close()` 里（D186）。 */}
       <NoticeDialog
-        notice={activeNoticeContent}
+        notices={noticeList}
+        mode={noticeIsList ? "manual" : "auto"}
         open={noticeIsOpen}
-        dismissChecked={noticeDismissChecked}
-        onDismissCheckedChange={(value) => useNotices.getState().setDismissChecked(value)}
         onClose={() => useNotices.getState().close()}
       />
 

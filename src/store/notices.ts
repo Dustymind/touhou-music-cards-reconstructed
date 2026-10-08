@@ -1,15 +1,34 @@
 /** 公告的本地记录：**每条公告一个键**（`tmc.v1.notice.<id>`），互不影响。
  *
- * 三条设计（对应 `docs/DECISIONS.md` D182）：
+ * 三条设计（对应 `docs/DECISIONS.md` D182；第 2 条已被 **D186** 改写）：
  *
  * 1. **每条独立**：`localStorage` 键名带公告 id（走 `persist.ts` 的版本化信封）——
  *    删掉一条不影响另一条，将来加第三条也不用动老数据。
- * 2. **"关闭"与"不再显示"分开**：只点「关闭」= 这次看完就收，**下次进站还会弹**；
- *    勾了「不再显示」= 以后**不自动弹**（但入口按钮永远在，随时能翻出来看）。
- *    勾选框是**双向**的：手动打开时它显示为已勾，用户**取消勾选再关闭 = 撤销**"不再显示"
- *    ⇒ 下次进站会重新弹（见 `close()` 里的注释与 D182 修正）。
- * 3. **内容指纹**：记下"勾不再显示时那条公告长什么样"。日后**内容改了**（指纹变了）
+ * 2. **点「关闭」= 以后不再自动弹**（D186）。弹窗上只有「关闭」**一个**动作、没有勾选框：
+ *    关掉就是"我看过了，别再自动弹"。想再看回来走**右上角的「公告」入口**（永远在、随时能翻出来）——
+ *    所以弹窗底部带一行告知（`ShellNoticeHint`），专门告诉用户那条路在哪。
+ *
+ *    ⚠️ D182～D185 之间**不是**这样：那时"只点关闭"= 下次进站还会弹，另有「不再显示」勾选框，
+ *    并且**取消勾选再关闭 = 撤销**。D186 按用户要求把勾选框整个弃用 ⇒ 现在**没有**
+ *    "让它重新自动弹"的 UI 通路。这是**有意的一扇单向门**：入口永远能看，但不再打扰。
+ * 3. **内容指纹**：记下"关掉时那条公告长什么样"。日后**内容改了**（指纹变了）
  *    ⇒ 重新自动弹一次 —— 否则"关掉过一次"等于永久静音，重要通知发不出去。
+ *    这是单向门唯一的例外，也是它唯一该有的例外。
+ *
+ * ---- 边界：本模块**不定义展示顺序**（D185）----
+ *
+ * 谁排前面（置顶优先 → `date` 由新到旧）在 `src/content/noticeMeta.ts` 的 `sortNotices`，
+ * `noticeContent.notices` 取出来就是排好的。本模块只负责"在排好的顺序里挑哪些显示、
+ * 记下用户做过什么"，所以自动弹的那批与入口打开的那份列表**必然同一个顺序**。
+ *
+ * 两种打开方式（**区别只在"挑哪些"，不在"排哪样"**）：
+ * - **进站自动弹**：把**全部该弹的**一次摆出来（`pickAutoNotices`）—— 一批，不是一条；
+ *   判据 ① 在生效窗口内 ② 没**关过**（或内容变过 ⇒ 指纹不符）。
+ * - **入口按钮手动打开**：列**全部在生效窗口内**的（同一顺序），**不受**"关过"限制
+ *   —— 用户主动要看就该看得到 —— 关过也照样列。
+ *
+ * ⚠️ **曾经只弹一条**（"顺序里第一条符合条件的"）。用户 2026-10-07 反馈"主页开屏未能同时显示
+ * 多个公告"后改成一批：多条同时有效时，第二条不该被压着等第一条关掉。
  *
  * 本模块**只管"用户做过什么"，不存公告内容本身**（内容真源在 `src/content/notices.ts`）。
  */
@@ -23,11 +42,11 @@ import { defineStore, isRecord, pickBoolean, pickNumber, pickString } from "../p
 
 /** 一条公告的本地记录。 */
 export interface NoticeRecord {
-  /** 用户点过「关闭」（不管有没有勾「不再显示」） */
+  /** 用户点过「关闭」（D186 起：弹窗只有这一个动作，所以"关过"就等于"看过"） */
   closed: boolean;
-  /** 用户勾了「不再显示」—— 之后**不再自动弹** */
+  /** 关过 ⇒ **不再自动弹**（想看只能走右上角「公告」入口）。见 D186。 */
   dismissed: boolean;
-  /** 勾「不再显示」时那条公告的内容指纹（内容改了 ⇒ 重新弹，见 §3） */
+  /** 关掉那一刻那条公告的内容指纹（内容改了 ⇒ 重新弹一次，见 §3） */
   fingerprint: string;
   /** 最近一次关闭的时间戳（ms，纯诊断用，不参与任何判断） */
   at: number;
@@ -63,7 +82,7 @@ function storeFor(id: string) {
 /**
  * 一条公告的**内容指纹**：改了标题或正文就算"新内容"，该重新提示一次。
  *
- * ⚠️ 实现**已搬到 `../content/noticeMeta`**（只算 `id` + 标题 + 正文，窗口字段进不来）。
+ * ⚠️ 实现**已搬到 `../content/noticeMeta`**（只算 `id` + 标题 + 正文，窗口与排序字段进不来）。
  * 搬家的原因：e2e 的 `suppressNotice` 要用同一个指纹，而 e2e 不能 import 到
  * `../content/notices`（那边有 `?raw`）。**不要在这里重新定义一份** —— 两份迟早会不一致，
  * 而不一致的后果是"e2e 里公告压不住"这种难查的现象。要用就从 `../content/noticeMeta` import。
@@ -93,54 +112,65 @@ export function noticeInWindow(notice: NoticeContent, now: Date = new Date()): b
 }
 
 /**
- * 选择"现在该自动弹哪一条"：按 `notices` 数组顺序取**第一条**同时满足
- * ① 在生效时间窗内 ② 没勾过「不再显示」，或**内容变过**（指纹不符）的公告。
+ * **在生效窗口内**的公告，按展示顺序（`noticeContent.notices` 已经排好，`filter` 保序）。
  *
- * 返回 `null` = 一条都不该弹。**这是纯函数**（记录按 id 现读），便于单测注入时间。
+ * 返回的是**新数组** ⇒ 别把它放进 zustand 选择器里现算（每次渲染都是新引用，组件会空转）；
+ * 要么当一次性结果用（`pickAutoNotices`），要么存进 store（`manualNotices`）。
  */
-export function pickAutoNotice(
+export function noticesInWindow(
   notices: readonly NoticeContent[] = noticeContent.notices,
   now: Date = new Date(),
-): NoticeContent | null {
-  for (const notice of notices) {
-    if (!noticeInWindow(notice, now)) continue;
+): NoticeContent[] {
+  return notices.filter((notice) => noticeInWindow(notice, now));
+}
+
+/**
+ * 选择"现在该自动弹**哪些**"：展示顺序里**全部**同时满足
+ * ① 在生效时间窗内 ② 没**关过**，或**内容变过**（指纹不符）的公告。
+ *
+ * 返回空数组 = 一条都不该弹。**这是纯函数**（记录按 id 现读），便于单测注入时间。
+ *
+ * ⚠️ 是**一批**，不是"一条"（D185 修正）：多条公告同时有效时，开屏要把它们**一起**摆出来。
+ * 顺序 = 传进来的顺序（`noticeContent.notices` 已在 content 层排好）⇒
+ * 开屏这批与入口那份列表**同一顺序**；两者只差"关过的那条还列不列"。
+ */
+export function pickAutoNotices(
+  notices: readonly NoticeContent[] = noticeContent.notices,
+  now: Date = new Date(),
+): NoticeContent[] {
+  return noticesInWindow(notices, now).filter((notice) => {
     const record = readNoticeRecord(notice.id);
-    if (!record.dismissed) return notice;
-    // 勾过不再显示：只有内容变了才重新弹
-    if (record.fingerprint !== noticeFingerprint(notice)) return notice;
-  }
-  return null;
+    if (!record.dismissed) return true;
+    // 关过：只有内容变了才重新弹
+    return record.fingerprint !== noticeFingerprint(notice);
+  });
 }
 
-/** 手动打开时用哪一条：**第一条在生效窗口内的**（不受「不再显示」限制 —— 用户主动要看）。 */
-export function pickManualNotice(
-  notices: readonly NoticeContent[] = noticeContent.notices,
-  now: Date = new Date(),
-): NoticeContent | null {
-  return notices.find((notice) => noticeInWindow(notice, now)) ?? null;
+/** 空列表的**同一个常量**：让选择器返回稳定引用（每次现写 `[]` 都是新对象，会让组件空转）。 */
+const NONE: readonly NoticeContent[] = [];
+
+/** 空的一批统一换成 `NONE`（同上：引用稳定）。 */
+function orNone(notices: NoticeContent[]): readonly NoticeContent[] {
+  return notices.length === 0 ? NONE : notices;
 }
 
-/** 首屏算出来的"该自动弹的那条"。 */
-const initialAuto = pickAutoNotice();
+/** 首屏算出来的"该自动弹的那一批"。 */
+const initialAuto = orNone(pickAutoNotices());
 
 interface NoticesState {
-  /** 当前应该**自动弹出**的那条（没有就是 `null`）。首帧算一次，之后由用户动作更新。 */
-  autoNotice: NoticeContent | null;
-  /** 用户点入口按钮**手动打开**的那条（`null` = 没开）。手动打开**不受**「不再显示」限制。 */
-  manualNotice: NoticeContent | null;
-  /** 「不再显示」勾选框的当前值（每次打开时按已存记录重置）。 */
-  dismissChecked: boolean;
+  /** 该**自动弹**的那一批（可能 0 条、可能多条）。用数组是为了让选择器拿到**稳定引用**（见 `AppShell` 的注释）。 */
+  autoNotices: readonly NoticeContent[];
+  /** 手动打开时要显示的那一批（`null` = 没手动打开）。点入口时算一次 ⇒ 引用稳定。 */
+  manualNotices: readonly NoticeContent[] | null;
 
-  /** 勾选框：**只改内存里的值**，等点「关闭」才落盘（关掉弹窗 = 放弃这次选择）。 */
-  setDismissChecked: (value: boolean) => void;
   /**
-   * 点「关闭」：把这条记成已关闭；`dismissChecked` 为真时同时记下「不再显示」+ 内容指纹。
-   * 关掉之后**不再自动弹**（本次会话内），并清掉手动打开态。
+   * 点「关闭」：把当前显示的这**一批**逐条记成"看过" —— `closed` + `dismissed` + **关的那一刻的内容指纹**。
+   * 关掉之后**不再自动弹**（本次会话内也清空）；想看回来走右上角的「公告」入口（`openManually`）。
    */
   close: () => void;
   /**
-   * 点入口按钮：手动打开（第一条在窗口内的公告）。
-   * 勾选框初始值 = 已存的 `dismissed`（用户可以顺手取消勾选，下次就又会自动弹）。
+   * 点入口按钮：手动打开**全部在窗口内**的公告（同一展示顺序）。
+   * **不受**"关过"限制 —— 那是"别再自动弹"，不是"不许看"。
    */
   openManually: () => void;
   /** 测试/诊断：把一条公告的本地记录清掉（等价于"这个用户从没见过它"）。 */
@@ -148,55 +178,57 @@ interface NoticesState {
 }
 
 export const useNotices = create<NoticesState>((set, get) => ({
-  autoNotice: initialAuto,
-  manualNotice: null,
-  dismissChecked: false,
-
-  setDismissChecked(value) {
-    set({ dismissChecked: value });
-  },
+  autoNotices: initialAuto,
+  manualNotices: null,
 
   close() {
-    const notice = get().manualNotice ?? get().autoNotice;
-    if (!notice) return;
-    const checked = get().dismissChecked;
-    const record: NoticeRecord = {
-      closed: true,
-      // 勾选框是**双向**的：勾上 = 记下"不再显示" + 当时的内容指纹；**取消勾选 = 撤销**（D182 修正）。
-      // ⚠️ 这里**不能**写成"未勾时保留存里的旧值" —— 那样 `openManually` 回填出来的"已勾"就成了假开关：
-      // 用户取消勾选再关闭，`dismissed` 仍是 `true`，下次照样不弹（而注释与界面都承诺"会重新弹"）。
-      dismissed: checked,
-      fingerprint: checked ? noticeFingerprint(notice) : readNoticeRecord(notice.id).fingerprint,
-      at: Date.now(),
-    };
-    writeNoticeRecord(notice.id, record);
-    // 关掉之后本次会话不再自动弹这条（`pickAutoNotice` 也拿不到它了：closed 不影响、
-    // dismissed 才影响 —— 这里显式清掉 autoNotice，用户没勾的话刷新页面会再弹一次，符合预期）
-    set({ autoNotice: null, manualNotice: null, dismissChecked: false });
+    const notices = activeNotices(get());
+    if (notices.length === 0) return;
+    const at = Date.now();
+    for (const notice of notices) {
+      // D186：弹窗只有「关闭」一个动作 ⇒ 关掉就是"不再自动弹"。**每一批里的每一条**都要落盘，
+      // 否则开屏弹了 3 条、关掉后另外 2 条下次还会跳出来。
+      // 指纹必须记**此刻**的（不是旧的）：它是"内容改了要重新弹一次"的唯一判据，
+      // 记错就等于要么静音了新内容、要么每次进站都重弹。
+      writeNoticeRecord(notice.id, {
+        closed: true,
+        dismissed: true,
+        fingerprint: noticeFingerprint(notice),
+        at,
+      });
+    }
+    // 关掉之后本次会话不再自动弹（`pickAutoNotices` 本来就拿不到它们了 —— 落盘已经生效，
+    // 这里只是把内存态一起收干净）。
+    set({ autoNotices: NONE, manualNotices: null });
   },
 
   openManually() {
-    const notice = pickManualNotice();
-    if (!notice) return;
-    set({
-      manualNotice: notice,
-      autoNotice: null,               // 手动打开时不重复弹
-      dismissChecked: readNoticeRecord(notice.id).dismissed,
-    });
+    const notices = noticesInWindow();
+    if (notices.length === 0) return;
+    set({ manualNotices: notices });
   },
 
   forget(id) {
     storeFor(id).clear();
-    set({ autoNotice: pickAutoNotice(), manualNotice: null, dismissChecked: false });
+    set({ autoNotices: orNone(pickAutoNotices()), manualNotices: null });
   },
 }));
 
-/** 当前要显示的公告（手动优先）。 */
-export function activeNotice(state: NoticesState): NoticeContent | null {
-  return state.manualNotice ?? state.autoNotice;
+/** 当前要显示的公告列表（**手动打开的那份列表优先**于进站自动弹的那批）。 */
+export function activeNotices(state: NoticesState): readonly NoticeContent[] {
+  return state.manualNotices ?? state.autoNotices;
 }
 
 /** 弹窗是否打开。 */
 export function noticeOpen(state: NoticesState): boolean {
-  return activeNotice(state) !== null;
+  return activeNotices(state).length > 0;
+}
+
+/**
+ * 这次是"手动打开的列表"还是"进站自动弹的那批" —— 决定版式（`NoticeDialog` 用）。
+ * 返回的是字符串字面量（不是新对象），所以直接进 zustand 选择器也不会让组件空转。
+ */
+export function noticeMode(state: NoticesState): "auto" | "manual" | "closed" {
+  if (state.manualNotices !== null) return "manual";
+  return state.autoNotices.length > 0 ? "auto" : "closed";
 }
