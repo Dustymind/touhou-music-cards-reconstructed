@@ -92,6 +92,7 @@ export interface NoticesContent {
  * 挂在清单里能拿到 frontmatter 的语法校验（结构错照报），摘掉字段校验（见 `parseNoticeFile`）。
  */
 export const NOTICE_FILES: readonly string[] = [
+  "2026-10-09.md",
   "welcome-2026-10.md",
   "draft.md",
   "example.md",

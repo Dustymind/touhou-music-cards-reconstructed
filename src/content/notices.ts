@@ -81,6 +81,7 @@ import { buildNoticeContent } from "./noticeMeta";
 // （`vite/client` 里已有类型声明）。**文件名 → 原文**，解析交给 `buildNoticeContent`。
 import draftSource from "./notices/draft.md?raw";
 import exampleSource from "./notices/example.md?raw";
+import notice20261009Source from "./notices/2026-10-09.md?raw";
 import welcomeSource from "./notices/welcome-2026-10.md?raw";
 
 export * from "./noticeMeta";
@@ -88,6 +89,7 @@ export * from "./noticeMeta";
 /** 文件名 → **整个文件的原文**（含 frontmatter）。**加了 `notices/*.md` 就要在这里挂上**
  *  （挂上之前它等同于不存在）。`NOTICE_FILES` 是唯一入口清单，两边必须对得上。 */
 const bodies: Readonly<Record<string, string>> = {
+  "2026-10-09.md": notice20261009Source,
   "draft.md": draftSource,
   "example.md": exampleSource,
   "welcome-2026-10.md": welcomeSource,
